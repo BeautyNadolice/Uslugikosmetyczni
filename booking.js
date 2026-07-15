@@ -1,18 +1,18 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfcFEYAXHDAdR8XGSm2apyf4ThqJ3I99Z1KJhhrZCgK32dUAIeCExNFzp2oSUrBQ2Dmw/exec"; 
 
-let iti; // Переменная для хранения объекта выбора страны
+let iti; // Переменная для флагов стран
 
-// Инициализация флагов при загрузке страницы
+// Инициализация флагов стран при загрузке страницы
 document.addEventListener("DOMContentLoaded", () => {
   const phoneInput = document.getElementById("clientPhone");
   if (phoneInput) {
     iti = window.intlTelInput(phoneInput, {
       initialCountry: "pl", // По умолчанию Польша
-      preferredCountries: ["pl", "ua", "by", "is"], // Самые частые страны в топе списка
+      preferredCountries: ["pl", "ua", "by", "is"], // Сначала самые частые страны
       utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
     
-    // При изменении номера — проверяем клиента в базе
+    // Запускаем проверку базы, когда пользователь уводит курсор с поля ввода телефона
     phoneInput.addEventListener("blur", checkExistingClient);
   }
 });
@@ -33,10 +33,17 @@ function closeBookingModal() {
   }
 }
 
-// Автозаполнение по телефону + вывод последнего визита
+// Закрыть форму при клике на темный фон вокруг нее
+window.onclick = function(event) {
+  const modal = document.getElementById("bookingModal");
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+}
+
+// Автозаполнение по телефону + вывод истории визита
 async function checkExistingClient() {
-  // Получаем полный номер с кодом страны (например, +48111222333)
-  const fullPhoneNumber = iti.getNumber(); 
+  const fullPhoneNumber = iti.getNumber(); // Берем полный международный номер (+48...)
   if (fullPhoneNumber.length < 9) return; 
 
   const statusEl = document.getElementById("loadingStatus");
@@ -53,9 +60,9 @@ async function checkExistingClient() {
       
       let statusText = "<strong>Znaleziono klienta! Dane uzupełnione.</strong>";
       
-      // Если у нас есть данные о последнем визите — показываем их!
+      // Если пришел последний визит — красиво выводим его под полем телефона
       if (data.lastVisit) {
-        statusText += `<br><span style="color: #444; font-size: 0.9em;">Ostatnia wizyta: ${data.lastVisit.date} (${data.lastVisit.service})</span>`;
+        statusText += `<br><span style="color: #555; font-size: 0.9em; display: inline-block; margin-top: 4px;">Ostatnia wizyta: ${data.lastVisit.date} (${data.lastVisit.service})</span>`;
       }
       
       statusEl.style.color = "green";
@@ -70,7 +77,7 @@ async function checkExistingClient() {
   }
 }
 
-// Отправка формы в Google
+// Отправка формы в базу данных и календарь Google
 async function submitForm(event) {
   event.preventDefault();
 
@@ -78,8 +85,7 @@ async function submitForm(event) {
   submitBtn.disabled = true;
   submitBtn.innerText = "Wysyłanie...";
 
-  // Берем форматированный международный номер
-  const fullPhoneNumber = iti.getNumber(); 
+  const fullPhoneNumber = iti.getNumber(); // Полный номер с кодом страны
 
   const payload = {
     phone: fullPhoneNumber,
@@ -104,7 +110,7 @@ async function submitForm(event) {
       alert("Wystąpił problem z rezerwacją. Spróbuj ponownie.");
     }
   } catch (error) {
-    alert("Wystąpiл błąd podczas rezerwacji. Spróbuj ponownie.");
+    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
   } finally {
     submitBtn.disabled = false;
