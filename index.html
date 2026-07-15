@@ -110,14 +110,18 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="serviceType">Wybierz usługę *</label>
-                    <select id="serviceType" required>
-                        <option value="" disabled selected>-- Wybierz zabieg --</option>
-                        <option value="Stylizacja rzęs i brwi">Stylizacja rzęs i brwi</option>
-                        <option value="Manicure">Manicure</option>
-                        <option value="Pedicure">Pedicure</option>
-                    </select>
-                </div>
+    <label for="serviceType">Wybierz usługę *</label>
+    <select id="serviceType" required onchange="updatePrice()">
+        </select>
+    <div id="priceDisplay" style="margin: 8px 0; font-weight: bold; color: #C2A383; font-size: 15px;"></div>
+</div>
+
+<div class="form-group">
+    <label for="appointmentTime">Wybierz wolny termin *</label>
+    <select id="appointmentTime" required>
+        <option value="">-- Najpierw wybierz usługę --</option>
+    </select>
+</div>
 
                 <div class="form-group">
     <label for="appointmentTime">Preferowana data i godzina *</label>
