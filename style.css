@@ -11,6 +11,7 @@
     margin: 0;
     padding: 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent; /* Убирает синюю рамку при клике на мобилках */
 }
 
 body {
@@ -77,11 +78,12 @@ h1 {
     font-size: 16px;
     margin-bottom: 25px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    transition: transform 0.2s;
+    transition: transform 0.2s, background-color 0.2s;
 }
 
 .cta-btn:active {
     transform: scale(0.98);
+    background-color: #1a1a1a;
 }
 
 /* Sekcja Social Media */
@@ -105,11 +107,12 @@ h1 {
     font-weight: 500;
     border: 1px solid rgba(0,0,0,0.03);
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
 .link-item:active {
     background-color: #f5f5f5;
+    transform: scale(0.99);
 }
 
 /* Sekcja Kwalifikacji */
@@ -138,11 +141,42 @@ h1 {
     margin-bottom: 8px;
 }
 
-.qualification-content p:last-child {
+.qualification-content p:last-of-type {
     margin-bottom: 0;
 }
 
-/* Sekcja Cennika (współpracuje z prices.js) */
+/* Стили для ссылок и кнопок диплома */
+.diploma-link {
+    color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.diploma-link:active {
+    color: #b09172;
+}
+
+.diploma-btn {
+    display: inline-block;
+    background-color: var(--accent-color);
+    color: white;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.diploma-btn:active {
+    transform: scale(0.97);
+    background-color: #b09172;
+}
+
+/* Sekcja Cennika (współpracuje с prices.js) */
 .price-section {
     background-color: var(--card-bg);
     border-radius: 16px;
@@ -164,6 +198,10 @@ h1 {
     margin-bottom: 20px;
 }
 
+.price-category:last-child {
+    margin-bottom: 0;
+}
+
 .category-title {
     font-size: 13px;
     text-transform: uppercase;
@@ -176,12 +214,26 @@ h1 {
 .price-item {
     display: flex;
     justify-content: space-between;
+    align-items: flex-end;
     font-size: 15px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
-.price-name { color: var(--text-main); }
-.price-value { font-weight: 600; }
+.price-name { 
+    color: var(--text-main); 
+    max-width: 70%;
+}
+
+.price-filler {
+    flex-grow: 1;
+    border-bottom: 1px dotted #e0e0e0;
+    margin: 0 8px 4px 8px;
+}
+
+.price-value { 
+    font-weight: 600; 
+    white-space: nowrap;
+}
 
 /* Widgety i Opinie */
 .widget-section {
