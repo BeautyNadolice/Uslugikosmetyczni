@@ -192,27 +192,37 @@ function initCalendar(defaultDate = "") {
   });
 }
 
-// Показ плиток времени
+// Показ плиток времени с вычитанием занятых слотов
 function displayTimeSlots(selectedDateStr) {
   const container = document.getElementById("timeSlotsContainer");
   if (!container) return;
   container.innerHTML = ""; 
   document.getElementById("finalDateTime").value = ""; 
 
-  const daySlots = allAvailableSlots
+  // Список всех ваших рабочих интервалов (шаблонный рабочий день)
+  const baseWorkingHours = [
+    "09:00", "09:45", "10:30", "11:15", "12:00", 
+    "12:45", "13:30", "14:15", "15:00", "15:45", "16:30", "17:15"
+  ];
+
+  // Фильтруем занятые слоты из Google Календаря на выбранную дату
+  // allAvailableSlots содержит занятые даты в формате "YYYY-MM-DDTHH:MM"
+  const busyTimesOnThisDay = allAvailableSlots
     .filter(slot => slot.startsWith(selectedDateStr))
     .map(slot => {
       const parts = slot.split("T");
-      return parts[1] ? parts[1].substring(0, 5) : ""; 
-    })
-    .filter(time => time !== "");
+      return parts[1] ? parts[1].substring(0, 5) : "";
+    });
 
-  if (daySlots.length === 0) {
+  // Оставляем только свободные часы
+  const freeHours = baseWorkingHours.filter(time => !busyTimesOnThisDay.includes(time));
+
+  if (freeHours.length === 0) {
     container.innerHTML = '<p style="color: red; font-size: 14px;">Brak wolnych godzin na ten dzień.</p>';
     return;
   }
 
-  daySlots.forEach(time => {
+  freeHours.forEach(time => {
     const slotDiv = document.createElement("div");
     slotDiv.className = "time-slot";
     slotDiv.innerText = time;
