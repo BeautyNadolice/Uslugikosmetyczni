@@ -262,3 +262,147 @@ footer {
     margin-top: 20px;
     padding-bottom: 20px;
 }
+/* =========================================
+   STYLES FOR SECRET BOOKING MODAL
+   ========================================= */
+
+/* Затемняющий фон */
+.modal-overlay {
+  display: none; 
+  position: fixed; 
+  z-index: 9999; 
+  left: 0; 
+  top: 0; 
+  width: 100%; 
+  height: 100%; 
+  background-color: rgba(0, 0, 0, 0.6); 
+  align-items: center; 
+  justify-content: center;
+}
+
+/* Окно формы */
+.modal-content {
+  background: #ffffff; 
+  padding: 30px; 
+  border-radius: 12px; 
+  max-width: 450px; 
+  width: 90%; 
+  position: relative; 
+  box-sizing: border-box; 
+  font-family: sans-serif;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Кнопка закрытия (крестик) */
+.close-modal-btn {
+  position: absolute; 
+  right: 20px; 
+  top: 15px; 
+  font-size: 28px; 
+  cursor: pointer; 
+  color: #aaa;
+  transition: color 0.2s;
+}
+
+.close-modal-btn:hover {
+  color: #333;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 22px;
+  text-align: center;
+  color: #333;
+}
+
+.modal-subtitle {
+  font-size: 13px; 
+  color: #666; 
+  text-align: center; 
+  margin-bottom: 25px;
+}
+
+/* Элементы формы */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block; 
+  font-size: 13px; 
+  font-weight: bold; 
+  margin-bottom: 5px;
+  color: #444;
+}
+
+.form-group input, 
+.form-group select {
+  width: 100%; 
+  padding: 10px; 
+  border: 1px solid #ccc; 
+  border-radius: 6px; 
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.form-group input:focus, 
+.form-group select:focus {
+  outline: none;
+  border-color: #d4a373;
+}
+
+.status-message {
+  display: none; 
+  margin-top: 4px; 
+  font-size: 11px;
+}
+
+/* RODO блок */
+.rodo-group {
+  margin-bottom: 20px; 
+  display: flex; 
+  align-items: flex-start;
+}
+
+.rodo-group input[type="checkbox"] {
+  margin-top: 3px; 
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.rodo-text {
+  font-size: 11px; 
+  color: #555; 
+  line-height: 1.4; 
+  cursor: pointer;
+}
+
+.rodo-text a {
+  color: #d4a373;
+  text-decoration: underline;
+}
+
+/* Кнопка подтверждения */
+.submit-booking-btn {
+  width: 100%; 
+  padding: 12px; 
+  background-color: #d4a373; 
+  border: none; 
+  border-radius: 6px; 
+  color: white; 
+  font-size: 15px;
+  font-weight: bold; 
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-booking-btn:hover {
+  background-color: #bfa07a;
+}
