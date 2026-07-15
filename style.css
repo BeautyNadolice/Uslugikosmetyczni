@@ -406,3 +406,7 @@ footer {
 .submit-booking-btn:hover {
   background-color: #bfa07a;
 }
+.iti {
+  width: 100%;
+  margin-bottom: 15px; /* Чтобы отступ снизу был красивым */
+}
