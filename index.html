@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
+    <!-- Подключение стилей для флагов телефона, календаря и основных стилей -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
@@ -13,6 +14,7 @@
 
     <div class="container">
 
+        <!-- Секция профиля -->
         <section class="profile-section">
             <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
             <h1>Daria</h1>
@@ -20,42 +22,55 @@
             <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
         </section>
 
+        <!-- Кнопка вызова модального окна записи -->
         <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
 
-        <section class="links-section">
-            </section>
+        <!-- Секция ценника (генерируется динамически из prices.js) -->
+        <section id="dynamic-price-section" class="price-section">
+            <!-- Сюда скрипт prices.js сам вставит услуги -->
+        </section>
+
     </div>
 
+    <!-- Модальное окно бронирования -->
     <div id="bookingModal" class="modal-overlay">
         <div class="modal-content">
             <span class="close-btn" onclick="closeBookingModal()">&times;</span>
             <h2 class="modal-title">Rezerwacja wizyty</h2>
             
-            <form id="bookingForm" onsubmit="submitForm(event)">
+            <form id="bookingForm">
                 
+                <!-- Поле ввода телефона с контейнером для флагов (исправляет смещение) -->
                 <div class="form-group">
                     <label for="clientPhone">Numer telefonu *</label>
-                    <input type="tel" id="clientPhone" required>
+                    <div class="phone-input-container">
+                        <input type="tel" id="clientPhone" required>
+                    </div>
                     <div id="clientStatus" class="status-message"></div>
                 </div>
 
+                <!-- Имя клиента -->
                 <div class="form-group">
                     <label for="clientName">Imię i Nazwisko *</label>
                     <input type="text" id="clientName" required placeholder="np. Anna Kowalska">
                 </div>
 
+                <!-- Выбор услуги -->
                 <div class="form-group">
                     <label for="serviceType">Wybierz usługę *</label>
                     <select id="serviceType" required onchange="updatePrice()">
-                        </select>
+                        <!-- Опции загружаются из prices.js -->
+                    </select>
                     <div id="priceDisplay" style="margin: 8px 0; font-weight: bold; color: #C2A383; font-size: 15px;"></div>
                 </div>
 
+                <!-- Выбор даты (Календарь) -->
                 <div class="form-group">
                     <label for="calendarInput">Wybierz dzień wizyty *</label>
                     <input type="text" id="calendarInput" placeholder="Kliknij, aby wybrać dzień..." readonly required style="background: #fff; cursor: pointer;">
                 </div>
 
+                <!-- Выбор времени (Плиточки) -->
                 <div class="form-group">
                     <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz godzinę *</label>
                     <div id="timeSlotsContainer" class="time-slots-grid">
@@ -64,6 +79,7 @@
                     <input type="hidden" id="finalDateTime" required>
                 </div>
 
+                <!-- Согласие RODO -->
                 <div class="rodo-group">
                     <input type="checkbox" id="rodoConsent" required>
                     <label for="rodoConsent" class="rodo-text">
@@ -71,11 +87,13 @@
                     </label>
                 </div>
 
+                <!-- Кнопка отправки -->
                 <button type="submit" class="submit-booking-btn">Zarezerwuj wizytę</button>
             </form>
         </div>
     </div>
 
+    <!-- Подключение внешних скриптов -->
     <script src="prices.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
