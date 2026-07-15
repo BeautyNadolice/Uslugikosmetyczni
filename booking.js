@@ -116,7 +116,10 @@ async function loadFreeSlots() {
       return slotDate > now;
     });
 
-    initCalendar();
+    // Сохраняем выбранную дату перед пересозданием календаря
+    const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
+
+    initCalendar(savedDate);
   } catch (error) {
     console.error("Błąd ładowania terminów:", error);
     if (container) {
@@ -125,8 +128,8 @@ async function loadFreeSlots() {
   }
 }
 
-// Инициализация календаря Flatpickr
-function initCalendar() {
+// Инициализация календаря Flatpickr (с сохранением выбранной даты, если она была)
+function initCalendar(defaultDate = "") {
   const availableDates = [...new Set(allAvailableSlots.map(slot => slot.split(" ")[0] || slot.split("T")[0]))];
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
@@ -141,6 +144,7 @@ function initCalendar() {
     minDate: "today",
     disableMobile: true,
     enable: availableDates,
+    defaultDate: defaultDate || null, // Восстанавливаем выбранную дату
     onChange: function(selectedDates, dateStr) {
       displayTimeSlots(dateStr);
     }
@@ -199,7 +203,7 @@ async function checkExistingClient() {
   const fullPhoneNumber = iti.getNumber();
   statusEl.style.display = "block";
   statusEl.style.color = "#2C2C2C";
-  statusEl.innerHTML = "Sprawdzanie danych w bazie...";
+  statusEl.innerHTML = "Sprawdzanie danych..."
 
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
@@ -288,11 +292,13 @@ async function submitForm(event) {
     if (!isStillFree) {
       alert("Przepraszamy, ten termin został właśnie zajęty lub zablokowany! Proszę wybrać inną godzinę.");
       
-      // Срочно скачиваем свежие слоты
+      // Сохраняем дату, выбранную клиентом прямо сейчас
+      const selectedDateStr = document.getElementById("calendarInput").value;
+
+      // Срочно скачиваем свежие слоты (календарь пересоздастся, но сохранит выбранную дату!)
       await loadFreeSlots();
       
-      // Автоматически перерисовываем плитки на экране для текущего выбранного дня
-      const selectedDateStr = document.getElementById("calendarInput").value;
+      // Автоматически перерисовываем плитки на экране для этой сохраненной даты
       if (selectedDateStr) {
         displayTimeSlots(selectedDateStr);
       }
