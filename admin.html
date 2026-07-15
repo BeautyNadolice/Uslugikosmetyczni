@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administratora | Daria Beauty Concept</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Дополнительные стили для админки, гармонирующие с основным style.css */
+        .admin-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        .admin-nav h2 {
+            font-size: 18px;
+            color: var(--text-main);
+        }
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: #e9e9e9;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .admin-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .admin-table th, .admin-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .admin-table th {
+            background-color: #fafafa;
+            font-weight: bold;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        .btn-success {
+            background-color: #5cb85c;
+            color: white;
+        }
+        .btn-success:hover { background-color: #4cae4c; }
+        .btn-danger {
+            background-color: #d9534f;
+            color: white;
+        }
+        .btn-danger:hover { background-color: #d43f3a; }
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .status-draft { background: #ffeeba; color: #856404; }
+        .status-public { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+
+    <div class="container" style="max-width: 800px;">
+        
+        <div class="admin-nav">
+            <h2>Daria Beauty Concept 👑</h2>
+            <button class="btn-small btn-danger" onclick="logoutAdmin()">Wyloguj</button>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('services')">Zabiegi i Cennik</button>
+            <button class="tab-btn" onclick="switchTab('settings')">Ustawienia</button>
+        </div>
+
+        <div id="tab-services" class="tab-content">
+            <div class="admin-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Lista Zabiegów</h3>
+                    <div>
+                        <button class="btn-small btn-success" onclick="openAddServiceModal()">+ Dodaj nowy</button>
+                        <button class="btn-small btn-primary" onclick="publishDrafts()" style="margin-left: 5px;">🚀 Publikuj zmiany</button>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Kategoria</th>
+                                <th>Nazwa usługi</th>
+                                <th>Cena (zł)</th>
+                                <th>Czas (min)</th>
+                                <th>Status</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminServicesTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted);">Ładowanie danych...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-settings" class="tab-content" style="display: none;">
+            <div class="admin-card">
+                <h3>Ustawienia ogólne</h3>
+                <p style="color: var(--text-muted); margin-top: 10px;">Tutaj w kolejnych krokach dodamy настройки рабочего времени и интеграции.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
