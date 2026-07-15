@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOymjhYgQXmgROTxvjGKV_ZAJFZ9vhweNdYUG1dXGj7W7dndhER7g3hxsxOEr7OwdZ0g/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6jc0ZJuCUVnFrXJ2Mqhec4NrNI7wu4N1g2lQyWhJHwlcfh9PKxFs1x2xVMelROfzPQQ/exec"; 
 
 let iti; 
 
@@ -106,3 +106,40 @@ async function submitForm(event) {
     submitBtn.innerText = "Zarezerwuj wizytę";
   }
 }
+// Функция обновления цены при выборе услуги
+function updatePrice() {
+    const serviceSelect = document.getElementById("serviceType");
+    const priceDisplay = document.getElementById("priceDisplay");
+    const selectedService = serviceSelect.value;
+
+    let foundPrice = "";
+    // Ищем цену в массиве cennikData из prices.js
+    cennikData.forEach(cat => {
+        cat.items.forEach(item => {
+            if (item.name === selectedService) foundPrice = item.price;
+        });
+    });
+    priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice : "";
+}
+
+// Заполнение выпадающего списка при старте
+document.addEventListener("DOMContentLoaded", () => {
+    const serviceSelect = document.getElementById("serviceType");
+    
+    // Очищаем и заполняем
+    serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
+    
+    cennikData.forEach(cat => {
+        const optGroup = document.createElement("optgroup");
+        optGroup.label = cat.categoryTitle;
+        cat.items.forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.name;
+            opt.textContent = item.name;
+            optGroup.appendChild(opt);
+        });
+        serviceSelect.appendChild(optGroup);
+    });
+    
+    loadFreeSlots();
+});
