@@ -15,15 +15,30 @@ document.addEventListener("DOMContentLoaded", () => {
       utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
     
-    // При изменении или потере фокуса проверяем клиента
+    // Проверка при потере фокуса
     phoneInput.addEventListener("blur", checkExistingClient);
+    
+    // Проверка при нажатии Enter внутри поля телефона
+    phoneInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault(); // Предотвращаем отправку всей формы
+        checkExistingClient();
+      }
+    });
+
+    // Сброс авторизации, если телефон начали менять
     phoneInput.addEventListener("input", () => {
-      // Если клиент начинает стирать/менять номер, сбрасываем авторизацию имени
       isClientApproved = false;
       document.getElementById("clientName").value = "";
       document.getElementById("clientStatus").innerHTML = "";
       toggleSubmitButton();
     });
+  }
+
+  // Привязка кнопки "Sprawdź" рядом с телефоном
+  const verifyBtn = document.getElementById("verifyPhoneBtn");
+  if (verifyBtn) {
+    verifyBtn.addEventListener("click", checkExistingClient);
   }
 
   // Заполнение услуг из prices.js
@@ -265,8 +280,6 @@ async function submitForm(event) {
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkBusy=true`);
     const freshSlots = await checkResponse.json();
     
-    // Сервер возвращает массив свободных слотов в формате "YYYY-MM-DD HH:MM:SS" или с "T". 
-    // Приведем проверяемое значение к обоим стандартным видам для надежности сверки.
     const optionFormat1 = finalDateTimeValue.replace('T', ' '); // "2026-07-16 12:00:00"
     const optionFormat2 = finalDateTimeValue;                   // "2026-07-16T12:00:00"
 
@@ -274,8 +287,16 @@ async function submitForm(event) {
 
     if (!isStillFree) {
       alert("Przepraszamy, ten termin został właśnie zajęty lub zablokowany! Proszę wybrać inną godzinę.");
-      // Срочно обновляем список слотов на клиенте, чтобы неактуальное время исчезло
+      
+      // Срочно скачиваем свежие слоты
       await loadFreeSlots();
+      
+      // Автоматически перерисовываем плитки на экране для текущего выбранного дня
+      const selectedDateStr = document.getElementById("calendarInput").value;
+      if (selectedDateStr) {
+        displayTimeSlots(selectedDateStr);
+      }
+      
       submitBtn.disabled = false;
       submitBtn.innerText = "Zarezerwuj wizytę";
       return; 
