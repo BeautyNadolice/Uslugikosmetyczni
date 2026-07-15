@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
+    <!-- Подключение стилей для выбора стран с флагами -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+    <!-- Подключение твоих стилей CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="container">
 
+        <!-- Profil Darii -->
         <section class="profile-section">
             <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
             <h1>Daria</h1>
@@ -18,14 +21,17 @@
             <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
         </section>
 
+        <!-- Главная кнопка вызова секретной формы -->
         <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
 
+        <!-- Linki do mediów społecznościowych -->
         <section class="links-section">
             <a href="https://instagram.com/" class="link-item" target="_blank">📸 Mój Instagram</a>
             <a href="https://facebook.com/" class="link-item" target="_blank">👥 Facebook</a>
             <a href="https://tiktok.com/" class="link-item" target="_blank">🎵 TikTok (Moja praca od kuchni)</a>
         </section>
 
+        <!-- Sekcja Kwalifikacji - Wariant A -->
         <section class="qualification-section">
             <h2>Kwalifikacje i Bezpieczeństwo (A)</h2>
             <div class="qualification-content">
@@ -40,6 +46,7 @@
             </div>
         </section>
 
+        <!-- Sekcja Kwalifikacji - Wariant B -->
         <section class="qualification-section">
             <h2>Kwalifikacje i Bezpieczeństwo (B)</h2>
             <div class="qualification-content">
@@ -53,9 +60,11 @@
             </div>
         </section>
 
+        <!-- Dynamiczny cennik z pliku prices.js -->
         <section class="price-section" id="dynamic-price-section">
         </section>
 
+        <!-- Miejsce na widget Instagrama -->
         <section class="widget-section">
             <div class="widget-title">Moje prace na Instagramie</div>
             <div class="widget-placeholder">
@@ -63,6 +72,7 @@
             </div>
         </section>
 
+        <!-- Miejsce na opinie -->
         <section class="widget-section">
             <div class="widget-title">Opinie zadowolonych klientek</div>
             <div class="widget-placeholder">
@@ -76,6 +86,7 @@
 
     </div>
 
+    <!-- ВСПЛЫВАЮЩЕЕ ОКНО ФОРМЫ -->
     <div id="bookingModal" class="modal-overlay">
         <div class="modal-content">
             <span class="close-modal-btn" onclick="closeBookingModal()">&times;</span>
@@ -85,9 +96,11 @@
 
             <form id="appointmentForm" onsubmit="submitForm(event)">
                 
+                <!-- Поле телефона с поддержкой библиотеки флагов -->
                 <div class="form-group">
                     <label for="clientPhone">Numer telefonu *</label>
-                    <input type="tel" id="clientPhone" required placeholder="+48 XXX XXX XXX" onblur="checkExistingClient()">
+                    <input type="tel" id="clientPhone" required placeholder="123 456 789">
+                    <!-- Сюда пишется статус и последний визит -->
                     <small id="loadingStatus" class="status-message"></small>
                 </div>
 
@@ -123,7 +136,9 @@
         </div>
     </div>
 
+    <!-- ПОДКЛЮЧЕНИЕ СКРИПТОВ -->
     <script src="prices.js"></script>
+    <!-- Сначала подключаем JS библиотеки флагов, затем наш booking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="booking.js"></script>
 </body>
