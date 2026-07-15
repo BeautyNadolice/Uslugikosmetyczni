@@ -238,7 +238,7 @@ async function checkExistingClient() {
   const fullPhoneNumber = iti.getNumber();
   statusEl.style.display = "block";
   statusEl.style.color = "#2C2C2C";
-  statusEl.innerHTML = "Sprawdzanie danych...";
+  statusEl.innerHTML = "Sprawdzanie данных...";
 
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
@@ -253,7 +253,7 @@ async function checkExistingClient() {
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
-      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
+      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się з administratorem.";
       isClientApproved = false;
       toggleFormState(false); // Оставляем заблокированной намертво
     }
@@ -304,3 +304,61 @@ async function submitForm(event) {
   try {
     // 1. Быстрая проверка слота
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
+    const result = await checkResponse.json();
+
+    if (!result.isFree) {
+      alert("Przepraszamy, ten termin został właśnie zajęty! Wybierz inną godzinę.");
+      const selectedDateStr = document.getElementById("calendarInput").value;
+      await loadFreeSlots();
+      if (selectedDateStr) {
+        displayTimeSlots(selectedDateStr);
+      }
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Zarezerwuj wizytę";
+      return; 
+    }
+
+    // 2. Отправка записи (Записывается ТОЛЬКО в Bookings)
+    submitBtn.innerText = "Zapisywanie...";
+    const payload = {
+      phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
+      name: document.getElementById("clientName").value,
+      service: document.getElementById("serviceType").value,
+      date: finalDateTimeValue,
+      rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
+    };
+
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    
+    alert("Wizyta została pomyślnie zarezerwowana!");
+    closeBookingModal();
+    loadFreeSlots(); 
+  } catch (error) {
+    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
+    console.error(error);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Zarezerwuj wizytę";
+  }
+}
+
+function openBookingModal() {
+  document.getElementById("bookingModal").style.display = "flex";
+}
+
+function closeBookingModal() {
+  document.getElementById("bookingModal").style.display = "none";
+  resetBookingForm(); 
+}
+
+window.addEventListener("click", (e) => {
+  const modal = document.getElementById("bookingModal");
+  if (e.target === modal) {
+    closeBookingModal();
+  }
+});
