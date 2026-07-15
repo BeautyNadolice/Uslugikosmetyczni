@@ -6,120 +6,133 @@ let flatpickrInstance = null;
 let isClientApproved = false; // Флаг: найден ли клиент в базе данных
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Загружаем прайс-лист для витрины и выпадающего списка
+  // 1. Сначала железно настраиваем ввод телефона, чтобы он работал независимо от внешних сервисов
+  initPhoneInput();
+
+  // 2. И только потом пробуем загрузить прайс-лист из Google Таблицы
   loadServicesAndPriceList();
-
-  // Настройка ввода телефона с флагами
-  const phoneInput = document.getElementById("clientPhone");
-  if (phoneInput) {
-    iti = window.intlTelInput(phoneInput, {
-      initialCountry: "pl",
-      preferredCountries: ["pl", "ua", "by"],
-      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-    });
-    
-    // Проверка при потере фокуса
-    phoneInput.addEventListener("blur", checkExistingClient);
-    
-    // Проверка при нажатии Enter внутри поля телефона
-    phoneInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault(); // Предотвращаем отправку всей формы
-        checkExistingClient();
-      }
-    });
-
-    // Сброс авторизации и блокировка формы, если телефон начали менять
-    phoneInput.addEventListener("input", () => {
-      isClientApproved = false;
-      document.getElementById("clientName").value = "";
-      document.getElementById("clientName").disabled = true;
-      document.getElementById("serviceType").disabled = true;
-      document.getElementById("serviceType").selectedIndex = 0;
-      document.getElementById("bookingDate").disabled = true;
-      document.getElementById("bookingDate").value = "";
-      if (flatpickrInstance) {
-        flatpickrInstance.clear();
-      }
-      document.getElementById("timeSlotsContainer").innerHTML = '<p style="color: #888; font-size: 14px;">Najpierw wybierz dzień...</p>';
-      document.getElementById("finalDateTime").value = "";
-      document.getElementById("rodoConsent").disabled = true;
-      document.getElementById("rodoConsent").checked = false;
-      document.getElementById("submitBookingBtn").disabled = true;
-      document.getElementById("priceDisplay").innerText = "";
-    });
-  }
 });
 
-// Загрузка услуг из Google Таблицы и построение прайс-листа на сайте
+// Инициализация ввода телефона
+function initPhoneInput() {
+  const phoneInput = document.getElementById("clientPhone");
+  if (phoneInput) {
+    try {
+      iti = window.intlTelInput(phoneInput, {
+        initialCountry: "pl",
+        preferredCountries: ["pl", "ua", "by"],
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+      });
+      
+      // Проверка при потере фокуса (кликнули мимо поля)
+      phoneInput.addEventListener("blur", checkExistingClient);
+      
+      // Проверка при нажатии Enter
+      phoneInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          checkExistingClient();
+        }
+      });
+
+      // Сброс при изменении номера
+      phoneInput.addEventListener("input", () => {
+        isClientApproved = false;
+        document.getElementById("clientName").value = "";
+        document.getElementById("clientName").disabled = true;
+        document.getElementById("serviceType").disabled = true;
+        document.getElementById("serviceType").selectedIndex = 0;
+        document.getElementById("bookingDate").disabled = true;
+        document.getElementById("bookingDate").value = "";
+        if (flatpickrInstance) {
+          flatpickrInstance.clear();
+        }
+        document.getElementById("timeSlotsContainer").innerHTML = '<p style="color: #888; font-size: 14px;">Najpierw wybierz dzień...</p>';
+        document.getElementById("finalDateTime").value = "";
+        document.getElementById("rodoConsent").disabled = true;
+        document.getElementById("rodoConsent").checked = false;
+        document.getElementById("submitBookingBtn").disabled = true;
+        document.getElementById("priceDisplay").innerText = "";
+      });
+      
+      console.log("Поле телефона успешно инициализировано.");
+    } catch (err) {
+      console.error("Ошибка инициализации телефона:", err);
+    }
+  }
+}
+
+// Безопасная загрузка услуг из Google Таблицы
 async function loadServicesAndPriceList() {
   const serviceSelect = document.getElementById("serviceType");
   const priceListContainer = document.getElementById("priceListContainer");
   
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?getPrices=true`);
+    if (!response.ok) throw new Error("Сеть ответила с ошибкой");
     const prices = await response.json();
     
-    // 1. Заполняем выпадающий список (Select) в модалке
-    serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
-    prices.forEach(item => {
-      const opt = document.createElement("option");
-      opt.value = item.name;
-      
-      // Формируем красивый текст опции с учетом настроек видимости
-      let durationText = item.showDuration ? ` (${item.duration} min)` : '';
-      let priceText = item.showPrice ? ` - ${item.price} zł` : '';
-      opt.textContent = `${item.name}${durationText}${priceText}`;
-      
-      opt.dataset.price = item.price;
-      opt.dataset.duration = item.duration;
-      opt.dataset.showPrice = item.showPrice;
-      opt.dataset.showDuration = item.showDuration;
-      serviceSelect.appendChild(opt);
-    });
-
-    // 2. Строим визуальный прайс-лист на главной странице сайта
-    if (priceListContainer) {
-      priceListContainer.innerHTML = "";
-      
-      // Группируем по категориям
-      const categories = {};
+    // Очищаем и разблокируем только при успешном получении данных
+    if (prices && prices.length > 0) {
+      // 1. Заполняем выпадающий список
+      serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
       prices.forEach(item => {
-        if (!categories[item.category]) {
-          categories[item.category] = [];
-        }
-        categories[item.category].push(item);
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        
+        let durationText = item.showDuration ? ` (${item.duration} min)` : '';
+        let priceText = item.showPrice ? ` - ${item.price} zł` : '';
+        opt.textContent = `${item.name}${durationText}${priceText}`;
+        
+        opt.dataset.price = item.price;
+        opt.dataset.duration = item.duration;
+        opt.dataset.showPrice = item.showPrice;
+        opt.dataset.showDuration = item.showDuration;
+        serviceSelect.appendChild(opt);
       });
 
-      for (const catName in categories) {
-        let catHtml = `<div class="price-category">`;
-        catHtml += `<div class="category-title">${catName}</div>`;
-        
-        categories[catName].forEach(item => {
-          let priceVal = item.showPrice ? `${item.price} zł` : "Cena ustalana ind.";
-          let durationVal = item.showDuration ? `<span class="price-duration" style="font-size: 12px; color: var(--text-muted); display: block;">Czas: ${item.duration} min</span>` : "";
-          
-          catHtml += `
-            <div class="price-item" style="margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                    <span class="price-name" style="font-weight: 500;">${item.name}</span>
-                    <span class="price-value" style="font-weight: bold; color: var(--accent-color); white-space: nowrap; margin-left: 10px;">${priceVal}</span>
-                </div>
-                ${durationVal}
-            </div>
-          `;
+      // 2. Строим прайс-лист на самом сайте
+      if (priceListContainer) {
+        priceListContainer.innerHTML = "";
+        const categories = {};
+        prices.forEach(item => {
+          if (!categories[item.category]) {
+            categories[item.category] = [];
+          }
+          categories[item.category].push(item);
         });
-        catHtml += `</div>`;
-        priceListContainer.innerHTML += catHtml;
+
+        for (const catName in categories) {
+          let catHtml = `<div class="price-category">`;
+          catHtml += `<div class="category-title">${catName}</div>`;
+          
+          categories[catName].forEach(item => {
+            let priceVal = item.showPrice ? `${item.price} zł` : "Cena ustalana ind.";
+            let durationVal = item.showDuration ? `<span class="price-duration" style="font-size: 12px; color: var(--text-muted); display: block;">Czas: ${item.duration} min</span>` : "";
+            
+            catHtml += `
+              <div class="price-item" style="margin-bottom: 15px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                      <span class="price-name" style="font-weight: 500;">${item.name}</span>
+                      <span class="price-value" style="font-weight: bold; color: var(--accent-color); white-space: nowrap; margin-left: 10px;">${priceVal}</span>
+                  </div>
+                  ${durationVal}
+              </div>
+            `;
+          });
+          catHtml += `</div>`;
+          priceListContainer.innerHTML += catHtml;
+        }
       }
     }
   } catch (error) {
     console.error("Błąd ładowania usług:", error);
+    // Используем дефолтные значения, если Google Таблица недоступна
     if (serviceSelect) {
-      serviceSelect.innerHTML = '<option value="" disabled>Błąd ładowania usług</option>';
+      serviceSelect.innerHTML = '<option value="" disabled selected>Wybierz zabieg...</option>';
     }
     if (priceListContainer) {
-      priceListContainer.innerHTML = '<p style="text-align: center; color: red;">Nie udało się załadować cennika. Spróbuj później.</p>';
+      priceListContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Użyj przycisku rezerwacji, aby wybrać usługę.</p>';
     }
   }
 }
@@ -134,18 +147,16 @@ function updatePrice() {
     const showPrice = selectedOption.dataset.showPrice === "true";
     const showDuration = selectedOption.dataset.showDuration === "true";
     const priceVal = selectedOption.dataset.price;
-    const durationVal = selectedOption.dataset.duration;
+    const durationVal = selectedOption.dataset.duration || "45";
 
-    // Сохраняем длительность в скрытое поле
     document.getElementById("selectedDuration").value = durationVal;
 
     let displayTxt = "";
-    if (showPrice) displayTxt += `Cena: ${priceVal} zł`;
-    if (showDuration) displayTxt += displayTxt ? ` | Czas: ${durationVal} min` : `Czas: ${durationVal} min`;
+    if (showPrice && priceVal) displayTxt += `Cena: ${priceVal} zł`;
+    if (showDuration && durationVal) displayTxt += displayTxt ? ` | Czas: ${durationVal} min` : `Czas: ${durationVal} min`;
     
     priceDisplay.innerText = displayTxt;
 
-    // Перезагружаем календарь, если дата уже выбрана (так как свободные слоты зависят от времени процедуры!)
     const dateInput = document.getElementById("bookingDate");
     if (dateInput && dateInput.value) {
       loadFreeSlots();
@@ -161,7 +172,7 @@ async function checkExistingClient() {
   
   if (!phoneInput.value.trim()) return;
 
-  const rawPhone = iti.getNumber(); 
+  const rawPhone = iti ? iti.getNumber() : phoneInput.value; 
   
   phoneInput.disabled = true;
   nameInput.placeholder = "Sprawdzanie bazy danych...";
@@ -175,7 +186,6 @@ async function checkExistingClient() {
       nameInput.disabled = true; 
       isClientApproved = true;
       
-      // Разблокируем выбор услуги
       serviceSelect.disabled = false;
       document.getElementById("bookingDate").disabled = false;
       document.getElementById("rodoConsent").disabled = false;
@@ -188,7 +198,6 @@ async function checkExistingClient() {
       nameInput.focus();
       isClientApproved = true; 
       
-      // Разблокируем выбор услуги
       serviceSelect.disabled = false;
       document.getElementById("bookingDate").disabled = false;
       document.getElementById("rodoConsent").disabled = false;
@@ -197,8 +206,13 @@ async function checkExistingClient() {
     }
   } catch (error) {
     console.error(error);
-    alert("Wystąpił błąd podczas sprawdzania telefonu. Spróbuj ponownie.");
+    // Если скрипт упал или не развернут, всё равно даем пользователю ввести имя и записаться (отказоустойчивость!)
+    nameInput.disabled = false;
     nameInput.placeholder = "Wpisz swoje imię";
+    serviceSelect.disabled = false;
+    document.getElementById("bookingDate").disabled = false;
+    document.getElementById("rodoConsent").disabled = false;
+    initFlatpickr();
   } finally {
     phoneInput.disabled = false;
   }
@@ -215,7 +229,7 @@ function initFlatpickr() {
     maxDate: new Date().fp_incr(30), 
     disable: [
       function(date) {
-        return (date.getDay() === 0); // Отключаем воскресенья (0)
+        return (date.getDay() === 0); 
       }
     ],
     onChange: function(selectedDates, dateStr) {
@@ -230,14 +244,13 @@ function initFlatpickr() {
 async function loadFreeSlots() {
   const dateInput = document.getElementById("bookingDate");
   const container = document.getElementById("timeSlotsContainer");
-  const duration = document.getElementById("selectedDuration").value;
+  const duration = document.getElementById("selectedDuration").value || "45";
 
   if (!dateInput.value) return;
 
   container.innerHTML = '<p style="color: #888; font-size: 14px;">Ładowanie wolnych godzin...</p>';
 
   try {
-    // Передаем динамическую длительность выбранного zabiegu
     const response = await fetch(`${APPS_SCRIPT_URL}?checkBusy=true&duration=${duration}`);
     allAvailableSlots = await response.json();
     
@@ -253,7 +266,6 @@ function displayTimeSlots(selectedDateStr) {
   const container = document.getElementById("timeSlotsContainer");
   container.innerHTML = "";
 
-  // Фильтруем слоты только для выбранного дня
   const daySlots = allAvailableSlots.filter(slot => slot.startsWith(selectedDateStr));
 
   if (daySlots.length === 0) {
@@ -262,7 +274,7 @@ function displayTimeSlots(selectedDateStr) {
   }
 
   daySlots.forEach(dateTimeStr => {
-    const timeOnly = dateTimeStr.split("T")[1]; // Получаем "HH:mm"
+    const timeOnly = dateTimeStr.split("T")[1]; 
     
     const slotBtn = document.createElement("button");
     slotBtn.type = "button";
@@ -280,8 +292,6 @@ function selectTimeSlot(buttonElement, dateTimeStr) {
   buttonElement.classList.add("selected");
 
   document.getElementById("finalDateTime").value = dateTimeStr;
-  
-  // Активируем кнопку подтверждения записи
   document.getElementById("submitBookingBtn").disabled = false;
 }
 
@@ -291,7 +301,7 @@ async function handleFormSubmit(event) {
 
   const submitBtn = document.getElementById("submitBookingBtn");
   const finalDateTimeValue = document.getElementById("finalDateTime").value;
-  const duration = document.getElementById("selectedDuration").value;
+  const duration = document.getElementById("selectedDuration").value || "45";
 
   if (!finalDateTimeValue) {
     alert("Proszę wybrać godzinę wizyty!");
@@ -302,40 +312,36 @@ async function handleFormSubmit(event) {
   submitBtn.innerText = "Sprawdzanie slotu...";
 
   try {
-    // 1. МОМЕНТАЛЬНАЯ ПРОВЕРКА СЛОТА НА ЗАНЯТОСТЬ
     const checkParams = JSON.stringify({ date: finalDateTimeValue, duration: duration });
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(checkParams)}`);
     const checkData = await checkResponse.json();
 
     if (!checkData.isFree) {
       alert("Niestety, ta godzina została właśnie zajęta. Proszę wybrać inną godzinę.");
-      // Перезагружаем слоты
       await loadFreeSlots();
       submitBtn.disabled = false;
       submitBtn.innerText = "Zarezerwuj wizytę";
       return; 
     }
 
-    // 2. ЕСЛИ СЛОТ СВОБОДЕН — ОТПРАВЛЯЕМ ЗАПИСЬ
     submitBtn.innerText = "Zapisywanie...";
     const payload = {
       phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
       name: document.getElementById("clientName").value,
       service: document.getElementById("serviceType").value,
       date: finalDateTimeValue,
-      duration: duration // Передаем длительность процедуры на бэкенд
+      duration: duration 
     };
 
     await fetch(APPS_SCRIPT_URL, {
       method: "POST",
-      mode: "no-cors", // Сохраняем ваш режим
+      mode: "no-cors", 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
     
     alert("Wizyta została pomyślnie zarezerwowana!");
     closeBookingModal();
-    // Обновляем слоты на сайте
     loadFreeSlots(); 
   } catch (error) {
     alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
@@ -366,7 +372,6 @@ function resetBookingForm() {
   document.getElementById("bookingForm").reset();
   isClientApproved = false;
   
-  // Приводим поля в исходное заблокированное состояние
   document.getElementById("clientName").disabled = true;
   document.getElementById("serviceType").disabled = true;
   document.getElementById("bookingDate").disabled = true;
