@@ -1,5 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz1GVocAldQxrudzp3VyzoFGrmE5nVl88uWJ2VWh1B04HYXHQdTmmcrIgDwyLcHMdZErA/exec"; 
-
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1tGRUXQeBZcU9qx9f8z9TPvMwxx9Dk3jLeiNDSJS6J3Hn8ugvtccB0-Owipd6bXX_RA/exec";
 let iti; 
 let allAvailableSlots = []; 
 let flatpickrInstance = null;
