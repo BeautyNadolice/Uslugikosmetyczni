@@ -1,5 +1,5 @@
 // Вставь сюда URL веб-приложения, который ты скопировал на Шаге 2 (в кавычках)
-const APPS_SCRIPT_URL = "1FVmVjlhSOXKmalhaU0UAwwpNttKH1BBqpej1zChBBz"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfcFEYAXHDAdR8XGSm2apyf4ThqJ3I99Z1KJhhrZCgK32dUAIeCExNFzp2oSUrBQ2Dmw/exec";
 
 // Открыть форму
 function openBookingModal() {
