@@ -297,6 +297,7 @@ function resetBookingForm() {
 }
 
 // Отправка формы с защитой от наложения записей (Double Booking)
+// Отправка формы с моментальной точечной защитой от наложения записей
 async function submitForm(event) {
   event.preventDefault();
 
@@ -317,22 +318,16 @@ async function submitForm(event) {
   submitBtn.innerText = "Sprawdzanie terminu...";
 
   try {
-    // 1. ПОВТОРНАЯ ПРОВЕРКА: Свободен ли еще этот слот на сервере прямо сейчас?
-    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkBusy=true`);
-    const freshSlots = await checkResponse.json();
-    
-    const targetSlot = finalDateTimeValue.replace(' ', 'T'); 
+    // 1. БЫСТРАЯ ПРОВЕРКА: Спрашиваем у сервера только про ОДИН этот слот
+    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
+    const result = await checkResponse.json();
 
-    const isStillFree = freshSlots.some(slot => {
-      const cleanSlot = slot.replace(' ', 'T');
-      return cleanSlot.startsWith(targetSlot) || targetSlot.startsWith(cleanSlot);
-    });
-
-    if (!isStillFree) {
+    if (!result.isFree) {
       alert("Przepraszamy, ten termin został właśnie zajęty lub zablokowany! Proszę wybrać inną godzinę.");
       
       const selectedDateStr = document.getElementById("calendarInput").value;
 
+      // Загружаем обновленный список на фоне
       await loadFreeSlots();
       
       if (selectedDateStr) {
@@ -344,7 +339,7 @@ async function submitForm(event) {
       return; 
     }
 
-    // 2. ЕСЛИ СЛОТ ВСЕ ЕЩЕ СВОБОДЕН — ОТПРАВЛЯЕМ ЗАПИСЬ
+    // 2. ЕСЛИ СЛОТ СВОБОДЕН — ОТПРАВЛЯЕМ ЗАПИСЬ
     submitBtn.innerText = "Zapisywanie...";
     const payload = {
       phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
