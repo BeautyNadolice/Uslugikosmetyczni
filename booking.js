@@ -1,12 +1,16 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJGz-x0eDPDr_9dA5Ivm4uC2lqeV5hILoyjA5-cwwBF3FMvtYeRILNyEVaOi1rNDVOtQ/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhPcJ84Qzz1QCEimcROvDAAqm8CGJXJiw63gvux5FMdC1r2I2zUNuD0zUR8xm6FZjZjg/exec"; 
 
 let iti; 
 let allAvailableSlots = []; 
+let adminSettings = {
+  buffer_hours: 1,
+  safety_range_hours: 5,
+  slot_interval_minutes: 45
+};
 let flatpickrInstance = null;
-let isClientApproved = false; // Флаг: найден ли клиент в базе данных
+let isClientApproved = false; 
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Настройка ввода телефона с флагами
   const phoneInput = document.getElementById("clientPhone");
   if (phoneInput) {
     iti = window.intlTelInput(phoneInput, {
@@ -15,18 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
       utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
     
-    // Проверка при потере фокуса
     phoneInput.addEventListener("blur", checkExistingClient);
-    
-    // Проверка при нажатии Enter внутри поля телефона
     phoneInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        e.preventDefault(); // Предотвращаем отправку всей формы
+        e.preventDefault();
         checkExistingClient();
       }
     });
 
-    // Сброс авторизации и блокировка формы при изменении телефона
     phoneInput.addEventListener("input", () => {
       isClientApproved = false;
       document.getElementById("clientName").value = "";
@@ -35,17 +35,15 @@ document.addEventListener("DOMContentLoaded", () => {
         statusEl.innerHTML = "";
         statusEl.style.display = "none";
       }
-      toggleFormState(false); // Блокируем форму обратно
+      toggleFormState(false); 
     });
   }
 
-  // Привязка кнопки "Sprawdź" рядом с телефоном
   const verifyBtn = document.getElementById("verifyPhoneBtn");
   if (verifyBtn) {
     verifyBtn.addEventListener("click", checkExistingClient);
   }
 
-  // Заполнение услуг из cennikData
   const serviceSelect = document.getElementById("serviceType");
   if (serviceSelect) {
     serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
@@ -65,18 +63,15 @@ document.addEventListener("DOMContentLoaded", () => {
     serviceSelect.addEventListener("change", updatePrice);
   }
 
-  // Привязка отправки формы
   const bookingForm = document.getElementById("bookingForm");
   if (bookingForm) {
     bookingForm.addEventListener("submit", submitForm);
   }
 
-  // Первичная загрузка слотов
   loadFreeSlots();
-  toggleFormState(false); // Изначально вся форма заблокирована
+  toggleFormState(false); 
 });
 
-// Управление состоянием всей формы
 function toggleFormState(enabled) {
   const submitBtn = document.getElementById("submitBookingBtn");
   const serviceSelect = document.getElementById("serviceType");
@@ -134,7 +129,6 @@ function toggleFormState(enabled) {
   }
 }
 
-// Обновление отображаемой цены услуги
 function updatePrice() {
   const serviceSelect = document.getElementById("serviceType");
   const priceDisplay = document.getElementById("priceDisplay");
@@ -154,12 +148,16 @@ function updatePrice() {
   priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice : "";
 }
 
-// Получение занятых/доступных интервалов
+// Загрузка занятых слотов и динамических настроек из админки
 async function loadFreeSlots() {
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?checkBusy=true`);
-    const slots = await response.json(); 
-    allAvailableSlots = slots;
+    const data = await response.json(); 
+    
+    allAvailableSlots = data.busySlots || [];
+    if (data.settings) {
+      adminSettings = data.settings; // Обновляем настройки из Google Таблицы
+    }
 
     const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
     initCalendar(savedDate);
@@ -172,7 +170,7 @@ async function loadFreeSlots() {
   }
 }
 
-// Инициализация календаря (Воскресенье тоже РАБОЧЕЕ — все дни открыты)
+// Инициализация календаря (Все дни, включая воскресенье, открыты)
 function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
@@ -193,20 +191,40 @@ function initCalendar(defaultDate = "") {
   });
 }
 
-// Показ плиток времени (Каждые 45 мин, исключая занятые интервалы)
+// Генерация сетки часов на основе интервала и проверка буфера из таблицы Settings
 function displayTimeSlots(selectedDateStr) {
   const container = document.getElementById("timeSlotsContainer");
   if (!container) return;
   container.innerHTML = ""; 
   document.getElementById("finalDateTime").value = ""; 
 
-  // Базовая сетка рабочих часов
-  const baseWorkingHours = [
-    "09:00", "09:45", "10:30", "11:15", "12:00", 
-    "12:45", "13:30", "14:15", "15:00", "15:45", "16:30", "17:15"
-  ];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
 
-  // Фильтруем занятые часы из Google Календаря на выбранный день
+  // Генерируем базовые часы работы динамически на основе шага slot_interval_minutes (например, каждые 45 минут)
+  const baseWorkingHours = [];
+  let currentHour = 9;  // С 09:00
+  let currentMinute = 0;
+  const endHour = 18;   // До 18:00 (последний слот может начаться в 17:15)
+
+  const step = adminSettings.slot_interval_minutes || 45;
+
+  while (currentHour < endHour) {
+    const hStr = String(currentHour).padStart(2, '0');
+    const mStr = String(currentMinute).padStart(2, '0');
+    baseWorkingHours.push(`${hStr}:${mStr}`);
+    
+    currentMinute += step;
+    if (currentMinute >= 60) {
+      currentHour += Math.floor(currentMinute / 60);
+      currentMinute = currentMinute % 60;
+    }
+  }
+
+  // Фильтруем занятые в календаре слоты на выбранный день
   const busyTimesOnThisDay = allAvailableSlots
     .filter(slot => slot.startsWith(selectedDateStr))
     .map(slot => {
@@ -214,8 +232,28 @@ function displayTimeSlots(selectedDateStr) {
       return parts[1] ? parts[1].substring(0, 5) : ""; 
     });
 
-  // Оставляем только свободные интервалы
-  const freeHours = baseWorkingHours.filter(time => !busyTimesOnThisDay.includes(time));
+  // Фильтрация: убираем занятые, убираем прошлое и учитываем буфер buffer_hours
+  const freeHours = baseWorkingHours.filter(time => {
+    if (busyTimesOnThisDay.includes(time)) {
+      return false;
+    }
+
+    if (selectedDateStr === todayStr) {
+      const [hours, minutes] = time.split(":").map(Number);
+      const slotDateTime = new Date();
+      slotDateTime.setHours(hours, minutes, 0, 0);
+
+      const timeDifferenceMs = slotDateTime.getTime() - now.getTime();
+      // Буфер берется динамически из настроек Settings (переводим часы в мс)
+      const bufferMs = adminSettings.buffer_hours * 60 * 60 * 1000; 
+
+      if (timeDifferenceMs < bufferMs) {
+        return false; // Скрываем слот, если он прошел или находится в зоне буфера
+      }
+    }
+
+    return true;
+  });
 
   if (freeHours.length === 0) {
     container.innerHTML = '<p style="color: red; font-size: 14px;">Brak wolnych godzin na ten dzień.</p>';
@@ -237,7 +275,7 @@ function displayTimeSlots(selectedDateStr) {
   });
 }
 
-// Проверка телефона по базе данных "Clients"
+// Проверка телефона по базе
 async function checkExistingClient() {
   const statusEl = document.getElementById("clientStatus");
   if (!statusEl) return;
@@ -281,7 +319,6 @@ async function checkExistingClient() {
   }
 }
 
-// Сброс формы
 function resetBookingForm() {
   const form = document.getElementById("bookingForm");
   if (form) {
@@ -296,7 +333,7 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
-// Отправка формы с проверкой диапазона времени (±5 часов от желаемой даты)
+// Отправка формы с глубокой проверкой
 async function submitForm(event) {
   event.preventDefault();
 
@@ -318,7 +355,7 @@ async function submitForm(event) {
   submitBtn.innerText = "Sprawdzanie terminu...";
 
   try {
-    // 1. Быстрая глубокая проверка перед отправкой (проверка на ±5 часов)
+    // 1. Быстрая глубокая проверка перед отправкой (берет safety_range_hours из настроек)
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
     const result = await checkResponse.json();
 
