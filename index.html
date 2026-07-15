@@ -4,16 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
-    <!-- Подключение стилей для выбора стран с флагами -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
-    <!-- Подключение твоих стилей CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="container">
 
-        <!-- Profil Darii -->
         <section class="profile-section">
             <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
             <h1>Daria</h1>
@@ -21,87 +20,23 @@
             <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
         </section>
 
-        <!-- Главная кнопка вызова секретной формы -->
         <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
 
-        <!-- Linki do mediów społecznościowych -->
         <section class="links-section">
-            <a href="https://instagram.com/" class="link-item" target="_blank">📸 Mój Instagram</a>
-            <a href="https://facebook.com/" class="link-item" target="_blank">👥 Facebook</a>
-            <a href="https://tiktok.com/" class="link-item" target="_blank">🎵 TikTok (Moja praca od kuchni)</a>
-        </section>
-
-        <!-- Sekcja Kwalifikacji - Wariant A -->
-        <section class="qualification-section">
-            <h2>Kwalifikacje i Bezpieczeństwo (A)</h2>
-            <div class="qualification-content">
-                <p style="margin-bottom: 12px;">
-                    ✨ <strong>Państwowy Dyplom:</strong> 
-                    <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" class="diploma-link">
-                        Technik usług kosmetycznych (zobacz dyplom)
-                    </a>
-                </p>
-                <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
-                <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
-            </div>
-        </section>
-
-        <!-- Sekcja Kwalifikacji - Wariant B -->
-        <section class="qualification-section">
-            <h2>Kwalifikacje i Bezpieczeństwo (B)</h2>
-            <div class="qualification-content">
-                <p style="margin-bottom: 8px;">✨ <strong>Państwowy Dyplom:</strong> Technik usług kosmetycznych</p>
-                <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
-                <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
-
-                <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" class="diploma-btn">
-                    📄 ZOBACZ DYPLOM
-                </a>
-            </div>
-        </section>
-
-        <!-- Dynamiczny cennik z pliku prices.js -->
-        <section class="price-section" id="dynamic-price-section">
-        </section>
-
-        <!-- Miejsce na widget Instagrama -->
-        <section class="widget-section">
-            <div class="widget-title">Moje prace na Instagramie</div>
-            <div class="widget-placeholder">
-                [Tutaj będą automatycznie wyświetlać się najnowsze posty]
-            </div>
-        </section>
-
-        <!-- Miejsce na opinie -->
-        <section class="widget-section">
-            <div class="widget-title">Opinie zadowolonych klientek</div>
-            <div class="widget-placeholder">
-                [Screeny wiadomości i opinii od klientek]
-            </div>
-        </section>
-
-        <footer>
-            © 2026 Daria Beauty Concept. Wszelkie prawa zastrzeżone.
-        </footer>
-
+            </section>
     </div>
 
-    <!-- ВСПЛЫВАЮЩЕЕ ОКНО ФОРМЫ -->
     <div id="bookingModal" class="modal-overlay">
         <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeBookingModal()">&times;</span>
+            <span class="close-btn" onclick="closeBookingModal()">&times;</span>
+            <h2 class="modal-title">Rezerwacja wizyty</h2>
             
-            <h3>Zapisz się na wizytę</h3>
-            <p class="modal-subtitle">Wprowadź dane, aby zarezerwować termin.</p>
-
-            <form id="appointmentForm" onsubmit="submitForm(event)">
+            <form id="bookingForm" onsubmit="submitForm(event)">
                 
-                <!-- Поле телефона с поддержкой библиотеки флагов -->
                 <div class="form-group">
                     <label for="clientPhone">Numer telefonu *</label>
-                    <input type="tel" id="clientPhone" required placeholder="123 456 789">
-                    <!-- Сюда пишется статус и последний визит -->
-                    <small id="loadingStatus" class="status-message"></small>
+                    <input type="tel" id="clientPhone" required>
+                    <div id="clientStatus" class="status-message"></div>
                 </div>
 
                 <div class="form-group">
@@ -110,25 +45,23 @@
                 </div>
 
                 <div class="form-group">
-    <label for="serviceType">Wybierz usługę *</label>
-    <select id="serviceType" required onchange="updatePrice()">
-        </select>
-    <div id="priceDisplay" style="margin: 8px 0; font-weight: bold; color: #C2A383; font-size: 15px;"></div>
-</div>
-
-<div class="form-group">
-    <label for="appointmentTime">Wybierz wolny termin *</label>
-    <select id="appointmentTime" required>
-        <option value="">-- Najpierw wybierz usługę --</option>
-    </select>
-</div>
+                    <label for="serviceType">Wybierz usługę *</label>
+                    <select id="serviceType" required onchange="updatePrice()">
+                        </select>
+                    <div id="priceDisplay" style="margin: 8px 0; font-weight: bold; color: #C2A383; font-size: 15px;"></div>
+                </div>
 
                 <div class="form-group">
-    <label for="appointmentTime">Preferowana data i godzina *</label>
-    <select id="appointmentTime" name="appointmentTime" required>
-        <option value="">-- Wybierz wolny termin --</option>
-    </select>
-</div>
+                    <label for="calendarInput">Wybierz dzień wizyty *</label>
+                    <input type="text" id="calendarInput" placeholder="Kliknij, aby wybrać dzień..." readonly required style="background: #fff; cursor: pointer;">
+                </div>
+
+                <div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz godzinę *</label>
+                    <div id="timeSlotsContainer" class="time-slots-grid">
+                        <p style="color: #888; font-size: 14px;">Najpierw wybierz dzień...</p>
+                    </div>
+                    <input type="hidden" id="finalDateTime" required>
                 </div>
 
                 <div class="rodo-group">
@@ -143,10 +76,10 @@
         </div>
     </div>
 
-    <!-- ПОДКЛЮЧЕНИЕ СКРИПТОВ -->
     <script src="prices.js"></script>
-    <!-- Сначала подключаем JS библиотеки флагов, затем наш booking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
     <script src="booking.js"></script>
 </body>
 </html>
