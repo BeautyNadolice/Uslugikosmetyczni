@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH6yDm-O9fMchymgJ5O2iXki6QG1OyGPYhdSY1DhYJsIhZyg_qWs7jdBXO8yJIdB_ffQ/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbztmereZ5tJPpdKxl2B0oibnwJhDYLOqW0IlIt56P3ZV9UZ73KiGWKfwANONFe4zTTyew/exec"; 
 
 let iti; 
 let allAvailableSlots = []; 
@@ -346,7 +346,7 @@ async function submitForm(event) {
     closeBookingModal();
     loadFreeSlots(); 
   } catch (error) {
-    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
+    alert("Wystąpiл błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
   } finally {
     submitBtn.disabled = false;
