@@ -33,6 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Привязка отправки формы
+  const bookingForm = document.getElementById("bookingForm");
+  if (bookingForm) {
+    bookingForm.addEventListener("submit", submitForm);
+  }
+
   // Сразу загружаем доступное время с сервера
   loadFreeSlots();
 });
@@ -41,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function updatePrice() {
   const serviceSelect = document.getElementById("serviceType");
   const priceDisplay = document.getElementById("priceDisplay");
+  if (!serviceSelect || !priceDisplay) return;
   const selectedService = serviceSelect.value;
 
   let foundPrice = "";
@@ -71,7 +78,9 @@ async function loadFreeSlots() {
     initCalendar();
   } catch (error) {
     console.error("Błąd ładowania terminów:", error);
-    container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowania terminów. Spróbuj później.</p>';
+    if (container) {
+      container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowania terminów. Spróbuj później.</p>';
+    }
   }
 }
 
@@ -80,11 +89,19 @@ function initCalendar() {
   // Создаем массив уникальных дат, в которых есть свободное время (формат YYYY-MM-DD)
   const availableDates = [...new Set(allAvailableSlots.map(slot => slot.split(" ")[0] || slot.split("T")[0]))];
 
+  const calendarInput = document.getElementById("calendarInput");
+  if (!calendarInput) return;
+
+  // Уничтожаем старый инстанс если он был, чтобы избежать конфликтов при повторном вызове
+  if (flatpickrInstance) {
+    flatpickrInstance.destroy();
+  }
+
   flatpickrInstance = flatpickr("#calendarInput", {
     locale: "pl",
     dateFormat: "Y-m-d",
     minDate: "today",
-    disableMobile: "true", // Оставляем красивый вид календаря и на телефонах
+    disableMobile: true, // Изменено со строки "true" на булево значение true
     enable: availableDates, // Кликнуть можно только на те дни, где есть свободные часы!
     onChange: function(selectedDates, dateStr) {
       displayTimeSlots(dateStr);
@@ -95,6 +112,7 @@ function initCalendar() {
 // Показ доступного времени в виде плиток под календарем
 function displayTimeSlots(selectedDateStr) {
   const container = document.getElementById("timeSlotsContainer");
+  if (!container) return;
   container.innerHTML = ""; 
   document.getElementById("finalDateTime").value = ""; // Сбрасываем старый выбор
 
@@ -133,10 +151,12 @@ function displayTimeSlots(selectedDateStr) {
 
 // Проверка существующего клиента по номеру телефона
 async function checkExistingClient() {
-  if (!iti.isValidNumber()) return;
+  if (!iti || !iti.isValidNumber()) return;
 
   const fullPhoneNumber = iti.getNumber();
   const statusEl = document.getElementById("clientStatus");
+  if (!statusEl) return;
+  
   statusEl.style.display = "block";
   statusEl.innerHTML = "Sprawdzanie danych...";
 
@@ -173,7 +193,7 @@ async function submitForm(event) {
   submitBtn.innerText = "Wysyłanie...";
 
   const payload = {
-    phone: iti.getNumber(),
+    phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
     name: document.getElementById("clientName").value,
     service: document.getElementById("serviceType").value,
     date: finalDateTimeValue // отправляем выбранное в календаре время
