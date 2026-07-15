@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0EsKGO35dlsxeYV2jeMydvw9q9cPIWG78m4STUdcQvQfBpFCduzFx7dZioEvma6JCiA/execc";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIK1JhZbieZ6Gl_77pcRZqVdHLbdiageRd138k-RN7cPq2YXzc5SliYCYoO-BLQBdTSw/exec";
 document.addEventListener("DOMContentLoaded", () => {
     // При старте загружаем список услуг для админки
     loadAdminServices();
