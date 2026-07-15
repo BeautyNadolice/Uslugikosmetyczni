@@ -14,7 +14,7 @@
     margin: 0;
     padding: 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    -webkit-tap-highlight-color: transparent; /* Убирает синюю рамку при клике на мобилках */
+    -webkit-tap-highlight-color: transparent; 
 }
 
 body {
@@ -41,407 +41,196 @@ body {
 }
 
 .avatar {
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid var(--accent-color);
     margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
 h1 {
-    font-size: 24px;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 26px;
     font-weight: 600;
-    letter-spacing: 0.5px;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    color: var(--text-main);
 }
 
 .subtitle {
     font-size: 14px;
     color: var(--accent-color);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     font-weight: bold;
     margin-bottom: 15px;
 }
 
 .bio {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--text-muted);
-    padding: 0 20px;
+    padding: 0 15px;
     margin-bottom: 25px;
 }
 
-/* Przycisk Rezerwacji */
+/* Przycisk CTA */
 .cta-btn {
-    display: block;
-    background-color: var(--text-main);
-    color: #ffffff;
-    text-decoration: none;
-    padding: 16px;
-    border-radius: 12px;
+    display: inline-block;
+    width: 90%;
+    background-color: var(--accent-color);
+    color: white;
+    padding: 16px 20px;
+    font-size: 15px;
     font-weight: bold;
-    font-size: 16px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    text-decoration: none;
+    border-radius: 30px;
+    box-shadow: 0 4px 10px rgba(194, 163, 131, 0.3);
     transition: transform 0.2s, background-color 0.2s;
     border: none;
-    width: 100%;
     cursor: pointer;
+    margin-bottom: 30px;
 }
 
-.cta-btn:active {
-    transform: scale(0.98);
-    background-color: #1a1a1a;
+.cta-btn:hover {
+    background-color: #b09172;
+    transform: translateY(-2px);
 }
 
-/* Sekcja Social Media */
-.links-section {
-    display: flex;
-    flex-direction: column;
+/* Portfolio Grid */
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 35px;
+    padding: 10px;
 }
 
-.link-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--card-bg);
-    color: var(--text-main);
-    text-decoration: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 500;
-    border: 1px solid rgba(0,0,0,0.03);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.link-item:active {
-    background-color: #f5f5f5;
-    transform: scale(0.99);
-}
-
-/* Sekcja Kwalifikacji */
-.qualification-section {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 20px;
-    text-align: left;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-    margin-bottom: 35px;
-}
-
-.qualification-section h2 {
-    font-size: 18px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid #F0F0F0;
-    padding-bottom: 8px;
-}
-
-.qualification-content {
-    font-size: 14px;
-    color: var(--text-main);
-}
-
-.qualification-content p {
-    margin-bottom: 8px;
-}
-
-.qualification-content p:last-of-type {
-    margin-bottom: 0;
-}
-
-.diploma-link {
-    color: var(--accent-color);
-    font-weight: 600;
-    text-decoration: underline;
-    transition: color 0.2s;
-}
-
-.diploma-link:active {
-    color: #b09172;
-}
-
-.diploma-btn {
-    display: inline-block;
-    background-color: var(--accent-color);
-    color: white;
-    text-decoration: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    margin-top: 10px;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.diploma-btn:active {
-    transform: scale(0.97);
-    background-color: #b09172;
-}
-
-/* ==========================================================================
-   3. ДИНАМИЧЕСКИЙ ЦЕННИК И ВИДЖЕТЫ
-   ========================================================================== */
-
-.price-section {
-    background-color: var(--card-bg);
-    border-radius: 16px;
-    padding: 20px;
-    text-align: left;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-    margin-bottom: 35px;
-}
-
-.price-section h2 {
-    font-size: 18px;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #F0F0F0;
-    padding-bottom: 8px;
-    color: var(--text-main);
-}
-
-.price-category {
-    margin-bottom: 20px;
-}
-
-.price-category:last-child {
-    margin-bottom: 0;
-}
-
-.category-title {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--accent-color);
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.price-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    font-size: 15px;
-    margin-bottom: 10px;
-}
-
-.price-name { 
-    color: var(--text-main); 
-    max-width: 70%;
-}
-
-.price-filler {
-    flex-grow: 1;
-    border-bottom: 1px dotted #e0e0e0;
-    margin: 0 8px 4px 8px;
-}
-
-.price-value { 
-    font-weight: 600; 
-    white-space: nowrap;
-}
-
-.widget-section {
-    margin-bottom: 35px;
-}
-
-.widget-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 15px;
-    color: var(--text-muted);
-}
-
-.widget-placeholder {
-    background: #fff;
-    padding: 30px;
-    border-radius: 12px;
-    color: #aaa;
-    font-size: 14px;
-}
-
-footer {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 20px;
-    padding-bottom: 20px;
-}
-
-/* ==========================================================================
-   4. СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА И ВЫБОРА ФЛАГОВ (intl-tel-input)
-   ========================================================================== */
-
-/* Контейнер телефона: выстраиваем ввод и кнопку в одну линию */
-.phone-input-container {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
+.portfolio-item img {
     width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
-.phone-input-container .iti {
-    flex-grow: 1; /* Поле ввода забирает всё свободное место */
-}
+/* ==========================================================================
+   3. СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА (РЕЗЕРВАЦИЯ)
+   ========================================================================== */
 
-.phone-input-container input[type="tel"] {
-    width: 100% !important;
-    padding-left: 52px !important;
-    height: 100%;
-}
-
-/* Стиль маленькой кнопки "Sprawdź" */
-.verify-btn {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 0 15px;
-    font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.verify-btn:hover {
-    background-color: #b09172;
-}
-
-.verify-btn:active {
-    transform: scale(0.96);
-}
-
-/* Стиль для заблокированных полей (Имя) */
-.form-group .locked-input {
-    background-color: #f2f2f2 !important;
-    color: #666 !important;
-    cursor: not-allowed !important;
-    border-color: #dddddd !important;
-}
-
-/* Затемняющий фон */
+/* Темный полупрозрачный фон на весь экран */
 .modal-overlay {
-    display: none; 
-    position: fixed; 
-    z-index: 9999; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    background-color: rgba(0, 0, 0, 0.6); 
-    align-items: center; 
+    display: none; /* Скрыто по умолчанию */
+    position: fixed;
+    z-index: 9999; /* Поверх всего */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px); /* Легкое размытие заднего плана */
     justify-content: center;
+    align-items: center;
+    padding: 15px;
+    overflow-y: auto; /* Позволяет скроллить окно на маленьких экранах */
 }
 
-/* Окно формы */
+/* Контейнер модального окна */
 .modal-content {
-    background: #ffffff; 
-    padding: 30px; 
-    border-radius: 12px; 
-    max-width: 450px; 
-    width: 90%; 
-    position: relative; 
-    box-sizing: border-box; 
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    animation: modalFadeIn 0.3s ease-out;
-    max-height: 90vh;
-    overflow-y: auto;
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    padding: 30px 25px;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+    margin: auto;
 }
 
-@keyframes modalFadeIn {
-    from { opacity: 0; transform: translateY(-15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
+/* Кнопка закрытия (крестик) */
 .close-btn {
-    position: absolute; 
-    right: 20px; 
-    top: 15px; 
-    font-size: 28px; 
-    cursor: pointer; 
-    color: #aaa;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--text-muted);
+    cursor: pointer;
     transition: color 0.2s;
 }
 
 .close-btn:hover {
-    color: #333;
-}
-
-.modal-title {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 22px;
-    text-align: center;
     color: var(--text-main);
 }
 
+/* ==========================================================================
+   4. ЭЛЕМЕНТЫ ФОРМЫ РЕЗЕРВАЦИИ
+   ========================================================================== */
 .form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block; 
-    font-size: 13px; 
-    font-weight: bold; 
-    margin-bottom: 5px;
-    color: #444;
+    margin-bottom: 20px;
     text-align: left;
 }
 
-.form-group input, 
-.form-group select {
-    width: 100%; 
-    padding: 10px; 
-    border: 1px solid #ccc; 
-    border-radius: 6px; 
-    box-sizing: border-box;
+input[type="text"],
+input[type="tel"],
+select {
+    width: 100%;
+    height: 40px;
+    padding: 8px 12px;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
     font-size: 14px;
-}
-
-.form-group input:focus, 
-.form-group select:focus {
+    box-sizing: border-box;
     outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(194, 163, 131, 0.2); 
 }
 
-.status-message {
-    display: none; 
-    margin-top: 6px; 
-    font-size: 12px;
-    line-height: 1.4;
-    text-align: left;
-    font-weight: 500;
+/* Стилизация заблокированных инпутов */
+input:disabled, select:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+    border-color: #e0e0e0;
 }
 
+/* Кнопка проверки номера телефона */
+.verify-btn {
+    background-color: #555;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 15px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.verify-btn:hover {
+    background-color: #333;
+}
+
+/* Тексты согласий (RODO) */
 .rodo-group {
-    margin-bottom: 20px; 
-    display: flex; 
+    display: flex;
     align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 20px;
     text-align: left;
 }
 
 .rodo-group input[type="checkbox"] {
-    margin-top: 3px; 
-    margin-right: 8px;
+    margin-top: 4px;
     cursor: pointer;
-    accent-color: var(--accent-color);
 }
 
 .rodo-text {
-    font-size: 11px; 
-    color: #555; 
-    line-height: 1.4; 
-    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
 }
 
 .rodo-text a {
@@ -449,6 +238,7 @@ footer {
     text-decoration: underline;
 }
 
+/* Кнопка завершения бронирования */
 .submit-booking-btn {
     width: 100%; 
     padding: 12px; 
@@ -487,24 +277,25 @@ footer {
     border: 1px solid #dcdcdc;
     padding: 10px 5px;
     text-align: center;
+    font-size: 13px;
+    font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
     transition: all 0.2s ease-in-out;
 }
 
 .time-slot:hover {
     border-color: var(--accent-color);
-    background-color: #fdfaf6;
-    color: var(--accent-color);
+    background-color: #fffbf7;
 }
 
 .time-slot.selected {
-    background-color: var(--accent-color) !important;
-    color: #ffffff !important;
-    border-color: var(--accent-color) !important;
-    font-weight: bold;
-    box-shadow: 0 2px 6px rgba(194, 163, 131, 0.4);
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+/* Контейнер ввода телефона (плагин intlTelInput) */
+.phone-input-container .iti {
+    width: 100%;
 }
