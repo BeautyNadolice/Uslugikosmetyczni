@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfcFEYAXHDAdR8XGSm2apyf4ThqJ3I99Z1KJhhrZCgK32dUAIeCExNFzp2oSUrBQ2Dmw/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxSrELqde8dHnDlmpD7hM6CERmOm0FcwR8pgnNhQwZ_U04OfQKZgE9aHj_wo03L2wfofw/exec"; 
 
 let iti; // Переменная для флагов стран
 
