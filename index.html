@@ -1,132 +1,128 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nail-Art Daria - Rezerwacja Wizyty</title>
-  <!-- Подключение твоего внешнего файла стилей -->
-  <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="booking-container">
-  <div class="brand-header">
-    <h1>Nail-Art Daria</h1>
-    <p>Rezerwacja wizyty online</p>
-  </div>
+    <div class="container">
 
-  <form id="appointmentForm" onsubmit="submitForm(event)">
-    
-    <!-- ПОЛЕ: ТЕЛЕФОН -->
-    <div class="form-group">
-      <label for="clientPhone">Numer telefonu *</label>
-      <input type="tel" id="clientPhone" class="form-control" required placeholder="+48 XXX XXX XXX" onblur="checkExistingClient()">
-      <div id="loadingStatus" class="status-message">Sprawdzanie danych...</div>
+        <section class="profile-section">
+            <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
+            <h1>Daria</h1>
+            <div class="subtitle">Technik usług kosmetycznych</div>
+            <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
+        </section>
+
+        <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
+
+        <section class="links-section">
+            <a href="https://instagram.com/" class="link-item" target="_blank">📸 Mój Instagram</a>
+            <a href="https://facebook.com/" class="link-item" target="_blank">👥 Facebook</a>
+            <a href="https://tiktok.com/" class="link-item" target="_blank">🎵 TikTok (Moja praca od kuchni)</a>
+        </section>
+
+        <section class="qualification-section">
+            <h2>Kwalifikacje i Bezpieczeństwo (A)</h2>
+            <div class="qualification-content">
+                <p style="margin-bottom: 12px;">
+                    ✨ <strong>Państwowy Dyplom:</strong> 
+                    <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" class="diploma-link">
+                        Technik usług kosmetycznych (zobacz dyplom)
+                    </a>
+                </p>
+                <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
+                <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
+            </div>
+        </section>
+
+        <section class="qualification-section">
+            <h2>Kwalifikacje i Bezpieczeństwo (B)</h2>
+            <div class="qualification-content">
+                <p style="margin-bottom: 8px;">✨ <strong>Państwowy Dyplom:</strong> Technik usług kosmetycznych</p>
+                <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
+                <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
+
+                <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" class="diploma-btn">
+                    📄 ZOBACZ DYPLOM
+                </a>
+            </div>
+        </section>
+
+        <section class="price-section" id="dynamic-price-section">
+        </section>
+
+        <section class="widget-section">
+            <div class="widget-title">Moje prace na Instagramie</div>
+            <div class="widget-placeholder">
+                [Tutaj będą automatycznie wyświetlać się najnowsze posty]
+            </div>
+        </section>
+
+        <section class="widget-section">
+            <div class="widget-title">Opinie zadowolonych klientek</div>
+            <div class="widget-placeholder">
+                [Screeny wiadomości i opinii od klientek]
+            </div>
+        </section>
+
+        <footer>
+            © 2026 Daria Beauty Concept. Wszelkie prawa zastrzeżone.
+        </footer>
+
     </div>
 
-    <!-- ПОЛЕ: ИМЯ И ФАМИЛИЯ -->
-    <div class="form-group">
-      <label for="clientName">Imię i Nazwisko *</label>
-      <input type="text" id="clientName" class="form-control" required placeholder="np. Anna Kowalska">
+    <div id="bookingModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeBookingModal()">&times;</span>
+            
+            <h3>Zapisz się na wizytę</h3>
+            <p class="modal-subtitle">Wprowadź dane, aby zarezerwować termin.</p>
+
+            <form id="appointmentForm" onsubmit="submitForm(event)">
+                
+                <div class="form-group">
+                    <label for="clientPhone">Numer telefonu *</label>
+                    <input type="tel" id="clientPhone" required placeholder="+48 XXX XXX XXX" onblur="checkExistingClient()">
+                    <small id="loadingStatus" class="status-message"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="clientName">Imię i Nazwisko *</label>
+                    <input type="text" id="clientName" required placeholder="np. Anna Kowalska">
+                </div>
+
+                <div class="form-group">
+                    <label for="serviceType">Wybierz usługę *</label>
+                    <select id="serviceType" required>
+                        <option value="" disabled selected>-- Wybierz zabieg --</option>
+                        <option value="Stylizacja rzęs i brwi">Stylizacja rzęs i brwi</option>
+                        <option value="Manicure">Manicure</option>
+                        <option value="Pedicure">Pedicure</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="appointmentDate">Preferowana data i godzina *</label>
+                    <input type="datetime-local" id="appointmentDate" required>
+                </div>
+
+                <div class="rodo-group">
+                    <input type="checkbox" id="rodoConsent" required>
+                    <label for="rodoConsent" class="rodo-text">
+                        Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-booking-btn">Zarezerwuj wizytę</button>
+            </form>
+        </div>
     </div>
 
-    <!-- ПОЛЕ: УСЛУГА -->
-    <div class="form-group">
-      <label for="serviceType">Wybierz usługę *</label>
-      <select id="serviceType" class="form-control" required>
-        <option value="" disabled selected>-- Wybierz zabieg --</option>
-        <option value="Stylizacja rzęs i brwi">Stylizacja rzęs i brwi</option>
-        <option value="Manicure">Manicure</option>
-        <option value="Pedicure">Pedicure</option>
-      </select>
-    </div>
-
-    <!-- ПОЛЕ: ДАТА И ВРЕМЯ -->
-    <div class="form-group">
-      <label for="appointmentDate">Preferowana data i godzina *</label>
-      <input type="datetime-local" id="appointmentDate" class="form-control" required>
-    </div>
-
-    <!-- ГАЛОЧКА RODO -->
-    <div class="rodo-container">
-      <input type="checkbox" id="rodoConsent" required>
-      <label for="rodoConsent" class="rodo-label">
-        Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji oraz kontaktu telefonicznego. Szczegóły znajdziesz w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
-      </label>
-    </div>
-
-    <!-- КНОПКА ОТПРАВКИ -->
-    <button type="submit" class="submit-btn">Zarezerwuj wizytę</button>
-  </form>
-</div>
-
-<script>
-  // Сюда вставь полученную ссылку из Google Apps Script при деплое:
-  const APPS_SCRIPT_URL = "https://calendar.app.google/j2BskTJWrwPEvEVn8"; 
-
-  // Функция автозаполнения
-  async function checkExistingClient() {
-    const phoneInput = document.getElementById("clientPhone").value.trim();
-    if (phoneInput.length < 9) return; 
-
-    const statusEl = document.getElementById("loadingStatus");
-    statusEl.style.display = "block";
-    statusEl.innerText = "Sprawdzanie danych...";
-
-    try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(phoneInput)}`);
-      const data = await response.json();
-
-      if (data.found && data.name) {
-        document.getElementById("clientName").value = data.name;
-        statusEl.innerText = "Znaleziono klienta! Dane uzupełnione.";
-      } else {
-        statusEl.innerText = "Nowy klient. Wpisz imię ręcznie.";
-      }
-    } catch (error) {
-      console.error("Błąd автозаполнения:", error);
-      statusEl.style.display = "none";
-    }
-  }
-
-  // Функция отправки данных
-  async function submitForm(event) {
-    event.preventDefault();
-
-    const submitBtn = document.querySelector(".submit-btn");
-    submitBtn.disabled = true;
-    submitBtn.innerText = "Wysyłanie...";
-
-    const payload = {
-      phone: document.getElementById("clientPhone").value,
-      name: document.getElementById("clientName").value,
-      service: document.getElementById("serviceType").value,
-      date: document.getElementById("appointmentDate").value
-    };
-
-    try {
-      const response = await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-      
-      if (result.success) {
-        alert("Wizyta została pomyślnie zarezerwowana!");
-        document.getElementById("appointmentForm").reset();
-        document.getElementById("loadingStatus").style.display = "none";
-      } else {
-        alert("Wystąpił problem z rezerwacją. Spróbuj ponownie.");
-      }
-    } catch (error) {
-      alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
-      console.error(error);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Zarezerwuj wizytę";
-    }
-  }
-</script>
-
+    <script src="prices.js"></script>
+    <script src="booking.js"></script>
 </body>
 </html>
