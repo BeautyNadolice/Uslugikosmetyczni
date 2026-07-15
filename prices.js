@@ -6,8 +6,6 @@ const cennikData = [
             { name: "Masaż twarzy (autorski zabieg pielęgnacyjny)", price: "od 150 zł" },
             { name: "Oczyszczanie kombinowane twarzy", price: "200 zł" },
             { name: "Zabieg pielęgnacyjny dobrany do potrzeb skóry", price: "250 zł" }
-            // Aby dodać nowy zabieg, dopisz przecinek wyżej i wklej:
-            // { name: "Nowy zabieg", price: "100 zł" }
         ]
     },
     {
@@ -41,6 +39,7 @@ document.addEventListener("DOMContentLoaded", function() {
             htmlContent += `
                 <div class="price-item">
                     <span class="price-name">${item.name}</span>
+                    <span class="price-filler"></span>
                     <span class="price-value">${item.price}</span>
                 </div>
             `;
