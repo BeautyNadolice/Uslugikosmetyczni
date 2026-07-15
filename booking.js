@@ -1,5 +1,4 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhPcJ84Qzz1QCEimcROvDAAqm8CGJXJiw63gvux5FMdC1r2I2zUNuD0zUR8xm6FZjZjg/exec"; 
-
 let iti; 
 let allAvailableSlots = []; 
 let adminSettings = {
@@ -68,7 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
     bookingForm.addEventListener("submit", submitForm);
   }
 
-  loadFreeSlots();
   toggleFormState(false); 
 });
 
@@ -156,7 +154,7 @@ async function loadFreeSlots() {
     
     allAvailableSlots = data.busySlots || [];
     if (data.settings) {
-      adminSettings = data.settings; // Обновляем настройки из Google Таблицы
+      adminSettings = data.settings; 
     }
 
     const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
@@ -165,12 +163,34 @@ async function loadFreeSlots() {
     console.error("Błąd ładowania terminów:", error);
     const container = document.getElementById("timeSlotsContainer");
     if (container) {
-      container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowania terminów. Spróbuj później.</p>';
+      container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowния terminów. Spróbuj później.</p>';
     }
   }
 }
 
-// Инициализация календаря (Все дни, включая воскресенье, открыты)
+// Функция генерации базовой сетки часов (избегаем дублирования логики)
+function getBaseWorkingHours() {
+  const baseWorkingHours = [];
+  let currentHour = 9;  // С 09:00
+  let currentMinute = 0;
+  const endHour = 18;   // До 18:00
+  const step = adminSettings.slot_interval_minutes || 45;
+
+  while (currentHour < endHour) {
+    const hStr = String(currentHour).padStart(2, '0');
+    const mStr = String(currentMinute).padStart(2, '0');
+    baseWorkingHours.push(`${hStr}:${mStr}`);
+    
+    currentMinute += step;
+    if (currentMinute >= 60) {
+      currentHour += Math.floor(currentMinute / 60);
+      currentMinute = currentMinute % 60;
+    }
+  }
+  return baseWorkingHours;
+}
+
+// Инициализация календаря с блокировкой полностью занятых дней
 function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
@@ -179,11 +199,32 @@ function initCalendar(defaultDate = "") {
     flatpickrInstance.destroy();
   }
 
+  // Находим полностью занятые дни
+  const disabledDates = [];
+  const baseSlotsCount = getBaseWorkingHours().length;
+
+  // Группируем занятые слоты по дням "YYYY-MM-DD"
+  const busyDaysCount = {};
+  allAvailableSlots.forEach(slot => {
+    const dayStr = slot.split("T")[0];
+    if (dayStr) {
+      busyDaysCount[dayStr] = (busyDaysCount[dayStr] || 0) + 1;
+    }
+  });
+
+  // Если количество занятых слотов в дне равно или больше общего лимита — блокируем этот день
+  for (const day in busyDaysCount) {
+    if (busyDaysCount[day] >= baseSlotsCount) {
+      disabledDates.push(day);
+    }
+  }
+
   flatpickrInstance = flatpickr("#calendarInput", {
     locale: "pl",
     dateFormat: "Y-m-d",
     minDate: "today",
     disableMobile: true,
+    disable: disabledDates, // Полностью занятые дни отключаем для клика
     defaultDate: defaultDate || null, 
     onChange: function(selectedDates, dateStr) {
       displayTimeSlots(dateStr);
@@ -204,25 +245,7 @@ function displayTimeSlots(selectedDateStr) {
   const day = String(now.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
 
-  // Генерируем базовые часы работы динамически на основе шага slot_interval_minutes (например, каждые 45 минут)
-  const baseWorkingHours = [];
-  let currentHour = 9;  // С 09:00
-  let currentMinute = 0;
-  const endHour = 18;   // До 18:00 (последний слот может начаться в 17:15)
-
-  const step = adminSettings.slot_interval_minutes || 45;
-
-  while (currentHour < endHour) {
-    const hStr = String(currentHour).padStart(2, '0');
-    const mStr = String(currentMinute).padStart(2, '0');
-    baseWorkingHours.push(`${hStr}:${mStr}`);
-    
-    currentMinute += step;
-    if (currentMinute >= 60) {
-      currentHour += Math.floor(currentMinute / 60);
-      currentMinute = currentMinute % 60;
-    }
-  }
+  const baseWorkingHours = getBaseWorkingHours();
 
   // Фильтруем занятые в календаре слоты на выбранный день
   const busyTimesOnThisDay = allAvailableSlots
@@ -232,7 +255,7 @@ function displayTimeSlots(selectedDateStr) {
       return parts[1] ? parts[1].substring(0, 5) : ""; 
     });
 
-  // Фильтрация: убираем занятые, убираем прошлое и учитываем буфер buffer_hours
+  // Фильтрация: убираем занятые, прошлое и буфер
   const freeHours = baseWorkingHours.filter(time => {
     if (busyTimesOnThisDay.includes(time)) {
       return false;
@@ -244,11 +267,10 @@ function displayTimeSlots(selectedDateStr) {
       slotDateTime.setHours(hours, minutes, 0, 0);
 
       const timeDifferenceMs = slotDateTime.getTime() - now.getTime();
-      // Буфер берется динамически из настроек Settings (переводим часы в мс)
       const bufferMs = adminSettings.buffer_hours * 60 * 60 * 1000; 
 
       if (timeDifferenceMs < bufferMs) {
-        return false; // Скрываем слот, если он прошел или находится в зоне буфера
+        return false; 
       }
     }
 
@@ -304,6 +326,9 @@ async function checkExistingClient() {
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
       toggleFormState(true); 
+      
+      // Загружаем актуальные слоты ТОЛЬКО ПОСЛЕ успешной авторизации, чтобы сетка была свежей
+      await loadFreeSlots(); 
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
@@ -333,7 +358,7 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
-// Отправка формы с глубокой проверкой
+// Отправка формы с мягкой бесшовной перепроверкой без лишних ошибок для клиента
 async function submitForm(event) {
   event.preventDefault();
 
@@ -355,29 +380,27 @@ async function submitForm(event) {
   submitBtn.innerText = "Sprawdzanie terminu...";
 
   try {
-    // 1. Быстрая глубокая проверка перед отправкой (берет safety_range_hours из настроек)
+    // 1. Скрытая фоновая проверка перед бронированием
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
     const result = await checkResponse.json();
 
     if (!result.isFree) {
-      let alertMessage = "Przepraszamy, ten termin (lub termin blisko niego) został właśnie zajęty!";
-      if (result.conflictingTime) {
-        alertMessage += ` Wykryto inną rezerwację o godzinie ${result.conflictingTime}. Wybierz inną godzinę.`;
-      } else {
-        alertMessage += " Wybierz inną godzinę.";
-      }
-      
-      alert(alertMessage);
+      // КЛИЕНТ НЕ ВИДИТ ТЕХНИЧЕСКИЙ ТЕКСТ. Показываем мягкую ошибку:
+      alert("Wybrana godzina została właśnie zajęta. Proszę wybrać inny wolny termin.");
 
-      const selectedDateStr = document.getElementById("calendarInput").value;
+      // Моментально обновляем список слотов из базы и перерисовываем сетку
       await loadFreeSlots();
+      const selectedDateStr = document.getElementById("calendarInput").value;
       if (selectedDateStr) {
         displayTimeSlots(selectedDateStr);
       }
+      
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Zarezerwuj wizytę";
       return; 
     }
 
-    // 2. Отправка записи
+    // 2. Отправка записи (если слот свободен)
     submitBtn.innerText = "Zapisywanie...";
     const payload = {
       phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
@@ -400,7 +423,6 @@ async function submitForm(event) {
   } catch (error) {
     alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
-  } finally {
     submitBtn.disabled = false;
     submitBtn.innerText = "Zarezerwuj wizytę";
   }
