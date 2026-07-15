@@ -1,64 +1,8 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <div class="container">
-
-        <section class="profile-section">
-            <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
-            <h1>Daria</h1>
-            <div class="subtitle">Technik usług kosmetycznych</div>
-            <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęс oraz idealna pielęgnacja ✨</p>
-        </section>
-
-        <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
-
-        <section id="dynamic-price-section" class="price-section">
-            </section>
-
-    </div>
-
-    <div id="bookingModal" class="modal-overlay">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeBookingModal()">&times;</span>
-            <h2 class="modal-title">Rezerwacja wizyty</h2>
-            
-            <form id="bookingForm">
-                
-                <div class="form-group">
-                    <label for="clientPhone">Numer telefonu *</label>
-                    <div class="phone-input-container">
-                        <input type="tel" id="clientPhone" required>
-                        <button type="button" id="verifyPhoneBtn" class="verify-btn">Sprawdź</button>
-                    </div>
-                    <div id="clientStatus" class="status-message"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="clientName">Imię i Nazwisko *</label>
-                    <input type="text" id="clientName" readonly required placeholder="Zostanie uzupełnione automatycznie..." class="locked-input">
-                    <small style="display:block; margin-top:4px; color:#888; font-size:11px; text-align:left;">Pole uzupełnia się automatycznie po weryfikacji numeru telefonu.</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="serviceType">Wybierz usługę *</label>
-                    <select id="serviceType" required onchange="updatePrice()">
-                        </select>
-                    <div id="priceDisplay" style="margin: 8px 0; font-weight: bold; color: #C2A383; font-size: 15px;"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="calendarInput">Wybierz dzień wizyty *</label>
-                    <input type="text" id="calendarInput" placeholder="Kliknij, aby wybrać dzień..." readonly required style="background: #fff; cursor: pointer;">
+<div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz zabieg *</label>
+                    <select id="serviceType" onchange="updatePrice()" required>
+                        <option value="" disabled selected>Ładowanie usług...</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -67,24 +11,17 @@
                         <p style="color: #888; font-size: 14px;">Najpierw wybierz dzień...</p>
                     </div>
                     <input type="hidden" id="finalDateTime" required>
+                    <input type="hidden" id="selectedDuration" value="45">
                 </div>
+                
+                <div id="priceDisplay" style="margin: 10px 0; font-weight: bold; color: var(--accent-color);"></div>
 
-                <div class="rodo-group">
-                    <input type="checkbox" id="rodoConsent" required>
-                    <label for="rodoConsent" class="rodo-text">
-                        Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
-                    </label>
-                </div>
-
-                <button type="submit" class="submit-booking-btn">Zarezerwuj wizytę</button>
-            </form>
+                </form>
         </div>
     </div>
 
-    <script src="prices.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
     <script src="booking.js"></script>
 </body>
 </html>
