@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbztmereZ5tJPpdKxl2B0oibnwJhDYLOqW0IlIt56P3ZV9UZ73KiGWKfwANONFe4zTTyew/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJGz-x0eDPDr_9dA5Ivm4uC2lqeV5hILoyjA5-cwwBF3FMvtYeRILNyEVaOi1rNDVOtQ/exec"; 
 
 let iti; 
 let allAvailableSlots = []; 
@@ -31,18 +31,21 @@ document.addEventListener("DOMContentLoaded", () => {
       isClientApproved = false;
       document.getElementById("clientName").value = "";
       const statusEl = document.getElementById("clientStatus");
-      if (statusEl) statusEl.innerHTML = "";
+      if (statusEl) {
+        statusEl.innerHTML = "";
+        statusEl.style.display = "none";
+      }
       toggleFormState(false); // Блокируем форму обратно
     });
   }
 
-  // Привязка новой кнопки "Sprawdź" рядом с телефоном
+  // Привязка кнопки "Sprawdź" рядом с телефоном
   const verifyBtn = document.getElementById("verifyPhoneBtn");
   if (verifyBtn) {
     verifyBtn.addEventListener("click", checkExistingClient);
   }
 
-  // Заполнение услуг из prices.js
+  // Заполнение услуг из cennikData
   const serviceSelect = document.getElementById("serviceType");
   if (serviceSelect) {
     serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
@@ -59,7 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
         serviceSelect.appendChild(optGroup);
       });
     }
-
     serviceSelect.addEventListener("change", updatePrice);
   }
 
@@ -152,9 +154,8 @@ function updatePrice() {
   priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice : "";
 }
 
-// Получение свободных слотов
+// Получение занятых/доступных интервалов
 async function loadFreeSlots() {
-  const container = document.getElementById("timeSlotsContainer");
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?checkBusy=true`);
     const slots = await response.json(); 
@@ -164,13 +165,14 @@ async function loadFreeSlots() {
     initCalendar(savedDate);
   } catch (error) {
     console.error("Błąd ładowania terminów:", error);
+    const container = document.getElementById("timeSlotsContainer");
     if (container) {
       container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowania terminów. Spróbuj później.</p>';
     }
   }
 }
 
-// Инициализация календаря (все дни недели, включая воскресенье, активны)
+// Инициализация календаря (Воскресенье тоже РАБОЧЕЕ — все дни открыты)
 function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
@@ -184,7 +186,6 @@ function initCalendar(defaultDate = "") {
     dateFormat: "Y-m-d",
     minDate: "today",
     disableMobile: true,
-    // Теперь нет никаких ограничений по дням недели — все дни открыты!
     defaultDate: defaultDate || null, 
     onChange: function(selectedDates, dateStr) {
       displayTimeSlots(dateStr);
@@ -192,29 +193,28 @@ function initCalendar(defaultDate = "") {
   });
 }
 
-// Показ плиток времени с вычитанием занятых слотов
+// Показ плиток времени (Каждые 45 мин, исключая занятые интервалы)
 function displayTimeSlots(selectedDateStr) {
   const container = document.getElementById("timeSlotsContainer");
   if (!container) return;
   container.innerHTML = ""; 
   document.getElementById("finalDateTime").value = ""; 
 
-  // Список всех ваших рабочих интервалов (шаблонный рабочий день)
+  // Базовая сетка рабочих часов
   const baseWorkingHours = [
     "09:00", "09:45", "10:30", "11:15", "12:00", 
     "12:45", "13:30", "14:15", "15:00", "15:45", "16:30", "17:15"
   ];
 
-  // Фильтруем занятые слоты из Google Календаря на выбранную дату
-  // allAvailableSlots содержит занятые даты в формате "YYYY-MM-DDTHH:MM"
+  // Фильтруем занятые часы из Google Календаря на выбранный день
   const busyTimesOnThisDay = allAvailableSlots
     .filter(slot => slot.startsWith(selectedDateStr))
     .map(slot => {
       const parts = slot.split("T");
-      return parts[1] ? parts[1].substring(0, 5) : "";
+      return parts[1] ? parts[1].substring(0, 5) : ""; 
     });
 
-  // Оставляем только свободные часы
+  // Оставляем только свободные интервалы
   const freeHours = baseWorkingHours.filter(time => !busyTimesOnThisDay.includes(time));
 
   if (freeHours.length === 0) {
@@ -237,7 +237,7 @@ function displayTimeSlots(selectedDateStr) {
   });
 }
 
-// Проверка телефона по базе данных
+// Проверка телефона по базе данных "Clients"
 async function checkExistingClient() {
   const statusEl = document.getElementById("clientStatus");
   if (!statusEl) return;
@@ -265,13 +265,13 @@ async function checkExistingClient() {
       statusEl.style.color = "green";
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
-      toggleFormState(true); // Разблокируем форму
+      toggleFormState(true); 
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
       statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
       isClientApproved = false;
-      toggleFormState(false); // Оставляем заблокированной
+      toggleFormState(false); 
     }
   } catch (error) {
     statusEl.style.color = "red";
@@ -296,7 +296,7 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
-// Отправка формы с защитой от наложений
+// Отправка формы с проверкой диапазона времени (±5 часов от желаемой даты)
 async function submitForm(event) {
   event.preventDefault();
 
@@ -318,19 +318,25 @@ async function submitForm(event) {
   submitBtn.innerText = "Sprawdzanie terminu...";
 
   try {
-    // 1. Быстрая проверка слота
+    // 1. Быстрая глубокая проверка перед отправкой (проверка на ±5 часов)
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
     const result = await checkResponse.json();
 
     if (!result.isFree) {
-      alert("Przepraszamy, ten termin został właśnie zajęty! Wybierz inną godzinę.");
+      let alertMessage = "Przepraszamy, ten termin (lub termin blisko niego) został właśnie zajęty!";
+      if (result.conflictingTime) {
+        alertMessage += ` Wykryto inną rezerwację o godzinie ${result.conflictingTime}. Wybierz inną godzinę.`;
+      } else {
+        alertMessage += " Wybierz inną godzinę.";
+      }
+      
+      alert(alertMessage);
+
       const selectedDateStr = document.getElementById("calendarInput").value;
       await loadFreeSlots();
       if (selectedDateStr) {
         displayTimeSlots(selectedDateStr);
       }
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Zarezerwuj wizytę";
       return; 
     }
 
@@ -355,7 +361,7 @@ async function submitForm(event) {
     closeBookingModal();
     loadFreeSlots(); 
   } catch (error) {
-    alert("Wystąpiл błąd podczas rezerwacji. Spróbuj ponownie.");
+    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
   } finally {
     submitBtn.disabled = false;
