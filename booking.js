@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Привязка кнопки "Sprawdź" рядом с телефоном
+  // Привязка новой кнопки "Sprawdź" рядом с телефоном
   const verifyBtn = document.getElementById("verifyPhoneBtn");
   if (verifyBtn) {
     verifyBtn.addEventListener("click", checkExistingClient);
@@ -46,17 +46,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const serviceSelect = document.getElementById("serviceType");
   if (serviceSelect) {
     serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
-    cennikData.forEach(cat => {
-      const optGroup = document.createElement("optgroup");
-      optGroup.label = cat.categoryTitle;
-      cat.items.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item.name;
-        opt.textContent = item.name;
-        optGroup.appendChild(opt);
+    if (typeof cennikData !== "undefined") {
+      cennikData.forEach(cat => {
+        const optGroup = document.createElement("optgroup");
+        optGroup.label = cat.categoryTitle;
+        cat.items.forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.name;
+          opt.textContent = item.name;
+          optGroup.appendChild(opt);
+        });
+        serviceSelect.appendChild(optGroup);
       });
-      serviceSelect.appendChild(optGroup);
-    });
+    }
 
     serviceSelect.addEventListener("change", updatePrice);
   }
@@ -74,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Управление состоянием всей формы
 function toggleFormState(enabled) {
-  const submitBtn = document.querySelector(".submit-booking-btn");
+  const submitBtn = document.getElementById("submitBookingBtn");
   const serviceSelect = document.getElementById("serviceType");
   const calendarInput = document.getElementById("calendarInput");
   const slotsContainer = document.getElementById("timeSlotsContainer");
@@ -110,6 +112,9 @@ function toggleFormState(enabled) {
 
   if (rodoConsent) {
     rodoConsent.disabled = !enabled;
+    if (!enabled) {
+      rodoConsent.checked = false;
+    }
   }
 
   if (slotsContainer) {
@@ -135,13 +140,15 @@ function updatePrice() {
   const selectedService = serviceSelect.value;
 
   let foundPrice = "";
-  cennikData.forEach(cat => {
-    cat.items.forEach(item => {
-      if (item.name === selectedService) {
-        foundPrice = item.price;
-      }
+  if (typeof cennikData !== "undefined") {
+    cennikData.forEach(cat => {
+      cat.items.forEach(item => {
+        if (item.name === selectedService) {
+          foundPrice = item.price;
+        }
+      });
     });
-  });
+  }
   priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice : "";
 }
 
@@ -238,7 +245,7 @@ async function checkExistingClient() {
   const fullPhoneNumber = iti.getNumber();
   statusEl.style.display = "block";
   statusEl.style.color = "#2C2C2C";
-  statusEl.innerHTML = "Sprawdzanie данных...";
+  statusEl.innerHTML = "Sprawdzanie danych...";
 
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
@@ -247,15 +254,15 @@ async function checkExistingClient() {
     if (data.found && data.name) {
       document.getElementById("clientName").value = data.name;
       statusEl.style.color = "green";
-      statusEl.innerHTML = "Klient verified pomyślnie!";
+      statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
       toggleFormState(true); // Разблокируем форму
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
-      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się з administratorem.";
+      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
       isClientApproved = false;
-      toggleFormState(false); // Оставляем заблокированной намертво
+      toggleFormState(false); // Оставляем заблокированной
     }
   } catch (error) {
     statusEl.style.color = "red";
@@ -285,7 +292,7 @@ async function submitForm(event) {
   event.preventDefault();
 
   const finalDateTimeValue = document.getElementById("finalDateTime").value; 
-  const submitBtn = document.querySelector(".submit-booking-btn");
+  const submitBtn = document.getElementById("submitBookingBtn");
   const rodoConsent = document.getElementById("rodoConsent");
   
   if (!isClientApproved) {
@@ -318,7 +325,7 @@ async function submitForm(event) {
       return; 
     }
 
-    // 2. Отправка записи (Записывается ТОЛЬКО в Bookings)
+    // 2. Отправка записи
     submitBtn.innerText = "Zapisywanie...";
     const payload = {
       phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
