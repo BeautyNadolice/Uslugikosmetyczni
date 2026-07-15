@@ -1,17 +1,7 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
-    <!-- ПІДКЛЮЧЕННЯ СТИЛІВ CSS -->
-    <link rel="stylesheet" href="style.css">
-</head>
 <body>
 
     <div class="container">
 
-        <!-- Profil Darii -->
         <section class="profile-section">
             <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
             <h1>Daria</h1>
@@ -19,52 +9,44 @@
             <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
         </section>
 
-        <!-- Główny przycisk szybkiego zapisu -->
         <a href="https://wa.me/48000000000" class="cta-btn" target="_blank">✨ ZAREZERWUJ WIZYTĘ ✨</a>
 
-        <!-- Linki do mediów społecznościowych -->
         <section class="links-section">
             <a href="https://instagram.com/" class="link-item" target="_blank">📸 Mój Instagram</a>
             <a href="https://facebook.com/" class="link-item" target="_blank">👥 Facebook</a>
             <a href="https://tiktok.com/" class="link-item" target="_blank">🎵 TikTok (Moja praca od kuchni)</a>
         </section>
 
-        <!-- Sekcja Kwalifikacji - Wariant A -->
-<section class="qualification-section">
-    <h2>Kwalifikacje i Bezpieczeństwo</h2>
-    <div class="qualification-content">
-        <!-- Текст став посиланням za pomocą <a> -->
-        <p style="margin-bottom: 12px;">
-            ✨ <strong>AAAAPaństwowy Dyplom:</strong> 
-            <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" style="color: var(--accent-color); font-weight: 600; text-decoration: underline;">
-                Technik usług kosmetycznych (zobacz dyplom)
-            </a>
-        </p>
-        <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
-        <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
-    </div>
-</section>
-        <!-- Sekcja Kwalifikacji - Wariant B -->
-<section class="qualification-section">
-    <h2>Kwalifikacje i Bezpieczeństwo</h2>
-    <div class="qualification-content">
-        <p style="margin-bottom: 8px;">✨ <strong>BBBPaństwowy Dyplom:</strong> Technik usług kosmetycznych</p>
-        <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
-        <p style="margin-bottom: 15px;">🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
-        
-        <!-- Кнопка для відкриття диплома -->
-        <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" style="display: inline-block; background-color: var(--accent-color); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; letter-spacing: 0.5px;">
-            📄 ZOBACZ DYPLOM
-        </a>
-    </div>
-</section>
-
-        <!-- Dynamiczny cennik z pliku prices.js -->
-        <section class="price-section" id="dynamic-price-section">
-            <!-- Kontnent wygeneruje się automatycznie -->
+        <section class="qualification-section">
+            <h2>Kwalifikacje i Bezpieczeństwo (A)</h2>
+            <div class="qualification-content">
+                <p style="margin-bottom: 12px;">
+                    ✨ <strong>Państwowy Dyplom:</strong> 
+                    <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" class="diploma-link">
+                        Technik usług kosmetycznych (zobacz dyplom)
+                    </a>
+                </p>
+                <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie z najwyższymi standardami higieny i sterylizacji narzędzi.</p>
+                <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
+            </div>
         </section>
 
-        <!-- Miejsce na widget Instagrama -->
+        <section class="qualification-section">
+            <h2>Kwalifikacje i Bezpieczeństwo (B)</h2>
+            <div class="qualification-content">
+                <p style="margin-bottom: 8px;">✨ <strong>Państwowy Dyplom:</strong> Technik usług kosmetycznych</p>
+                <p style="margin-bottom: 8px;">🌱 <strong>Bezpieczeństwo:</strong> Praca zgodnie с najwyższymi standardami higieny i sterylizacji narzędzi.</p>
+                <p>🎯 <strong>Indywidualne podejście:</strong> Zabiegi oraz pielęgnacja domowa są zawsze dobierane do aktualnych potrzeb Twojej skóry.</p>
+                
+                <a href="link-do-zdjecia-dyplomu.jpg" target="_blank" class="diploma-btn">
+                    📄 ZOBACZ DYPLOM
+                </a>
+            </div>
+        </section>
+
+        <section class="price-section" id="dynamic-price-section">
+            </section>
+
         <section class="widget-section">
             <div class="widget-title">Moje prace na Instagramie</div>
             <div class="widget-placeholder">
@@ -72,7 +54,6 @@
             </div>
         </section>
 
-        <!-- Miejsce na opinie -->
         <section class="widget-section">
             <div class="widget-title">Opinie zadowolonych klientek</div>
             <div class="widget-placeholder">
@@ -86,7 +67,5 @@
 
     </div>
 
-    <!-- ПІДКЛЮЧЕННЯ СКРИПТА ЦЕННИКА -->
     <script src="prices.js"></script>
 </body>
-</html>
