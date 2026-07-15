@@ -170,9 +170,8 @@ async function loadFreeSlots() {
   }
 }
 
-// Инициализация календаря
+// Инициализация календаря (все дни недели, включая воскресенье, активны)
 function initCalendar(defaultDate = "") {
-  const availableDates = [...new Set(allAvailableSlots.map(slot => slot.split("T")[0]))];
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
 
@@ -185,7 +184,7 @@ function initCalendar(defaultDate = "") {
     dateFormat: "Y-m-d",
     minDate: "today",
     disableMobile: true,
-    enable: availableDates,
+    // Теперь нет никаких ограничений по дням недели — все дни открыты!
     defaultDate: defaultDate || null, 
     onChange: function(selectedDates, dateStr) {
       displayTimeSlots(dateStr);
