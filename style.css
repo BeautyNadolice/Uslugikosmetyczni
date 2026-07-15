@@ -155,7 +155,6 @@ h1 {
     margin-bottom: 0;
 }
 
-/* Ссылки и кнопки диплома */
 .diploma-link {
     color: var(--accent-color);
     font-weight: 600;
@@ -190,7 +189,6 @@ h1 {
    3. ДИНАМИЧЕСКИЙ ЦЕННИК И ВИДЖЕТЫ
    ========================================================================== */
 
-/* Sekcja Cennika */
 .price-section {
     background-color: var(--card-bg);
     border-radius: 16px;
@@ -249,7 +247,6 @@ h1 {
     white-space: nowrap;
 }
 
-/* Widgety i Opinie */
 .widget-section {
     margin-bottom: 35px;
 }
@@ -269,7 +266,6 @@ h1 {
     font-size: 14px;
 }
 
-/* Stopka */
 footer {
     font-size: 12px;
     color: var(--text-muted);
@@ -281,22 +277,47 @@ footer {
    4. СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА И ВЫБОРА ФЛАГОВ (intl-tel-input)
    ========================================================================== */
 
-/* Контейнер для ввода телефона — исключает наложение флагов и ужимание поля */
+/* Контейнер телефона: выстраиваем ввод и кнопку в одну линию */
 .phone-input-container {
-    position: relative;
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
     width: 100%;
-    text-align: left;
 }
 
 .phone-input-container .iti {
-    display: block;
-    width: 100% !important;
-    margin-bottom: 0;
+    flex-grow: 1; /* Поле ввода забирает всё свободное место */
 }
 
 .phone-input-container input[type="tel"] {
     width: 100% !important;
-    padding-left: 52px !important; /* Обеспечивает отступ для кликабельной зоны флагов */
+    padding-left: 52px !important;
+    height: 100%;
+}
+
+/* Стиль маленькой кнопки "Sprawdź" */
+.verify-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 15px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.verify-btn:hover {
+    background-color: #b09172;
+}
+
+.verify-btn:active {
+    transform: scale(0.96);
 }
 
 /* Стиль для заблокированных полей (Имя) */
@@ -333,7 +354,7 @@ footer {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     animation: modalFadeIn 0.3s ease-out;
     max-height: 90vh;
-    overflow-y: auto; /* Скролл на маленьких дисплеях */
+    overflow-y: auto;
 }
 
 @keyframes modalFadeIn {
@@ -341,7 +362,6 @@ footer {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Кнопка закрытия (крестик) */
 .close-btn {
     position: absolute; 
     right: 20px; 
@@ -364,7 +384,6 @@ footer {
     color: var(--text-main);
 }
 
-/* Элементы формы */
 .form-group {
     margin-bottom: 15px;
 }
@@ -388,7 +407,6 @@ footer {
     font-size: 14px;
 }
 
-/* Фокус на полях ввода */
 .form-group input:focus, 
 .form-group select:focus {
     outline: none;
@@ -396,7 +414,6 @@ footer {
     box-shadow: 0 0 0 3px rgba(194, 163, 131, 0.2); 
 }
 
-/* Текст статуса и информация о последнем визите */
 .status-message {
     display: none; 
     margin-top: 6px; 
@@ -406,7 +423,6 @@ footer {
     font-weight: 500;
 }
 
-/* RODO блок */
 .rodo-group {
     margin-bottom: 20px; 
     display: flex; 
@@ -433,7 +449,6 @@ footer {
     text-decoration: underline;
 }
 
-/* Кнопка подтверждения rezerwacji */
 .submit-booking-btn {
     width: 100%; 
     padding: 12px; 
@@ -454,7 +469,6 @@ footer {
    5. СТИЛИ ДЛЯ ИНТЕРАКТИВНЫХ ПЛИТОК ВРЕМЕНИ И КАЛЕНДАРЯ
    ========================================================================== */
 
-/* Сетка для кнопок выбора времени */
 .time-slots-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
@@ -468,7 +482,6 @@ footer {
     background: #fafafa;
 }
 
-/* Стиль одной плиточки времени */
 .time-slot {
     background-color: #ffffff;
     border: 1px solid #dcdcdc;
@@ -482,14 +495,12 @@ footer {
     transition: all 0.2s ease-in-out;
 }
 
-/* Эффект наведения */
 .time-slot:hover {
     border-color: var(--accent-color);
     background-color: #fdfaf6;
     color: var(--accent-color);
 }
 
-/* Стиль выбранной кнопки времени */
 .time-slot.selected {
     background-color: var(--accent-color) !important;
     color: #ffffff !important;
