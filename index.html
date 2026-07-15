@@ -1,8 +1,69 @@
-<div class="form-group">
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+
+        <section class="profile-section">
+            <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
+            <h1>Daria</h1>
+            <div class="subtitle">Technik usług kosmetycznych</div>
+            <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęс oraz idealna pielęgnacja ✨</p>
+        </section>
+
+        <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
+
+        <section class="price-section" id="dynamic-price-section">
+            <h2>Usługi i Cennik</h2>
+            <div id="priceListContainer" style="text-align: left; margin-top: 20px;">
+                <p style="text-align: center; color: var(--text-muted);">Ładowanie cennika...</p>
+            </div>
+        </section>
+
+        <section class="contact-section">
+            <h2>Kontakt</h2>
+            <p>📍 Lokalizacja: Nadolice Wielkie, Polska</p>
+            <p>📞 Telefon: <a href="tel:+48500000000" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">+48 500 000 000</a></p>
+            <p>📸 Instagram: <a href="https://instagram.com/" target="_blank" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">@daria_beauty</a></p>
+        </section>
+
+    </div>
+
+    <div id="bookingModal" class="modal-overlay" onclick="closeBookingModalOnOutsideClick(event)">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeBookingModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; font-size: 20px;">Zarezerwuj wizytę</h2>
+            
+            <form id="bookingForm" onsubmit="handleFormSubmit(event)">
+                <div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Numer telefonu *</label>
+                    <input type="tel" id="clientPhone" required style="width: 100%;">
+                </div>
+
+                <div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Imię i Nazwisko *</label>
+                    <input type="text" id="clientName" placeholder="Wpisz swoje imię" required disabled>
+                </div>
+
+                <div class="form-group">
                     <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz zabieg *</label>
-                    <select id="serviceType" onchange="updatePrice()" required>
-                        <option value="" disabled selected>Ładowanie usług...</option>
+                    <select id="serviceType" onchange="updatePrice()" required disabled>
+                        <option value="" disabled selected>Najpierw wpisz telefon...</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz dzień *</label>
+                    <input type="text" id="bookingDate" placeholder="Wybierz datę" required disabled style="background: #fff; cursor: pointer;">
                 </div>
 
                 <div class="form-group">
@@ -13,10 +74,18 @@
                     <input type="hidden" id="finalDateTime" required>
                     <input type="hidden" id="selectedDuration" value="45">
                 </div>
-                
-                <div id="priceDisplay" style="margin: 10px 0; font-weight: bold; color: var(--accent-color);"></div>
 
-                </form>
+                <div id="priceDisplay" style="margin: 15px 0; font-weight: bold; color: var(--accent-color); font-size: 18px; text-align: center;"></div>
+
+                <div class="rodo-group">
+                    <input type="checkbox" id="rodoConsent" required disabled>
+                    <label for="rodoConsent" class="rodo-text">
+                        Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button>
+            </form>
         </div>
     </div>
 
