@@ -1,3 +1,6 @@
+/* ==========================================================================
+   1. ПЕРЕМЕННЫЕ И БАЗОВЫЕ СТИЛИ (ГЛОБАЛЬНЫЕ)
+   ========================================================================== */
 :root {
     --bg-color: #FAF6F0;
     --accent-color: #C2A383;
@@ -26,6 +29,10 @@ body {
     margin: 0 auto;
     text-align: center;
 }
+
+/* ==========================================================================
+   2. СЕКЦИИ СТРАНИЦЫ (ПРОФИЛЬ, КНОПКА, ССЫЛКИ)
+   ========================================================================== */
 
 /* Sekcja Profilu */
 .profile-section {
@@ -79,6 +86,9 @@ h1 {
     margin-bottom: 25px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     transition: transform 0.2s, background-color 0.2s;
+    border: none;
+    width: 100%;
+    cursor: pointer;
 }
 
 .cta-btn:active {
@@ -145,7 +155,7 @@ h1 {
     margin-bottom: 0;
 }
 
-/* Стили для ссылок и кнопок диплома */
+/* Ссылки и кнопки диплома */
 .diploma-link {
     color: var(--accent-color);
     font-weight: 600;
@@ -176,7 +186,11 @@ h1 {
     background-color: #b09172;
 }
 
-/* Sekcja Cennika (współpracuje с prices.js) */
+/* ==========================================================================
+   3. ДИНАМИЧЕСКИЙ ЦЕННИК И ВИДЖЕТЫ
+   ========================================================================== */
+
+/* Sekcja Cennika */
 .price-section {
     background-color: var(--card-bg);
     border-radius: 16px;
@@ -262,151 +276,161 @@ footer {
     margin-top: 20px;
     padding-bottom: 20px;
 }
-/* =========================================
-   STYLES FOR SECRET BOOKING MODAL
-   ========================================= */
+
+/* ==========================================================================
+   4. СТИЛИ ДЛЯ СЕКРЕТНОГО МОДАЛЬНОГО ОКНА И ВЫБОРА ФЛАГОВ (intl-tel-input)
+   ========================================================================== */
+
+/* Обертка для флагов (intl-tel-input), чтобы поле растягивалось ровно */
+.iti {
+    width: 100%;
+    margin-bottom: 15px;
+}
 
 /* Затемняющий фон */
 .modal-overlay {
-  display: none; 
-  position: fixed; 
-  z-index: 9999; 
-  left: 0; 
-  top: 0; 
-  width: 100%; 
-  height: 100%; 
-  background-color: rgba(0, 0, 0, 0.6); 
-  align-items: center; 
-  justify-content: center;
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0, 0, 0, 0.6); 
+    align-items: center; 
+    justify-content: center;
 }
 
 /* Окно формы */
 .modal-content {
-  background: #ffffff; 
-  padding: 30px; 
-  border-radius: 12px; 
-  max-width: 450px; 
-  width: 90%; 
-  position: relative; 
-  box-sizing: border-box; 
-  font-family: sans-serif;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  animation: modalFadeIn 0.3s ease-out;
+    background: #ffffff; 
+    padding: 30px; 
+    border-radius: 12px; 
+    max-width: 450px; 
+    width: 90%; 
+    position: relative; 
+    box-sizing: border-box; 
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: modalFadeIn 0.3s ease-out;
 }
 
 @keyframes modalFadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Кнопка закрытия (крестик) */
 .close-modal-btn {
-  position: absolute; 
-  right: 20px; 
-  top: 15px; 
-  font-size: 28px; 
-  cursor: pointer; 
-  color: #aaa;
-  transition: color 0.2s;
+    position: absolute; 
+    right: 20px; 
+    top: 15px; 
+    font-size: 28px; 
+    cursor: pointer; 
+    color: #aaa;
+    transition: color 0.2s;
 }
 
 .close-modal-btn:hover {
-  color: #333;
+    color: #333;
 }
 
 .modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 5px;
-  font-size: 22px;
-  text-align: center;
-  color: #333;
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 22px;
+    text-align: center;
+    color: var(--text-main);
 }
 
 .modal-subtitle {
-  font-size: 13px; 
-  color: #666; 
-  text-align: center; 
-  margin-bottom: 25px;
+    font-size: 13px; 
+    color: var(--text-muted); 
+    text-align: center; 
+    margin-bottom: 25px;
 }
 
 /* Элементы формы */
 .form-group {
-  margin-bottom: 15px;
+    margin-bottom: 15px;
 }
 
 .form-group label {
-  display: block; 
-  font-size: 13px; 
-  font-weight: bold; 
-  margin-bottom: 5px;
-  color: #444;
+    display: block; 
+    font-size: 13px; 
+    font-weight: bold; 
+    margin-bottom: 5px;
+    color: #444;
+    text-align: left;
 }
 
 .form-group input, 
 .form-group select {
-  width: 100%; 
-  padding: 10px; 
-  border: 1px solid #ccc; 
-  border-radius: 6px; 
-  box-sizing: border-box;
-  font-size: 14px;
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
+    box-sizing: border-box;
+    font-size: 14px;
 }
 
+/* Фокус на полях ввода с использованием фирменного цвета бренда */
 .form-group input:focus, 
 .form-group select:focus {
-  outline: none;
-  border-color: #d4a373;
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(194, 163, 131, 0.2); /* Светлое свечение бренда */
 }
 
+/* Текст статуса и информация о последнем визите */
 .status-message {
-  display: none; 
-  margin-top: 4px; 
-  font-size: 11px;
+    display: none; 
+    margin-top: 6px; 
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: left;
 }
 
 /* RODO блок */
 .rodo-group {
-  margin-bottom: 20px; 
-  display: flex; 
-  align-items: flex-start;
+    margin-bottom: 20px; 
+    display: flex; 
+    align-items: flex-start;
+    text-align: left;
 }
 
 .rodo-group input[type="checkbox"] {
-  margin-top: 3px; 
-  margin-right: 8px;
-  cursor: pointer;
+    margin-top: 3px; 
+    margin-right: 8px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
 }
 
 .rodo-text {
-  font-size: 11px; 
-  color: #555; 
-  line-height: 1.4; 
-  cursor: pointer;
+    font-size: 11px; 
+    color: #555; 
+    line-height: 1.4; 
+    cursor: pointer;
 }
 
 .rodo-text a {
-  color: #d4a373;
-  text-decoration: underline;
+    color: var(--accent-color);
+    text-decoration: underline;
 }
 
-/* Кнопка подтверждения */
+/* Кнопка подтверждения rezerwacji */
 .submit-booking-btn {
-  width: 100%; 
-  padding: 12px; 
-  background-color: #d4a373; 
-  border: none; 
-  border-radius: 6px; 
-  color: white; 
-  font-size: 15px;
-  font-weight: bold; 
-  cursor: pointer;
-  transition: background-color 0.2s;
+    width: 100%; 
+    padding: 12px; 
+    background-color: var(--accent-color); 
+    border: none; 
+    border-radius: 6px; 
+    color: white; 
+    font-size: 15px;
+    font-weight: bold; 
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
 .submit-booking-btn:hover {
-  background-color: #bfa07a;
-}
-.iti {
-  width: 100%;
-  margin-bottom: 15px; /* Чтобы отступ снизу был красивым */
+    background-color: #b09172; /* Темный оттенок акцентного цвета */
 }
