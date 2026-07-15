@@ -289,34 +289,40 @@ footer {
 
 /* Затемняющий фон */
 .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 9999;
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0, 0, 0, 0.6); 
+    align-items: center; 
     justify-content: center;
-    align-items: center; /* Центрирует окно */
-    padding: 15px;
 }
 
 /* Окно формы */
 .modal-content {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    max-width: 450px;
-    width: 100%;
-    position: relative;
+    background: #ffffff; 
+    padding: 30px; 
+    border-radius: 12px; 
+    max-width: 450px; 
+    width: 90%; 
+    position: relative; 
+    box-sizing: border-box; 
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: modalFadeIn 0.3s ease-out;
     max-height: 90vh;
-    overflow-y: auto;
+    overflow-y: auto; /* Добавляет скролл, если на маленьком экране форма не влезает */
+}
+
 @keyframes modalFadeIn {
     from { opacity: 0; transform: translateY(-15px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 /* Кнопка закрытия (крестик) */
-.close-modal-btn {
+.close-btn {
     position: absolute; 
     right: 20px; 
     top: 15px; 
@@ -326,23 +332,16 @@ footer {
     transition: color 0.2s;
 }
 
-.close-modal-btn:hover {
+.close-btn:hover {
     color: #333;
 }
 
-.modal-content h3 {
+.modal-title {
     margin-top: 0;
-    margin-bottom: 5px;
+    margin-bottom: 15px;
     font-size: 22px;
     text-align: center;
     color: var(--text-main);
-}
-
-.modal-subtitle {
-    font-size: 13px; 
-    color: var(--text-muted); 
-    text-align: center; 
-    margin-bottom: 25px;
 }
 
 /* Элементы формы */
@@ -369,7 +368,7 @@ footer {
     font-size: 14px;
 }
 
-/* Фокус на полях ввода с использованием фирменного цвета бренда */
+/* Фокус на полях ввода */
 .form-group input:focus, 
 .form-group select:focus {
     outline: none;
@@ -429,4 +428,52 @@ footer {
 
 .submit-booking-btn:hover {
     background-color: #b09172; /* Темный оттенок акцентного цвета */
+}
+
+/* ==========================================================================
+   5. СТИЛИ ДЛЯ ИНТЕРАКТИВНЫХ ПЛИТОК ВРЕМЕНИ И КАЛЕНДАРЯ
+   ========================================================================== */
+
+/* Сетка для кнопок выбора времени */
+.time-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px dashed #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+/* Стиль одной плиточки времени */
+.time-slot {
+    background-color: #ffffff;
+    border: 1px solid #dcdcdc;
+    padding: 10px 5px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Эффект наведения */
+.time-slot:hover {
+    border-color: var(--accent-color);
+    background-color: #fdfaf6;
+    color: var(--accent-color);
+}
+
+/* Стиль выбранной кнопки времени */
+.time-slot.selected {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+    border-color: var(--accent-color) !important;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(194, 163, 131, 0.4);
 }
