@@ -52,6 +52,7 @@ async function loadServicesIntoSelect() {
     }
   } catch (error) {
     console.error("Błąd ładowania usług:", error);
+    serviceSelect.innerHTML = '<option value="" disabled>Błąd ładowania usług</option>';
   }
 }
 
@@ -120,7 +121,7 @@ function toggleFormState(enabled) {
     serviceSelect.style.opacity = enabled ? "1" : "0.5";
     serviceSelect.style.cursor = enabled ? "default" : "not-allowed";
     if (!enabled) {
-      serviceSelect.value = "";
+      serviceSelect.innerHTML = '<option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>';
       document.getElementById("priceDisplay").innerText = "";
     }
   }
@@ -220,7 +221,7 @@ async function loadFreeSlots() {
   }
 }
 
-// Построение рабочей сетки на основе настроек времени
+// Построение рабочей сетки на основе настроек времени (ЗАЩИЩЕНО ОТ ЗАВИСАНИЙ)
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
   
@@ -249,11 +250,19 @@ function getBaseWorkingHours() {
 
   let currentHour = startHour;
   let currentMinute = startMinute;
-  const step = adminSettings.slot_interval_minutes || 45;
+  
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Гарантируем, что шаг сетки не равен нулю или NaN!
+  let step = parseInt(adminSettings.slot_interval_minutes, 10);
+  if (isNaN(step) || step <= 0) {
+    step = 45; // Безопасное значение по умолчанию
+  }
 
   const totalEndMinutes = (endHour * 60) + endMinute;
+  
+  // Добавляем предохранитель от бесконечного зацикливания (макс. 100 итераций на день)
+  let safetyCounter = 0;
 
-  while (true) {
+  while (safetyCounter < 100) {
     const currentTotalMinutes = (currentHour * 60) + currentMinute;
     if (currentTotalMinutes >= totalEndMinutes) {
       break; 
@@ -268,6 +277,8 @@ function getBaseWorkingHours() {
       currentHour += Math.floor(currentMinute / 60);
       currentMinute = currentMinute % 60;
     }
+    
+    safetyCounter++;
   }
   return baseWorkingHours;
 }
@@ -309,8 +320,11 @@ function getFreeSlotsForService(dateStr) {
     }
 
     const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
+    
+    // Безопасное чтение лимита времени работы
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
-    const endHourLimit = new Date(`${dateStr}T${endStr.includes(":") ? endStr : endStr + ":00"}`);
+    const formattedEndStr = endStr.includes(":") ? endStr.substring(0, 5) : endStr + ":00";
+    const endHourLimit = new Date(`${dateStr}T${formattedEndStr}`);
 
     if (slotEndDateTime.getTime() > endHourLimit.getTime()) {
       return false;
@@ -319,7 +333,11 @@ function getFreeSlotsForService(dateStr) {
     let conflictsWithBusy = false;
     busyTimesOnThisDay.forEach(busyTime => {
       const busyStart = new Date(`${dateStr}T${busyTime}`);
-      const busyEnd = new Date(busyStart.getTime() + (adminSettings.slot_interval_minutes * 60 * 1000));
+      
+      let busyStep = parseInt(adminSettings.slot_interval_minutes, 10);
+      if (isNaN(busyStep) || busyStep <= 0) busyStep = 45;
+
+      const busyEnd = new Date(busyStart.getTime() + (busyStep * 60 * 1000));
 
       if (slotStartDateTime.getTime() < busyEnd.getTime() && slotEndDateTime.getTime() > busyStart.getTime()) {
         conflictsWithBusy = true;
@@ -444,10 +462,15 @@ async function checkExistingClient() {
       statusEl.style.color = "green";
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
+      
+      // АКТИВИРУЕМ форму СРАЗУ, не дожидаясь долгих сетевых запросов
       toggleFormState(true); 
       
-      await loadServicesIntoSelect(); // Подгружаем актуальные услуги из базы
-      await loadFreeSlots(); // Загружаем свободное время
+      // Параллельно и асинхронно подгружаем услуги и слоты
+      loadServicesIntoSelect().then(() => {
+         return loadFreeSlots();
+      }).catch(err => console.error("Błąd ładowania danych: ", err));
+      
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
