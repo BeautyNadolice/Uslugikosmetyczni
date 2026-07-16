@@ -34,19 +34,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 1. Переключение вкладок
 function switchTab(tabName) {
+    // Скрываем весь контент вкладок
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
     });
+    
+    // Убираем класс active у всех кнопок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
+    // Показываем нужный контент
     const targetTab = document.getElementById(`tab-${tabName}`);
     if (targetTab) {
         targetTab.style.display = 'block';
     }
-    if (event && event.target) {
-        event.target.classList.add('active');
+    
+    // Находим нажатую кнопку по ее onclick атрибуту и делаем активной
+    const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
     }
 }
 
