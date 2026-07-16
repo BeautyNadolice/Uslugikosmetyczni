@@ -2,6 +2,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9Z_OaiPzCLKO7
 
 // --- СОСТОЯНИЕ И ЛОКАЛЬНАЯ ИСТОРИЯ (UNDO / REDO) ---
 let currentServices = [];       // Текущее состояние списка услуг на экране
+let allCategories = [];         // Глобальный список категорий (не пропадает при удалении услуг!)
 let undoStack = [];             // Стек для отмены действий (кнопка "Cofnij")
 let redoStack = [];             // Стек для возврата действий (кнопка "Ponów")
 let hasUnsavedChanges = false;  // Флаг наличия несохраненных изменений
@@ -19,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Оставляем горячие клавиши как альтернативу для удобства (Ctrl+Z / Ctrl+Y)
+    // Горячие клавиши (Ctrl+Z / Ctrl+Y)
     document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
             e.preventDefault();
@@ -34,23 +35,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 1. Переключение вкладок
 function switchTab(tabName) {
-    // Скрываем весь контент вкладок
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
     });
     
-    // Убираем класс active у всех кнопок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
-    // Показываем нужный контент
     const targetTab = document.getElementById(`tab-${tabName}`);
     if (targetTab) {
         targetTab.style.display = 'block';
     }
     
-    // Находим нажатую кнопку по ее onclick атрибуту и делаем активной
     const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -100,7 +97,7 @@ async function saveSettings() {
         }
     } catch (e) {
         console.error(e);
-        alert("Błąd połączenia z serwerem.");
+        alert("Błąd połąчения з сервером.");
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
@@ -118,8 +115,12 @@ async function loadAdminServices() {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
         const services = await response.json();
 
-        // Сбрасываем историю при первой чистой загрузке из базы
         currentServices = services || [];
+        
+        // Инициализируем наш стабильный список категорий на основе загруженных услуг
+        const rawCategories = currentServices.map(s => s.category ? s.category.trim() : "");
+        allCategories = [...new Set(rawCategories)].filter(c => c.length > 0);
+
         undoStack = [];
         redoStack = [];
         hasUnsavedChanges = false;
@@ -147,8 +148,6 @@ function renderTable() {
 
     currentServices.forEach((item, index) => {
         const tr = document.createElement("tr");
-        
-        // --- ПОЛЬСКИЕ СТАТУСЫ НА ЭКРАНЕ ---
         const isDraft = item.status === "Draft" || item.status === "Szkic" || item.isLocalChange;
         
         const statusBadge = isDraft 
@@ -172,7 +171,11 @@ function renderTable() {
 
 // 6. СОХРАНЕНИЕ ТЕКУЩЕЙ СТРАНИЦЫ В ИСТОРИЮ (Перед изменениями)
 function saveToHistory() {
-    undoStack.push(JSON.parse(JSON.stringify(currentServices)));
+    // Сохраняем глубокую копию услуг И категорий, чтобы Undo возвращал и категории тоже!
+    undoStack.push({
+        services: JSON.parse(JSON.stringify(currentServices)),
+        categories: JSON.parse(JSON.stringify(allCategories))
+    });
     redoStack = []; 
     hasUnsavedChanges = true;
     updateUndoRedoButtons();
@@ -181,8 +184,13 @@ function saveToHistory() {
 // Физическая кнопка: Назад (Undo)
 function undo() {
     if (undoStack.length > 0) {
-        redoStack.push(JSON.parse(JSON.stringify(currentServices)));
-        currentServices = undoStack.pop();
+        redoStack.push({
+            services: JSON.parse(JSON.stringify(currentServices)),
+            categories: JSON.parse(JSON.stringify(allCategories))
+        });
+        const popped = undoStack.pop();
+        currentServices = popped.services;
+        allCategories = popped.categories;
         renderTable();
         updateUndoRedoButtons();
     }
@@ -191,8 +199,13 @@ function undo() {
 // Физическая кнопка: Вперед (Redo)
 function redo() {
     if (redoStack.length > 0) {
-        undoStack.push(JSON.parse(JSON.stringify(currentServices)));
-        currentServices = redoStack.pop();
+        undoStack.push({
+            services: JSON.parse(JSON.stringify(currentServices)),
+            categories: JSON.parse(JSON.stringify(allCategories))
+        });
+        const popped = redoStack.pop();
+        currentServices = popped.services;
+        allCategories = popped.categories;
         renderTable();
         updateUndoRedoButtons();
     }
@@ -247,6 +260,7 @@ function deleteService(index) {
     if (confirm("Czy na pewno chcesz usunąć tę usługę z listy? (Zmiana zostanie zapisana po kliknięciu 'Zapisz jako Szkic')")) {
         saveToHistory();
         currentServices.splice(index, 1);
+        // Обратите внимание: категорию мы отсюда НЕ удаляем!
         renderTable();
         updateUndoRedoButtons();
     }
@@ -324,7 +338,7 @@ async function publishDrafts() {
         }
     } catch (e) {
         console.error(e);
-        alert("Błąd połączenia с serwerem.");
+        alert("Błąd połączenia z serwerem.");
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -334,12 +348,6 @@ async function publishDrafts() {
 // ==========================================================================
 // ЛОГИКА МОДАЛЬНОГО ОКНА (ДОБАВЛЕНИЕ И РЕДАКТИРОВАНИЕ)
 // ==========================================================================
-
-// --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ: ПОЛУЧЕНИЕ УНИКАЛЬНЫХ КАТЕГОРИЙ ИЗ ТЕКУЩИХ УСЛУГ ---
-function getUniqueCategories() {
-    const categories = currentServices.map(s => s.category ? s.category.trim() : "");
-    return [...new Set(categories)].filter(c => c.length > 0);
-}
 
 // Показывает/скрывает текстовое поле для новой категории
 function toggleNewCategoryInput() {
@@ -359,7 +367,7 @@ function closeServiceModal() {
     if (modal) modal.style.display = "none";
 }
 
-// --- ОБНОВЛЕННЫЕ ФУНКЦИИ МОДАЛКИ УСЛУГ ---
+// --- ОТКРЫТИЕ МОДАЛКИ УСЛУГ ---
 
 function openAddServiceModal() {
     document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg";
@@ -392,20 +400,21 @@ function editService(index) {
     document.getElementById("serviceModal").style.display = "flex";
 }
 
-// Построение выпадающего списка категорий
+// Построение выпадающего списка категорий на базе СТАБИЛЬНОГО allCategories
 function buildCategorySelect(selectId, selectedValue) {
     const select = document.getElementById(selectId);
     if (!select) return;
     
     select.innerHTML = "";
 
-    const categories = getUniqueCategories();
+    // Используем глобальный отсортированный по алфавиту список без лишних пробелов
+    const sortedCategories = [...allCategories].sort((a, b) => a.localeCompare(b));
 
-    categories.forEach(cat => {
+    sortedCategories.forEach(cat => {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.innerText = cat;
-        if (cat === selectedValue) {
+        if (cat.toLowerCase() === (selectedValue || "").trim().toLowerCase()) {
             opt.selected = true;
         }
         select.appendChild(opt);
@@ -414,7 +423,7 @@ function buildCategorySelect(selectId, selectedValue) {
     const optNew = document.createElement("option");
     optNew.value = "__NEW__";
     optNew.innerText = "➕ + Nowa kategoria";
-    if (selectedValue === "" || !categories.includes(selectedValue)) {
+    if (selectedValue === "" || !sortedCategories.some(c => c.toLowerCase() === selectedValue.trim().toLowerCase())) {
         optNew.selected = true;
     }
     select.appendChild(optNew);
@@ -432,6 +441,19 @@ function saveServiceModalData() {
     
     if (category === "__NEW__") {
         category = document.getElementById("serviceCategoryNew").value.trim();
+        
+        // Если пользователь создал новую категорию, добавляем её в наш стабильный список категорий (без дублирования)
+        if (category) {
+            const exists = allCategories.some(c => c.toLowerCase() === category.toLowerCase());
+            if (!exists) {
+                saveToHistory();
+                allCategories.push(category);
+            } else {
+                // Если она уже существовала (но, например, в другом регистре), берем существующую
+                const match = allCategories.find(c => c.toLowerCase() === category.toLowerCase());
+                category = match;
+            }
+        }
     }
 
     const name = document.getElementById("serviceName").value.trim();
@@ -461,11 +483,10 @@ function saveServiceModalData() {
     closeServiceModal();
 }
 
-// --- ЛОГИКА ОКНА РЕДАКТИРОВАНИЯ КАТЕГОРИЙ (МАССОВОЕ ИЗМЕНЕНИЕ) ---
+// --- ЛОГИКА ОКНА РЕДАКТИРОВАНИЯ КАТЕГОРИЙ (МАССОВОЕ ИЗМЕНЕНИЕ И УДАЛЕНИЕ!) ---
 
 function openCategoryModal() {
-    const categories = getUniqueCategories();
-    if (categories.length === 0) {
+    if (allCategories.length === 0) {
         alert("Brak kategorii do edycji!");
         return;
     }
@@ -474,7 +495,8 @@ function openCategoryModal() {
     if (!select) return;
     select.innerHTML = "";
     
-    categories.forEach(cat => {
+    const sortedCategories = [...allCategories].sort((a, b) => a.localeCompare(b));
+    sortedCategories.forEach(cat => {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.innerText = cat;
@@ -490,7 +512,7 @@ function closeCategoryModal() {
     if (modal) modal.style.display = "none";
 }
 
-// Массовое переименование выбранной категории во всех связанных услугах
+// Массовое переименование выбранной категории
 function renameCategoryGlobal() {
     const select = document.getElementById("renameCategorySelect");
     if (!select) return;
@@ -509,6 +531,10 @@ function renameCategoryGlobal() {
 
     saveToHistory();
 
+    // 1. Обновляем имя в списке категорий
+    allCategories = allCategories.map(cat => cat === oldName ? newName : cat);
+
+    // 2. Обновляем категорию во всех связанных услугах
     let modifiedCount = 0;
     currentServices.forEach(service => {
         if (service.category && service.category.trim() === oldName) {
@@ -519,13 +545,41 @@ function renameCategoryGlobal() {
         }
     });
 
-    if (modifiedCount > 0) {
+    renderTable();
+    updateUndoRedoButtons();
+    alert(`Nazwa kategorii została zmieniona! Zaktualizowano ${modifiedCount} zabiegów.`);
+    closeCategoryModal();
+}
+
+// Новая функция: Удаление категории целиком вместе со всеми её услугами
+function deleteCategoryGlobal() {
+    const select = document.getElementById("renameCategorySelect");
+    if (!select) return;
+    const catToDelete = select.value;
+
+    if (!catToDelete) return;
+
+    // Считаем, сколько услуг затронет удаление
+    const count = currentServices.filter(s => s.category && s.category.trim() === catToDelete).length;
+
+    const confirmMsg = count > 0 
+        ? `Czy na pewno chcesz usunąć kategorię "${catToDelete}"? Spowoduje to również USUNIĘCIE wszystkich przypisanych do niej zabiegów (${count} szt.) z listy!` 
+        : `Czy na pewno chcesz usunąć pustą kategorię "${catToDelete}"?`;
+
+    if (confirm(confirmMsg)) {
+        saveToHistory();
+
+        // 1. Удаляем категорию из глобального списка
+        allCategories = allCategories.filter(cat => cat !== catToDelete);
+
+        // 2. Удаляем все услуги, принадлежащие этой категории
+        currentServices = currentServices.filter(s => !s.category || s.category.trim() !== catToDelete);
+
         renderTable();
         updateUndoRedoButtons();
-        alert(`Pomyślnie zmieniono nazwę kategorii dla ${modifiedCount} zabiegów!`);
+        alert(`Kategoria "${catToDelete}" oraz jej zabiegi zostały pomyślnie usunięte локально (kliknij "Zapisz jako Szkic", aby zapisać zmiany).`);
+        closeCategoryModal();
     }
-
-    closeCategoryModal();
 }
 
 // Выход
