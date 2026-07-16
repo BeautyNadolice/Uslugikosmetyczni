@@ -336,7 +336,195 @@ async function publishDrafts() {
 // ==========================================================================
 // ЛОГИКА МОДАЛЬНОГО ОКНА (ДОБАВЛЕНИЕ И РЕДАКТИРОВАНИЕ)
 // ==========================================================================
+// --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ: ПОЛУЧЕНИЕ УНИКАЛЬНЫХ КАТЕГОРИЙ ИЗ ТЕКУЩИХ УСЛУГ ---
+function getUniqueCategories() {
+    const categories = currentServices.map(s => s.category.trim());
+    // Возвращаем массив только уникальных и непустых категорий
+    return [...new Set(categories)].filter(c => c.length > 0);
+}
 
+// Показывает/скрывает текстовое поле для новой категории
+function toggleNewCategoryInput() {
+    const select = document.getElementById("serviceCategorySelect");
+    const newCatGroup = document.getElementById("newCategoryGroup");
+    
+    if (select.value === "__NEW__") {
+        newCatGroup.style.display = "block";
+    } else {
+        newCatGroup.style.display = "none";
+    }
+}
+
+// --- ОБНОВЛЕННЫЕ ФУНКЦИИ МОДАЛКИ УСЛУГ ---
+
+function openAddServiceModal() {
+    document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg";
+    document.getElementById("editServiceIndex").value = "-1";
+    
+    // Чистим поля
+    document.getElementById("serviceName").value = "";
+    document.getElementById("servicePrice").value = "";
+    document.getElementById("serviceDuration").value = "";
+    document.getElementById("serviceCategoryNew").value = "";
+
+    // Заполняем выпадающий список категорий
+    buildCategorySelect("serviceCategorySelect", "");
+    
+    document.getElementById("serviceModal").style.display = "flex";
+}
+
+function editService(index) {
+    const service = currentServices[index];
+    if (!service) return;
+
+    document.getElementById("modalTitle").innerText = "Edytuj zabieg";
+    document.getElementById("editServiceIndex").value = index;
+
+    document.getElementById("serviceName").value = service.name || "";
+    document.getElementById("servicePrice").value = service.price || 0;
+    document.getElementById("serviceDuration").value = service.duration || 0;
+    document.getElementById("serviceCategoryNew").value = "";
+
+    // Заполняем список категорий и выбираем текущую
+    buildCategorySelect("serviceCategorySelect", service.category);
+
+    document.getElementById("serviceModal").style.display = "flex";
+}
+
+// Построение выпадающего списка категорий
+function buildCategorySelect(selectId, selectedValue) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = "";
+
+    const categories = getUniqueCategories();
+
+    // Заполняем существующими категориями
+    categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.innerText = cat;
+        if (cat === selectedValue) {
+            opt.selected = true;
+        }
+        select.appendChild(opt);
+    });
+
+    // Добавляем пункт создания новой категории
+    const optNew = document.createElement("option");
+    optNew.value = "__NEW__";
+    optNew.innerText = "➕ + Nowa kategoria";
+    if (selectedValue === "" || !categories.includes(selectedValue)) {
+        optNew.selected = true;
+    }
+    select.appendChild(optNew);
+
+    toggleNewCategoryInput();
+}
+
+// --- СОХРАНЕНИЕ ДАННЫХ ИЗ ОКНА ---
+function saveServiceModalData() {
+    const index = parseInt(document.getElementById("editServiceIndex").value);
+    
+    const select = document.getElementById("serviceCategorySelect");
+    let category = select.value.trim();
+    
+    // Если выбрано создание новой категории, берем текст из текстового поля
+    if (category === "__NEW__") {
+        category = document.getElementById("serviceCategoryNew").value.trim();
+    }
+
+    const name = document.getElementById("serviceName").value.trim();
+    const price = parseInt(document.getElementById("servicePrice").value);
+    const duration = parseInt(document.getElementById("serviceDuration").value);
+
+    if (!category || !name || isNaN(price) || isNaN(duration)) {
+        alert("Wszystkie pola muszą być wypełnione poprawnie!");
+        return;
+    }
+
+    const serviceData = {
+        category: category,
+        name: name,
+        price: price,
+        duration: duration,
+        status: "Szkic",
+        isLocalChange: true
+    };
+
+    if (index === -1) {
+        addServiceLocal(serviceData);
+    } else {
+        updateServiceLocal(index, serviceData);
+    }
+
+    closeServiceModal();
+}
+
+// --- ЛОГИКА ОКНА РЕДАКТИРОВАНИЯ КАТЕГОРИЙ (МАССОВОЕ ИЗМЕНЕНИЕ) ---
+
+function openCategoryModal() {
+    const categories = getUniqueCategories();
+    if (categories.length === 0) {
+        alert("Brak kategorii do edycji!");
+        return;
+    }
+
+    const select = document.getElementById("renameCategorySelect");
+    select.innerHTML = "";
+    
+    categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.innerText = cat;
+        select.appendChild(opt);
+    });
+
+    document.getElementById("renameCategoryNewName").value = "";
+    document.getElementById("categoryModal").style.display = "flex";
+}
+
+function closeCategoryModal() {
+    document.getElementById("categoryModal").style.display = "none";
+}
+
+// Массовое переименование выбранной категории во всех связанных услугах
+function renameCategoryGlobal() {
+    const select = document.getElementById("renameCategorySelect");
+    const oldName = select.value;
+    const newName = document.getElementById("renameCategoryNewName").value.trim();
+
+    if (!newName) {
+        alert("Wpisz nową nazwę kategorii!");
+        return;
+    }
+
+    if (oldName === newName) {
+        closeCategoryModal();
+        return;
+    }
+
+    // Сохраняем снимок состояния в стек Undo
+    saveToHistory();
+
+    // Проходим по всему списку услуг и меняем категорию
+    let modifiedCount = 0;
+    currentServices.forEach(service => {
+        if (service.category.trim() === oldName) {
+            service.category = newName;
+            service.status = "Szkic";
+            service.isLocalChange = true;
+            modifiedCount++;
+        }
+    });
+
+    if (modifiedCount > 0) {
+        renderTable();
+        updateUndoRedoButtons();
+        alert(`Pomyślnie zmieniono nazwę kategorii dla ${modifiedCount} zabiegów!`);
+    }
+
+    closeCategoryModal();
+}
 // 1. Открытие модалки для ДОБАВЛЕНИЯ нового сервиса
 function openAddServiceModal() {
     document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg";
