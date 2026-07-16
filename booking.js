@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybMJpH1S1FOfdHgKoZTx_38DaDMS4I42NHpeWX7NluqVLbB-Dy8oSbfV_o_lPyb1gvjA/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMTToru4s-680kjS6BNo0U3aezZkWtGWLQfbr1QVQtS-ZAaxPF_wjeMsu1CQVu4gEgKw/exec"; 
 
 let iti; 
 let allAvailableSlots = []; 
