@@ -1,4 +1,8 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyv-DB-G_om0MxZ4mQtHhWO-6jn0ZimHFCRu6-VuZAaWBQhcp1eVSTA8XY7GYIERoMmeg/exec";
+// === НАСТРОЙКИ БЕЗОПАСНОСТИ ===
+const ALLOWED_EMAIL = "vasha_jena@gmail.com"; // 🌟 ЗАМЕНИТЕ НА РЕАЛЬНЫЙ EMAIL ЖЕНЫ
+let currentUserEmail = null;
+
 // --- СОСТОЯНИЕ И ЛОКАЛЬНАЯ ИСТОРИЯ (UNDO / REDO) ---
 let currentServices = [];       // Текущее состояние списка услуг на экране
 let allCategories = [];         // Глобальный список категорий (в порядке отображения)
@@ -7,8 +11,8 @@ let redoStack = [];             // Стек для возврата действ
 let hasUnsavedChanges = false;  // Флаг несохраненных изменений
 
 document.addEventListener("DOMContentLoaded", () => {
-    loadAdminServices();
-    loadSettings();
+    // Проверяем, была ли сохранена сессия авторизации ранее
+    checkAuthSession();
 
     window.addEventListener("beforeunload", (e) => {
         if (hasUnsavedChanges) {
@@ -29,7 +33,98 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// 1. Переключение вкладок
+// ==========================================================================
+// СИСТЕМА АВТОРИЗАЦИИ (GOOGLE & TEST BYPASS)
+// ==========================================================================
+
+// 1. Проверка сессии при загрузке страницы
+function checkAuthSession() {
+    const savedEmail = localStorage.getItem("admin_email");
+    
+    if (savedEmail) {
+        if (savedEmail === ALLOWED_EMAIL || savedEmail === "test_admin@test.com") {
+            currentUserEmail = savedEmail;
+            showAdminPanel();
+            return;
+        }
+    }
+    // Если сессии нет, показываем экран входа
+    showLoginScreen();
+}
+
+// 2. Показать панель администратора и загрузить данные
+function showAdminPanel() {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("admin-panel-wrapper").style.display = "block";
+    
+    // Загружаем данные только ПОСЛЕ успешного входа
+    loadAdminServices();
+    loadSettings();
+}
+
+// 3. Показать экран входа
+function showLoginScreen() {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("admin-panel-wrapper").style.display = "none";
+}
+
+// 4. ТЕСТОВЫЙ ВХОД (Для разработки, потом можно удалить кнопку в HTML)
+function loginTest() {
+    console.log("Вход выполнен через Тестовый режим");
+    currentUserEmail = "test_admin@test.com"; // Временный тестовый email
+    localStorage.setItem("admin_email", currentUserEmail);
+    showAdminPanel();
+}
+
+// 5. Обработчик входа через реальный Google Google (JWT Credential)
+function handleCredentialResponse(response) {
+    try {
+        // Декодируем JWT токен от Google без сторонних библиотек
+        const base64Url = response.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const payload = JSON.parse(jsonPayload);
+        const userEmail = payload.email.trim().toLowerCase();
+
+        if (userEmail === ALLOWED_EMAIL.trim().toLowerCase()) {
+            currentUserEmail = userEmail;
+            localStorage.setItem("admin_email", currentUserEmail);
+            localStorage.setItem("google_id_token", response.credential); // сохраняем токен безопасности
+            showAdminPanel();
+        } else {
+            alert(`Brak dostępu! Email ${userEmail} nie ma uprawnień administratora.`);
+            google.accounts.id.disableAutoSelect();
+        }
+    } catch (e) {
+        console.error("Błąd autoryzacji Google:", e);
+        alert("Wystąpił błąd podczas logowania przez Google.");
+    }
+}
+
+// 6. Выход из системы
+function logout() {
+    if (hasUnsavedChanges) {
+        if (!confirm("Masz niezapisane zmiany! Czy на pewno chcesz się wylogować?")) return;
+    }
+    
+    // Очищаем сессии
+    localStorage.removeItem("admin_email");
+    localStorage.removeItem("google_id_token");
+    currentUserEmail = null;
+    
+    alert("Wylogowano pomyślnie.");
+    
+    // Перенаправляем на главную клиентскую страницу сайта
+    window.location.href = "index.html"; 
+}
+
+// ==========================================================================
+// ОСТАЛЬНОЙ КОД ПАНЕЛИ (Переключение вкладок, Загрузка, Сохранение и т.д.)
+// ==========================================================================
+
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -41,7 +136,6 @@ function switchTab(tabName) {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
-// 2. Загрузка настроек
 async function loadSettings() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?checkBusy=true");
@@ -56,7 +150,6 @@ async function loadSettings() {
     }
 }
 
-// 3. Сохранение настроек
 async function saveSettings() {
     const btn = document.getElementById("saveSettingsBtn");
     if (!btn) return;
@@ -87,24 +180,18 @@ async function saveSettings() {
     }
 }
 
-// 4. Загрузка услуг из базы
 async function loadAdminServices() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Ładowanie usług z bazy...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Ładowanie usług z bazy...</td></tr>';
 
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
         const services = await response.json();
 
-        console.log("Ответ сервера:", services);
-        console.log("Тип:", typeof services);
-        console.log("Массив:", Array.isArray(services));
-
-        currentServices = Array.isArray(services) ? services : [];
+        currentServices = services || [];
         
-        // Нормализуем категории и сохраняем уникальный список
         const rawCategories = currentServices.map(s => s.category ? s.category.trim() : "");
         allCategories = [...new Set(rawCategories)].filter(c => c.length > 0);
 
@@ -117,11 +204,10 @@ async function loadAdminServices() {
 
     } catch (error) {
         console.error("Błąd:", error);
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Błąd połączenia.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Błąd połączenia.</td></tr>';
     }
 }
 
-// 5. Построение сгруппированной по категориям таблицы
 function renderTable() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
@@ -129,11 +215,10 @@ function renderTable() {
     tbody.innerHTML = "";
 
     if (currentServices.length === 0 && allCategories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Brak usług. Dodaj nową usługę.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Brak usług. Dodaj nową usługę.</td></tr>';
         return;
     }
 
-    // Группируем услуги
     const grouped = {};
     allCategories.forEach(cat => {
         grouped[cat.trim()] = [];
@@ -147,20 +232,17 @@ function renderTable() {
         grouped[catKey].push({ ...service, originalIndex });
     });
 
-    // Отрисовываем категории в том порядке, который задан в массиве allCategories
     allCategories.forEach((catName, index) => {
         const servicesInCat = grouped[catName] || [];
 
-        // Создаем шапку категории с кнопками перемещения вверх/вниз
         const headerTr = document.createElement("tr");
         headerTr.style.backgroundColor = "#fdf5f7"; 
         
-        // Логика отключения кнопок на границах списка
         const isFirst = index === 0;
         const isLast = index === allCategories.length - 1;
 
         headerTr.innerHTML = `
-            <td colspan="7" style="font-weight: bold; font-size: 1.1em; color: #b05c75; padding: 12px 10px; border-bottom: 2px solid #f2d6dc;">
+            <td colspan="6" style="font-weight: bold; font-size: 1.1em; color: #b05c75; padding: 12px 10px; border-bottom: 2px solid #f2d6dc;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span>🏷️ Kategoria: ${catName} <span style="font-weight: normal; font-size: 0.8em; color: #888;">(Zabiegów: ${servicesInCat.length})</span></span>
                     <div style="display: flex; gap: 5px;">
@@ -175,7 +257,7 @@ function renderTable() {
         if (servicesInCat.length === 0) {
             const emptyTr = document.createElement("tr");
             emptyTr.innerHTML = `
-                <td colspan="7" style="text-align: center; color: #aaa; font-style: italic; padding: 10px;">
+                <td colspan="6" style="text-align: center; color: #aaa; font-style: italic; padding: 10px;">
                     Ta kategoria jest pusta. Możesz przenieść tutaj zabiegi lub dodać nowy.
                 </td>
             `;
@@ -183,7 +265,6 @@ function renderTable() {
             return;
         }
 
-        // Выводим строки услуг
         servicesInCat.forEach(item => {
             const tr = document.createElement("tr");
             const isDraft = item.status === "Draft" || item.status === "Szkic" || item.isLocalChange;
@@ -191,13 +272,18 @@ function renderTable() {
                 ? '<span class="badge" style="background-color: #f0ad4e; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em;">Szkic</span>' 
                 : '<span class="badge" style="background-color: #5cb85c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em;">Opublikowany</span>';
 
-            // Измененная верстка строки: выпадающий список перемещения (<td>${categorySelectHTML}</td>) полностью удален!
+            let categorySelectHTML = `<select onchange="moveServiceToCategory(${item.originalIndex}, this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9em; max-width: 150px;">`;
+            allCategories.forEach(c => {
+                const selected = c.trim() === catName ? "selected" : "";
+                categorySelectHTML += `<option value="${c}" ${selected}>${c}</option>`;
+            });
+            categorySelectHTML += `</select>`;
+
             tr.innerHTML = `
+                <td>${categorySelectHTML}</td>
                 <td><strong>${item.name}</strong></td>
                 <td>${item.price} zł</td>
                 <td>${item.duration} min</td>
-                <td>${item.show_price || 'Tak'}</td>
-                <td>${item.show_duration || 'Tak'}</td>
                 <td>${statusBadge}</td>
                 <td>
                     <button class="btn-small btn-primary" onclick="editService(${item.originalIndex})">Edytuj</button>
@@ -209,7 +295,6 @@ function renderTable() {
     });
 }
 
-// 6. Перемещение категории вверх или вниз по списку
 function moveCategoryOrder(index, direction) {
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === allCategories.length - 1) return;
@@ -218,33 +303,28 @@ function moveCategoryOrder(index, direction) {
 
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     
-    // Меняем местами категории в массиве allCategories
     const temp = allCategories[index];
     allCategories[index] = allCategories[targetIndex];
     allCategories[targetIndex] = temp;
 
-    // Сортируем исходный список услуг currentServices в соответствии с новым порядком категорий
     sortServicesByGlobalCategoryOrder();
 
     renderTable();
     updateUndoRedoButtons();
 }
 
-// Вспомогательная функция для синхронизации порядка услуг в основном массиве
 function sortServicesByGlobalCategoryOrder() {
     currentServices.sort((a, b) => {
         const indexA = allCategories.indexOf((a.category || "").trim());
         const indexB = allCategories.indexOf((b.category || "").trim());
         return indexA - indexB;
     });
-    // Все изменения помечаем как локальный черновик для сохранения
     currentServices.forEach(s => {
         s.status = "Szkic";
         s.isLocalChange = true;
     });
 }
 
-// 7. Быстрый перенос отдельной услуги в другую категорию через выпадающий список
 function moveServiceToCategory(originalIndex, newCategoryName) {
     if (!currentServices[originalIndex]) return;
     
@@ -254,14 +334,12 @@ function moveServiceToCategory(originalIndex, newCategoryName) {
     currentServices[originalIndex].status = "Szkic";
     currentServices[originalIndex].isLocalChange = true;
 
-    // После переноса отдельной услуги также группируем массив по нашему порядку категорий
     sortServicesByGlobalCategoryOrder();
     
     renderTable();
     updateUndoRedoButtons();
 }
 
-// 8. СОХРАНЕНИЕ ТЕКУЩЕЙ СТРАНИЦЫ В ИСТОРИЮ (UNDO/REDO)
 function saveToHistory() {
     undoStack.push({
         services: JSON.parse(JSON.stringify(currentServices)),
@@ -321,7 +399,6 @@ function updateUndoRedoButtons() {
     }
 }
 
-// 9. ЛОКАЛЬНЫЕ ОПЕРАЦИИ
 function addServiceLocal(newService) {
     saveToHistory();
     newService.isLocalChange = true;
@@ -351,7 +428,6 @@ function deleteService(index) {
     }
 }
 
-// 10. СОХРАНЕНИЕ И ПУБЛИКАЦИЯ НА СЕРВЕРЕ
 async function saveDraftsToCloud() {
     const btn = document.getElementById("saveDraftsBtn");
     if (!btn) return;
@@ -365,7 +441,7 @@ async function saveDraftsToCloud() {
             body: JSON.stringify({
                 action: "saveDraftPrices",
                 prices: currentServices,
-                categoriesOrder: allCategories // Отправляем также порядок категорий
+                categoriesOrder: allCategories
             })
         });
         const result = await response.json();
@@ -454,10 +530,6 @@ function openAddServiceModal() {
     document.getElementById("servicePrice").value = "";
     document.getElementById("serviceDuration").value = "";
     document.getElementById("serviceCategoryNew").value = "";
-    
-    // Новые поля
-    document.getElementById("serviceShowPrice").value = "Tak";
-    document.getElementById("serviceShowDuration").value = "Tak";
 
     buildCategorySelect("serviceCategorySelect", "");
     document.getElementById("serviceModal").style.display = "flex";
@@ -474,10 +546,6 @@ function editService(index) {
     document.getElementById("servicePrice").value = service.price || 0;
     document.getElementById("serviceDuration").value = service.duration || 0;
     document.getElementById("serviceCategoryNew").value = "";
-    
-    // Настройки отображения цены и длительности
-    document.getElementById("serviceShowPrice").value = service.show_price || "Tak";
-    document.getElementById("serviceShowDuration").value = service.show_duration || "Tak";
 
     buildCategorySelect("serviceCategorySelect", service.category);
     document.getElementById("serviceModal").style.display = "flex";
@@ -534,11 +602,9 @@ function saveServiceModalData() {
     const name = document.getElementById("serviceName").value.trim();
     const price = parseInt(document.getElementById("servicePrice").value);
     const duration = parseInt(document.getElementById("serviceDuration").value);
-    const showPrice = document.getElementById("serviceShowPrice").value;
-    const showDuration = document.getElementById("serviceShowDuration").value;
 
     if (!category || !name || isNaN(price) || isNaN(duration)) {
-        alert("Wszystkie pola mustzą być wypełnione poprawnie!");
+        alert("Wszystkie pola muszą być wypełnione poprawnie!");
         return;
     }
 
@@ -547,8 +613,6 @@ function saveServiceModalData() {
         name: name,
         price: price,
         duration: duration,
-        show_price: showPrice,
-        show_duration: showDuration,
         status: "Szkic",
         isLocalChange: true
     };
@@ -647,13 +711,6 @@ function deleteCategoryGlobal() {
     }
 }
 
-function logout() {
-    if (hasUnsavedChanges) {
-        if (!confirm("Masz niezapisane zmiany! Czy na pewno chcesz się wylogować?")) return;
-    }
-    alert("Wylogowano.");
-}
-
 // ==========================================================================
 // СОЗДАНИЕ НОВОЙ ПУСТОЙ КАТЕГОРИИ ИЗ ОКНА УПРАВЛЕНИЯ
 // ==========================================================================
@@ -664,7 +721,7 @@ function addNewCategoryEmpty() {
     const newCatName = input.value.trim();
 
     if (!newCatName) {
-        alert("Wpisz nazwę nowej категории!");
+        alert("Wpisz nazwę nowej kategorii!");
         return;
     }
 
