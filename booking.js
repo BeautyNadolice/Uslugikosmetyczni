@@ -1,5 +1,5 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyv-DB-G_om0MxZ4mQtHhWO-6jn0ZimHFCRu6-VuZAaWBQhcp1eVSTA8XY7GYIERoMmeg/exec"; 
-
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyv-DB-G_om0MxZ4mQtHhWO-6jn0ZimHFCRu6-VuZAaWBQhcp1eVSTA8XY7GYIERoMmeg/exec";
+  
 let iti; 
 let allAvailableSlots = []; 
 let adminSettings = {
@@ -408,7 +408,8 @@ async function checkExistingClient() {
     return;
   }
 
-  const fullPhoneNumber = iti.getNumber();
+  // Очищаем номер телефона от пробелов, получая чистую строку в формате +48123456789
+  const fullPhoneNumber = iti.getNumber().replace(/\s+/g, '');
   statusEl.style.display = "block";
   statusEl.style.color = "#2C2C2C";
   statusEl.innerHTML = "Sprawdzanie danych...";
@@ -434,7 +435,7 @@ async function checkExistingClient() {
     }
   } catch (error) {
     statusEl.style.color = "red";
-    statusEl.innerHTML = "Błąd połączenia z bazą данных.";
+    statusEl.innerHTML = "Błąd połączenia z bazą danych.";
     isClientApproved = false;
     toggleFormState(false);
   }
@@ -497,9 +498,17 @@ async function submitForm(event) {
       return; 
     }
 
+    // Надежное извлечение телефона в формате E.164 и удаление пробелов перед отправкой в Sheets
+    let phoneToSubmit;
+    if (iti && iti.isValidNumber()) {
+      phoneToSubmit = iti.getNumber(intlTelInputUtils.numberFormat.E164).replace(/\s+/g, '');
+    } else {
+      phoneToSubmit = document.getElementById("clientPhone").value.replace(/\s+/g, '');
+    }
+
     submitBtn.innerText = "Zapisywanie...";
     const payload = {
-      phone: iti ? iti.getNumber() : document.getElementById("clientPhone").value,
+      phone: phoneToSubmit,
       name: document.getElementById("clientName").value,
       service: document.getElementById("serviceType").value,
       date: finalDateTimeValue,
