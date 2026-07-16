@@ -148,17 +148,30 @@
     <div id="categoryModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h4>🏷️ Edytuj nazwy kategorii</h4>
+                <h4>🏷️ Zarządzanie kategoriami</h4>
                 <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+                
+                <div style="background-color: #fdf5f7; padding: 12px; border-radius: 6px; border: 1px solid #f2d6dc; margin-bottom: 20px;">
+                    <h5 style="margin-top: 0; margin-bottom: 10px; color: #b05c75; font-size: 14px;">➕ Utwórz nową (pustą) kategorię</h5>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <input type="text" id="createNewCategoryName" placeholder="np. Masaże / Depilacja">
+                    </div>
+                    <button class="btn-primary" onclick="addNewCategoryEmpty()" style="width: 100%; padding: 8px; font-size: 13px; background-color: #b05c75;">
+                        Dodaj pustą kategorię
+                    </button>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+                <h5 style="margin-top: 0; margin-bottom: 10px; color: var(--text-main); font-size: 14px;">✏️ Edytuj istniejące kategorie</h5>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">
                     Zmiana nazwy kategorii zmieni ją automatycznie dla wszystkich przypisanych do niej usług.
                 </p>
                 <div class="form-group">
-                    <label for="renameCategorySelect">Wybierz kategorię do zmiany:</label>
-                    <select id="renameCategorySelect">
-                    </select>
+                    <label for="renameCategorySelect">Wybierz kategorię do zmiany/usunięcia:</label>
+                    <select id="renameCategorySelect"></select>
                 </div>
                 <div class="form-group">
                     <label for="renameCategoryNewName">Nowa nazwa kategorii:</label>
