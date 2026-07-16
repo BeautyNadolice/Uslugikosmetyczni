@@ -1,18 +1,18 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbczW1V5ZcfxIJwV6zfWMhB8RvZ7CSIr6BQ9RnAXvJrdWtdbCDLpp1eGRST-rpMAQudw/exec";
+// !!! ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ URL APPS SCRIPT !!!
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHoYWp9mx-htxeP3oxlQtWxsD92rqjFWihU9rBHVEPWNQHCo0v2MPtiaYLuostr6B9gQ/exec";
   
 let iti; 
 let allAvailableSlots = []; 
 let adminSettings = {
   buffer_hours: 1,
   safety_range_hours: 5,
-  slot_interval_minutes: 45, // Шаг сетки по умолчанию
-  work_start_hour: "09:00",  // Время начала работы по умолчанию
-  work_end_hour: "18:00"     // Время окончания работы по умолчанию
+  slot_interval_minutes: 45,
+  work_start_hour: "09:00",
+  work_end_hour: "18:00"
 };
 let flatpickrInstance = null;
 let isClientApproved = false; 
 
-// Загрузка услуг из базы для выпадающего списка
 async function loadServicesIntoSelect() {
   const serviceSelect = document.getElementById("serviceType");
   if (!serviceSelect) return;
@@ -24,17 +24,15 @@ async function loadServicesIntoSelect() {
     serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
 
     if (services && services.length > 0) {
-      // Группируем услуги по категориям
       const grouped = {};
       services.forEach(s => {
-        if (s.status === "Opublikowany") { // Берем только опубликованные услуги
+        if (s.status === "Opublikowany") {
           const cat = s.category || "Inne";
           if (!grouped[cat]) grouped[cat] = [];
           grouped[cat].push(s);
         }
       });
 
-      // Наполняем Select
       for (const category in grouped) {
         const optGroup = document.createElement("optgroup");
         optGroup.label = category;
@@ -42,7 +40,6 @@ async function loadServicesIntoSelect() {
           const opt = document.createElement("option");
           opt.value = item.name;
           opt.textContent = `${item.name} (${item.price} zł)`;
-          // Сохраняем цену и время прямо в атрибуты опции для удобства
           opt.setAttribute("data-price", item.price);
           opt.setAttribute("data-duration", item.duration);
           optGroup.appendChild(opt);
@@ -160,7 +157,6 @@ function toggleFormState(enabled) {
   }
 }
 
-// Извлечение цены, длительности и переинициализация календаря под выбранную услугу
 function onServiceChange() {
   const serviceSelect = document.getElementById("serviceType");
   const priceDisplay = document.getElementById("priceDisplay");
@@ -174,7 +170,6 @@ function onServiceChange() {
   const rawDuration = selectedOption.getAttribute("data-duration") || "45";
   let foundDuration = 45;
 
-  // Парсим длительность
   const durStr = String(rawDuration).trim().toLowerCase();
   if (durStr.includes(":")) {
     const parts = durStr.split(":");
@@ -191,7 +186,6 @@ function onServiceChange() {
     durationInput.value = foundDuration;
   }
 
-  // Перестраиваем календарь под новые лимиты времени процедуры
   const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
   initCalendar(savedDate);
 
@@ -221,7 +215,7 @@ async function loadFreeSlots() {
   }
 }
 
-// Построение рабочей сетки на основе настроек времени (ЗАЩИЩЕНО ОТ NaN И ЗАВИСАНИЙ)
+// Защищенная функция формирования сетки
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
   
@@ -231,7 +225,6 @@ function getBaseWorkingHours() {
   let startHour = 9;
   let startMinute = 0;
   
-  // Регулярное выражение, которое надежно находит HH:MM в любой строке
   const startMatch = startStr.match(/(\d{1,2}):(\d{2})/);
   if (startMatch) {
     startHour = parseInt(startMatch[1], 10);
@@ -247,7 +240,6 @@ function getBaseWorkingHours() {
     endMinute = parseInt(endMatch[2], 10);
   }
 
-  // Если вдруг парсинг вернул некорректные числа, ставим дефолты
   if (isNaN(startHour)) startHour = 9;
   if (isNaN(startMinute)) startMinute = 0;
   if (isNaN(endHour)) endHour = 18;
@@ -256,15 +248,12 @@ function getBaseWorkingHours() {
   let currentHour = startHour;
   let currentMinute = startMinute;
   
-  // Гарантируем, что шаг сетки не равен нулю, NaN или отрицательному числу!
   let step = parseInt(adminSettings.slot_interval_minutes, 10);
   if (isNaN(step) || step <= 0) {
     step = 45; 
   }
 
   const totalEndMinutes = (endHour * 60) + endMinute;
-  
-  // Добавляем предохранитель от бесконечного зацикливания (макс. 100 итераций)
   let safetyCounter = 0;
 
   while (safetyCounter < 100) {
@@ -288,7 +277,6 @@ function getBaseWorkingHours() {
   return baseWorkingHours;
 }
 
-// Возвращает массив свободных часов, куда процедура физически помещается
 function getFreeSlotsForService(dateStr) {
   const now = new Date();
   const year = now.getFullYear();
@@ -326,7 +314,6 @@ function getFreeSlotsForService(dateStr) {
 
     const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
     
-    // Безопасное чтение лимита времени работы
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
     const formattedEndStr = endStr.includes(":") ? endStr.substring(0, 5) : endStr + ":00";
     const endHourLimit = new Date(`${dateStr}T${formattedEndStr}`);
@@ -357,7 +344,6 @@ function getFreeSlotsForService(dateStr) {
   });
 }
 
-// Инициализация календаря
 function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
@@ -397,7 +383,6 @@ function initCalendar(defaultDate = "") {
   });
 }
 
-// Рендеринг сетки часов
 function displayTimeSlots(selectedDateStr) {
   const container = document.getElementById("timeSlotsContainer");
   if (!container) return;
@@ -426,7 +411,6 @@ function displayTimeSlots(selectedDateStr) {
   });
 }
 
-// Проверка телефона по базе с умным обходом валидации плагина
 async function checkExistingClient() {
   const statusEl = document.getElementById("clientStatus");
   const phoneInput = document.getElementById("clientPhone");
@@ -435,17 +419,13 @@ async function checkExistingClient() {
   let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
   let fullPhoneNumber = "";
 
-  // УМНАЯ ВАЛИДАЦИЯ ТЕЛЕФОНА
   if (iti && iti.isValidNumber()) {
     fullPhoneNumber = iti.getNumber().replace(/\s+/g, '');
   } else if (/^\d{9}$/.test(rawPhone)) {
-    // Если введено ровно 9 цифр, считаем это польским номером и добавляем +48
     fullPhoneNumber = "+48" + rawPhone;
   } else if (/^\+\d{11,15}$/.test(rawPhone)) {
-    // Если номер начинается с плюса и имеет правильную длину, берем его напрямую
     fullPhoneNumber = rawPhone;
   } else {
-    // В противном случае блокируем проверку
     statusEl.style.display = "block";
     statusEl.style.color = "red";
     statusEl.innerHTML = "Wpisz poprawny numer telefonu (np. 9 cyfr)!";
@@ -468,10 +448,8 @@ async function checkExistingClient() {
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
       
-      // АКТИВИРУЕМ форму СРАЗУ, не дожидаясь долгих сетевых запросов
       toggleFormState(true); 
       
-      // Параллельно и асинхронно подгружаем услуги и слоты
       loadServicesIntoSelect().then(() => {
          return loadFreeSlots();
       }).catch(err => console.error("Błąd ładowania danych: ", err));
@@ -505,13 +483,13 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
-// Отправка формы бронирования
 async function submitForm(event) {
   event.preventDefault();
 
   const finalDateTimeValue = document.getElementById("finalDateTime").value; 
   const submitBtn = document.getElementById("submitBookingBtn");
   const rodoConsent = document.getElementById("rodoConsent");
+  const durationInput = document.getElementById("selectedDuration");
   
   if (!isClientApproved) {
     alert("Rezerwacja niemożliwa. Twój numer telefonu nie został zweryfikowany.");
@@ -524,14 +502,16 @@ async function submitForm(event) {
   }
 
   submitBtn.disabled = true;
-  submitBtn.innerText = "Sprawdzanie terminu...";
+  submitBtn.innerText = "Sprawdzanie terminu w kalendarzu...";
 
   try {
-    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
+    // ВАЖНО: Передаем длительность процедуры для проверки в Google Календаре
+    const serviceDuration = durationInput ? parseInt(durationInput.value, 10) : 60;
+    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}&duration=${serviceDuration}`);
     const result = await checkResponse.json();
 
     if (!result.isFree) {
-      alert("Wybrana godzina została właśnie zajęta. Proszę wybrać inny wolny termin.");
+      alert("Wybrana godzina jest już zajęta w kalendarzu. Proszę wybrać inny termin.");
       await loadFreeSlots();
       
       const selectedDateStr = document.getElementById("calendarInput").value;
@@ -545,7 +525,6 @@ async function submitForm(event) {
       return; 
     }
 
-    // Чистый номер без пробелов для отправки в базу
     let phoneToSubmit = "";
     const phoneInput = document.getElementById("clientPhone");
     let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
@@ -559,11 +538,14 @@ async function submitForm(event) {
     }
 
     submitBtn.innerText = "Zapisywanie...";
+    
+    // Передаем также duration, чтобы бэкенд мог создать красивое событие в Календаре
     const payload = {
       phone: phoneToSubmit,
       name: document.getElementById("clientName").value,
       service: document.getElementById("serviceType").value,
       date: finalDateTimeValue,
+      duration: serviceDuration,
       rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
     };
 
