@@ -300,9 +300,9 @@ input:disabled, select:disabled {
     width: 100%;
 }
 /* --- Стили для галереи --- */
-
 #portfolio-container {
     padding: 20px 0;
+    text-align: left; /* Чтобы заголовки категорий были слева, а не по центру */
 }
 
 #portfolio-container h3 {
@@ -311,6 +311,9 @@ input:disabled, select:disabled {
     margin-top: 30px;
     margin-bottom: 15px;
     color: var(--accent-color);
+    padding-left: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .gallery-grid {
@@ -318,6 +321,7 @@ input:disabled, select:disabled {
     grid-template-columns: repeat(2, 1fr); /* Две колонки */
     gap: 12px; /* Отступы между фото */
     padding: 0 10px;
+    box-sizing: border-box;
 }
 
 .gallery-item {
@@ -333,9 +337,9 @@ input:disabled, select:disabled {
     transform: scale(1.03); /* Легкое увеличение при наведении */
 }
 
-/* Адаптивность для телефонов: если экран очень узкий */
+/* Адаптивность для телефонов */
 @media (max-width: 380px) {
     .gallery-grid {
-        grid-template-columns: 1fr; /* Одна колонка на очень маленьких экранах */
+        grid-template-columns: 1fr; /* Одна колонка на маленьких экранах */
     }
 }
