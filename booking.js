@@ -1,4 +1,3 @@
-// !!! ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ URL APPS SCRIPT !!!
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM3nCPwK05h-IowhWBzCoXfb3EwuMsNhedsKtVIhBSXD9-SeSjANEAk3Q18zEgw0P4fQ/exec";
   
 let iti; 
@@ -12,6 +11,49 @@ let adminSettings = {
 };
 let flatpickrInstance = null;
 let isClientApproved = false; 
+
+// Загрузка галереи/портфолио из Google Диска
+async function loadPortfolio() {
+  const grid = document.getElementById("portfolio-grid");
+  if (!grid) return;
+
+  grid.innerHTML = '<p style="grid-column: span 2; color: var(--text-muted); font-size: 14px; text-align: center;">Ładowanie galerii...</p>';
+
+  try {
+    const response = await fetch(`${APPS_SCRIPT_URL}?getPortfolio=true`);
+    const data = await response.json();
+
+    grid.innerHTML = "";
+    let loadedAny = false;
+
+    if (data && data.length > 0) {
+      data.forEach(category => {
+        category.images.forEach(img => {
+          const item = document.createElement("div");
+          item.className = "portfolio-item";
+          
+          const imgEl = document.createElement("img");
+          imgEl.src = img.url;
+          imgEl.alt = img.name || category.category;
+          imgEl.onerror = function() {
+            this.src = "https://via.placeholder.com/300"; // Заглушка, если фото не загрузилось
+          };
+          
+          item.appendChild(imgEl);
+          grid.appendChild(item);
+          loadedAny = true;
+        });
+      });
+    }
+
+    if (!loadedAny) {
+      grid.innerHTML = '<p style="grid-column: span 2; color: var(--text-muted); font-size: 14px; text-align: center;">Brak zdjęć w galerii.</p>';
+    }
+  } catch (error) {
+    console.error("Błąd ładowania portfolio:", error);
+    grid.innerHTML = '<p style="grid-column: span 2; color: red; font-size: 14px; text-align: center;">Nie udało się załadować galerii.</p>';
+  }
+}
 
 async function loadServicesIntoSelect() {
   const serviceSelect = document.getElementById("serviceType");
@@ -54,6 +96,9 @@ async function loadServicesIntoSelect() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Инициализируем динамическую галерею
+  loadPortfolio();
+
   const phoneInput = document.getElementById("clientPhone");
   if (phoneInput) {
     iti = window.intlTelInput(phoneInput, {
@@ -214,11 +259,10 @@ async function loadFreeSlots() {
     }
   }
 }
-    // Защищенная функция формирования сетки
+
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
   
-  // Берем настройки динамически из объекта, который пришел с сервера
   const startStr = adminSettings.work_start_hour || "09:00";
   const endStr = adminSettings.work_end_hour || "18:00";
   const step = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
@@ -227,7 +271,6 @@ function getBaseWorkingHours() {
   const [startH, startM] = startStr.split(":").map(Number);
   const [endH, endM] = endStr.split(":").map(Number);
 
-  // Считаем время начала с учетом смещения
   let currentTotalMinutes = (startH * 60) + startM + offset;
   const totalEndMinutes = (endH * 60) + endM;
 
@@ -239,7 +282,6 @@ function getBaseWorkingHours() {
     const mStr = String(m).padStart(2, '0');
     
     baseWorkingHours.push(`${hStr}:${mStr}`);
-    
     currentTotalMinutes += step;
   }
   return baseWorkingHours;
@@ -415,7 +457,6 @@ async function checkExistingClient() {
       statusEl.style.color = "green";
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
-      
       toggleFormState(true); 
       
       loadServicesIntoSelect().then(() => {
@@ -431,7 +472,7 @@ async function checkExistingClient() {
     }
   } catch (error) {
     statusEl.style.color = "red";
-    statusEl.innerHTML = "Błąd połączenia z bazą danych.";
+    statusEl.innerHTML = "Błąd połączenia z bazą данных.";
     isClientApproved = false;
     toggleFormState(false);
   }
@@ -473,7 +514,6 @@ async function submitForm(event) {
   submitBtn.innerText = "Sprawdzanie terminu w kalendarzu...";
 
   try {
-    // ВАЖНО: Передаем длительность процедуры для проверки в Google Календаре
     const serviceDuration = durationInput ? parseInt(durationInput.value, 10) : 60;
     const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}&duration=${serviceDuration}`);
     const result = await checkResponse.json();
@@ -507,7 +547,6 @@ async function submitForm(event) {
 
     submitBtn.innerText = "Zapisywanie...";
     
-    // Передаем также duration, чтобы бэкенд мог создать красивое событие в Календаре
     const payload = {
       phone: phoneToSubmit,
       name: document.getElementById("clientName").value,
@@ -528,7 +567,7 @@ async function submitForm(event) {
     closeBookingModal();
     loadFreeSlots(); 
   } catch (error) {
-    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
+    alert("Wystąpiл błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
     submitBtn.disabled = false;
     submitBtn.innerText = "Zarezerwuj wizytę";
