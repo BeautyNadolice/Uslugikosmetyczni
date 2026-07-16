@@ -1,5 +1,5 @@
 // !!! ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ URL APPS SCRIPT !!!
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvmvOlsEnRBDBQ7h6EGwPs8UrFCceyMhVCx7H37uqBHAq3n1-A5xv2SqnAZChAG4X49A/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fpRxijHoX0qshaRFz_IzmhmngPXVRD0jj_k7s5lZK_eWGxbBszNrfq8cAPmQNenVQA/exec";
   
 let iti; 
 let allAvailableSlots = []; 
