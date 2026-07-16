@@ -37,11 +37,9 @@
             </a>
         </div>
 
-        <section class="portfolio-grid">
-            <div class="portfolio-item"><img src="https://via.placeholder.com/300" alt="Praca 1"></div>
-            <div class="portfolio-item"><img src="https://via.placeholder.com/300" alt="Praca 2"></div>
-            <div class="portfolio-item"><img src="https://via.placeholder.com/300" alt="Praca 3"></div>
-            <div class="portfolio-item"><img src="https://via.placeholder.com/300" alt="Praca 4"></div>
+        <!-- Динамическая сетка портфолио с Google Диска -->
+        <section class="portfolio-grid" id="portfolio-grid">
+            <!-- Сюда JavaScript автоматически загрузит ваши реальные работы -->
         </section>
     </div>
 
@@ -100,27 +98,25 @@
 
                 <button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button>
             </form>
-                </div>
+        </div>
     </div>
-      <!-- Кнопка для открытия формы -->
-<div style="text-align: center; margin: 40px 0;">
-    <button onclick="document.getElementById('contact-form-modal').style.display='block'" 
-            style="padding: 15px 30px; background-color: #c2a383; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-        Napisz do nas
-    </button>
-</div>
 
-<!-- Модальное окно с формой (скрыто по умолчанию) -->
-<div id="contact-form-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-    <div style="background:white; width:90%; max-width:600px; margin:50px auto; padding:20px; border-radius:10px; position:relative;">
-        <span onclick="document.getElementById('contact-form-modal').style.display='none'" 
-              style="position:absolute; top:10px; right:20px; font-size:24px; cursor:pointer;">&times;</span>
-        
-        <!-- Сюда вставьте ваш iframe -->
-        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform?embedded=true" 
-                width="100%" height="500" frameborder="0">Ładowanie…</iframe>
+    <!-- Кнопка обратной связи Google Формы -->
+    <div style="text-align: center; margin: 40px 0;">
+        <button onclick="document.getElementById('contact-form-modal').style.display='block'" 
+                style="padding: 15px 30px; background-color: #c2a383; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            Napisz do nas
+        </button>
     </div>
-</div>
+
+    <div id="contact-form-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+        <div style="background:white; width:90%; max-width:600px; margin:50px auto; padding:20px; border-radius:10px; position:relative;">
+            <span onclick="document.getElementById('contact-form-modal').style.display='none'" 
+                  style="position:absolute; top:10px; right:20px; font-size:24px; cursor:pointer;">&times;</span>
+            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform?embedded=true" 
+                    width="100%" height="500" frameborder="0">Ładowanie…</iframe>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
