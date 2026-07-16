@@ -264,14 +264,15 @@ function getBaseWorkingHours() {
 
     const hStr = String(currentHour).padStart(2, '0');
     const mStr = String(currentMinute).padStart(2, '0');
-    function getBaseWorkingHours() {
+    // Защищенная функция формирования сетки
+function getBaseWorkingHours() {
   const baseWorkingHours = [];
   
   // Берем настройки динамически из объекта, который пришел с сервера
   const startStr = adminSettings.work_start_hour || "09:00";
   const endStr = adminSettings.work_end_hour || "18:00";
-  const step = adminSettings.slot_interval_minutes || 45;
-  const offset = adminSettings.start_offset_minutes || 0; // Наше новое смещение
+  const step = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
+  const offset = parseInt(adminSettings.start_offset_minutes, 10) || 0; 
 
   const [startH, startM] = startStr.split(":").map(Number);
   const [endH, endM] = endStr.split(":").map(Number);
