@@ -62,13 +62,13 @@
                                 <th>Nazwa usługi</th>
                                 <th>Cena (zł)</th>
                                 <th>Czas (min)</th>
-                                <th>Status</th>
+                                <th>Pokaż cenę</th> <th>Pokaż czas</th> <th>Status</th>
                                 <th>Akcje</th>
                             </tr>
                         </thead>
                         <tbody id="adminServicesTableBody">
                             <tr>
-                                <td colspan="6" style="text-align: center; color: var(--text-muted);">Ładowanie danych...</td>
+                                <td colspan="8" style="text-align: center; color: var(--text-muted);">Ładowanie danych...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -135,8 +135,23 @@
                     <input type="number" id="servicePrice" placeholder="np. 120">
                 </div>
                 <div class="form-group">
-                    <label for="serviceDuration">Czas trвания (minuty):</label>
+                    <label for="serviceDuration">Czas trwania (minuty):</label>
                     <input type="number" id="serviceDuration" placeholder="np. 45">
+                </div>
+
+                <div class="form-group">
+                    <label for="serviceShowPrice">Pokaż cenę na stronie:</label>
+                    <select id="serviceShowPrice">
+                        <option value="Tak">Tak</option>
+                        <option value="Nie">Nie</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="serviceShowDuration">Pokaż czas na stronie:</label>
+                    <select id="serviceShowDuration">
+                        <option value="Tak">Tak</option>
+                        <option value="Nie">Nie</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -168,7 +183,7 @@
 
                 <h5 style="margin-top: 0; margin-bottom: 10px; color: var(--text-main); font-size: 14px;">✏️ Edytuj istniejące kategorie</h5>
                 <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">
-                    Zmiana nazwy kategorii zmieni ją automatycznie dla wszystkich przypisanych do niej usług.
+                    Zmiana nazwy kategorii zmieni ją automatycznie dla всех przypisanych do niej usług.
                 </p>
                 <div class="form-group">
                     <label for="renameCategorySelect">Wybierz kategorię do zmiany/usunięcia:</label>
