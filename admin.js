@@ -1,5 +1,4 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyv-DB-G_om0MxZ4mQtHhWO-6jn0ZimHFCRu6-VuZAaWBQhcp1eVSTA8XY7GYIERoMmeg/exec";
-
 // --- СОСТОЯНИЕ И ЛОКАЛЬНАЯ ИСТОРИЯ (UNDO / REDO) ---
 let currentServices = [];       // Текущее состояние списка услуг на экране
 let allCategories = [];         // Глобальный список категорий (в порядке отображения)
@@ -93,14 +92,15 @@ async function loadAdminServices() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
 
-    // В шапке таблицы теперь на 2 столбца больше (было 6, стало 8)
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Ładowanie usług z bazy...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Ładowanie usług z bazy...</td></tr>';
 
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
         const services = await response.json();
 
         console.log("Ответ сервера:", services);
+        console.log("Тип:", typeof services);
+        console.log("Массив:", Array.isArray(services));
 
         currentServices = Array.isArray(services) ? services : [];
         
@@ -117,7 +117,7 @@ async function loadAdminServices() {
 
     } catch (error) {
         console.error("Błąd:", error);
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Błąd połączenia.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Błąd połączenia.</td></tr>';
     }
 }
 
@@ -129,7 +129,7 @@ function renderTable() {
     tbody.innerHTML = "";
 
     if (currentServices.length === 0 && allCategories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Brak usług. Dodaj nową usługę.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Brak usług. Dodaj nową usługę.</td></tr>';
         return;
     }
 
@@ -160,7 +160,7 @@ function renderTable() {
         const isLast = index === allCategories.length - 1;
 
         headerTr.innerHTML = `
-            <td colspan="8" style="font-weight: bold; font-size: 1.1em; color: #b05c75; padding: 12px 10px; border-bottom: 2px solid #f2d6dc;">
+            <td colspan="7" style="font-weight: bold; font-size: 1.1em; color: #b05c75; padding: 12px 10px; border-bottom: 2px solid #f2d6dc;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span>🏷️ Kategoria: ${catName} <span style="font-weight: normal; font-size: 0.8em; color: #888;">(Zabiegów: ${servicesInCat.length})</span></span>
                     <div style="display: flex; gap: 5px;">
@@ -175,7 +175,7 @@ function renderTable() {
         if (servicesInCat.length === 0) {
             const emptyTr = document.createElement("tr");
             emptyTr.innerHTML = `
-                <td colspan="8" style="text-align: center; color: #aaa; font-style: italic; padding: 10px;">
+                <td colspan="7" style="text-align: center; color: #aaa; font-style: italic; padding: 10px;">
                     Ta kategoria jest pusta. Możesz przenieść tutaj zabiegi lub dodać nowy.
                 </td>
             `;
@@ -191,39 +191,13 @@ function renderTable() {
                 ? '<span class="badge" style="background-color: #f0ad4e; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em;">Szkic</span>' 
                 : '<span class="badge" style="background-color: #5cb85c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em;">Opublikowany</span>';
 
-            // Выбор категории для переноса
-            let categorySelectHTML = `<select onchange="moveServiceToCategory(${item.originalIndex}, this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9em; max-width: 150px;">`;
-            allCategories.forEach(c => {
-                const selected = c.trim() === catName ? "selected" : "";
-                categorySelectHTML += `<option value="${c}" ${selected}>${c}</option>`;
-            });
-            categorySelectHTML += `</select>`;
-
-            // Переключатель "Pokaż cenę"
-            const showPrice = item.showPrice || "Tak";
-            let showPriceSelectHTML = `
-                <select onchange="updateVisibility(${item.originalIndex}, 'showPrice', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9em;">
-                    <option value="Tak" ${showPrice === "Tak" ? "selected" : ""}>Tak</option>
-                    <option value="Nie" ${showPrice === "Nie" ? "selected" : ""}>Nie</option>
-                </select>
-            `;
-
-            // Переключатель "Pokaż czas"
-            const showDuration = item.showDuration || "Tak";
-            let showDurationSelectHTML = `
-                <select onchange="updateVisibility(${item.originalIndex}, 'showDuration', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9em;">
-                    <option value="Tak" ${showDuration === "Tak" ? "selected" : ""}>Tak</option>
-                    <option value="Nie" ${showDuration === "Nie" ? "selected" : ""}>Nie</option>
-                </select>
-            `;
-
+            // Измененная верстка строки: выпадающий список перемещения (<td>${categorySelectHTML}</td>) полностью удален!
             tr.innerHTML = `
-                <td>${categorySelectHTML}</td>
                 <td><strong>${item.name}</strong></td>
                 <td>${item.price} zł</td>
                 <td>${item.duration} min</td>
-                <td>${showPriceSelectHTML}</td>
-                <td>${showDurationSelectHTML}</td>
+                <td>${item.show_price || 'Tak'}</td>
+                <td>${item.show_duration || 'Tak'}</td>
                 <td>${statusBadge}</td>
                 <td>
                     <button class="btn-small btn-primary" onclick="editService(${item.originalIndex})">Edytuj</button>
@@ -233,20 +207,6 @@ function renderTable() {
             tbody.appendChild(tr);
         });
     });
-}
-
-// 5.1 Быстрое изменение видимости полей прямо из таблицы
-function updateVisibility(originalIndex, field, value) {
-    if (!currentServices[originalIndex]) return;
-    
-    saveToHistory();
-    
-    currentServices[originalIndex][field] = value;
-    currentServices[originalIndex].status = "Szkic";
-    currentServices[originalIndex].isLocalChange = true;
-    
-    renderTable();
-    updateUndoRedoButtons();
 }
 
 // 6. Перемещение категории вверх или вниз по списку
@@ -495,9 +455,9 @@ function openAddServiceModal() {
     document.getElementById("serviceDuration").value = "";
     document.getElementById("serviceCategoryNew").value = "";
     
-    // По дефолту при создании нового ставим "Tak"
-    if (document.getElementById("serviceShowPrice")) document.getElementById("serviceShowPrice").value = "Tak";
-    if (document.getElementById("serviceShowDuration")) document.getElementById("serviceShowDuration").value = "Tak";
+    // Новые поля
+    document.getElementById("serviceShowPrice").value = "Tak";
+    document.getElementById("serviceShowDuration").value = "Tak";
 
     buildCategorySelect("serviceCategorySelect", "");
     document.getElementById("serviceModal").style.display = "flex";
@@ -514,14 +474,10 @@ function editService(index) {
     document.getElementById("servicePrice").value = service.price || 0;
     document.getElementById("serviceDuration").value = service.duration || 0;
     document.getElementById("serviceCategoryNew").value = "";
-
-    // Загрузка полей отображения в модалку
-    if (document.getElementById("serviceShowPrice")) {
-        document.getElementById("serviceShowPrice").value = service.showPrice || "Tak";
-    }
-    if (document.getElementById("serviceShowDuration")) {
-        document.getElementById("serviceShowDuration").value = service.showDuration || "Tak";
-    }
+    
+    // Настройки отображения цены и длительности
+    document.getElementById("serviceShowPrice").value = service.show_price || "Tak";
+    document.getElementById("serviceShowDuration").value = service.show_duration || "Tak";
 
     buildCategorySelect("serviceCategorySelect", service.category);
     document.getElementById("serviceModal").style.display = "flex";
@@ -578,13 +534,11 @@ function saveServiceModalData() {
     const name = document.getElementById("serviceName").value.trim();
     const price = parseInt(document.getElementById("servicePrice").value);
     const duration = parseInt(document.getElementById("serviceDuration").value);
-    
-    // Получение данных о видимости
-    const showPrice = document.getElementById("serviceShowPrice") ? document.getElementById("serviceShowPrice").value : "Tak";
-    const showDuration = document.getElementById("serviceShowDuration") ? document.getElementById("serviceShowDuration").value : "Tak";
+    const showPrice = document.getElementById("serviceShowPrice").value;
+    const showDuration = document.getElementById("serviceShowDuration").value;
 
     if (!category || !name || isNaN(price) || isNaN(duration)) {
-        alert("Wszystkie pola muszą być wypełnione poprawnie!");
+        alert("Wszystkie pola mustzą być wypełnione poprawnie!");
         return;
     }
 
@@ -593,8 +547,8 @@ function saveServiceModalData() {
         name: name,
         price: price,
         duration: duration,
-        showPrice: showPrice,
-        showDuration: showDuration,
+        show_price: showPrice,
+        show_duration: showDuration,
         status: "Szkic",
         isLocalChange: true
     };
@@ -677,7 +631,7 @@ function deleteCategoryGlobal() {
 
     const count = currentServices.filter(s => s.category && s.category.trim() === catToDelete).length;
     const confirmMsg = count > 0 
-        ? `Czy na pewno chcesz usunąć kategorię "${catToDelete}"? Spowoduje to USUNIĘCIE всех należących do niej zabiegów (${count} szt.)!` 
+        ? `Czy na pewno chcesz usunąć kategorię "${catToDelete}"? Spowoduje to USUNIĘCIE wszystkich należących do niej zabiegów (${count} szt.)!` 
         : `Czy usunąć pustą kategorię "${catToDelete}"?`;
 
     if (confirm(confirmMsg)) {
@@ -710,7 +664,7 @@ function addNewCategoryEmpty() {
     const newCatName = input.value.trim();
 
     if (!newCatName) {
-        alert("Wpisz nazwę nowej kategorii!");
+        alert("Wpisz nazwę nowej категории!");
         return;
     }
 
