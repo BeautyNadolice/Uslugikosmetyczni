@@ -1,5 +1,5 @@
 // !!! ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ URL APPS SCRIPT !!!
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fpRxijHoX0qshaRFz_IzmhmngPXVRD0jj_k7s5lZK_eWGxbBszNrfq8cAPmQNenVQA/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM3nCPwK05h-IowhWBzCoXfb3EwuMsNhedsKtVIhBSXD9-SeSjANEAk3Q18zEgw0P4fQ/exec";
   
 let iti; 
 let allAvailableSlots = []; 
@@ -264,15 +264,32 @@ function getBaseWorkingHours() {
 
     const hStr = String(currentHour).padStart(2, '0');
     const mStr = String(currentMinute).padStart(2, '0');
+    function getBaseWorkingHours() {
+  const baseWorkingHours = [];
+  
+  // Берем настройки динамически из объекта, который пришел с сервера
+  const startStr = adminSettings.work_start_hour || "09:00";
+  const endStr = adminSettings.work_end_hour || "18:00";
+  const step = adminSettings.slot_interval_minutes || 45;
+  const offset = adminSettings.start_offset_minutes || 0; // Наше новое смещение
+
+  const [startH, startM] = startStr.split(":").map(Number);
+  const [endH, endM] = endStr.split(":").map(Number);
+
+  // Считаем время начала с учетом смещения
+  let currentTotalMinutes = (startH * 60) + startM + offset;
+  const totalEndMinutes = (endH * 60) + endM;
+
+  while (currentTotalMinutes < totalEndMinutes) {
+    const h = Math.floor(currentTotalMinutes / 60);
+    const m = currentTotalMinutes % 60;
+    
+    const hStr = String(h).padStart(2, '0');
+    const mStr = String(m).padStart(2, '0');
+    
     baseWorkingHours.push(`${hStr}:${mStr}`);
     
-    currentMinute += step;
-    if (currentMinute >= 60) {
-      currentHour += Math.floor(currentMinute / 60);
-      currentMinute = currentMinute % 60;
-    }
-    
-    safetyCounter++;
+    currentTotalMinutes += step;
   }
   return baseWorkingHours;
 }
