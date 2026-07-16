@@ -102,7 +102,7 @@
 
     </div>
 
-    <div id="serviceModal" class="modal-overlay">
+   <div id="serviceModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 id="modalTitle">Dodaj nowy zabieg</h4>
@@ -112,9 +112,16 @@
                 <input type="hidden" id="editServiceIndex" value="-1">
 
                 <div class="form-group">
-                    <label for="serviceCategory">Kategoria:</label>
-                    <input type="text" id="serviceCategory" placeholder="np. Manicure, Brwi">
+                    <label for="serviceCategorySelect">Kategoria:</label>
+                    <select id="serviceCategorySelect" onchange="toggleNewCategoryInput()">
+                        </select>
                 </div>
+                
+                <div class="form-group" id="newCategoryGroup" style="display: none;">
+                    <label for="serviceCategoryNew" style="color: #d9534f;">Nazwa nowej kategorii:</label>
+                    <input type="text" id="serviceCategoryNew" placeholder="np. Depilacja">
+                </div>
+
                 <div class="form-group">
                     <label for="serviceName">Nazwa zabiegu:</label>
                     <input type="text" id="serviceName" placeholder="np. Manicure klasyczny">
@@ -131,6 +138,33 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
                 <button class="btn-primary" onclick="saveServiceModalData()">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>🏷️ Edytuj nazwy kategorii</h4>
+                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+                    Zmiana nazwy kategorii zmieni ją automatycznie dla wszystkich przypisanych do niej usług.
+                </p>
+                <div class="form-group">
+                    <label for="renameCategorySelect">Wybierz kategorię do zmiany:</label>
+                    <select id="renameCategorySelect">
+                        </select>
+                </div>
+                <div class="form-group">
+                    <label for="renameCategoryNewName">Nowa nazwa kategorii:</label>
+                    <input type="text" id="renameCategoryNewName" placeholder="np. Nowa nazwa">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeCategoryModal()">Anuluj</button>
+                <button class="btn-primary" onclick="renameCategoryGlobal()" style="background-color: #f0ad4e;">Zmień nazwę</button>
             </div>
         </div>
     </div>
