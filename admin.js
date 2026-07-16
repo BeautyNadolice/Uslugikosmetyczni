@@ -99,7 +99,10 @@ async function loadAdminServices() {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
         const services = await response.json();
 
-        currentServices = services || [];
+console.log("Ответ GAS:", services);
+console.log("Это массив?", Array.isArray(services));
+
+currentServices = services || [];
         
         // Нормализуем категории и сохраняем уникальный список
         const rawCategories = currentServices.map(s => s.category ? s.category.trim() : "");
