@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "hhttps://script.google.com/macros/s/AKfycbxptmseksKkEens4-K-dwX0TaQNM00vMWUcK2BCQ2USdE6Z6u2NbMBmHEPdXvANnd591Q/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9Z_OaiPzCLKO7uxHz_kZQfRabqZiz_38infIV1YkVE6Rbx8MAkq-LLYNpFHQZidIypg/exec";
 document.addEventListener("DOMContentLoaded", () => {
     // При старте загружаем услуги и текущие настройки из таблицы
     loadAdminServices();
@@ -15,7 +15,9 @@ function switchTab(tabName) {
     });
     
     document.getElementById(`tab-${tabName}`).style.display = 'block';
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
 }
 
 // 2. Загрузка настроек из Google Таблицы при входе в админку
@@ -53,10 +55,10 @@ async function saveSettings() {
         });
         const result = await response.json();
         
-        if (result.status === "success") {
+        if (result.success) {
             alert("Ustawienia zostały pomyślnie zapisane w Google Sheets!");
         } else {
-            alert("Błąd podczas zapisu: " + (result.message || "nieznany błąd"));
+            alert("Błąd podczas zapisu: " + (result.error || "nieznany błąd"));
         }
     } catch (e) {
         console.error(e);
@@ -67,12 +69,12 @@ async function saveSettings() {
     }
 }
 
-// 4. Загрузка списка услуг (черновиков/публичных цен)
+// 4. Загрузка списка услуг (черновиков)
 async function loadAdminServices() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan=\"6\" style=\"text-align: center; color: var(--text-muted);\">Ładowanie usług z bazy...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Ładowanie usług z bazy...</td></tr>';
 
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
@@ -81,7 +83,7 @@ async function loadAdminServices() {
         tbody.innerHTML = "";
 
         if (!services || services.length === 0) {
-            tbody.innerHTML = '<tr><td colspan=\"6\" style=\"text-align: center; color: var(--text-muted);\">Brak usług w bazie danych.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Brak usług w bazie danych.</td></tr>';
             return;
         }
 
@@ -106,28 +108,28 @@ async function loadAdminServices() {
         });
 
     } catch (error) {
-        console.error("Błąd ładowania usług w админке:", error);
-        tbody.innerHTML = '<tr><td colspan=\"6\" style=\"text-align: center; color: red;\">Błąd połąчения z bazą danych (Upewnij się, że getPrices работает).</td></tr>';
+        console.error("Błąd ładowния usług w админке:", error);
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Błąd połączenia z bazą danych. Sprawdź konsolę przeglądarki.</td></tr>';
     }
 }
 
 // Временные заглушки для редактирования услуг
 function openAddServiceModal() {
-    alert("Funkcja dodawania nowego zabiegu zostanie wdrożona w kolejnym kroku integracji API.");
+    alert("Funkcja dodawania nowego zabiegu zostanie wdrożona в kolejnym kroku.");
 }
 
 function editService(index) {
-    alert("Funkcja edycji zabiegu o indeksie " + index + " zostanie wdrożona w kolejnym kroku.");
+    alert("Funkcja edycji zabiegu zostanie wdrożona в kolejnym kroku.");
 }
 
 function deleteService(index) {
     if (confirm("Czy na pewno chcesz usunąć tę usługę?")) {
-        alert("Funkcja usuwania zostanie wdrożona w kolejnym kroku.");
+        alert("Funkcja usuwania zostanie wdrożona в kolejnym kroku.");
     }
 }
 
 async function publishDrafts() {
-    alert("Publikacja zmian: Dane zostaną przeniesione z tabeli roboczej do publicznej cennika.");
+    alert("Publikacja zmian zostanie wdrożona в kolejnym kroku.");
 }
 
 function logout() {
