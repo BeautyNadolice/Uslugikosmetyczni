@@ -214,56 +214,6 @@ async function loadFreeSlots() {
     }
   }
 }
-
-// Защищенная функция формирования сетки
-function getBaseWorkingHours() {
-  const baseWorkingHours = [];
-  
-  const startStr = String(adminSettings.work_start_hour || "09:00").trim();
-  const endStr = String(adminSettings.work_end_hour || "18:00").trim();
-  
-  let startHour = 9;
-  let startMinute = 0;
-  
-  const startMatch = startStr.match(/(\d{1,2}):(\d{2})/);
-  if (startMatch) {
-    startHour = parseInt(startMatch[1], 10);
-    startMinute = parseInt(startMatch[2], 10);
-  }
-
-  let endHour = 18;
-  let endMinute = 0;
-  
-  const endMatch = endStr.match(/(\d{1,2}):(\d{2})/);
-  if (endMatch) {
-    endHour = parseInt(endMatch[1], 10);
-    endMinute = parseInt(endMatch[2], 10);
-  }
-
-  if (isNaN(startHour)) startHour = 9;
-  if (isNaN(startMinute)) startMinute = 0;
-  if (isNaN(endHour)) endHour = 18;
-  if (isNaN(endMinute)) endMinute = 0;
-
-  let currentHour = startHour;
-  let currentMinute = startMinute;
-  
-  let step = parseInt(adminSettings.slot_interval_minutes, 10);
-  if (isNaN(step) || step <= 0) {
-    step = 45; 
-  }
-
-  const totalEndMinutes = (endHour * 60) + endMinute;
-  let safetyCounter = 0;
-
-  while (safetyCounter < 100) {
-    const currentTotalMinutes = (currentHour * 60) + currentMinute;
-    if (currentTotalMinutes >= totalEndMinutes) {
-      break; 
-    }
-
-    const hStr = String(currentHour).padStart(2, '0');
-    const mStr = String(currentMinute).padStart(2, '0');
     // Защищенная функция формирования сетки
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
