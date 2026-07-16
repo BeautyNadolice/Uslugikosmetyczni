@@ -102,16 +102,25 @@
             </form>
                 </div>
     </div>
-      <section id="contact-form" style="margin: 40px 0; text-align: center; padding: 20px;">
-    <h2>Masz pytania? Napisz do nas!</h2>
-    <p>Odpowiemy najszybciej jak to możliwe.</p>
-    
-    <!-- Вставте сюди скопійований код iframe, але додайте width="100%" -->
-    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform?embedded=true" 
-            width="100%" height="600" frameborder="0" marginheight="0" marginwidth="0">
-            Ładowanie…
-    </iframe>
-</section>
+      <!-- Кнопка для открытия формы -->
+<div style="text-align: center; margin: 40px 0;">
+    <button onclick="document.getElementById('contact-form-modal').style.display='block'" 
+            style="padding: 15px 30px; background-color: #c2a383; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+        Napisz do nas
+    </button>
+</div>
+
+<!-- Модальное окно с формой (скрыто по умолчанию) -->
+<div id="contact-form-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:white; width:90%; max-width:600px; margin:50px auto; padding:20px; border-radius:10px; position:relative;">
+        <span onclick="document.getElementById('contact-form-modal').style.display='none'" 
+              style="position:absolute; top:10px; right:20px; font-size:24px; cursor:pointer;">&times;</span>
+        
+        <!-- Сюда вставьте ваш iframe -->
+        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform?embedded=true" 
+                width="100%" height="500" frameborder="0">Ładowanie…</iframe>
+    </div>
+</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
