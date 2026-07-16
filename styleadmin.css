@@ -208,3 +208,44 @@
         display: none;
     }
 }
+/* --- ЦЕНТРИРОВАНИЕ КОНТЕЙНЕРА --- */
+.container {
+    max-width: 800px;
+    margin: 40px auto; /* Центрирует админку ровно по центру экрана */
+    padding: 0 20px;   /* Чтобы на планшетах/телефонах код не прилипал к краям */
+    box-sizing: border-box;
+}
+
+/* --- ОБНОВЛЕННЫЕ СТИЛИ ВКЛАДОК --- */
+.tabs-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+/* Неактивная вкладка (светло-серая, текст хорошо виден) */
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background-color: #f1f1f1; 
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #555555; /* Темно-серый читаемый текст */
+    transition: all 0.2s ease-in-out;
+}
+
+.tab-btn:hover {
+    background-color: #e5e5e5;
+    color: #222;
+}
+
+/* Активная вкладка (теперь она контрастная, благородного темного цвета) */
+.tab-btn.active {
+    background-color: #2c2c2c !important; /* Темный графит, идеально для Daria Beauty */
+    color: #ffffff !important;            /* Белый контрастный текст */
+    border-color: #2c2c2c !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
