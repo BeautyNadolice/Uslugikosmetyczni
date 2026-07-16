@@ -1,0 +1,210 @@
+/* ==========================================================================
+   ПАНЕЛЬ АДМИНИСТРАТОРА (ДОПОЛНЕНИЕ К ОСНОВНЫМ СТИЛЯМ)
+   ========================================================================== */
+
+.admin-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-bg);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.admin-nav h2 {
+    font-size: 18px;
+    color: var(--text-main);
+}
+
+.tabs-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: #e9e9e9;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.tab-content {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.admin-table th, .admin-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.admin-table th {
+    background-color: #fafdfa;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+/* Статусы */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.badge-success { 
+    background: #e2fbe8; 
+    color: #1e7e34; 
+}
+
+.badge-warning { 
+    background: #fff3cd; 
+    color: #856404; 
+}
+
+.badge-danger { 
+    background: #f8d7da; 
+    color: #721c24; 
+}
+
+/* Формы настроек */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: var(--text-main);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+/* Панель управления действиями и историей (Undo/Redo) */
+.admin-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.admin-actions-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.action-divider {
+    border-left: 1px solid #ccc;
+    height: 25px;
+    margin: 0 5px;
+}
+
+/* Стилизация кнопок на панели */
+.btn-secondary {
+    background-color: #e0e0e0;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #d0d0d0;
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-save-draft {
+    background-color: #f0ad4e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.btn-save-draft:hover {
+    background-color: #ec971f;
+}
+
+.btn-publish-danger {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s ease;
+}
+
+.btn-publish-danger:hover {
+    background-color: #c9302c;
+}
+
+/* Адаптивность для мобильных телефонов */
+@media (max-width: 600px) {
+    .admin-actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .btn-publish-danger {
+        margin-left: 0;
+    }
+    .action-divider {
+        display: none;
+    }
+}
