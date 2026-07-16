@@ -1,5 +1,5 @@
 // URL вашего Google Apps Script
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvmvOlsEnRBDBQ7h6EGwPs8UrFCceyMhVCx7H37uqBHAq3n1-A5xv2SqnAZChAG4X49A/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fpRxijHoX0qshaRFz_IzmhmngPXVRD0jj_k7s5lZK_eWGxbBszNrfq8cAPmQNenVQA/exec";
 
 // === НАСТРОЙКИ БЕЗОПАСНОСТИ ===
 const ALLOWED_EMAIL = "vasha_jena@gmail.com"; // 🌟 Укажите здесь реальный Gmail жены
