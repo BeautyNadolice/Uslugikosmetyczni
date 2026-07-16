@@ -1,11 +1,8 @@
-// URL вашего Google Apps Script
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fpRxijHoX0qshaRFz_IzmhmngPXVRD0jj_k7s5lZK_eWGxbBszNrfq8cAPmQNenVQA/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM3nCPwK05h-IowhWBzCoXfb3EwuMsNhedsKtVIhBSXD9-SeSjANEAk3Q18zEgw0P4fQ/exec";
 
-// === НАСТРОЙКИ БЕЗОПАСНОСТИ ===
-const ALLOWED_EMAIL = "vasha_jena@gmail.com"; // 🌟 Укажите здесь реальный Gmail жены
+const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
 
-// --- СОСТОЯНИЕ И ЛОКАЛЬНАЯ ИСТОРИЯ (UNDO / REDO) ---
 let currentServices = [];       
 let allCategories = [];         
 let undoStack = [];             
@@ -13,7 +10,6 @@ let redoStack = [];
 let hasUnsavedChanges = false;  
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Проверяем, авторизован ли пользователь
     checkAuthSession();
 
     window.addEventListener("beforeunload", (e) => {
@@ -36,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================================================
-// СИСТЕМА АВТОРИЗАЦИИ (GOOGLE & TEST BYPASS)
+// СИСТЕМА АВТОРИЗАЦИИ (MODAL WINDOW FLOW)
 // ==========================================================================
 
 function checkAuthSession() {
@@ -52,18 +48,25 @@ function checkAuthSession() {
 }
 
 function showAdminPanel() {
-    document.getElementById("login-screen").style.display = "none";
+    // Скрываем модалку входа и открываем рабочую область
+    document.getElementById("login-modal").style.display = "none";
     document.getElementById("admin-panel-wrapper").style.display = "block";
     loadAdminServices();
     loadSettings();
 }
 
 function showLoginScreen() {
-    document.getElementById("login-screen").style.display = "flex";
+    // Показываем модалку входа, скрываем рабочую область
+    document.getElementById("login-modal").style.display = "flex";
     document.getElementById("admin-panel-wrapper").style.display = "none";
 }
 
-// Функция быстрого входа для теста
+function closeLoginModal() {
+    // Если администратор закрывает окно без логина — возвращаем его на главную
+    document.getElementById("login-modal").style.display = "none";
+    window.location.href = "index.html";
+}
+
 function loginTest() {
     console.log("Вход выполнен через Тестовый режим");
     currentUserEmail = "test_admin@test.com"; 
@@ -71,7 +74,6 @@ function loginTest() {
     showAdminPanel();
 }
 
-// Обработчик ответа от виджета Google Sign-In
 function handleCredentialResponse(response) {
     try {
         const base64Url = response.credential.split('.')[1];
@@ -98,7 +100,6 @@ function handleCredentialResponse(response) {
     }
 }
 
-// Кнопка ВЫХОДА (Очищает данные и перекидывает на главную)
 function logout() {
     if (hasUnsavedChanges) {
         if (!confirm("Masz niezapisane zmiany! Czy na pewno chcesz się wylogować?")) return;
@@ -109,7 +110,7 @@ function logout() {
     currentUserEmail = null;
     
     alert("Wylogowano pomyślnie.");
-    window.location.href = "index.html"; // Возврат на главную страницу резерваций
+    window.location.href = "index.html"; 
 }
 
 // ==========================================================================
