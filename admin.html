@@ -4,24 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Administratora | Nail-Art Daria</title>
-    <!-- Подключаем внешние стили -->
-    <link rel="stylesheet" href="style.css">
-    <!-- Официальный скрипт авторизации Google -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        /* Временные базовые стили для окна входа, чтобы оно выглядело аккуратно до правки CSS */
+        #login-screen {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #faf5f6;
+            font-family: Arial, sans-serif;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            max-width: 400px;
+            border: 1px solid #f2d6dc;
+        }
+        .login-box h2 { color: #b05c75; margin-bottom: 5px; }
+        .login-box p { color: #666; margin-bottom: 25px; font-size: 0.9em; }
+        .test-btn {
+            background-color: #888;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .test-btn:hover { background-color: #666; }
+        .logout-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .logout-btn:hover { background-color: #c9302c; }
+    </style>
 </head>
 <body>
 
-    <!-- ========================================================================== -->
-    <!-- 1. ЭКРАН ВХОДА (Отображается по умолчанию, если не залогинен)              -->
-    <!-- ========================================================================== -->
     <div id="login-screen">
         <div class="login-box">
             <h2>Panel Administratora</h2>
             <p>Zaloguj się, aby zarządzać cennikiem i ustawieniami</p>
 
-            <!-- КНОПКА НАСТОЯЩЕГО GOOGLE ВХОДА -->
-            <div class="google-signin-wrapper">
-                <!-- 🌟 ЗАМЕНИТЕ В БУДУЩЕМ data-client_id НА ВАШ РЕАЛЬНЫЙ ID ИЗ GOOGLE CLOUD -->
+            <div style="display: flex; justify-content: center; margin-bottom: 15px;">
                 <div id="g_id_onload"
                      data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
@@ -37,148 +74,120 @@
                 </div>
             </div>
 
-            <!-- ВРЕМЕННАЯ ТЕСТОВАЯ ЗАГЛУШКА -->
-            <div class="test-bypass-section">
+            <div style="margin-top: 25px; border-top: 1px dashed #f2d6dc; padding-top: 20px;">
                 <button class="test-btn" onclick="loginTest()">
                     🔐 Zaloguj się przez TEST (Szybki start)
                 </button>
-                <p class="test-notice">Вход без проверки Google (для разработки)</p>
+                <p style="font-size: 0.8em; color: #999; margin-top: 5px; margin-bottom: 0;">Вход без проверки Google (для разработки)</p>
             </div>
         </div>
     </div>
 
-    <!-- ========================================================================== -->
-    <!-- 2. ОСНОВНАЯ ПАНЕЛЬ АДМИНИСТРАТОРА (Скрыта до авторизации)                  -->
-    <!-- ========================================================================== -->
     <div id="admin-panel-wrapper" style="display: none;">
         
-        <!-- Шапка панели с кнопкой выхода -->
-        <header class="admin-header">
-            <h1 class="admin-title">Nail-Art Daria Admin</h1>
+        <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #fff; border-bottom: 1px solid #f2d6dc;">
+            <h1 style="color: #b05c75; margin: 0; font-size: 1.5em;">Nail-Art Daria Admin</h1>
             <button class="logout-btn" onclick="logout()">🚪 Wyloguj się</button>
         </header>
 
-        <div class="container">
-            <!-- Вкладки управления -->
-            <div class="tabs-container">
-                <button class="tab-btn active" onclick="switchTab('prices')">💰 Zarządzanie Cennikiem</button>
-                <button class="tab-btn" onclick="switchTab('settings')">⚙️ Ustawienia Pracy</button>
+        <div class="tabs-nav" style="padding: 15px 20px 0 20px;">
+            <button class="tab-btn active" onclick="switchTab('prices')">💰 Zarządzanie Cennikiem</button>
+            <button class="tab-btn" onclick="switchTab('settings')">⚙️ Ustawienia Pracy</button>
+        </div>
+
+        <div id="tab-prices" class="tab-content" style="padding: 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="undoBtn" onclick="undo()" disabled>↩️ Cofnij</button>
+                <button id="redoBtn" onclick="redo()" disabled>↪️ Ponów</button>
+                <button onclick="openAddServiceModal()">➕ Dodaj nowy zabieg</button>
+                <button onclick="openCategoryModal()">📁 Zarządzaj kategoriami</button>
+                <button id="saveDraftsBtn" onclick="saveDraftsToCloud()" style="background-color: #f0ad4e; color: white;">💾 Zapisz Szkic</button>
+                <button id="publishBtn" onclick="publishDrafts()" style="background-color: #5cb85c; color: white;">🚀 Opublikuj Cennik</button>
             </div>
 
-            <!-- ВКЛАДКА: ЦЕННИК -->
-            <div id="tab-prices" class="tab-content">
-                <div class="admin-actions-bar">
-                    <button id="undoBtn" class="btn-secondary" onclick="undo()" disabled>↩️ Cofnij</button>
-                    <button id="redoBtn" class="btn-secondary" onclick="redo()" disabled>↪️ Ponów</button>
-                    <span class="action-divider"></span>
-                    <button class="btn-secondary" onclick="openAddServiceModal()">➕ Dodaj nowy zabieg</button>
-                    <button class="btn-secondary" onclick="openCategoryModal()">📁 Zarządzaj kategoriami</button>
-                    <button id="saveDraftsBtn" class="btn-save-draft" onclick="saveDraftsToCloud()">💾 Zapisz Szkic</button>
-                    <button id="publishBtn" class="btn-publish-danger" onclick="publishDrafts()">🚀 Opublikuj Cennik</button>
-                </div>
-
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Kategoria</th>
-                            <th>Nazwa usługi</th>
-                            <th>Cena (zł)</th>
-                            <th>Czas (min)</th>
-                            <th>Status</th>
-                            <th>Akcje</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminServicesTableBody">
-                        <!-- Данные загружаются динамически -->
+            <table border="1" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: #f2d6dc;">
+                        <th>Kategoria</th>
+                        <th>Nazwa usługi</th>
+                        <th>Cena (zł)</th>
+                        <th>Czas (min)</th>
+                        <th>Status</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="adminServicesTableBody">
                     </tbody>
-                </table>
-            </div>
+            </table>
+        </div>
 
-            <!-- ВКЛАДКА: НАСТРОЙКИ -->
-            <div id="tab-settings" class="tab-content" style="display: none;">
-                <h2>⚙️ Godziny pracy i parametry</h2>
-                <div class="form-group">
-                    <label>Godzina rozpoczęcia: </label>
-                    <input type="time" id="work_start_hour">
-                </div>
-                <div class="form-group">
-                    <label>Godzina zakończenia: </label>
-                    <input type="time" id="work_end_hour">
-                </div>
-                <div class="form-group">
-                    <label>Bufor czasowy (godziny): </label>
-                    <input type="number" id="buffer_hours" min="0">
-                </div>
-                <button id="saveSettingsBtn" class="btn-primary" onclick="saveSettings()">Zapisz Ustawienia</button>
+        <div id="tab-settings" class="tab-content" style="padding: 20px; display: none;">
+            <h2>⚙️ Godziny pracy i parametry</h2>
+            <div style="margin-bottom: 15px;">
+                <label>Godzina rozpoczęcia: </label>
+                <input type="time" id="work_start_hour">
             </div>
+            <div style="margin-bottom: 15px;">
+                <label>Godzina zakońчения: </label>
+                <input type="time" id="work_end_hour">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Bufor czasowy (godziny): </label>
+                <input type="number" id="buffer_hours" min="0">
+            </div>
+            <button id="saveSettingsBtn" onclick="saveSettings()" style="background-color: #5cb85c; color: white; padding: 10px 20px;">Zapisz Ustawienia</button>
         </div>
     </div>
 
-    <!-- Модальное окно управления услугами -->
-    <div id="serviceModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Dodaj nowy zabieg</h3>
-                <button class="modal-close" onclick="closeServiceModal()">&times;</button>
-            </div>
+    <div id="serviceModal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+        <div style="background:white; padding:30px; border-radius:8px; width:400px;">
+            <h3 id="modalTitle">Dodaj nowy zabieg</h3>
             <input type="hidden" id="editServiceIndex" value="-1">
-            <div class="form-group">
-                <label>Kategoria:</label>
-                <select id="serviceCategorySelect" onchange="toggleNewCategoryInput()"></select>
+            <div style="margin-bottom:10px;">
+                <label>Kategoria:</label><br>
+                <select id="serviceCategorySelect" onchange="toggleNewCategoryInput()" style="width:100%; padding:5px;"></select>
             </div>
-            <div id="newCategoryGroup" class="form-group" style="display:none;">
-                <label>Nazwa nowej kategorii:</label>
-                <input type="text" id="serviceCategoryNew">
+            <div id="newCategoryGroup" style="margin-bottom:10px; display:none;">
+                <label>Nazwa nowej kategorii:</label><br>
+                <input type="text" id="serviceCategoryNew" style="width:100%; padding:5px;">
             </div>
-            <div class="form-group">
-                <label>Nazwa usługi:</label>
-                <input type="text" id="serviceName">
+            <div style="margin-bottom:10px;">
+                <label>Nazwa usługi:</label><br>
+                <input type="text" id="serviceName" style="width:100%; padding:5px;">
             </div>
-            <div class="form-group">
-                <label>Cena (zł):</label>
-                <input type="number" id="servicePrice">
+            <div style="margin-bottom:10px;">
+                <label>Cena (zł):</label><br>
+                <input type="number" id="servicePrice" style="width:100%; padding:5px;">
             </div>
-            <div class="form-group">
-                <label>Czas (min):</label>
-                <input type="number" id="serviceDuration">
+            <div style="margin-bottom:15px;">
+                <label>Czas (min):</label><br>
+                <input type="number" id="serviceDuration" style="width:100%; padding:5px;">
             </div>
-            <div class="modal-footer">
-                <button class="btn-primary" onclick="saveServiceModalData()">Zapisz</button>
-                <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
-            </div>
+            <button onclick="saveServiceModalData()">Zapisz</button>
+            <button onclick="closeServiceModal()" style="background:#ccc; margin-left:10px;">Anuluj</button>
         </div>
     </div>
 
-    <!-- Модальное окно управления категориями -->
-    <div id="categoryModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📁 Zarządzanie Kategoriami</h3>
-                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
-            </div>
+    <div id="categoryModal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+        <div style="background:white; padding:30px; border-radius:8px; width:430px;">
+            <h3>📁 Zarządzanie Kategoriami</h3>
             
             <div style="border-bottom: 1px solid #ccc; padding-bottom: 15px; margin-bottom: 15px;">
                 <h4>Zmień nazwę lub usuń istniejącą</h4>
-                <div class="form-group">
-                    <select id="renameCategorySelect"></select>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="renameCategoryNewName" placeholder="Nowa nazwa kategorii">
-                </div>
-                <button class="btn-primary" onclick="renameCategoryGlobal()">Zmień nazwę</button>
-                <button class="btn-danger btn-small" onclick="deleteCategoryGlobal()" style="padding: 8px 12px; font-size:14px; margin-left:5px;">Usuń kategorię</button>
+                <select id="renameCategorySelect" style="width:100%; padding:5px; margin-bottom:10px;"></select>
+                <input type="text" id="renameCategoryNewName" placeholder="Nowa nazwa kategorii" style="width:100%; padding:5px; margin-bottom:10px;">
+                <button onclick="renameCategoryGlobal()">Zmień nazwę</button>
+                <button onclick="deleteCategoryGlobal()" style="background:#d9534f; color:white; margin-left:5px;">Usuń kategorię</button>
             </div>
 
             <div>
                 <h4>Utwórz nową pustą kategorię</h4>
-                <div class="form-group">
-                    <input type="text" id="createNewCategoryName" placeholder="Nazwa kategorii">
-                </div>
-                <button class="btn-primary" onclick="addNewCategoryEmpty()">Dodaj kategorię</button>
+                <input type="text" id="createNewCategoryName" placeholder="Nazwa kategorii" style="width:100%; padding:5px; margin-bottom:10px;">
+                <button onclick="addNewCategoryEmpty()">Dodaj kategorię</button>
             </div>
             
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeCategoryModal()">Zamknij</button>
+            <div style="margin-top:20px; text-align:right;">
+                <button onclick="closeCategoryModal()" style="background:#ccc;">Zamknij</button>
             </div>
         </div>
     </div>
