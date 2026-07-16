@@ -4,117 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Administratora | Daria Beauty Concept</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .admin-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--card-bg);
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-        .admin-nav h2 {
-            font-size: 18px;
-            color: var(--text-main);
-        }
-        .tabs-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: #e9e9e9;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            color: var(--text-muted);
-            transition: all 0.3s ease;
-        }
-        .tab-btn.active {
-            background-color: var(--accent-color);
-            color: white;
-        }
-        .tab-content {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        .admin-table th, .admin-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        .admin-table th {
-            background-color: #fafdfa;
-            font-weight: bold;
-            color: var(--text-main);
-        }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .badge-success { background: #e2fbe8; color: #1e7e34; }
-        .badge-warning { background: #fff3cd; color: #856404; }
-        .badge-danger { background: #f8d7da; color: #721c24; }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: var(--text-main);
-        }
-        .form-group input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-    </style>
+    <link rel="stylesheet" href="styleadmin.css">
 </head>
 <body>
 
     <div class="container" style="max-width: 800px;">
         
+        <!-- Верхняя навигация -->
         <nav class="admin-nav">
             <h2>Daria Beauty | Admin Panel</h2>
             <button class="btn-small btn-danger" onclick="logout()">Wyloguj</button>
         </nav>
 
+        <!-- Вкладки -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="switchTab('services')">Zabiegi i Cennik</button>
             <button class="tab-btn" onclick="switchTab('settings')">Ustawienia</button>
         </div>
 
+        <!-- ВКЛАДКА 1: Услуги и цены -->
         <div id="tab-services" class="tab-content">
             <div class="admin-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                
+                <div class="admin-header-row">
                     <h3>Zarządzanie usługami</h3>
-                    <div>
-                        <button class="btn-small btn-success" onclick="openAddServiceModal()">➕ Dodaj nowy</button>
-                        <button class="btn-small btn-primary" onclick="publishDrafts()" style="margin-left: 5px;">🚀 Publikuj zmiany</button>
-                    </div>
                 </div>
 
+                <!-- Физическая панель истории (Cofnij / Ponów) и сохранения -->
+                <div class="admin-actions-bar">
+                    <button id="undoBtn" class="btn-secondary" onclick="undo()" disabled>
+                        <span>↩</span> Cofnij
+                    </button>
+                    <button id="redoBtn" class="btn-secondary" onclick="redo()" disabled>
+                        <span>↪</span> Ponów
+                    </button>
+                    
+                    <span class="action-divider"></span>
+
+                    <button class="btn-primary" onclick="openAddServiceModal()">
+                        ➕ Dodaj nowy
+                    </button>
+
+                    <button id="saveDraftsBtn" class="btn-save-draft" onclick="saveDraftsToCloud()">
+                        💾 Zapisz jako Szkic
+                    </button>
+
+                    <button id="publishBtn" class="btn-publish-danger" onclick="publishDrafts()">
+                        🚀 Publikuj zmiany
+                    </button>
+                </div>
+
+                <!-- Таблица услуг -->
                 <div style="overflow-x: auto;">
                     <table class="admin-table">
                         <thead>
@@ -137,11 +77,12 @@
             </div>
         </div>
 
+        <!-- ВКЛАДКА 2: Настройки -->
         <div id="tab-settings" class="tab-content" style="display: none;">
             <div class="admin-card" style="text-align: left;">
                 <h3>Ustawienia czasu pracy</h3>
                 <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
-                    Te ustawienia bezpośrednio wpływają на генерацию доступных слотов для клиентов.
+                    Te ustawienia bezpośrednio wpływają na generowanie dostępnych slotów dla klientów.
                 </p>
                 
                 <div class="form-group">
@@ -159,7 +100,7 @@
                     <input type="number" id="buffer_hours" placeholder="1">
                 </div>
                 
-                <button class="btn-small btn-primary" id="saveSettingsBtn" onclick="saveSettings()" style="width: 100%; padding: 12px; margin-top: 10px;">
+                <button class="btn-primary" id="saveSettingsBtn" onclick="saveSettings()" style="width: 100%; padding: 12px; margin-top: 10px;">
                     Zapisz ustawienia
                 </button>
             </div>
