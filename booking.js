@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyv-DB-G_om0MxZ4mQtHhWO-6jn0ZimHFCRu6-VuZAaWBQhcp1eVSTA8XY7GYIERoMmeg/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-TMZQdN8kqLByc-U1LHOpoBkCz0kQ28v04wMVUV3Ej9wG00TwubRx7irPtMJgdIlPwQ/exec";
   
 let iti; 
 let allAvailableSlots = []; 
@@ -11,6 +11,49 @@ let adminSettings = {
 };
 let flatpickrInstance = null;
 let isClientApproved = false; 
+
+// Загрузка услуг из базы для выпадающего списка
+async function loadServicesIntoSelect() {
+  const serviceSelect = document.getElementById("serviceType");
+  if (!serviceSelect) return;
+
+  try {
+    const response = await fetch(`${APPS_SCRIPT_URL}?getPrices=true`);
+    const services = await response.json();
+
+    serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
+
+    if (services && services.length > 0) {
+      // Группируем услуги по категориям
+      const grouped = {};
+      services.forEach(s => {
+        if (s.status === "Opublikowany") { // Берем только опубликованные услуги
+          const cat = s.category || "Inne";
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push(s);
+        }
+      });
+
+      // Наполняем Select
+      for (const category in grouped) {
+        const optGroup = document.createElement("optgroup");
+        optGroup.label = category;
+        grouped[category].forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.name;
+          opt.textContent = `${item.name} (${item.price} zł)`;
+          // Сохраняем цену и время прямо в атрибуты опции для удобства
+          opt.setAttribute("data-price", item.price);
+          opt.setAttribute("data-duration", item.duration);
+          optGroup.appendChild(opt);
+        });
+        serviceSelect.appendChild(optGroup);
+      }
+    }
+  } catch (error) {
+    console.error("Błąd ładowania usług:", error);
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const phoneInput = document.getElementById("clientPhone");
@@ -48,20 +91,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const serviceSelect = document.getElementById("serviceType");
   if (serviceSelect) {
-    serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
-    if (typeof cennikData !== "undefined") {
-      cennikData.forEach(cat => {
-        const optGroup = document.createElement("optgroup");
-        optGroup.label = cat.categoryTitle;
-        cat.items.forEach(item => {
-          const opt = document.createElement("option");
-          opt.value = item.name;
-          opt.textContent = item.name;
-          optGroup.appendChild(opt);
-        });
-        serviceSelect.appendChild(optGroup);
-      });
-    }
     serviceSelect.addEventListener("change", onServiceChange);
   }
 
@@ -130,40 +159,31 @@ function toggleFormState(enabled) {
   }
 }
 
-// Извлечение длительности и переинициализация календаря под выбранную услугу
+// Извлечение цены, длительности и переинициализация календаря под выбранную услугу
 function onServiceChange() {
   const serviceSelect = document.getElementById("serviceType");
   const priceDisplay = document.getElementById("priceDisplay");
   const durationInput = document.getElementById("selectedDuration");
   if (!serviceSelect) return;
   
-  const selectedService = serviceSelect.value;
-  let foundPrice = "";
-  let foundDuration = 45; // По умолчанию 45 минут, если в базе нет данных
+  const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+  if (!selectedOption) return;
 
-  if (typeof cennikData !== "undefined") {
-    cennikData.forEach(cat => {
-      cat.items.forEach(item => {
-        if (item.name === selectedService) {
-          foundPrice = item.price;
-          
-          // Парсим длительность (например: "1:30", "2:00", "45 min")
-          if (item.duration) {
-            const durStr = String(item.duration).trim().toLowerCase();
-            if (durStr.includes(":")) {
-              const parts = durStr.split(":");
-              foundDuration = (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
-            } else {
-              foundDuration = parseInt(durStr.replace(/[^0-9]/g, ""), 10) || 45;
-            }
-          }
-        }
-      });
-    });
+  const foundPrice = selectedOption.getAttribute("data-price") || "";
+  const rawDuration = selectedOption.getAttribute("data-duration") || "45";
+  let foundDuration = 45;
+
+  // Парсим длительность
+  const durStr = String(rawDuration).trim().toLowerCase();
+  if (durStr.includes(":")) {
+    const parts = durStr.split(":");
+    foundDuration = (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+  } else {
+    foundDuration = parseInt(durStr.replace(/[^0-9]/g, ""), 10) || 45;
   }
 
   if (priceDisplay) {
-    priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice : "";
+    priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice + " zł" : "";
   }
   
   if (durationInput) {
@@ -186,7 +206,6 @@ async function loadFreeSlots() {
     
     allAvailableSlots = data.busySlots || [];
     if (data.settings) {
-      // Объединяем настройки из Sheets с дефолтными
       adminSettings = { ...adminSettings, ...data.settings }; 
     }
 
@@ -201,11 +220,10 @@ async function loadFreeSlots() {
   }
 }
 
-// Построение рабочей сетки на основе динамических настроек времени
+// Построение рабочей сетки на основе настроек времени
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
   
-  // Парсим часы начала и конца из настроек (работает с форматами "09:00", "9:00" или числом "9")
   const startStr = String(adminSettings.work_start_hour || "09:00").trim();
   const endStr = String(adminSettings.work_end_hour || "18:00").trim();
   
@@ -254,7 +272,7 @@ function getBaseWorkingHours() {
   return baseWorkingHours;
 }
 
-// Умная генерация: возвращает массив ТОЛЬКО тех часов, куда процедура физически помещается
+// Возвращает массив свободных часов, куда процедура физически помещается
 function getFreeSlotsForService(dateStr) {
   const now = new Date();
   const year = now.getFullYear();
@@ -266,7 +284,6 @@ function getFreeSlotsForService(dateStr) {
   const durationInput = document.getElementById("selectedDuration");
   const serviceDurationMinutes = durationInput ? parseInt(durationInput.value, 10) : 45;
 
-  // Занятые слоты из Google Календаря на этот день
   const busyTimesOnThisDay = allAvailableSlots
     .filter(slot => slot.startsWith(dateStr))
     .map(slot => {
@@ -275,12 +292,10 @@ function getFreeSlotsForService(dateStr) {
     });
 
   return baseWorkingHours.filter(time => {
-    // 1. Слот занят в календаре?
     if (busyTimesOnThisDay.includes(time)) {
       return false;
     }
 
-    // 2. Прошедшее время и буфер для "сегодня"
     const [hours, minutes] = time.split(":").map(Number);
     const slotStartDateTime = new Date(`${dateStr}T${time}`);
 
@@ -293,19 +308,14 @@ function getFreeSlotsForService(dateStr) {
       }
     }
 
-    // 3. ПРОВЕРКА ПОМЕЩАЕМОСТИ ПРОЦЕДУРЫ
     const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
-    
-    // Динамический конец рабочего дня
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
     const endHourLimit = new Date(`${dateStr}T${endStr.includes(":") ? endStr : endStr + ":00"}`);
 
-    // Если процедура выходит за рамки рабочего времени
     if (slotEndDateTime.getTime() > endHourLimit.getTime()) {
       return false;
     }
 
-    // Проверяем, не накладывается ли процедура на другие занятые слоты этого дня
     let conflictsWithBusy = false;
     busyTimesOnThisDay.forEach(busyTime => {
       const busyStart = new Date(`${dateStr}T${busyTime}`);
@@ -324,7 +334,7 @@ function getFreeSlotsForService(dateStr) {
   });
 }
 
-// Инициализация календаря с учетом времени конкретной услуги
+// Инициализация календаря
 function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
@@ -336,7 +346,6 @@ function initCalendar(defaultDate = "") {
   const disabledDates = [];
   const now = new Date();
 
-  // Проверяем доступность каждого дня на 30 дней вперед
   for (let i = 0; i <= 30; i++) {
     const checkDate = new Date();
     checkDate.setDate(now.getDate() + i);
@@ -389,162 +398,3 @@ function displayTimeSlots(selectedDateStr) {
       slotDiv.classList.add("selected");
       document.getElementById("finalDateTime").value = `${selectedDateStr}T${time}`;
     };
-
-    container.appendChild(slotDiv);
-  });
-}
-
-// Проверка телефона по базе
-async function checkExistingClient() {
-  const statusEl = document.getElementById("clientStatus");
-  if (!statusEl) return;
-
-  if (!iti || !iti.isValidNumber()) {
-    statusEl.style.display = "block";
-    statusEl.style.color = "red";
-    statusEl.innerHTML = "Wpisz poprawny numer telefonu!";
-    isClientApproved = false;
-    toggleFormState(false);
-    return;
-  }
-
-  // Очищаем номер телефона от пробелов, получая чистую строку в формате +48123456789
-  const fullPhoneNumber = iti.getNumber().replace(/\s+/g, '');
-  statusEl.style.display = "block";
-  statusEl.style.color = "#2C2C2C";
-  statusEl.innerHTML = "Sprawdzanie danych...";
-
-  try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
-    const data = await response.json();
-
-    if (data.found && data.name) {
-      document.getElementById("clientName").value = data.name;
-      statusEl.style.color = "green";
-      statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
-      isClientApproved = true;
-      toggleFormState(true); 
-      
-      await loadFreeSlots(); 
-    } else {
-      document.getElementById("clientName").value = "";
-      statusEl.style.color = "red";
-      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
-      isClientApproved = false;
-      toggleFormState(false); 
-    }
-  } catch (error) {
-    statusEl.style.color = "red";
-    statusEl.innerHTML = "Błąd połączenia z bazą danych.";
-    isClientApproved = false;
-    toggleFormState(false);
-  }
-}
-
-function resetBookingForm() {
-  const form = document.getElementById("bookingForm");
-  if (form) {
-    form.reset();
-  }
-  isClientApproved = false;
-  const statusEl = document.getElementById("clientStatus");
-  if (statusEl) {
-    statusEl.innerHTML = "";
-    statusEl.style.display = "none";
-  }
-  toggleFormState(false);
-}
-
-// Отправка формы с перепроверкой занятости "на лету" и чистой перерисовкой
-async function submitForm(event) {
-  event.preventDefault();
-
-  const finalDateTimeValue = document.getElementById("finalDateTime").value; 
-  const submitBtn = document.getElementById("submitBookingBtn");
-  const rodoConsent = document.getElementById("rodoConsent");
-  
-  if (!isClientApproved) {
-    alert("Rezerwacja niemożliwa. Twój numer telefonu nie został zweryfikowany.");
-    return;
-  }
-
-  if (!finalDateTimeValue) {
-    alert("Proszę wybrać godzinę wizyty!");
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.innerText = "Sprawdzanie terminu...";
-
-  try {
-    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
-    const result = await checkResponse.json();
-
-    if (!result.isFree) {
-      alert("Wybrana godzina została właśnie zajęta. Proszę wybrać inny wolny termin.");
-
-      // Перезагружаем свежие занятые слоты с бэкенда Google Sheets
-      await loadFreeSlots();
-      
-      const selectedDateStr = document.getElementById("calendarInput").value;
-      if (selectedDateStr) {
-        // Пересобираем календарь и начисто стираем уплывший слот
-        initCalendar(selectedDateStr);
-        displayTimeSlots(selectedDateStr);
-      }
-      
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Zarezerwuj wizytę";
-      return; 
-    }
-
-    // Надежное извлечение телефона в формате E.164 и удаление пробелов перед отправкой в Sheets
-    let phoneToSubmit;
-    if (iti && iti.isValidNumber()) {
-      phoneToSubmit = iti.getNumber(intlTelInputUtils.numberFormat.E164).replace(/\s+/g, '');
-    } else {
-      phoneToSubmit = document.getElementById("clientPhone").value.replace(/\s+/g, '');
-    }
-
-    submitBtn.innerText = "Zapisywanie...";
-    const payload = {
-      phone: phoneToSubmit,
-      name: document.getElementById("clientName").value,
-      service: document.getElementById("serviceType").value,
-      date: finalDateTimeValue,
-      rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
-    };
-
-    await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    
-    alert("Wizyta została pomyślnie zarezerwowana!");
-    closeBookingModal();
-    loadFreeSlots(); 
-  } catch (error) {
-    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
-    console.error(error);
-    submitBtn.disabled = false;
-    submitBtn.innerText = "Zarezerwuj wizytę";
-  }
-}
-
-function openBookingModal() {
-  document.getElementById("bookingModal").style.display = "flex";
-}
-
-function closeBookingModal() {
-  document.getElementById("bookingModal").style.display = "none";
-  resetBookingForm(); 
-}
-
-window.addEventListener("click", (e) => {
-  const modal = document.getElementById("bookingModal");
-  if (e.target === modal) {
-    closeBookingModal();
-  }
-});
