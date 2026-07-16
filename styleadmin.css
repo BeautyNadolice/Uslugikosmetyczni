@@ -339,13 +339,18 @@ body {
         .logout-btn:hover { background-color: #c9302c; }
 /* Центрирование экрана входа по центру всего экрана */
 #login-screen {
-    display: flex; /* Важно! Чтобы центрировать внутренности */
-    height: 100vh;
+    display: flex !important;
+    min-height: 100vh !important; /* Гарантирует высоту всего экрана */
+    width: 100vw !important;       /* Гарантирует ширину всего экрана */
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background-color: #faf5f6;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+    position: absolute; /* Чтобы не сдвигался */
+    top: 0;
+    left: 0;
 }
 
 .login-box {
