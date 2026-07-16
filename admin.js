@@ -648,3 +648,48 @@ function logout() {
     }
     alert("Wylogowano.");
 }
+// ==========================================================================
+// СОЗДАНИЕ НОВОЙ ПУСТОЙ КАТЕГОРИИ ИЗ ОКНА УПРАВЛЕНИЯ
+// ==========================================================================
+function addNewCategoryEmpty() {
+    const input = document.getElementById("createNewCategoryName");
+    if (!input) return;
+
+    const newCatName = input.value.trim();
+
+    if (!newCatName) {
+        alert("Wpisz nazwę nowej kategorii!");
+        return;
+    }
+
+    // Проверяем, не существует ли уже такая категория (без учета регистра букв)
+    const exists = allCategories.some(c => c.toLowerCase() === newCatName.toLowerCase());
+    if (exists) {
+        alert("Taka kategoria już istnieje!");
+        return;
+    }
+
+    // Сохраняем состояние в историю для отмены (Ctrl+Z работает!)
+    saveToHistory();
+
+    // Добавляем категорию в массив
+    allCategories.push(newCatName);
+
+    // Очищаем текстовое поле ввода
+    input.value = "";
+
+    // Перерисовываем таблицу, чтобы пустая категория сразу появилась на экране с кнопками вверх/вниз
+    renderTable();
+    updateUndoRedoButtons();
+
+    // Обновляем выпадающий список выбора категорий в этом же окне редактирования
+    const select = document.getElementById("renameCategorySelect");
+    if (select) {
+        const opt = document.createElement("option");
+        opt.value = newCatName;
+        opt.innerText = newCatName;
+        select.appendChild(opt);
+    }
+
+    alert(`Utworzono nową pustą kategorię: "${newCatName}"!`);
+}
