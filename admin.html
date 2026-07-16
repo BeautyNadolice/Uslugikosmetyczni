@@ -8,21 +8,18 @@
 </head>
 <body>
 
-    <div class="container" style="max-width: 800px;">
+    <div class="container">
         
-        <!-- Верхняя навигация -->
         <nav class="admin-nav">
             <h2>Daria Beauty | Admin Panel</h2>
             <button class="btn-small btn-danger" onclick="logout()">Wyloguj</button>
         </nav>
 
-        <!-- Вкладки -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="switchTab('services')">Zabiegi i Cennik</button>
             <button class="tab-btn" onclick="switchTab('settings')">Ustawienia</button>
         </div>
 
-        <!-- ВКЛАДКА 1: Услуги и цены -->
         <div id="tab-services" class="tab-content">
             <div class="admin-card">
                 
@@ -30,7 +27,6 @@
                     <h3>Zarządzanie usługami</h3>
                 </div>
 
-                <!-- Физическая панель истории (Cofnij / Ponów) и сохранения -->
                 <div class="admin-actions-bar">
                     <button id="undoBtn" class="btn-secondary" onclick="undo()" disabled>
                         <span>↩</span> Cofnij
@@ -42,7 +38,7 @@
                     <span class="action-divider"></span>
 
                     <button class="btn-primary" onclick="openAddServiceModal()">
-                        ➕ Dodaj nowy
+                        ➕ Dodaj nowy zabieg
                     </button>
 
                     <button id="saveDraftsBtn" class="btn-save-draft" onclick="saveDraftsToCloud()">
@@ -54,7 +50,6 @@
                     </button>
                 </div>
 
-                <!-- Таблица услуг -->
                 <div style="overflow-x: auto;">
                     <table class="admin-table">
                         <thead>
@@ -77,12 +72,11 @@
             </div>
         </div>
 
-        <!-- ВКЛАДКА 2: Настройки -->
         <div id="tab-settings" class="tab-content" style="display: none;">
             <div class="admin-card" style="text-align: left;">
                 <h3>Ustawienia czasu pracy</h3>
                 <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
-                    Te ustawienia bezpośrednio wpływają na generowanie dostępnych slotów dla klientów.
+                    Te ustawienia bezpośrednio wpływają na generowanie dostępnych slotów для клиентов.
                 </p>
                 
                 <div class="form-group">
@@ -106,6 +100,39 @@
             </div>
         </div>
 
+    </div>
+
+    <div id="serviceModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modalTitle">Dodaj nowy zabieg</h4>
+                <button class="modal-close" onclick="closeServiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editServiceIndex" value="-1">
+
+                <div class="form-group">
+                    <label for="serviceCategory">Kategoria:</label>
+                    <input type="text" id="serviceCategory" placeholder="np. Manicure, Brwi">
+                </div>
+                <div class="form-group">
+                    <label for="serviceName">Nazwa zabiegu:</label>
+                    <input type="text" id="serviceName" placeholder="np. Manicure klasyczny">
+                </div>
+                <div class="form-group">
+                    <label for="servicePrice">Cena (zł):</label>
+                    <input type="number" id="servicePrice" placeholder="np. 120">
+                </div>
+                <div class="form-group">
+                    <label for="serviceDuration">Czas trwania (minuty):</label>
+                    <input type="number" id="serviceDuration" placeholder="np. 45">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
+                <button class="btn-primary" onclick="saveServiceModalData()">Zapisz</button>
+            </div>
+        </div>
     </div>
 
     <script src="admin.js"></script>
