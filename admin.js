@@ -2,25 +2,22 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9Z_OaiPzCLKO7
 
 // --- СОСТОЯНИЕ И ЛОКАЛЬНАЯ ИСТОРИЯ (UNDO / REDO) ---
 let currentServices = [];       // Текущее состояние списка услуг на экране
-let allCategories = [];         // Глобальный список категорий (не пропадает при удалении услуг!)
-let undoStack = [];             // Стек для отмены действий (кнопка "Cofnij")
-let redoStack = [];             // Стек для возврата действий (кнопка "Ponów")
-let hasUnsavedChanges = false;  // Флаг наличия несохраненных изменений
+let allCategories = [];         // Глобальный список категорий (в порядке отображения)
+let undoStack = [];             // Стек для отмены действий (Cofnij)
+let redoStack = [];             // Стек для возврата действий (Ponów)
+let hasUnsavedChanges = false;  // Флаг несохраненных изменений
 
 document.addEventListener("DOMContentLoaded", () => {
-    // При старте загружаем услуги и текущие настройки из таблицы
     loadAdminServices();
     loadSettings();
 
-    // Предупреждение перед закрытием вкладки, если изменения не сохранены
     window.addEventListener("beforeunload", (e) => {
         if (hasUnsavedChanges) {
             e.preventDefault();
-            e.returnValue = "Masz niezapisane zmiany w Szkicach! Czy na pewno chcesz opuścić stronę?";
+            e.returnValue = "Masz niezapisane zmiany w Szkicach!";
         }
     });
 
-    // Горячие клавиши (Ctrl+Z / Ctrl+Y)
     document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
             e.preventDefault();
@@ -35,26 +32,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 1. Переключение вкладок
 function switchTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.style.display = 'none';
-    });
-    
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     
     const targetTab = document.getElementById(`tab-${tabName}`);
-    if (targetTab) {
-        targetTab.style.display = 'block';
-    }
+    if (targetTab) targetTab.style.display = 'block';
     
     const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-    }
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
-// 2. Загрузка настроек из Google Таблицы
+// 2. Загрузка настроек
 async function loadSettings() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?checkBusy=true");
@@ -89,27 +77,23 @@ async function saveSettings() {
             body: JSON.stringify({ action: "updateSettings", payload: payload })
         });
         const result = await response.json();
-        
-        if (result.success) {
-            alert("Ustawienia zostały pomyślnie zapisane!");
-        } else {
-            alert("Błąd: " + (result.error || "nieznany błąd"));
-        }
+        if (result.success) alert("Ustawienia zapisane!");
+        else alert("Błąd: " + (result.error || "nieznany"));
     } catch (e) {
         console.error(e);
-        alert("Błąd połąчения з сервером.");
+        alert("Błąd połączenia.");
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
     }
 }
 
-// 4. Первичная загрузка списка услуг из базы
+// 4. Загрузка услуг из базы
 async function loadAdminServices() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Ładowanie usług z bazy...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Ładowanie usług z bazy...</td></tr>';
 
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
@@ -117,7 +101,7 @@ async function loadAdminServices() {
 
         currentServices = services || [];
         
-        // Инициализируем наш стабильный список категорий на основе загруженных услуг
+        // Нормализуем категории и сохраняем уникальный список
         const rawCategories = currentServices.map(s => s.category ? s.category.trim() : "");
         allCategories = [...new Set(rawCategories)].filter(c => c.length > 0);
 
@@ -129,12 +113,12 @@ async function loadAdminServices() {
         updateUndoRedoButtons();
 
     } catch (error) {
-        console.error("Błąd ładowania usług:", error);
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Błąd połączenia z bazą danych.</td></tr>';
+        console.error("Błąd:", error);
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Błąd połączenia.</td></tr>';
     }
 }
 
-// 5. Отрисовка таблицы услуг на экране
+// 5. Построение сгруппированной по категориям таблицы с кнопками перемещения
 function renderTable() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
@@ -142,36 +126,146 @@ function renderTable() {
     tbody.innerHTML = "";
 
     if (currentServices.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Brak usług. Kliknij "Dodaj nowy", aby dodać zabieg.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Brak usług. Dodaj nową usługę.</td></tr>';
         return;
     }
 
-    currentServices.forEach((item, index) => {
-        const tr = document.createElement("tr");
-        const isDraft = item.status === "Draft" || item.status === "Szkic" || item.isLocalChange;
-        
-        const statusBadge = isDraft 
-            ? '<span class="badge" style="background-color: #f0ad4e; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em;">Szkic</span>' 
-            : '<span class="badge" style="background-color: #5cb85c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em;">Opublikowany</span>';
+    // Группируем услуги
+    const grouped = {};
+    allCategories.forEach(cat => {
+        grouped[cat.trim()] = [];
+    });
 
-        tr.innerHTML = `
-            <td><strong>${item.category}</strong></td>
-            <td>${item.name}</td>
-            <td>${item.price} zł</td>
-            <td>${item.duration} min</td>
-            <td>${statusBadge}</td>
-            <td>
-                <button class="btn-small btn-primary" onclick="editService(${index})">Edytuj</button>
-                <button class="btn-small btn-danger" onclick="deleteService(${index})" style="margin-left: 5px;">Usuń</button>
+    currentServices.forEach((service, originalIndex) => {
+        const catKey = (service.category || "Inne").trim();
+        if (!grouped[catKey]) {
+            grouped[catKey] = [];
+        }
+        grouped[catKey].push({ ...service, originalIndex });
+    });
+
+    // Отрисовываем категории в том порядке, который задан в массиве allCategories
+    allCategories.forEach((catName, index) => {
+        const servicesInCat = grouped[catName] || [];
+
+        // Создаем шапку категории с кнопками перемещения вверх/вниз
+        const headerTr = document.createElement("tr");
+        headerTr.style.backgroundColor = "#fdf5f7"; 
+        
+        // Логика отключения кнопок на границах списка
+        const isFirst = index === 0;
+        const isLast = index === allCategories.length - 1;
+
+        headerTr.innerHTML = `
+            <td colspan="6" style="font-weight: bold; font-size: 1.1em; color: #b05c75; padding: 12px 10px; border-bottom: 2px solid #f2d6dc;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🏷️ Kategoria: ${catName} <span style="font-weight: normal; font-size: 0.8em; color: #888;">(Zabiegów: ${servicesInCat.length})</span></span>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn-small" onclick="moveCategoryOrder(${index}, 'up')" ${isFirst ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''} style="padding: 4px 8px; background: #fff; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">🔼 W górę</button>
+                        <button class="btn-small" onclick="moveCategoryOrder(${index}, 'down')" ${isLast ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''} style="padding: 4px 8px; background: #fff; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">🔽 W dół</button>
+                    </div>
+                </div>
             </td>
         `;
-        tbody.appendChild(tr);
+        tbody.appendChild(headerTr);
+
+        if (servicesInCat.length === 0) {
+            const emptyTr = document.createElement("tr");
+            emptyTr.innerHTML = `
+                <td colspan="6" style="text-align: center; color: #aaa; font-style: italic; padding: 10px;">
+                    Ta kategoria jest pusta. Możesz przenieść tutaj zabiegi lub dodać nowy.
+                </td>
+            `;
+            tbody.appendChild(emptyTr);
+            return;
+        }
+
+        // Выводим строки услуг
+        servicesInCat.forEach(item => {
+            const tr = document.createElement("tr");
+            const isDraft = item.status === "Draft" || item.status === "Szkic" || item.isLocalChange;
+            const statusBadge = isDraft 
+                ? '<span class="badge" style="background-color: #f0ad4e; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em;">Szkic</span>' 
+                : '<span class="badge" style="background-color: #5cb85c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em;">Opublikowany</span>';
+
+            // Выбор категории для переноса
+            let categorySelectHTML = `<select onchange="moveServiceToCategory(${item.originalIndex}, this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9em; max-width: 150px;">`;
+            allCategories.forEach(c => {
+                const selected = c.trim() === catName ? "selected" : "";
+                categorySelectHTML += `<option value="${c}" ${selected}>${c}</option>`;
+            });
+            categorySelectHTML += `</select>`;
+
+            tr.innerHTML = `
+                <td>${categorySelectHTML}</td>
+                <td><strong>${item.name}</strong></td>
+                <td>${item.price} zł</td>
+                <td>${item.duration} min</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <button class="btn-small btn-primary" onclick="editService(${item.originalIndex})">Edytuj</button>
+                    <button class="btn-small btn-danger" onclick="deleteService(${item.originalIndex})" style="margin-left: 5px;">Usuń</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     });
 }
 
-// 6. СОХРАНЕНИЕ ТЕКУЩЕЙ СТРАНИЦЫ В ИСТОРИЮ (Перед изменениями)
+// 6. Перемещение категории вверх или вниз по списку
+function moveCategoryOrder(index, direction) {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === allCategories.length - 1) return;
+
+    saveToHistory();
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Меняем местами категории в массиве allCategories
+    const temp = allCategories[index];
+    allCategories[index] = allCategories[targetIndex];
+    allCategories[targetIndex] = temp;
+
+    // Сортируем исходный список услуг currentServices в соответствии с новым порядком категорий
+    sortServicesByGlobalCategoryOrder();
+
+    renderTable();
+    updateUndoRedoButtons();
+}
+
+// Вспомогательная функция для синхронизации порядка услуг в основном массиве
+function sortServicesByGlobalCategoryOrder() {
+    currentServices.sort((a, b) => {
+        const indexA = allCategories.indexOf((a.category || "").trim());
+        const indexB = allCategories.indexOf((b.category || "").trim());
+        return indexA - indexB;
+    });
+    // Все изменения помечаем как локальный черновик для сохранения
+    currentServices.forEach(s => {
+        s.status = "Szkic";
+        s.isLocalChange = true;
+    });
+}
+
+// 7. Быстрый перенос отдельной услуги в другую категорию через выпадающий список
+function moveServiceToCategory(originalIndex, newCategoryName) {
+    if (!currentServices[originalIndex]) return;
+    
+    saveToHistory();
+    
+    currentServices[originalIndex].category = newCategoryName.trim();
+    currentServices[originalIndex].status = "Szkic";
+    currentServices[originalIndex].isLocalChange = true;
+
+    // После переноса отдельной услуги также группируем массив по нашему порядку категорий
+    sortServicesByGlobalCategoryOrder();
+    
+    renderTable();
+    updateUndoRedoButtons();
+}
+
+// 8. СОХРАНЕНИЕ ТЕКУЩЕЙ СТРАНИЦЫ В ИСТОРИЮ (UNDO/REDO)
 function saveToHistory() {
-    // Сохраняем глубокую копию услуг И категорий, чтобы Undo возвращал и категории тоже!
     undoStack.push({
         services: JSON.parse(JSON.stringify(currentServices)),
         categories: JSON.parse(JSON.stringify(allCategories))
@@ -181,7 +275,6 @@ function saveToHistory() {
     updateUndoRedoButtons();
 }
 
-// Физическая кнопка: Назад (Undo)
 function undo() {
     if (undoStack.length > 0) {
         redoStack.push({
@@ -196,7 +289,6 @@ function undo() {
     }
 }
 
-// Физическая кнопка: Вперед (Redo)
 function redo() {
     if (redoStack.length > 0) {
         undoStack.push({
@@ -211,7 +303,6 @@ function redo() {
     }
 }
 
-// Обновление доступности кнопок Cofnij/Ponów на экране
 function updateUndoRedoButtons() {
     const undoBtn = document.getElementById("undoBtn");
     const redoBtn = document.getElementById("redoBtn");
@@ -233,40 +324,37 @@ function updateUndoRedoButtons() {
     }
 }
 
-// 7. ЛОКАЛЬНЫЕ ИЗМЕНЕНИЯ (Работают через Undo/Redo)
-
-// Добавление новой услуги (локально)
+// 9. ЛОКАЛЬНЫЕ ОПЕРАЦИИ
 function addServiceLocal(newService) {
     saveToHistory();
     newService.isLocalChange = true;
     newService.status = "Szkic";
     currentServices.push(newService);
+    sortServicesByGlobalCategoryOrder();
     renderTable();
     updateUndoRedoButtons();
 }
 
-// Редактирование услуги (локально)
 function updateServiceLocal(index, updatedService) {
     saveToHistory();
     updatedService.isLocalChange = true;
     updatedService.status = "Szkic";
     currentServices[index] = updatedService;
+    sortServicesByGlobalCategoryOrder();
     renderTable();
     updateUndoRedoButtons();
 }
 
-// Удаление услуги (локально)
 function deleteService(index) {
-    if (confirm("Czy na pewno chcesz usunąć tę usługę z listy? (Zmiana zostanie zapisana po kliknięciu 'Zapisz jako Szkic')")) {
+    if (confirm("Czy na pewno chcesz usunąć tę usługę?")) {
         saveToHistory();
         currentServices.splice(index, 1);
-        // Обратите внимание: категорию мы отсюда НЕ удаляем!
         renderTable();
         updateUndoRedoButtons();
     }
 }
 
-// 8. ОТПРАВКА ЛОКАЛЬНОГО ЧЕРНОВИКА В СЕТЬ (В таблицу Draft_Prices)
+// 10. СОХРАНЕНИЕ И ПУБЛИКАЦИЯ НА СЕРВЕРЕ
 async function saveDraftsToCloud() {
     const btn = document.getElementById("saveDraftsBtn");
     if (!btn) return;
@@ -289,33 +377,29 @@ async function saveDraftsToCloud() {
             currentServices.forEach(s => delete s.isLocalChange);
             renderTable();
             updateUndoRedoButtons();
-            alert("Szkic został pomyślnie zapisany w Google Sheets!");
+            alert("Szkic zapisany w Google Sheets!");
         } else {
-            alert("Błąd zapisu szkicu: " + result.error);
+            alert("Błąd: " + result.error);
         }
     } catch (e) {
         console.error(e);
-        alert("Błąd połączenia z bazą danych.");
+        alert("Błąd połączenia.");
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
 
-// 9. 🚀 ПУБЛИКАЦИЯ ИЗМЕНЕНИЙ ИЗ ТАБЛИЦЫ В ПУБЛИЧНЫЙ ДОСТУП
 async function publishDrafts() {
     if (hasUnsavedChanges) {
-        const confirmSave = confirm("Masz niezapisane zmiany na ekranie. Czy chcesz najpierw zapisać je jako Szkic i opublikować?");
-        if (confirmSave) {
+        if (confirm("Masz niezapisane zmiany. Czy zapisać je teraz jako Szkic i opublikować?")) {
             await saveDraftsToCloud();
         } else {
             return;
         }
     }
 
-    if (!confirm("Czy na pewno chcesz opublikować wszystkie zmiany? Nowy cennik będzie natychmiast widoczny dla klientów na stronie głównej!")) {
-        return;
-    }
+    if (!confirm("Czy na pewno chcesz opublikować zmiany dla klientów?")) return;
 
     const btn = document.getElementById("publishBtn");
     if (!btn) return;
@@ -332,13 +416,13 @@ async function publishDrafts() {
 
         if (result.success) {
             await loadAdminServices();
-            alert("Gratulacje! Nowy cennik został pomyślnie opublikowany!");
+            alert("Cennik opublikowany!");
         } else {
-            alert("Błąd publikacji: " + result.error);
+            alert("Błąd: " + result.error);
         }
     } catch (e) {
         console.error(e);
-        alert("Błąd połączenia z serwerem.");
+        alert("Błąd połączenia.");
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -346,10 +430,9 @@ async function publishDrafts() {
 }
 
 // ==========================================================================
-// ЛОГИКА МОДАЛЬНОГО ОКНА (ДОБАВЛЕНИЕ И РЕДАКТИРОВАНИЕ)
+// ЛОГИКА ОКНА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ УСЛУГ
 // ==========================================================================
 
-// Показывает/скрывает текстовое поле для новой категории
 function toggleNewCategoryInput() {
     const select = document.getElementById("serviceCategorySelect");
     const newCatGroup = document.getElementById("newCategoryGroup");
@@ -361,13 +444,9 @@ function toggleNewCategoryInput() {
     }
 }
 
-// Закрытие модального окна услуг
 function closeServiceModal() {
-    const modal = document.getElementById("serviceModal");
-    if (modal) modal.style.display = "none";
+    document.getElementById("serviceModal").style.display = "none";
 }
-
-// --- ОТКРЫТИЕ МОДАЛКИ УСЛУГ ---
 
 function openAddServiceModal() {
     document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg";
@@ -379,7 +458,6 @@ function openAddServiceModal() {
     document.getElementById("serviceCategoryNew").value = "";
 
     buildCategorySelect("serviceCategorySelect", "");
-    
     document.getElementById("serviceModal").style.display = "flex";
 }
 
@@ -396,25 +474,21 @@ function editService(index) {
     document.getElementById("serviceCategoryNew").value = "";
 
     buildCategorySelect("serviceCategorySelect", service.category);
-
     document.getElementById("serviceModal").style.display = "flex";
 }
 
-// Построение выпадающего списка категорий на базе СТАБИЛЬНОГО allCategories
 function buildCategorySelect(selectId, selectedValue) {
     const select = document.getElementById(selectId);
     if (!select) return;
     
     select.innerHTML = "";
-
-    // Используем глобальный отсортированный по алфавиту список без лишних пробелов
-    const sortedCategories = [...allCategories].sort((a, b) => a.localeCompare(b));
+    const sortedCategories = [...allCategories]; // Здесь сохраняем текущий пользовательский порядок категорий
 
     sortedCategories.forEach(cat => {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.innerText = cat;
-        if (cat.toLowerCase() === (selectedValue || "").trim().toLowerCase()) {
+        if (cat.trim().toLowerCase() === (selectedValue || "").trim().toLowerCase()) {
             opt.selected = true;
         }
         select.appendChild(opt);
@@ -431,7 +505,6 @@ function buildCategorySelect(selectId, selectedValue) {
     toggleNewCategoryInput();
 }
 
-// --- СОХРАНЕНИЕ ДАННЫХ ИЗ ОКНА УСЛУГ ---
 function saveServiceModalData() {
     const index = parseInt(document.getElementById("editServiceIndex").value);
     
@@ -441,17 +514,13 @@ function saveServiceModalData() {
     
     if (category === "__NEW__") {
         category = document.getElementById("serviceCategoryNew").value.trim();
-        
-        // Если пользователь создал новую категорию, добавляем её в наш стабильный список категорий (без дублирования)
         if (category) {
             const exists = allCategories.some(c => c.toLowerCase() === category.toLowerCase());
             if (!exists) {
                 saveToHistory();
                 allCategories.push(category);
             } else {
-                // Если она уже существовала (но, например, в другом регистре), берем существующую
-                const match = allCategories.find(c => c.toLowerCase() === category.toLowerCase());
-                category = match;
+                category = allCategories.find(c => c.toLowerCase() === category.toLowerCase());
             }
         }
     }
@@ -483,11 +552,13 @@ function saveServiceModalData() {
     closeServiceModal();
 }
 
-// --- ЛОГИКА ОКНА РЕДАКТИРОВАНИЯ КАТЕГОРИЙ (МАССОВОЕ ИЗМЕНЕНИЕ И УДАЛЕНИЕ!) ---
+// ==========================================================================
+// ОКНО РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ КАТЕГОРИЙ
+// ==========================================================================
 
 function openCategoryModal() {
     if (allCategories.length === 0) {
-        alert("Brak kategorii do edycji!");
+        alert("Brak kategorii!");
         return;
     }
 
@@ -495,8 +566,7 @@ function openCategoryModal() {
     if (!select) return;
     select.innerHTML = "";
     
-    const sortedCategories = [...allCategories].sort((a, b) => a.localeCompare(b));
-    sortedCategories.forEach(cat => {
+    allCategories.forEach(cat => {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.innerText = cat;
@@ -508,11 +578,9 @@ function openCategoryModal() {
 }
 
 function closeCategoryModal() {
-    const modal = document.getElementById("categoryModal");
-    if (modal) modal.style.display = "none";
+    document.getElementById("categoryModal").style.display = "none";
 }
 
-// Массовое переименование выбранной категории
 function renameCategoryGlobal() {
     const select = document.getElementById("renameCategorySelect");
     if (!select) return;
@@ -520,7 +588,7 @@ function renameCategoryGlobal() {
     const newName = document.getElementById("renameCategoryNewName").value.trim();
 
     if (!newName) {
-        alert("Wpisz nową nazwę kategorii!");
+        alert("Wpisz nową nazwę!");
         return;
     }
 
@@ -531,10 +599,8 @@ function renameCategoryGlobal() {
 
     saveToHistory();
 
-    // 1. Обновляем имя в списке категорий
     allCategories = allCategories.map(cat => cat === oldName ? newName : cat);
 
-    // 2. Обновляем категорию во всех связанных услугах
     let modifiedCount = 0;
     currentServices.forEach(service => {
         if (service.category && service.category.trim() === oldName) {
@@ -547,11 +613,10 @@ function renameCategoryGlobal() {
 
     renderTable();
     updateUndoRedoButtons();
-    alert(`Nazwa kategorii została zmieniona! Zaktualizowano ${modifiedCount} zabiegów.`);
+    alert(`Zmieniono nazwę kategorii dla ${modifiedCount} zabiegów.`);
     closeCategoryModal();
 }
 
-// Новая функция: Удаление категории целиком вместе со всеми её услугами
 function deleteCategoryGlobal() {
     const select = document.getElementById("renameCategorySelect");
     if (!select) return;
@@ -559,33 +624,27 @@ function deleteCategoryGlobal() {
 
     if (!catToDelete) return;
 
-    // Считаем, сколько услуг затронет удаление
     const count = currentServices.filter(s => s.category && s.category.trim() === catToDelete).length;
-
     const confirmMsg = count > 0 
-        ? `Czy na pewno chcesz usunąć kategorię "${catToDelete}"? Spowoduje to również USUNIĘCIE wszystkich przypisanych do niej zabiegów (${count} szt.) z listy!` 
-        : `Czy na pewno chcesz usunąć pustą kategorię "${catToDelete}"?`;
+        ? `Czy na pewno chcesz usunąć kategorię "${catToDelete}"? Spowoduje to USUNIĘCIE wszystkich należących do niej zabiegów (${count} szt.)!` 
+        : `Czy usunąć pustą kategorię "${catToDelete}"?`;
 
     if (confirm(confirmMsg)) {
         saveToHistory();
 
-        // 1. Удаляем категорию из глобального списка
         allCategories = allCategories.filter(cat => cat !== catToDelete);
-
-        // 2. Удаляем все услуги, принадлежащие этой категории
         currentServices = currentServices.filter(s => !s.category || s.category.trim() !== catToDelete);
 
         renderTable();
         updateUndoRedoButtons();
-        alert(`Kategoria "${catToDelete}" oraz jej zabiegi zostały pomyślnie usunięte локально (kliknij "Zapisz jako Szkic", aby zapisać zmiany).`);
+        alert(`Kategoria "${catToDelete}" została usunięta.`);
         closeCategoryModal();
     }
 }
 
-// Выход
 function logout() {
     if (hasUnsavedChanges) {
         if (!confirm("Masz niezapisane zmiany! Czy na pewno chcesz się wylogować?")) return;
     }
-    alert("Wylogowano pomyślnie!");
+    alert("Wylogowano.");
 }
