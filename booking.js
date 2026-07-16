@@ -12,49 +12,58 @@ let adminSettings = {
 let flatpickrInstance = null;
 let isClientApproved = false; 
 
-// Загрузка галереи/портфолио из Google Диска
+// Загрузка галереи/портфолио из Google Диска по категориям
 async function loadPortfolio() {
-  const grid = document.getElementById("portfolio-grid");
-  if (!grid) return;
+  const container = document.getElementById("portfolio-container");
+  if (!container) return;
 
-  grid.innerHTML = '<p style="grid-column: span 2; color: var(--text-muted); font-size: 14px; text-align: center;">Ładowanie galerii...</p>';
+  container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Ładowanie galerii...</p>';
 
   try {
     const response = await fetch(`${APPS_SCRIPT_URL}?getPortfolio=true`);
     const data = await response.json();
 
-    grid.innerHTML = "";
+    container.innerHTML = ""; // Очищаем текст загрузки
     let loadedAny = false;
 
     if (data && data.length > 0) {
       data.forEach(category => {
+        // 1. Создаем заголовок для папки-категории (например, "Stylizacja rzęs")
+        const title = document.createElement("h3");
+        title.innerText = category.category;
+        container.appendChild(title);
+
+        // 2. Создаем сетку под эту категорию
+        const grid = document.createElement("div");
+        grid.className = "gallery-grid";
+
+        // 3. Заполняем сетку фотографиями
         category.images.forEach(img => {
-          const item = document.createElement("div");
-          item.className = "portfolio-item";
-          
           const imgEl = document.createElement("img");
           imgEl.src = img.url;
+          imgEl.className = "gallery-item"; // Класс из вашего CSS!
           imgEl.alt = img.name || category.category;
+          
           imgEl.onerror = function() {
-            this.src = "https://via.placeholder.com/300"; // Заглушка, если фото не загрузилось
+            this.src = "https://via.placeholder.com/300"; // Заглушка, если фото не доступно
           };
           
-          item.appendChild(imgEl);
-          grid.appendChild(item);
+          grid.appendChild(imgEl);
           loadedAny = true;
         });
+
+        container.appendChild(grid);
       });
     }
 
     if (!loadedAny) {
-      grid.innerHTML = '<p style="grid-column: span 2; color: var(--text-muted); font-size: 14px; text-align: center;">Brak zdjęć w galerii.</p>';
+      container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Brak zdjęć w galerii.</p>';
     }
   } catch (error) {
     console.error("Błąd ładowania portfolio:", error);
-    grid.innerHTML = '<p style="grid-column: span 2; color: red; font-size: 14px; text-align: center;">Nie udało się załadować galerii.</p>';
+    container.innerHTML = '<p style="color: red; font-size: 14px; text-align: center;">Nie udało się załadować galerii.</p>';
   }
 }
-
 async function loadServicesIntoSelect() {
   const serviceSelect = document.getElementById("serviceType");
   if (!serviceSelect) return;
