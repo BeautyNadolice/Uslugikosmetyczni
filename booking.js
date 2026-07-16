@@ -221,7 +221,7 @@ async function loadFreeSlots() {
   }
 }
 
-// Построение рабочей сетки на основе настроек времени (ЗАЩИЩЕНО ОТ ЗАВИСАНИЙ)
+// Построение рабочей сетки на основе настроек времени (ЗАЩИЩЕНО ОТ NaN И ЗАВИСАНИЙ)
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
   
@@ -230,36 +230,41 @@ function getBaseWorkingHours() {
   
   let startHour = 9;
   let startMinute = 0;
-  if (startStr.includes(":")) {
-    const parts = startStr.split(":");
-    startHour = parseInt(parts[0], 10);
-    startMinute = parseInt(parts[1], 10);
-  } else {
-    startHour = parseInt(startStr, 10) || 9;
+  
+  // Регулярное выражение, которое надежно находит HH:MM в любой строке
+  const startMatch = startStr.match(/(\d{1,2}):(\d{2})/);
+  if (startMatch) {
+    startHour = parseInt(startMatch[1], 10);
+    startMinute = parseInt(startMatch[2], 10);
   }
 
   let endHour = 18;
   let endMinute = 0;
-  if (endStr.includes(":")) {
-    const parts = endStr.split(":");
-    endHour = parseInt(parts[0], 10);
-    endMinute = parseInt(parts[1], 10);
-  } else {
-    endHour = parseInt(endStr, 10) || 18;
+  
+  const endMatch = endStr.match(/(\d{1,2}):(\d{2})/);
+  if (endMatch) {
+    endHour = parseInt(endMatch[1], 10);
+    endMinute = parseInt(endMatch[2], 10);
   }
+
+  // Если вдруг парсинг вернул некорректные числа, ставим дефолты
+  if (isNaN(startHour)) startHour = 9;
+  if (isNaN(startMinute)) startMinute = 0;
+  if (isNaN(endHour)) endHour = 18;
+  if (isNaN(endMinute)) endMinute = 0;
 
   let currentHour = startHour;
   let currentMinute = startMinute;
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Гарантируем, что шаг сетки не равен нулю или NaN!
+  // Гарантируем, что шаг сетки не равен нулю, NaN или отрицательному числу!
   let step = parseInt(adminSettings.slot_interval_minutes, 10);
   if (isNaN(step) || step <= 0) {
-    step = 45; // Безопасное значение по умолчанию
+    step = 45; 
   }
 
   const totalEndMinutes = (endHour * 60) + endMinute;
   
-  // Добавляем предохранитель от бесконечного зацикливания (макс. 100 итераций на день)
+  // Добавляем предохранитель от бесконечного зацикливания (макс. 100 итераций)
   let safetyCounter = 0;
 
   while (safetyCounter < 100) {
