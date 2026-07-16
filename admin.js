@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwm9JcHFb5stCCCAbAhtu8sMsemGoYMK6g94pQ3e8VNxGAFi3-rUYE5iXBnCB8NRsxKSw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-TMZQdN8kqLByc-U1LHOpoBkCz0kQ28v04wMVUV3Ej9wG00TwubRx7irPtMJgdIlPwQ/exec";
 
 // --- СОСТОЯНИЕ И ЛОКАЛЬНАЯ ИСТОРИЯ (UNDO / REDO) ---
 let currentServices = [];       // Текущее состояние списка услуг на экране
