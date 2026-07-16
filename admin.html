@@ -9,12 +9,16 @@
 </head>
 <body>
 
+   <!-- ========================================================================== -->
+    <!-- 1. ЭКРАН ВХОДА                                                             -->
+    <!-- ========================================================================== -->
     <div id="login-screen">
         <div class="login-box">
             <h2>Panel Administratora</h2>
             <p>Zaloguj się, aby zarządzać cennikiem i ustawieniami</p>
 
-            <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+            <!-- КНОПКА GOOGLE -->
+            <div class="google-signin-wrapper">
                 <div id="g_id_onload"
                      data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
@@ -29,6 +33,16 @@
                      data-logo_alignment="left">
                 </div>
             </div>
+
+            <!-- КНОПКА ТЕСТА -->
+            <div class="test-bypass-section">
+                <button class="test-btn" onclick="loginTest()">
+                    🔐 Zaloguj się przez TEST (Szybki start)
+                </button>
+                <p class="test-notice">Вход без проверки Google (для разработки)</p>
+            </div>
+        </div>
+    </div>
 
             <div style="margin-top: 25px; border-top: 1px dashed #f2d6dc; padding-top: 20px;">
                 <button class="test-btn" onclick="loginTest()">
