@@ -137,12 +137,13 @@
                     <input type="number" id="serviceDuration" placeholder="np. 45">
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
-                <button class="btn-primary" onclick="saveServiceModalData()">Zapisz</button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; gap: 10px; width: 100%;">
+                <button class="btn-danger" onclick="deleteCategoryGlobal()" style="background-color: #d9534f; margin-right: auto;">Usuń kategorię</button>
+                <div>
+                    <button class="btn-secondary" onclick="closeCategoryModal()">Anuluj</button>
+                    <button class="btn-primary" onclick="renameCategoryGlobal()" style="background-color: #f0ad4e;">Zmień nazwę</button>
+                </div>
             </div>
-        </div>
-    </div>
 
     <div id="categoryModal" class="modal-overlay">
         <div class="modal-content">
