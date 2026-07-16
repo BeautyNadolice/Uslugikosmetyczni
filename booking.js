@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwf8WxxAMey-p4QusLMUiBbMrzVXeKLHBZXOrO67rATuYyQ4wiLFQn724fcAb04krw05w/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyH0mKWiI7rHNRSxl30JRhij4ivHY1UXQvMt4diiKwqLVtqcUKGsphslQPuXuk6Xqb4EQ/exec";
   
 let iti; 
 let allAvailableSlots = []; 
@@ -398,3 +398,177 @@ function displayTimeSlots(selectedDateStr) {
       slotDiv.classList.add("selected");
       document.getElementById("finalDateTime").value = `${selectedDateStr}T${time}`;
     };
+
+    container.appendChild(slotDiv);
+  });
+}
+
+// Проверка телефона по базе с умным обходом валидации плагина
+async function checkExistingClient() {
+  const statusEl = document.getElementById("clientStatus");
+  const phoneInput = document.getElementById("clientPhone");
+  if (!statusEl || !phoneInput) return;
+
+  let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
+  let fullPhoneNumber = "";
+
+  // УМНАЯ ВАЛИДАЦИЯ ТЕЛЕФОНА
+  if (iti && iti.isValidNumber()) {
+    fullPhoneNumber = iti.getNumber().replace(/\s+/g, '');
+  } else if (/^\d{9}$/.test(rawPhone)) {
+    // Если введено ровно 9 цифр, считаем это польским номером и добавляем +48
+    fullPhoneNumber = "+48" + rawPhone;
+  } else if (/^\+\d{11,15}$/.test(rawPhone)) {
+    // Если номер начинается с плюса и имеет правильную длину, берем его напрямую
+    fullPhoneNumber = rawPhone;
+  } else {
+    // В противном случае блокируем проверку
+    statusEl.style.display = "block";
+    statusEl.style.color = "red";
+    statusEl.innerHTML = "Wpisz poprawny numer telefonu (np. 9 cyfr)!";
+    isClientApproved = false;
+    toggleFormState(false);
+    return;
+  }
+
+  statusEl.style.display = "block";
+  statusEl.style.color = "#2C2C2C";
+  statusEl.innerHTML = "Sprawdzanie danych...";
+
+  try {
+    const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
+    const data = await response.json();
+
+    if (data.found && data.name) {
+      document.getElementById("clientName").value = data.name;
+      statusEl.style.color = "green";
+      statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
+      isClientApproved = true;
+      toggleFormState(true); 
+      
+      await loadServicesIntoSelect(); // Подгружаем актуальные услуги из базы
+      await loadFreeSlots(); // Загружаем свободное время
+    } else {
+      document.getElementById("clientName").value = "";
+      statusEl.style.color = "red";
+      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
+      isClientApproved = false;
+      toggleFormState(false); 
+    }
+  } catch (error) {
+    statusEl.style.color = "red";
+    statusEl.innerHTML = "Błąd połączenia z bazą danych.";
+    isClientApproved = false;
+    toggleFormState(false);
+  }
+}
+
+function resetBookingForm() {
+  const form = document.getElementById("bookingForm");
+  if (form) {
+    form.reset();
+  }
+  isClientApproved = false;
+  const statusEl = document.getElementById("clientStatus");
+  if (statusEl) {
+    statusEl.innerHTML = "";
+    statusEl.style.display = "none";
+  }
+  toggleFormState(false);
+}
+
+// Отправка формы бронирования
+async function submitForm(event) {
+  event.preventDefault();
+
+  const finalDateTimeValue = document.getElementById("finalDateTime").value; 
+  const submitBtn = document.getElementById("submitBookingBtn");
+  const rodoConsent = document.getElementById("rodoConsent");
+  
+  if (!isClientApproved) {
+    alert("Rezerwacja niemożliwa. Twój numer telefonu nie został zweryfikowany.");
+    return;
+  }
+
+  if (!finalDateTimeValue) {
+    alert("Proszę wybrać godzinę wizyty!");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Sprawdzanie terminu...";
+
+  try {
+    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}`);
+    const result = await checkResponse.json();
+
+    if (!result.isFree) {
+      alert("Wybrana godzina została właśnie zajęta. Proszę wybrać inny wolny termin.");
+      await loadFreeSlots();
+      
+      const selectedDateStr = document.getElementById("calendarInput").value;
+      if (selectedDateStr) {
+        initCalendar(selectedDateStr);
+        displayTimeSlots(selectedDateStr);
+      }
+      
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Zarezerwuj wizytę";
+      return; 
+    }
+
+    // Чистый номер без пробелов для отправки в базу
+    let phoneToSubmit = "";
+    const phoneInput = document.getElementById("clientPhone");
+    let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
+
+    if (iti && iti.isValidNumber()) {
+      phoneToSubmit = iti.getNumber(intlTelInputUtils.numberFormat.E164).replace(/\s+/g, '');
+    } else if (/^\d{9}$/.test(rawPhone)) {
+      phoneToSubmit = "+48" + rawPhone;
+    } else {
+      phoneToSubmit = rawPhone;
+    }
+
+    submitBtn.innerText = "Zapisywanie...";
+    const payload = {
+      phone: phoneToSubmit,
+      name: document.getElementById("clientName").value,
+      service: document.getElementById("serviceType").value,
+      date: finalDateTimeValue,
+      rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
+    };
+
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    
+    alert("Wizyta została pomyślnie zarezerwowana!");
+    closeBookingModal();
+    loadFreeSlots(); 
+  } catch (error) {
+    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
+    console.error(error);
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Zarezerwuj wizytę";
+  }
+}
+
+function openBookingModal() {
+  document.getElementById("bookingModal").style.display = "flex";
+}
+
+function closeBookingModal() {
+  document.getElementById("bookingModal").style.display = "none";
+  resetBookingForm(); 
+}
+
+window.addEventListener("click", (e) => {
+  const modal = document.getElementById("bookingModal");
+  if (e.target === modal) {
+    closeBookingModal();
+  }
+});
