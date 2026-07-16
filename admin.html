@@ -55,23 +55,26 @@
                 </div>
 
                 <div style="overflow-x: auto;">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Przenieś do</th> 
-                                <th>Nazwa usługi</th>
-                                <th>Cena (zł)</th>
-                                <th>Czas (min)</th>
-                                <th>Pokaż cenę</th> <th>Pokaż czas</th> <th>Status</th>
-                                <th>Akcje</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminServicesTableBody">
-                            <tr>
-                                <td colspan="8" style="text-align: center; color: var(--text-muted);">Ładowanie danych...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                   <table class="admin-table">
+    <thead>
+        <tr>
+            <!-- ЭТУ СТРОКУ <th style="...">Przenieś do</th> МЫ УДАЛИЛИ -->
+            <th>Nazwa usługi</th>
+            <th>Cena (zł)</th>
+            <th>Czas (min)</th>
+            <th>Pokaż cenę</th>
+            <th>Pokaż czas</th>
+            <th>Status</th>
+            <th>Akcje</th>
+        </tr>
+    </thead>
+    <tbody id="adminServicesTableBody">
+        <tr>
+            <!-- colspan изменен на 7, так как колонок теперь 7 -->
+            <td colspan="7" style="text-align: center; color: var(--text-muted);">Ładowanie danych...</td>
+        </tr>
+    </tbody>
+</table>
                 </div>
             </div>
         </div>
