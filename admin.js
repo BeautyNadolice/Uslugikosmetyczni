@@ -125,7 +125,7 @@ function renderTable() {
 
     tbody.innerHTML = "";
 
-    if (currentServices.length === 0) {
+    if (currentServices.length === 0 && allCategories.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Brak usług. Dodaj nową usługę.</td></tr>';
         return;
     }
@@ -367,7 +367,8 @@ async function saveDraftsToCloud() {
             method: "POST",
             body: JSON.stringify({
                 action: "saveDraftPrices",
-                prices: currentServices
+                prices: currentServices,
+                categoriesOrder: allCategories // Отправляем также порядок категорий
             })
         });
         const result = await response.json();
@@ -482,7 +483,7 @@ function buildCategorySelect(selectId, selectedValue) {
     if (!select) return;
     
     select.innerHTML = "";
-    const sortedCategories = [...allCategories]; // Здесь сохраняем текущий пользовательский порядок категорий
+    const sortedCategories = [...allCategories]; 
 
     sortedCategories.forEach(cat => {
         const opt = document.createElement("option");
@@ -557,11 +558,6 @@ function saveServiceModalData() {
 // ==========================================================================
 
 function openCategoryModal() {
-    if (allCategories.length === 0) {
-        alert("Brak kategorii!");
-        return;
-    }
-
     const select = document.getElementById("renameCategorySelect");
     if (!select) return;
     select.innerHTML = "";
@@ -648,6 +644,7 @@ function logout() {
     }
     alert("Wylogowano.");
 }
+
 // ==========================================================================
 // СОЗДАНИЕ НОВОЙ ПУСТОЙ КАТЕГОРИИ ИЗ ОКНА УПРАВЛЕНИЯ
 // ==========================================================================
@@ -662,27 +659,19 @@ function addNewCategoryEmpty() {
         return;
     }
 
-    // Проверяем, не существует ли уже такая категория (без учета регистра букв)
     const exists = allCategories.some(c => c.toLowerCase() === newCatName.toLowerCase());
     if (exists) {
         alert("Taka kategoria już istnieje!");
         return;
     }
 
-    // Сохраняем состояние в историю для отмены (Ctrl+Z работает!)
     saveToHistory();
-
-    // Добавляем категорию в массив
     allCategories.push(newCatName);
-
-    // Очищаем текстовое поле ввода
     input.value = "";
 
-    // Перерисовываем таблицу, чтобы пустая категория сразу появилась на экране с кнопками вверх/вниз
     renderTable();
     updateUndoRedoButtons();
 
-    // Обновляем выпадающий список выбора категорий в этом же окне редактирования
     const select = document.getElementById("renameCategorySelect");
     if (select) {
         const opt = document.createElement("option");
