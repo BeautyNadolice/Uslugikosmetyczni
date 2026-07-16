@@ -19,7 +19,25 @@
             <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
         </section>
 
+        <!-- Главная кнопка записи -->
         <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
+
+        <!-- Временная кнопка перехода в админку для тестирования -->
+        <div style="margin-top: 15px; text-align: center;">
+            <a href="admin_2.html" style="
+                display: inline-block;
+                color: var(--text-muted, #777);
+                font-size: 12px;
+                text-decoration: none;
+                border: 1px dashed var(--accent-color, #c2a383);
+                padding: 6px 12px;
+                border-radius: 4px;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#f0e6dc'; this.style.color='var(--text-main, #333)'" 
+               onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted, #777)'">
+                ⚙️ Panel Administratora
+            </a>
+        </div>
 
         <section class="portfolio-grid">
             <div class="portfolio-item"><img src="https://via.placeholder.com/300" alt="Praca 1"></div>
