@@ -326,7 +326,85 @@ async function publishDrafts() {
         btn.disabled = false;
     }
 }
+// ==========================================================================
+// ЛОГИКА МОДАЛЬНОГО ОКНА (ДОБАВЛЕНИЕ И РЕДАКТИРОВАНИЕ)
+// ==========================================================================
 
+// 1. Открытие модалки для ДОБАВЛЕНИЯ нового сервиса
+function openAddServiceModal() {
+    document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg";
+    document.getElementById("editServiceIndex").value = "-1"; // -1 означает, что создаем новый
+    
+    // Очищаем поля формы перед вводом
+    document.getElementById("serviceCategory").value = "";
+    document.getElementById("serviceName").value = "";
+    document.getElementById("servicePrice").value = "";
+    document.getElementById("serviceDuration").value = "";
+
+    // Показываем окно
+    document.getElementById("serviceModal").style.display = "flex";
+}
+
+// 2. Открытие модалки для РЕДАКТИРОВАНИЯ существующего сервиса
+function editService(index) {
+    // currentServices — это ваш массив с текущими услугами, которые отображаются на экране
+    const service = currentServices[index]; 
+    if (!service) return;
+
+    document.getElementById("modalTitle").innerText = "Edytuj zabieg";
+    document.getElementById("editServiceIndex").value = index; // сохраняем индекс редактируемой строки
+
+    // Заполняем форму текущими данными этой услуги
+    document.getElementById("serviceCategory").value = service.category || "";
+    document.getElementById("serviceName").value = service.name || "";
+    document.getElementById("servicePrice").value = service.price || 0;
+    document.getElementById("serviceDuration").value = service.duration || 0;
+
+    // Показываем окно
+    document.getElementById("serviceModal").style.display = "flex";
+}
+
+// 3. Закрытие модального окна
+function closeServiceModal() {
+    document.getElementById("serviceModal").style.display = "none";
+}
+
+// 4. Сбор данных из полей формы и отправка в локальное состояние таблицы
+function saveServiceModalData() {
+    const index = parseInt(document.getElementById("editServiceIndex").value);
+    
+    // Считываем значения из инпутов
+    const category = document.getElementById("serviceCategory").value.trim();
+    const name = document.getElementById("serviceName").value.trim();
+    const price = parseInt(document.getElementById("servicePrice").value);
+    const duration = parseInt(document.getElementById("serviceDuration").value);
+
+    // Базовая проверка на заполненность полей
+    if (!category || !name || isNaN(price) || isNaN(duration)) {
+        alert("Wszystkie pola muszą być wypełnione poprawnie!");
+        return;
+    }
+
+    // Создаем объект услуги. Помечаем его статусом "Szkic" (Черновик)
+    const serviceData = {
+        category: category,
+        name: name,
+        price: price,
+        duration: duration,
+        status: "Szkic"
+    };
+
+    if (index === -1) {
+        // Вызываем функцию добавления новой услуги (она сохранит состояние для функции "Cofnij")
+        addServiceLocal(serviceData);
+    } else {
+        // Вызываем функцию обновления существующей услуги
+        updateServiceLocal(index, serviceData);
+    }
+
+    // Закрываем окно
+    closeServiceModal();
+}
 // Выход
 function logout() {
     if (hasUnsavedChanges) {
