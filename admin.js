@@ -10,7 +10,9 @@ let hasUnsavedChanges = false;
 
 // ПЕРЕМЕННЫЕ ДЛЯ РАБОТЫ КАЛЕНДАРЯ
 let selectedCalendarDate = new Date(); // Текущая открытая дата в календаре
-let appointmentsData = [];             // Записи из таблицы (Wizyty)
+let miniMonthDate = new Date();        // Дата для отображения мини-календаря слева
+let calendarViewMode = "day";          // Режим отображения: 'day' или 'week'
+let appointmentsData = [];             // Записи из таблицы и Google Календаря
 let globalColors = {};                 // Цвета категорий
 let settingsData = {                   // Настройки по умолчанию
     work_start_hour: "09:00",
@@ -132,11 +134,26 @@ function switchTab(tabName) {
     
     const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
     if (activeBtn) activeBtn.classList.add('active');
+
+    if (tabName === "kalendarz") {
+        renderBooksyCalendar();
+    }
 }
 
-// Изменение текущего отображаемого дня в календаре
+function setCalendarView(mode) {
+    calendarViewMode = mode;
+    document.getElementById("view-day-btn").classList.toggle("active", mode === "day");
+    document.getElementById("view-week-btn").classList.toggle("active", mode === "week");
+    renderBooksyCalendar();
+}
+
 function changeSelectedDate(days) {
-    selectedCalendarDate.setDate(selectedCalendarDate.getDate() + days);
+    if (calendarViewMode === "week") {
+        selectedCalendarDate.setDate(selectedCalendarDate.getDate() + (days * 7));
+    } else {
+        selectedCalendarDate.setDate(selectedCalendarDate.getDate() + days);
+    }
+    miniMonthDate = new Date(selectedCalendarDate);
     renderBooksyCalendar();
 }
 
@@ -155,6 +172,7 @@ async function loadSettings() {
             appointmentsData = data.appointments || [];
             
             buildColorsEditor();
+            miniMonthDate = new Date(selectedCalendarDate);
             renderBooksyCalendar();
         }
     } catch (e) {
@@ -170,7 +188,6 @@ async function saveSettings() {
     btn.innerText = "Zapisywanie...";
     btn.disabled = true;
 
-    // Сбор цветов из палитры
     const categoryColors = {};
     const colorInputs = document.querySelectorAll("#categories-colors-list input[type='color']");
     colorInputs.forEach(input => {
@@ -189,13 +206,10 @@ async function saveSettings() {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
             mode: "no-cors", 
-            headers: {
-                "Content-Type": "text/plain"
-            },
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "updateSettings", payload: payload })
         });
         
-        // В режиме no-cors ответ непрозрачный, поэтому выводим сообщение об успехе без чтения JSON
         alert("Ustawienia zapisane!");
         globalColors = categoryColors;
         renderBooksyCalendar();
@@ -208,7 +222,6 @@ async function saveSettings() {
     }
 }
 
-// Построение палитры цветов в настройках на основе существующих категорий
 function buildColorsEditor() {
     const container = document.getElementById("categories-colors-list");
     if (!container) return;
@@ -231,18 +244,75 @@ function buildColorsEditor() {
     });
 }
 
-// Генерация Booksy-сетки календаря
+// ==========================================================================
+// ГЕНЕРАЦИЯ ОБНОВЛЕННОГО ДВУХПАНЕЛЬНОГО КАЛЕНДАРЯ
+// ==========================================================================
+
+function changeMiniMonth(dir) {
+    miniMonthDate.setMonth(miniMonthDate.getMonth() + dir);
+    renderMiniMonthCalendar();
+}
+
+function renderMiniMonthCalendar() {
+    const grid = document.getElementById("mini-month-days-grid");
+    const title = document.getElementById("mini-month-title");
+    if (!grid || !title) return;
+    
+    grid.innerHTML = "";
+    const PolishMonths = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
+    title.innerText = `${PolishMonths[miniMonthDate.getMonth()]} ${miniMonthDate.getFullYear()}`;
+    
+    const firstDay = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), 1);
+    let startDayOfWeek = firstDay.getDay(); 
+    if (startDayOfWeek === 0) startDayOfWeek = 7; // Делаем Понедельник первым
+    
+    const daysInMonth = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth() + 1, 0).getDate();
+    
+    // Пустые ячейки для смещения начала месяца
+    for (let i = 1; i < startDayOfWeek; i++) {
+        const empty = document.createElement("div");
+        grid.appendChild(empty);
+    }
+    
+    const today = new Date();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement("div");
+        dayCell.className = "mini-date-cell";
+        dayCell.innerText = day;
+        
+        const cellDate = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), day);
+        
+        // Подсвечиваем сегодня
+        if (cellDate.toDateString() === today.toDateString()) {
+            dayCell.classList.add("today");
+        }
+        
+        // Подсвечиваем выбранный в основном календаре день
+        if (cellDate.toDateString() === selectedCalendarDate.toDateString()) {
+            dayCell.classList.add("selected");
+        }
+        
+        dayCell.onclick = () => {
+            selectedCalendarDate = cellDate;
+            renderBooksyCalendar();
+        };
+        
+        grid.appendChild(dayCell);
+    }
+}
+
 function renderBooksyCalendar() {
+    renderMiniMonthCalendar();
+    
     const timeline = document.getElementById("booksy-timeline");
     const grid = document.getElementById("booksy-grid");
     const title = document.getElementById("calendar-current-date-title");
+    const scrollWrapper = document.getElementById("booksy-cal-scroll-node");
     if (!timeline || !grid) return;
     
-    // Склонение месяцев и дней на польском
     const daysOfWeek = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
     const months = ["Stycznia", "Lutego", "Marca", "Kwietnia", "Maja", "Czerwca", "Lipca", "Sierpnia", "Września", "Października", "Listopada", "Grudnia"];
-    
-    title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()}`;
     
     timeline.innerHTML = "";
     grid.innerHTML = "";
@@ -250,10 +320,12 @@ function renderBooksyCalendar() {
     const startHour = parseInt((settingsData.work_start_hour || "09:00").split(":")[0], 10);
     const endHour = parseInt((settingsData.work_end_hour || "18:00").split(":")[0], 10);
     const totalHours = endHour - startHour;
-    
     const pxPerMinute = 1.2; 
+    const totalMinutes = totalHours * 60;
     
-    // Создание временных меток слева
+    grid.style.height = `${totalMinutes * pxPerMinute}px`;
+    
+    // Строим временную шкалу слева
     for (let h = startHour; h <= endHour; h++) {
         const label = document.createElement("div");
         label.className = "time-label";
@@ -261,53 +333,127 @@ function renderBooksyCalendar() {
         label.innerText = `${h.toString().padStart(2, '0')}:00`;
         timeline.appendChild(label);
     }
-    
-    const totalMinutes = totalHours * 60;
-    grid.style.height = `${totalMinutes * pxPerMinute}px`;
-    
-    // Отрисовка разделительных линий по 30 минут
-    for (let m = 0; m < totalMinutes; m += 30) {
-        const line = document.createElement("div");
-        line.className = "grid-halfhour-line";
-        line.style.top = `${m * pxPerMinute}px`;
-        grid.appendChild(line);
-    }
-    
-    // Фильтрация записей только на выбранный день
-    const targetDateStr = selectedCalendarDate.getFullYear() + "-" + 
-                          String(selectedCalendarDate.getMonth() + 1).padStart(2, '0') + "-" + 
-                          String(selectedCalendarDate.getDate()).padStart(2, '0');
-    
-    const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
-    
-    targetAppointments.forEach(app => {
-        const appTimeStr = app.date.split("T")[1]; // "HH:MM"
-        const [appH, appM] = appTimeStr.split(":").map(Number);
+
+    // Режим "ДЕНЬ"
+    if (calendarViewMode === "day") {
+        scrollWrapper.classList.remove("week-view-active");
+        title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()}`;
         
-        const startOffsetMinutes = (appH * 60 + appM) - (startHour * 60);
-        const topPos = startOffsetMinutes * pxPerMinute;
-        const heightPos = app.duration * pxPerMinute;
-        
-        if (topPos >= 0 && topPos < totalMinutes * pxPerMinute) {
-            const card = document.createElement("div");
-            card.className = "booksy-event-card";
-            card.style.top = `${topPos}px`;
-            card.style.setProperty('--event-calculated-height', `${heightPos}px`);
-            
-            // Получаем персональный цвет для категории, иначе используем стандартный пудровый цвет
-            const categoryColor = globalColors[app.category] || "#b05c75"; 
-            card.style.backgroundColor = categoryColor;
-            
-            card.innerHTML = `
-                <div class="event-time">${appTimeStr} - ${getEndTimeStr(appTimeStr, app.duration)}</div>
-                <div class="event-name">${app.name}</div>
-                <div class="event-service">${app.service}</div>
-                <div class="event-phone">📞 ${app.phone}</div>
-            `;
-            
-            grid.appendChild(card);
+        for (let m = 0; m < totalMinutes; m += 30) {
+            const line = document.createElement("div");
+            line.className = "grid-halfhour-line";
+            line.style.top = `${m * pxPerMinute}px`;
+            grid.appendChild(line);
         }
-    });
+        
+        const targetDateStr = getFormattedISOBlockDate(selectedCalendarDate);
+        const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
+        
+        targetAppointments.forEach(app => {
+            const appTimeStr = app.date.split("T")[1].substring(0, 5); 
+            const [appH, appM] = appTimeStr.split(":").map(Number);
+            const startOffsetMinutes = (appH * 60 + appM) - (startHour * 60);
+            const topPos = startOffsetMinutes * pxPerMinute;
+            const heightPos = app.duration * pxPerMinute;
+            
+            if (topPos >= 0 && topPos < totalMinutes * pxPerMinute) {
+                const card = document.createElement("div");
+                card.className = "booksy-event-card";
+                card.style.top = `${topPos}px`;
+                card.style.left = "10px";
+                card.style.right = "10px";
+                card.style.setProperty('--event-calculated-height', `${heightPos}px`);
+                
+                const isBlock = app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna";
+                card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
+                if (isBlock) card.style.borderLeft = "4px solid #cc0000";
+
+                card.innerHTML = `
+                    <div class="event-time">${appTimeStr} - ${getEndTimeStr(appTimeStr, app.duration)}</div>
+                    <div class="event-name">${app.name}</div>
+                    <div class="event-service">${app.service}</div>
+                    ${isBlock ? '' : `<div class="event-phone">📞 ${app.phone}</div>`}
+                `;
+                
+                // Клик открывает модалку управления визитом
+                card.onclick = () => openAppointmentDetailsModal(app);
+                grid.appendChild(card);
+            }
+        });
+    } 
+    // Режим "НЕДЕЛЯ"
+    else {
+        scrollWrapper.classList.add("week-view-active");
+        
+        // Получаем дату понедельника текущей выбранной недели
+        const currentDay = selectedCalendarDate.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const mondayDate = new Date(selectedCalendarDate);
+        mondayDate.setDate(mondayDate.getDate() + distanceToMonday);
+        
+        const sundayDate = new Date(mondayDate);
+        sundayDate.setDate(sundayDate.getDate() + 6);
+        
+        title.innerText = `${mondayDate.getDate()} ${months[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${months[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
+        
+        // Создаем 7 колонок сетки
+        for (let d = 0; d < 7; d++) {
+            const colDate = new Date(mondayDate);
+            colDate.setDate(colDate.getDate() + d);
+            
+            const col = document.createElement("div");
+            col.className = "calendar-week-column";
+            
+            const colHeader = document.createElement("div");
+            colHeader.className = "week-column-header";
+            if (colDate.toDateString() === new Date().toDateString()) colHeader.classList.add("today-col");
+            colHeader.innerHTML = `<strong>${colDate.getDate()}</strong><div>${daysOfWeek[colDate.getDay()].substring(0, 3)}</div>`;
+            col.appendChild(colHeader);
+            
+            const colGrid = document.createElement("div");
+            colGrid.className = "week-column-grid-inner";
+            colGrid.style.height = `${totalMinutes * pxPerMinute}px`;
+            
+            for (let m = 0; m < totalMinutes; m += 30) {
+                const line = document.createElement("div");
+                line.className = "grid-halfhour-line";
+                line.style.top = `${m * pxPerMinute}px`;
+                colGrid.appendChild(line);
+            }
+            
+            const targetDateStr = getFormattedISOBlockDate(colDate);
+            const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
+            
+            targetAppointments.forEach(app => {
+                const appTimeStr = app.date.split("T")[1].substring(0, 5);
+                const [appH, appM] = appTimeStr.split(":").map(Number);
+                const startOffsetMinutes = (appH * 60 + appM) - (startHour * 60);
+                const topPos = startOffsetMinutes * pxPerMinute;
+                const heightPos = app.duration * pxPerMinute;
+                
+                if (topPos >= 0 && topPos < totalMinutes * pxPerMinute) {
+                    const card = document.createElement("div");
+                    card.className = "booksy-event-card week-card";
+                    card.style.top = `${topPos}px`;
+                    card.style.setProperty('--event-calculated-height', `${heightPos}px`);
+                    
+                    const isBlock = app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna";
+                    card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
+                    
+                    card.innerHTML = `
+                        <div class="event-time">${appTimeStr}</div>
+                        <div class="event-name" style="font-size:11px;">${app.name}</div>
+                        <div class="event-service" style="font-size:10px; margin-bottom:0;">${app.service}</div>
+                    `;
+                    card.onclick = () => openAppointmentDetailsModal(app);
+                    colGrid.appendChild(card);
+                }
+            });
+            
+            col.appendChild(colGrid);
+            grid.appendChild(col);
+        }
+    }
 }
 
 function getEndTimeStr(startTimeStr, durationMin) {
@@ -316,6 +462,216 @@ function getEndTimeStr(startTimeStr, durationMin) {
     d.setHours(h, m + durationMin);
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
+
+function getFormattedISOBlockDate(dateObj) {
+    return dateObj.getFullYear() + "-" + 
+           String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
+           String(dateObj.getDate()).padStart(2, '0');
+}
+
+// ==========================================================================
+// ОКНО ДЕТАЛЕЙ, РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВИЗИТОВ
+// ==========================================================================
+
+let activeSelectedAppointment = null;
+
+function openAppointmentDetailsModal(app) {
+    activeSelectedAppointment = app;
+    
+    document.getElementById("details-name").innerText = app.name || "Brak";
+    document.getElementById("details-phone").innerText = app.phone || "Brak";
+    document.getElementById("details-service").innerText = app.service || "Brak";
+    
+    const d = new Date(app.date);
+    document.getElementById("details-datetime").innerText = d.toLocaleString("pl-PL");
+    document.getElementById("details-duration").innerText = app.duration || 45;
+    
+    switchToViewAppointment();
+    document.getElementById("appointmentDetailsModal").style.display = "flex";
+}
+
+function closeAppointmentModal() {
+    document.getElementById("appointmentDetailsModal").style.display = "none";
+}
+
+function switchToViewAppointment() {
+    document.getElementById("appointment-details-view").style.display = "block";
+    document.getElementById("appointment-edit-form").style.display = "none";
+}
+
+function switchToEditAppointment() {
+    if (!activeSelectedAppointment) return;
+    
+    document.getElementById("edit-app-name").value = activeSelectedAppointment.name || "";
+    document.getElementById("edit-app-phone").value = activeSelectedAppointment.phone || "";
+    document.getElementById("edit-app-service").value = activeSelectedAppointment.service || "";
+    document.getElementById("edit-app-duration").value = activeSelectedAppointment.duration || 45;
+    
+    // Переводим в формат YYYY-MM-DDTHH:MM
+    const d = new Date(activeSelectedAppointment.date);
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+    document.getElementById("edit-app-datetime").value = localISOTime;
+    
+    document.getElementById("appointment-details-view").style.display = "none";
+    document.getElementById("appointment-edit-form").style.display = "block";
+}
+
+// УДАЛЕНИЕ ЗАПИСИ ИЗ АДМИНКИ С СИНХРОНИЗАЦИЕЙ С ТАБЛИЦЕЙ И КАЛЕНДАРЕМ
+async function deleteAppointmentFromAdmin() {
+    if (!activeSelectedAppointment) return;
+    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
+    
+    const originalText = document.querySelector("#appointment-details-view .btn-danger").innerText;
+    document.querySelector("#appointment-details-view .btn-danger").innerText = "Usuwanie...";
+    
+    try {
+        // Мы отправляем запрос POST с типом deleteBooking на Apps Script бэкенд
+        await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                action: "createBooking", // используем ту же структуру, но передаем специальный флаг удаления
+                deleteFlag: true,
+                date: activeSelectedAppointment.date,
+                phone: activeSelectedAppointment.phone,
+                name: activeSelectedAppointment.name
+            })
+        });
+        
+        alert("Wizyta została pomyślnie usunięta!");
+        closeAppointmentModal();
+        await loadSettings(); // Перезагружаем календарную сетку
+    } catch (e) {
+        console.error(e);
+        alert("Błąd соединения с сервером.");
+    }
+}
+
+// СОХРАНЕНИЕ ОТРЕДАКТИРОВАННОГО ВИЗИТА
+async function saveEditedAppointment() {
+    if (!activeSelectedAppointment) return;
+    
+    const payload = {
+        action: "createBooking",
+        editFlag: true,
+        oldDate: activeSelectedAppointment.date,
+        oldName: activeSelectedAppointment.name,
+        date: document.getElementById("edit-app-datetime").value,
+        name: document.getElementById("edit-app-name").value.trim(),
+        phone: document.getElementById("edit-app-phone").value.trim(),
+        service: document.getElementById("edit-app-service").value.trim(),
+        duration: parseInt(document.getElementById("edit-app-duration").value, 10) || 45
+    };
+    
+    if (!payload.name || !payload.date) {
+        alert("Wypełnij wymagane pola!");
+        return;
+    }
+    
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+        });
+        
+        alert("Wizyta została pomyślnie zmodyfikowana!");
+        closeAppointmentModal();
+        await loadSettings();
+    } catch (e) {
+        console.error(e);
+        alert("Błąd zapisu.");
+    }
+}
+
+// ==========================================================================
+// УПРАВЛЕНИЕ ВЫХОДНЫМИ / БЛОКИРОВКА ВРЕМЕНИ
+// ==========================================================================
+
+function openBlockTimeModal() {
+    document.getElementById("block-date").value = getFormattedISOBlockDate(selectedCalendarDate);
+    document.getElementById("block-title").value = "Wolne / Przerwa";
+    toggleBlockTimeFields();
+    document.getElementById("blockTimeModal").style.display = "flex";
+}
+
+function closeBlockTimeModal() {
+    document.getElementById("blockTimeModal").style.display = "none";
+}
+
+function toggleBlockTimeFields() {
+    const type = document.getElementById("block-type").value;
+    document.getElementById("block-hours-group").style.display = (type === "hours") ? "block" : "none";
+}
+
+async function submitBlockTime() {
+    const type = document.getElementById("block-type").value;
+    const dateVal = document.getElementById("block-date").value;
+    const titleVal = document.getElementById("block-title").value.trim() || "Zablokowane";
+    
+    if (!dateVal) {
+        alert("Wybierz datę!");
+        return;
+    }
+    
+    let startDateTimeIso, durationMin;
+    
+    if (type === "full_day") {
+        startDateTimeIso = dateVal + "T" + (settingsData.work_start_hour || "09:00");
+        const sh = parseInt((settingsData.work_start_hour || "09:00").split(":")[0], 10);
+        const eh = parseInt((settingsData.work_end_hour || "18:00").split(":")[0], 10);
+        durationMin = (eh - sh) * 60;
+    } else {
+        const startTime = document.getElementById("block-start-time").value;
+        const endTime = document.getElementById("block-end-time").value;
+        if (!startTime || !endTime) {
+            alert("Wpisz godziny!");
+            return;
+        }
+        startDateTimeIso = dateVal + "T" + startTime;
+        const [sh, sm] = startTime.split(":").map(Number);
+        const [eh, em] = endTime.split(":").map(Number);
+        durationMin = (eh * 60 + em) - (sh * 60 + sm);
+    }
+    
+    if (durationMin <= 0) {
+        alert("Godzina zakończenia musi być po godzinie rozpoczęcia!");
+        return;
+    }
+    
+    const payload = {
+        action: "createBooking",
+        date: startDateTimeIso,
+        duration: durationMin,
+        name: titleVal,
+        service: "Rezerwacja zewnętrzna",
+        phone: "Google Calendar",
+        rodo: "Nie"
+    };
+    
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+        });
+        
+        alert("Czas został zablokowany w kalendarzu!");
+        closeBlockTimeModal();
+        await loadSettings();
+    } catch (e) {
+        console.error(e);
+        alert("Błąd blokowania czasu.");
+    }
+}
+
+// ==========================================================================
+// УПРАВЛЕНИЕ СЕРВИСАМИ В ТАБЛИЦЕ (СТАРЫЙ ФУНКЦИОНАЛ БЕЗ ИЗМЕНЕНИЙ)
+// ==========================================================================
 
 async function loadAdminServices() {
     const tbody = document.getElementById("adminServicesTableBody");
@@ -464,7 +820,6 @@ function undo() {
     }
 }
 
-// Повторить действие (Redo)
 function redo() {
     if (redoStack.length > 0) {
         undoStack.push({ services: JSON.parse(JSON.stringify(currentServices)), categories: JSON.parse(JSON.stringify(allCategories)) });
@@ -506,7 +861,6 @@ function deleteService(index) {
     }
 }
 
-// Сохранение черновика
 async function saveDraftsToCloud() {
     const btn = document.getElementById("saveDraftsBtn");
     if (!btn) return;
@@ -516,13 +870,10 @@ async function saveDraftsToCloud() {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
             mode: "no-cors", 
-            headers: {
-                "Content-Type": "text/plain"
-            },
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "saveDraftPrices", prices: currentServices })
         });
         
-        // В режиме no-cors мы не можем прочитать JSON, поэтому сразу считаем отправку успешной
         hasUnsavedChanges = false;
         currentServices.forEach(s => delete s.isLocalChange);
         renderTable();
@@ -535,7 +886,6 @@ async function saveDraftsToCloud() {
     }
 }
 
-// Публикация черновика
 async function publishDrafts() {
     if (hasUnsavedChanges) {
         if (confirm("Masz niezapisane zmiany. Czy zapisać je teraz jako Szkic i opublikować?")) {
@@ -550,9 +900,7 @@ async function publishDrafts() {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
             mode: "no-cors", 
-            headers: {
-                "Content-Type": "text/plain"
-            },
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "publishDraftToPublic" })
         });
         
@@ -565,10 +913,6 @@ async function publishDrafts() {
         alert("Błąd połączenia.");
     }
 }
-
-// ==========================================================================
-// УПРАВЛЕНИЕ МОДАЛЬНЫМИ ОКНАМИ
-// ==========================================================================
 
 function toggleNewCategoryInput() {
     const select = document.getElementById("serviceCategorySelect");
