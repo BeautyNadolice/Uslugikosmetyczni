@@ -1,5 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6vZS7_q2u4MMTQAfECS9sn1g6XZJq0mrUV7wTJWpT8OkGwQlei0r25YAuZ36H5pBWLQ/exec";
-  
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzdAGenxHuHo0-uawsOM6XWHnjBVdARSg9uhVOP0L0ta20qOBkMl81j3L4EKolmlleVQ/exec";
 let iti; 
 let allAvailableSlots = []; 
 let adminSettings = {
@@ -64,6 +63,7 @@ async function loadPortfolio() {
     container.innerHTML = '<p style="color: red; font-size: 14px; text-align: center;">Nie udało się załadować galerii.</p>';
   }
 }
+
 async function loadServicesIntoSelect() {
   const serviceSelect = document.getElementById("serviceType");
   if (!serviceSelect) return;
@@ -430,6 +430,7 @@ function displayTimeSlots(selectedDateStr) {
   });
 }
 
+// Исправленная функция проверки клиента по номеру (проверяет статус CORS безопасным образом)
 async function checkExistingClient() {
   const statusEl = document.getElementById("clientStatus");
   const phoneInput = document.getElementById("clientPhone");
@@ -458,10 +459,20 @@ async function checkExistingClient() {
   statusEl.innerHTML = "Sprawdzanie danych...";
 
   try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
+    const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Błąd sieci");
+    }
+
     const data = await response.json();
 
-    if (data.found && data.name) {
+    if (data && data.found && data.name) {
       document.getElementById("clientName").value = data.name;
       statusEl.style.color = "green";
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
@@ -475,13 +486,14 @@ async function checkExistingClient() {
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
-      statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
+      statusEl.innerHTML = "Numer nie znajduje się w bazie. Skontaktuj się z administratorem.";
       isClientApproved = false;
       toggleFormState(false); 
     }
   } catch (error) {
+    console.error("Błąd CORS lub sieci при проверке телефона:", error);
     statusEl.style.color = "red";
-    statusEl.innerHTML = "Błąd połączenia z bazą данных.";
+    statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
     isClientApproved = false;
     toggleFormState(false);
   }
@@ -501,6 +513,7 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
+// Отправка формы бронирования на сервер Google Apps Script
 async function submitForm(event) {
   event.preventDefault();
 
@@ -557,6 +570,7 @@ async function submitForm(event) {
     submitBtn.innerText = "Zapisywanie...";
     
     const payload = {
+      action: "createBooking",
       phone: phoneToSubmit,
       name: document.getElementById("clientName").value,
       service: document.getElementById("serviceType").value,
@@ -565,10 +579,11 @@ async function submitForm(event) {
       rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
     };
 
+    // Чтобы POST-запрос гарантированно не упирался в CORS при отправке, шлем text/plain с no-cors
     await fetch(APPS_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(payload)
     });
     
@@ -576,8 +591,9 @@ async function submitForm(event) {
     closeBookingModal();
     loadFreeSlots(); 
   } catch (error) {
-    alert("Wystąpiл błąd podczas rezerwacji. Spróbuj ponownie.");
+    alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
+  } finally {
     submitBtn.disabled = false;
     submitBtn.innerText = "Zarezerwuj wizytę";
   }
