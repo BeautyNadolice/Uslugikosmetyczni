@@ -463,7 +463,7 @@ body {
     left: 10px;
     right: 10px;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 10px 12px; /* Чуть увеличили отступы для воздуха */
     box-sizing: border-box;
     color: #ffffff;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
@@ -472,17 +472,18 @@ body {
     justify-content: flex-start;
     font-size: 12px;
     line-height: 1.4;
-    transition: transform 0.2s;
+    transition: transform 0.2s, z-index 0.2s;
 
-    /* --- Стили, решающие проблему урезания --- */
-    height: auto !important; /* Отменяем ограничение высоты из JS */
-    min-height: var(--event-calculated-height, 60px); /* Минимальный размер равен часу */
-    overflow: visible !important; /* Полностью отменяем скрытие текста */
+    /* --- Стили динамического размера --- */
+    height: auto !important; /* Разрешаем карточке расти вниз */
+    min-height: var(--event-calculated-height, 60px); /* Минимальная высота равна длительности */
+    overflow: visible !important; /* Текст больше никогда не будет срезан */
 }
 
 .booksy-event-card:hover {
-    transform: scale(1.01);
-    z-index: 100 !important; /* Карточка всплывает над другими при наведении */
+    transform: scale(1.02);
+    z-index: 100 !important; /* Всплывает поверх сетки при наведении */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .booksy-event-card .event-time {
@@ -501,21 +502,23 @@ body {
     flex-shrink: 0;
 }
 
-/* Название услуги теперь автоматически растягивает карточку вниз */
+/* Название услуги теперь гарантированно переносится и растягивает блок */
 .booksy-event-card .event-service {
     font-style: italic;
     font-size: 11.5px;
     opacity: 0.95;
-    white-space: normal !important; /* Принудительно разрешаем переносы */
-    word-wrap: break-word; /* Ломаем длинные слова */
-    overflow: visible !important; /* Убираем скрытие контента напрочь */
-    margin-bottom: 8px; /* Даем запас до телефона */
-    flex-shrink: 0; /* Не даем браузеру сжимать текст */
+    white-space: normal !important; /* Разрешаем перенос строк */
+    word-wrap: break-word; /* Безопасный перенос длинных слов */
+    word-break: break-word;
+    overflow: visible !important;
+    margin-bottom: 10px; /* Свободное пространство перед телефоном */
+    flex-grow: 1; /* Позволяет блоку занимать все доступное пространство */
 }
 
 .booksy-event-card .event-phone {
     font-size: 11px;
-    margin-top: auto; /* Прижимает телефон к самому низу, на сколько бы ни растянулась карточка */
     opacity: 0.9;
     flex-shrink: 0;
+    margin-top: auto; /* Телефон всегда прижат к самому низу растянувшейся карточки */
+    padding-top: 4px;
 }
