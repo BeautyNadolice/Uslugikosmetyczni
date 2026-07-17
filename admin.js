@@ -292,7 +292,7 @@ function renderBooksyCalendar() {
             const card = document.createElement("div");
             card.className = "booksy-event-card";
             card.style.top = `${topPos}px`;
-            card.style.height = `${heightPos}px`;
+          card.style.setProperty('--event-calculated-height', `${heightPos}px`);
             
             // Получаем персональный цвет для категории, иначе используем стандартный пудровый цвет
             const categoryColor = globalColors[app.category] || "#b05c75"; 
