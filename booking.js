@@ -2,13 +2,14 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwogQIym6MZu2ac
   
 let iti; 
 let allAvailableSlots = []; 
+let appointmentsData = []; // Новый массив для хранения точных интервалов занятости
 let adminSettings = {
   buffer_hours: 1,
   safety_range_hours: 5,
   slot_interval_minutes: 45,
   work_start_hour: "09:00",
   work_end_hour: "18:00",
-  start_offset_minutes: 0 // Смещение первого старта после занятого слота
+  start_offset_minutes: 0 
 };
 let flatpickrInstance = null;
 let isClientApproved = false; 
@@ -35,46 +36,34 @@ function fetchJSONP(url) {
   });
 }
 
-// Загрузка галереи/портфолио с обходом CORS
+// Загрузка галереи/портфолио
 async function loadPortfolio() {
   const container = document.getElementById("portfolio-container");
   if (!container) return;
-
   container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Ładowanie galerii...</p>';
-
   try {
     const data = await fetchJSONP(`${APPS_SCRIPT_URL}?getPortfolio=true`);
-
     container.innerHTML = ""; 
     let loadedAny = false;
-
     if (data && data.length > 0) {
       data.forEach(category => {
         const title = document.createElement("h3");
         title.innerText = category.category;
         container.appendChild(title);
-
         const grid = document.createElement("div");
         grid.className = "gallery-grid";
-
         category.images.forEach(img => {
           const imgEl = document.createElement("img");
           imgEl.src = img.url;
           imgEl.className = "gallery-item"; 
           imgEl.alt = img.name || category.category;
-          
-          imgEl.onerror = function() {
-            this.src = "https://via.placeholder.com/300"; 
-          };
-          
+          imgEl.onerror = function() { this.src = "https://via.placeholder.com/300"; };
           grid.appendChild(imgEl);
           loadedAny = true;
         });
-
         container.appendChild(grid);
       });
     }
-
     if (!loadedAny) {
       container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Brak zdjęć w galerii.</p>';
     }
@@ -87,12 +76,9 @@ async function loadPortfolio() {
 async function loadServicesIntoSelect() {
   const serviceSelect = document.getElementById("serviceType");
   if (!serviceSelect) return;
-
   try {
     const services = await fetchJSONP(`${APPS_SCRIPT_URL}?getPrices=true`);
-
     serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
-
     if (services && services.length > 0) {
       const grouped = {};
       services.forEach(s => {
@@ -102,7 +88,6 @@ async function loadServicesIntoSelect() {
           grouped[cat].push(s);
         }
       });
-
       for (const category in grouped) {
         const optGroup = document.createElement("optgroup");
         optGroup.label = category;
@@ -125,7 +110,6 @@ async function loadServicesIntoSelect() {
 
 document.addEventListener("DOMContentLoaded", () => {
   loadPortfolio();
-
   const phoneInput = document.getElementById("clientPhone");
   if (phoneInput) {
     iti = window.intlTelInput(phoneInput, {
@@ -133,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
       preferredCountries: ["pl", "ua", "by"],
       utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
-    
     phoneInput.addEventListener("blur", checkExistingClient);
     phoneInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -141,7 +124,6 @@ document.addEventListener("DOMContentLoaded", () => {
         checkExistingClient();
       }
     });
-
     phoneInput.addEventListener("input", () => {
       isClientApproved = false;
       document.getElementById("clientName").value = "";
@@ -155,19 +137,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const verifyBtn = document.getElementById("verifyPhoneBtn");
-  if (verifyBtn) {
-    verifyBtn.addEventListener("click", checkExistingClient);
-  }
+  if (verifyBtn) { verifyBtn.addEventListener("click", checkExistingClient); }
 
   const serviceSelect = document.getElementById("serviceType");
-  if (serviceSelect) {
-    serviceSelect.addEventListener("change", onServiceChange);
-  }
+  if (serviceSelect) { serviceSelect.addEventListener("change", onServiceChange); }
 
   const bookingForm = document.getElementById("bookingForm");
-  if (bookingForm) {
-    bookingForm.addEventListener("submit", submitForm);
-  }
+  if (bookingForm) { bookingForm.addEventListener("submit", submitForm); }
 
   toggleFormState(false); 
 });
@@ -184,7 +160,6 @@ function toggleFormState(enabled) {
     submitBtn.style.opacity = enabled ? "1" : "0.5";
     submitBtn.style.cursor = enabled ? "pointer" : "not-allowed";
   }
-
   if (serviceSelect) {
     serviceSelect.disabled = !enabled;
     serviceSelect.style.opacity = enabled ? "1" : "0.5";
@@ -194,39 +169,27 @@ function toggleFormState(enabled) {
       document.getElementById("priceDisplay").innerText = "";
     }
   }
-
   if (calendarInput) {
     calendarInput.disabled = !enabled;
     calendarInput.style.opacity = enabled ? "1" : "0.5";
     calendarInput.style.cursor = enabled ? "pointer" : "not-allowed";
     if (!enabled) {
       calendarInput.value = "";
-      if (flatpickrInstance) {
-        flatpickrInstance.clear();
-      }
+      if (flatpickrInstance) { flatpickrInstance.clear(); }
     }
   }
-
   if (rodoConsent) {
     rodoConsent.disabled = !enabled;
-    if (!enabled) {
-      rodoConsent.checked = false;
-    }
+    if (!enabled) { rodoConsent.checked = false; }
   }
-
   if (slotsContainer) {
     if (!enabled) {
       slotsContainer.innerHTML = '<p style="color: #c2a383; font-size: 14px; font-weight: bold;">Najpierw zweryfikuj numer telefonu...</p>';
-    } else {
-      if (!calendarInput.value) {
-        slotsContainer.innerHTML = '<p style="color: #888; font-size: 14px;">Najpierw wybierz dzień...</p>';
-      }
+    } else if (!calendarInput.value) {
+      slotsContainer.innerHTML = '<p style="color: #888; font-size: 14px;">Najpierw wybierz dzień...</p>';
     }
   }
-
-  if (!enabled) {
-    document.getElementById("finalDateTime").value = "";
-  }
+  if (!enabled) { document.getElementById("finalDateTime").value = ""; }
 }
 
 function onServiceChange() {
@@ -250,20 +213,13 @@ function onServiceChange() {
     foundDuration = parseInt(durStr.replace(/[^0-9]/g, ""), 10) || 45;
   }
 
-  if (priceDisplay) {
-    priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice + " zł" : "";
-  }
-  
-  if (durationInput) {
-    durationInput.value = foundDuration;
-  }
+  if (priceDisplay) { priceDisplay.innerText = foundPrice ? "Cena: " + foundPrice + " zł" : ""; }
+  if (durationInput) { durationInput.value = foundDuration; }
 
   const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
   initCalendar(savedDate);
 
-  if (savedDate) {
-    displayTimeSlots(savedDate);
-  }
+  if (savedDate) { displayTimeSlots(savedDate); }
 }
 
 async function loadFreeSlots() {
@@ -271,50 +227,42 @@ async function loadFreeSlots() {
     const data = await fetchJSONP(`${APPS_SCRIPT_URL}?checkBusy=true`); 
     
     allAvailableSlots = data.busySlots || [];
+    appointmentsData = data.appointments || []; // <-- Используем этот массив, так как в нём есть точное endDate!
+    
     if (data.settings) {
       adminSettings = { ...adminSettings, ...data.settings }; 
     }
 
     const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
     initCalendar(savedDate);
-    
-    if (savedDate) {
-      displayTimeSlots(savedDate);
-    }
+    if (savedDate) { displayTimeSlots(savedDate); }
   } catch (error) {
     console.error("Błąd ładowania terminów:", error);
     const container = document.getElementById("timeSlotsContainer");
-    if (container) {
-      container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowania terminów.</p>';
-    }
+    if (container) { container.innerHTML = '<p style="color: red; font-size: 14px;">Błąd ładowania terminów.</p>'; }
   }
 }
 
 function getBaseWorkingHours() {
   const baseWorkingHours = [];
-  
   const startStr = adminSettings.work_start_hour || "09:00";
   const endStr = adminSettings.work_end_hour || "18:00";
   
-  // Мы используем мелкий шаг в 15 минут для построения сетки.
-  // Это позволит предлагать точные слоты сразу после окончания процедур.
-  const step = 15; 
-  const offset = parseInt(adminSettings.start_offset_minutes, 10) || 0; 
+  // Мы используем фиксированный жесткий шаг в 5 минут для генерации сетки.
+  // Это позволит находить слоты СРАЗУ же по окончании процедур (например, в 16:30 или 16:35),
+  // независимо от того, какой базовый шаг указан в настройках.
+  const step = 5; 
 
   const [startH, startM] = startStr.split(":").map(Number);
   const [endH, endM] = endStr.split(":").map(Number);
 
-  let currentTotalMinutes = (startH * 60) + startM + offset;
+  let currentTotalMinutes = (startH * 60) + startM;
   const totalEndMinutes = (endH * 60) + endM;
 
   while (currentTotalMinutes < totalEndMinutes) {
     const h = Math.floor(currentTotalMinutes / 60);
     const m = currentTotalMinutes % 60;
-    
-    const hStr = String(h).padStart(2, '0');
-    const mStr = String(m).padStart(2, '0');
-    
-    baseWorkingHours.push(`${hStr}:${mStr}`);
+    baseWorkingHours.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
     currentTotalMinutes += step;
   }
   return baseWorkingHours;
@@ -332,32 +280,19 @@ function getFreeSlotsForService(dateStr) {
   const serviceDurationMinutes = durationInput ? parseInt(durationInput.value, 10) : 45;
   const startOffsetMs = (parseInt(adminSettings.start_offset_minutes, 10) || 0) * 60 * 1000;
 
-  // Парсим все занятые интервалы на выбранный день
-  const busyIntervalsOnThisDay = allAvailableSlots
-    .filter(slot => {
-      // Если это объект c полями start/end (из Google Календаря)
-      if (typeof slot === 'object' && slot.start) {
-        return slot.start.startsWith(dateStr);
-      }
-      // Если это просто строка ISO
-      return slot.startsWith(dateStr);
-    })
-    .map(slot => {
-      let start, end;
-      let busyStepMinutes = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
-
-      if (typeof slot === 'object' && slot.start) {
-        start = new Date(slot.start);
-        end = slot.end ? new Date(slot.end) : new Date(start.getTime() + (busyStepMinutes * 60 * 1000));
-      } else {
-        start = new Date(slot);
-        end = new Date(start.getTime() + (busyStepMinutes * 60 * 1000));
-      }
-
-      return { start, end };
+  // Парсим занятые диапазоны из appointmentsData, где лежат точные данные с бэкенда
+  const busyIntervalsOnThisDay = appointmentsData
+    .filter(app => app.date && app.date.startsWith(dateStr))
+    .map(app => {
+      return {
+        start: new Date(app.date),
+        end: new Date(app.endDate) // Берем точное время завершения из Календаря
+      };
     });
 
-  return baseWorkingHours.filter(time => {
+  const slotsFound = [];
+
+  baseWorkingHours.forEach(time => {
     const slotStartDateTime = new Date(`${dateStr}T${time}`);
     const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
 
@@ -365,52 +300,59 @@ function getFreeSlotsForService(dateStr) {
     if (dateStr === todayStr) {
       const timeDifferenceMs = slotStartDateTime.getTime() - now.getTime();
       const bufferMs = adminSettings.buffer_hours * 60 * 60 * 1000; 
-
-      if (timeDifferenceMs < bufferMs) {
-        return false; 
-      }
+      if (timeDifferenceMs < bufferMs) return; 
     }
 
     // 2. Проверка выхода за границы рабочего дня
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
     const formattedEndStr = endStr.includes(":") ? endStr.substring(0, 5) : endStr + ":00";
     const endHourLimit = new Date(`${dateStr}T${formattedEndStr}`);
+    if (slotEndDateTime.getTime() > endHourLimit.getTime()) return;
 
-    if (slotEndDateTime.getTime() > endHourLimit.getTime()) {
-      return false;
-    }
-
-    // 3. Честная проверка наложений интервалов с учетом смещения старта (start_offset_minutes)
+    // 3. Честная проверка пересечений
     let conflictsWithBusy = false;
     for (let i = 0; i < busyIntervalsOnThisDay.length; i++) {
       const busy = busyIntervalsOnThisDay[i];
       
-      // К концу занятого интервала добавляем смещение (offset), чтобы новый слот не мог начаться раньше этого буфера
+      // К концу занятого интервала добавляем смещение (offset) из настроек таблицы
       const allowedStartAfterBusy = new Date(busy.end.getTime() + startOffsetMs);
 
-      // Новый визит пересекается, если его СТАРТ раньше реального разрешения (конец занятого + смещение)
-      // И его КОНЕЦ позже старта занятого интервала
+      // Математика пересечения интервалов:
       if (slotStartDateTime.getTime() < allowedStartAfterBusy.getTime() && slotEndDateTime.getTime() > busy.start.getTime()) {
         conflictsWithBusy = true;
         break;
       }
     }
 
-    if (conflictsWithBusy) {
-      return false;
+    if (!conflictsWithBusy) {
+      slotsFound.push(time);
     }
+  });
 
-    return true;
+  // Чтобы не забивать экран пятиминутными кнопками (16:30, 16:35, 16:40...), 
+  // мы фильтруем результат: выводим слоты, кратные красивому шагу настроек (например, 15 или 30 мин),
+  // НО ВСЕГДА разрешаем вывод слота, который идет ровно встык после окончания любого визита + offset!
+  const uiStep = parseInt(adminSettings.slot_interval_minutes, 10) || 15;
+  
+  return slotsFound.filter(time => {
+    const [h, m] = time.split(":").map(Number);
+    
+    // Проверяем, идет ли этот слот ровно на границе окончания какого-то визита + offset
+    const currentSlotMs = new Date(`${dateStr}T${time}`).getTime();
+    const isRightAfterAppointment = busyIntervalsOnThisDay.some(busy => {
+      return currentSlotMs === (busy.end.getTime() + startOffsetMs);
+    });
+
+    if (isRightAfterAppointment) return true; // Обязательно показываем "стыковой" слот!
+    
+    return (m % uiStep === 0); // В остальных случаях округляем до красивого шага (00, 15, 30, 45)
   });
 }
 
 function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
-
-  if (flatpickrInstance) {
-    flatpickrInstance.destroy();
-  }
+  if (flatpickrInstance) { flatpickrInstance.destroy(); }
 
   const disabledDates = [];
   const now = new Date();
@@ -418,16 +360,13 @@ function initCalendar(defaultDate = "") {
   for (let i = 0; i <= 30; i++) {
     const checkDate = new Date();
     checkDate.setDate(now.getDate() + i);
-
     const y = checkDate.getFullYear();
     const m = String(checkDate.getMonth() + 1).padStart(2, '0');
     const d = String(checkDate.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
 
     const slots = getFreeSlotsForService(dateStr);
-    if (slots.length === 0) {
-      disabledDates.push(dateStr);
-    }
+    if (slots.length === 0) { disabledDates.push(dateStr); }
   }
 
   flatpickrInstance = flatpickr("#calendarInput", {
@@ -437,9 +376,7 @@ function initCalendar(defaultDate = "") {
     disableMobile: true,
     disable: disabledDates, 
     defaultDate: defaultDate || null, 
-    onChange: function(selectedDates, dateStr) {
-      displayTimeSlots(dateStr);
-    }
+    onChange: function(selectedDates, dateStr) { displayTimeSlots(dateStr); }
   });
 }
 
@@ -450,7 +387,6 @@ function displayTimeSlots(selectedDateStr) {
   document.getElementById("finalDateTime").value = ""; 
 
   const freeHours = getFreeSlotsForService(selectedDateStr);
-
   if (freeHours.length === 0) {
     container.innerHTML = '<p style="color: red; font-size: 14px;">Brak wolnych godzin dla wybranego zabiegu.</p>';
     return;
@@ -460,18 +396,15 @@ function displayTimeSlots(selectedDateStr) {
     const slotDiv = document.createElement("div");
     slotDiv.className = "time-slot";
     slotDiv.innerText = time;
-    
     slotDiv.onclick = function() {
       document.querySelectorAll(".time-slot").forEach(el => el.classList.remove("selected"));
       slotDiv.classList.add("selected");
       document.getElementById("finalDateTime").value = `${selectedDateStr}T${time}`;
     };
-
     container.appendChild(slotDiv);
   });
 }
 
-// Новая функция проверки с JSONP (убивает ошибки CORS)
 async function checkExistingClient() {
   const statusEl = document.getElementById("clientStatus");
   const phoneInput = document.getElementById("clientPhone");
@@ -500,9 +433,7 @@ async function checkExistingClient() {
   statusEl.innerHTML = "Sprawdzanie danych...";
 
   try {
-    // Выполняем GET-запрос через JSONP
     const data = await fetchJSONP(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
-
     if (data && data.found && data.name) {
       document.getElementById("clientName").value = data.name;
       statusEl.style.color = "green";
@@ -510,10 +441,7 @@ async function checkExistingClient() {
       isClientApproved = true;
       toggleFormState(true); 
       
-      loadServicesIntoSelect().then(() => {
-         return loadFreeSlots();
-      }).catch(err => console.error("Błąd ładowania danych: ", err));
-      
+      loadServicesIntoSelect().then(() => { return loadFreeSlots(); });
     } else {
       document.getElementById("clientName").value = "";
       statusEl.style.color = "red";
@@ -522,7 +450,7 @@ async function checkExistingClient() {
       toggleFormState(false); 
     }
   } catch (error) {
-    console.error("Błąd проверки телефона:", error);
+    console.error("Błąd:", error);
     statusEl.style.color = "red";
     statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
     isClientApproved = false;
@@ -532,75 +460,45 @@ async function checkExistingClient() {
 
 function resetBookingForm() {
   const form = document.getElementById("bookingForm");
-  if (form) {
-    form.reset();
-  }
+  if (form) { form.reset(); }
   isClientApproved = false;
   const statusEl = document.getElementById("clientStatus");
-  if (statusEl) {
-    statusEl.innerHTML = "";
-    statusEl.style.display = "none";
-  }
+  if (statusEl) { statusEl.innerHTML = ""; statusEl.style.display = "none"; }
   toggleFormState(false);
 }
 
-// Отправка формы бронирования
 async function submitForm(event) {
   event.preventDefault();
-
   const finalDateTimeValue = document.getElementById("finalDateTime").value; 
   const submitBtn = document.getElementById("submitBookingBtn");
   const rodoConsent = document.getElementById("rodoConsent");
   const durationInput = document.getElementById("selectedDuration");
   
-  if (!isClientApproved) {
-    alert("Rezerwacja niemożliwa. Twój numer telefonu nie został zweryfikowany.");
-    return;
-  }
-
-  if (!finalDateTimeValue) {
-    alert("Proszę wybrać godzinę wizyty!");
-    return;
-  }
+  if (!isClientApproved) { alert("Rezerwacja niemożliwa. Twój numer telefonu nie został zweryfikowany."); return; }
+  if (!finalDateTimeValue) { alert("Proszę wybrać godzinę wizyty!"); return; }
 
   submitBtn.disabled = true;
   submitBtn.innerText = "Sprawdzanie terminu...";
 
   try {
     const serviceDuration = durationInput ? parseInt(durationInput.value, 10) : 60;
-    
-    // Проверяем занятость одиночного слота через безопасный JSONP
     const result = await fetchJSONP(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}&duration=${serviceDuration}`);
 
     if (!result.isFree) {
       alert("Wybrana godzina jest już zajęta w kalendarzu. Proszę wybrać inny termin.");
       
-      // ИСПРАВЛЕНО: Принудительно ждем загрузки свежих занятых слотов с сервера
+      // Срочно обновляем данные с сервера
       await loadFreeSlots();
       
       const selectedDateStr = document.getElementById("calendarInput").value;
       if (selectedDateStr) {
         initCalendar(selectedDateStr);
-        displayTimeSlots(selectedDateStr); // Сразу перерисовываем кнопки, чтобы занятый слот пропал!
+        displayTimeSlots(selectedDateStr); // Сразу перерисовываем список, занятый слот гарантированно пропадет!
       }
-      
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Zarezerwuj wizytę";
       return; 
     }
 
-    let phoneToSubmit = "";
-    const phoneInput = document.getElementById("clientPhone");
-    let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
-
-    if (iti && iti.isValidNumber()) {
-      phoneToSubmit = iti.getNumber().replace(/\s+/g, '');
-    } else if (/^\d{9}$/.test(rawPhone)) {
-      phoneToSubmit = "+48" + rawPhone;
-    } else {
-      phoneToSubmit = rawPhone;
-    }
-
+    let phoneToSubmit = (iti && iti.isValidNumber()) ? iti.getNumber().replace(/\s+/g, '') : phoneInput.value.replace(/\s+/g, '');
     submitBtn.innerText = "Zapisywanie...";
     
     const payload = {
@@ -613,7 +511,6 @@ async function submitForm(event) {
       rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
     };
 
-    // Отправка POST в режиме no-cors (CORS-безопасная отправка в один конец)
     await fetch(APPS_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
@@ -633,18 +530,6 @@ async function submitForm(event) {
   }
 }
 
-function openBookingModal() {
-  document.getElementById("bookingModal").style.display = "flex";
-}
-
-function closeBookingModal() {
-  document.getElementById("bookingModal").style.display = "none";
-  resetBookingForm(); 
-}
-
-window.addEventListener("click", (e) => {
-  const modal = document.getElementById("bookingModal");
-  if (e.target === modal) {
-    closeBookingModal();
-  }
-});
+function openBookingModal() { document.getElementById("bookingModal").style.display = "flex"; }
+function closeBookingModal() { document.getElementById("bookingModal").style.display = "none"; resetBookingForm(); }
+window.addEventListener("click", (e) => { if (e.target === document.getElementById("bookingModal")) { closeBookingModal(); } });
