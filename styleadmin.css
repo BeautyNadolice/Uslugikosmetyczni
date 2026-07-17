@@ -71,7 +71,7 @@ body {
     color: #333;
 }
 
-/* Активная вкладка (теперь она гарантированно темная и контрастная!) */
+/* Активная вкладка */
 .tab-btn.active {
     background-color: var(--accent-color) !important;
     color: #ffffff !important;
@@ -258,7 +258,7 @@ body {
    МОДАЛЬНОЕ ОКНО (ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ)
    ========================================================================== */
 .modal-overlay {
-    display: none; /* Скрыто по умолчанию */
+    display: none; 
     position: fixed;
     top: 0;
     left: 0;
@@ -324,31 +324,32 @@ body {
         display: none;
     }
 }
+
 /* ==========================================================================
    СИСТЕМНЫЕ СТИЛИ АВТОРИЗАЦИИ (LOGIN) И ШАПКИ АДМИНКИ
    ========================================================================== */
-         .logout-btn {
-            background-color: #d9534f;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .logout-btn:hover { background-color: #c9302c; }
-/* Центрирование экрана входа по центру всего экрана */
+.logout-btn {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.logout-btn:hover { background-color: #c9302c; }
+
 #login-screen {
     display: flex !important;
-    min-height: 100vh !important; /* Гарантирует высоту всего экрана */
-    width: 100vw !important;       /* Гарантирует ширину всего экрана */
+    min-height: 100vh !important; 
+    width: 100vw !important;       
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background-color: #faf5f6;
     margin: 0;
     padding: 0;
-    position: absolute; /* Чтобы не сдвигался */
+    position: absolute; 
     top: 0;
     left: 0;
 }
@@ -413,6 +414,7 @@ body {
     margin-top: 8px;
     margin-bottom: 0;
 }
+
 /* --- Сетка календаря Booksy --- */
 .booksy-calendar-wrapper {
     display: flex;
@@ -453,7 +455,9 @@ body {
     border-top: 1px dashed #eef2f5;
 }
 
-/* Карточка визита (Исправлено) */
+/* ==========================================================================
+   ИСПРАВЛЕННАЯ КАРТОЧКА С АВТОРАСТЯГИВАНИЕМ (ПОЛНОЕ РЕШЕНИЕ)
+   ========================================================================== */
 .booksy-event-card {
     position: absolute;
     left: 10px;
@@ -467,48 +471,51 @@ body {
     flex-direction: column;
     justify-content: flex-start;
     font-size: 12px;
-    line-height: 1.3;
+    line-height: 1.4;
     transition: transform 0.2s;
 
-    /* --- КЛЮЧЕВЫЕ ИЗМЕНЕНИЯ ТУТ --- */
-    height: auto !important; /* Игнорируем фиксированную высоту из JS, даем карточке растягиваться */
-    min-height: var(--event-calculated-height, 60px); /* Минимальная высота (зависит от времени), меньше которой карточка не сожмется */
-    overflow: visible; /* Разрешаем элементам выходить за рамки, если они растягивают карточку */
+    /* --- Стили, решающие проблему урезания --- */
+    height: auto !important; /* Отменяем ограничение высоты из JS */
+    min-height: var(--event-calculated-height, 60px); /* Минимальный размер равен часу */
+    overflow: visible !important; /* Полностью отменяем скрытие текста */
 }
 
 .booksy-event-card:hover {
     transform: scale(1.01);
-    z-index: 10;
+    z-index: 100 !important; /* Карточка всплывает над другими при наведении */
 }
 
 .booksy-event-card .event-time {
     font-weight: bold;
     font-size: 11px;
     opacity: 0.9;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
     flex-shrink: 0;
 }
 
 .booksy-event-card .event-name {
     font-weight: 700;
     font-size: 13px;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
     text-shadow: 0 1px 2px rgba(0,0,0,0.15);
     flex-shrink: 0;
 }
 
-/* Текст описания услуги свободно переносится и растягивает блок */
+/* Название услуги теперь автоматически растягивает карточку вниз */
 .booksy-event-card .event-service {
     font-style: italic;
+    font-size: 11.5px;
     opacity: 0.95;
-    white-space: normal; /* Разрешаем перенос строк */
-    word-wrap: break-word; /* Переносим длинные слова, если они не влезают */
-    margin-bottom: 8px; /* Отступ перед телефоном */
+    white-space: normal !important; /* Принудительно разрешаем переносы */
+    word-wrap: break-word; /* Ломаем длинные слова */
+    overflow: visible !important; /* Убираем скрытие контента напрочь */
+    margin-bottom: 8px; /* Даем запас до телефона */
+    flex-shrink: 0; /* Не даем браузеру сжимать текст */
 }
 
 .booksy-event-card .event-phone {
     font-size: 11px;
-    margin-top: auto; /* Прижимает телефон к самому низу растянувшейся карточки */
+    margin-top: auto; /* Прижимает телефон к самому низу, на сколько бы ни растянулась карточка */
     opacity: 0.9;
     flex-shrink: 0;
 }
