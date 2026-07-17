@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT_kSIDxPIxH9LWAVOP4MS3Z2LUAj2ADFwKVm_DOFdxW83DDvHj5g8MRrQ6kZBvYiOzw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydCzmTBNuRMYk-wU9lXppFlrPAN1U2tRXXnQZIfUQ7LQ8eKhj6-eQRMI9pEC_tkryzpA/exec";
 const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
 
@@ -8,13 +8,12 @@ let undoStack = [];
 let redoStack = [];             
 let hasUnsavedChanges = false;  
 
-// ПЕРЕМЕННЫЕ ДЛЯ РАБОТЫ КАЛЕНДАРЯ
-let selectedCalendarDate = new Date(); // Текущая открытая дата в календаре
-let miniMonthDate = new Date();        // Дата для отображения мини-календаря слева
-let calendarViewMode = "day";          // Режим отображения: 'day' или 'week'
-let appointmentsData = [];             // Записи из таблицы и Google Календаря
-let globalColors = {};                 // Цвета категорий
-let settingsData = {                   // Настройки по умолчанию
+let selectedCalendarDate = new Date(); 
+let miniMonthDate = new Date();        
+let calendarViewMode = "day";          
+let appointmentsData = [];             
+let globalColors = {};                 
+let settingsData = {                   
     work_start_hour: "09:00",
     work_end_hour: "18:00",
     buffer_hours: 1
@@ -22,14 +21,12 @@ let settingsData = {                   // Настройки по умолчан
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuthSession();
-
     window.addEventListener("beforeunload", (e) => {
         if (hasUnsavedChanges) {
             e.preventDefault();
             e.returnValue = "Masz niezapisane zmiany w Szkicach!";
         }
     });
-
     document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
             e.preventDefault();
@@ -41,10 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
-
-// ==========================================================================
-// СИСТЕМА АВТОРИЗАЦИИ (MODAL WINDOW FLOW)
-// ==========================================================================
 
 function checkAuthSession() {
     const savedEmail = localStorage.getItem("admin_email");
@@ -76,7 +69,6 @@ function closeLoginModal() {
 }
 
 function loginTest() {
-    console.log("Вход выполнен через Тестовый режим");
     currentUserEmail = "test_admin@test.com"; 
     localStorage.setItem("admin_email", currentUserEmail);
     showAdminPanel();
@@ -112,32 +104,21 @@ function logout() {
     if (hasUnsavedChanges) {
         if (!confirm("Masz niezapisane zmiany! Czy na pewno chcesz się wylogować?")) return;
     }
-    
     localStorage.removeItem("admin_email");
     localStorage.removeItem("google_id_token");
     currentUserEmail = null;
-    
     alert("Wylogowano pomyślnie.");
     window.location.href = "index.html"; 
 }
 
-// ==========================================================================
-// УПРАВЛЕНИЕ ВКЛАДКАМИ И ЗАГРУЗКА ДАННЫХ
-// ==========================================================================
-
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    
     const targetTab = document.getElementById(`tab-${tabName}`);
     if (targetTab) targetTab.style.display = 'block';
-    
     const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
     if (activeBtn) activeBtn.classList.add('active');
-
-    if (tabName === "kalendarz") {
-        renderBooksyCalendar();
-    }
+    if (tabName === "kalendarz") { renderBooksyCalendar(); }
 }
 
 function setCalendarView(mode) {
@@ -157,7 +138,6 @@ function changeSelectedDate(days) {
     renderBooksyCalendar();
 }
 
-// Загрузка настроек, встреч и персональных цветов
 async function loadSettings() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?checkBusy=true");
@@ -167,10 +147,8 @@ async function loadSettings() {
             document.getElementById("work_start_hour").value = data.settings.work_start_hour || "09:00";
             document.getElementById("work_end_hour").value = data.settings.work_end_hour || "18:00";
             document.getElementById("buffer_hours").value = data.settings.buffer_hours || 1;
-            
             globalColors = data.settings.colors || {};
             appointmentsData = data.appointments || [];
-            
             buildColorsEditor();
             miniMonthDate = new Date(selectedCalendarDate);
             renderBooksyCalendar();
@@ -180,7 +158,6 @@ async function loadSettings() {
     }
 }
 
-// Сохранение настроек и кастомных цветов категорий
 async function saveSettings() {
     const btn = document.getElementById("saveSettingsBtn");
     if (!btn) return;
@@ -205,11 +182,9 @@ async function saveSettings() {
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors", 
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "updateSettings", payload: payload })
         });
-        
         alert("Ustawienia zapisane!");
         globalColors = categoryColors;
         renderBooksyCalendar();
@@ -226,12 +201,10 @@ function buildColorsEditor() {
     const container = document.getElementById("categories-colors-list");
     if (!container) return;
     container.innerHTML = "";
-    
     if (allCategories.length === 0) {
         container.innerHTML = "<p style='grid-column: span 2; color:#999; text-align:center;'>Wpierw dodaj usługi w Cenniku, aby móc zmieniać ich kolory.</p>";
         return;
     }
-    
     allCategories.forEach(cat => {
         const defaultColor = globalColors[cat] || "#b05c75"; 
         const div = document.createElement("div");
@@ -244,10 +217,6 @@ function buildColorsEditor() {
     });
 }
 
-// ==========================================================================
-// ГЕНЕРАЦИЯ ОБНОВЛЕННОГО ДВУХПАНЕЛЬНОГО КАЛЕНДАРЯ
-// ==========================================================================
-
 function changeMiniMonth(dir) {
     miniMonthDate.setMonth(miniMonthDate.getMonth() + dir);
     renderMiniMonthCalendar();
@@ -257,54 +226,35 @@ function renderMiniMonthCalendar() {
     const grid = document.getElementById("mini-month-days-grid");
     const title = document.getElementById("mini-month-title");
     if (!grid || !title) return;
-    
     grid.innerHTML = "";
     const PolishMonths = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
     title.innerText = `${PolishMonths[miniMonthDate.getMonth()]} ${miniMonthDate.getFullYear()}`;
-    
     const firstDay = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), 1);
     let startDayOfWeek = firstDay.getDay(); 
-    if (startDayOfWeek === 0) startDayOfWeek = 7; // Делаем Понедельник первым
-    
+    if (startDayOfWeek === 0) startDayOfWeek = 7;
     const daysInMonth = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth() + 1, 0).getDate();
-    
-    // Пустые ячейки для смещения начала месяца
     for (let i = 1; i < startDayOfWeek; i++) {
         const empty = document.createElement("div");
         grid.appendChild(empty);
     }
-    
     const today = new Date();
-    
     for (let day = 1; day <= daysInMonth; day++) {
         const dayCell = document.createElement("div");
         dayCell.className = "mini-date-cell";
         dayCell.innerText = day;
-        
         const cellDate = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), day);
-        
-        // Подсвечиваем сегодня
-        if (cellDate.toDateString() === today.toDateString()) {
-            dayCell.classList.add("today");
-        }
-        
-        // Подсвечиваем выбранный в основном календаре день
-        if (cellDate.toDateString() === selectedCalendarDate.toDateString()) {
-            dayCell.classList.add("selected");
-        }
-        
+        if (cellDate.toDateString() === today.toDateString()) { dayCell.classList.add("today"); }
+        if (cellDate.toDateString() === selectedCalendarDate.toDateString()) { dayCell.classList.add("selected"); }
         dayCell.onclick = () => {
             selectedCalendarDate = cellDate;
             renderBooksyCalendar();
         };
-        
         grid.appendChild(dayCell);
     }
 }
 
 function renderBooksyCalendar() {
     renderMiniMonthCalendar();
-    
     const timeline = document.getElementById("booksy-timeline");
     const grid = document.getElementById("booksy-grid");
     const title = document.getElementById("calendar-current-date-title");
@@ -313,7 +263,6 @@ function renderBooksyCalendar() {
     
     const daysOfWeek = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
     const months = ["Stycznia", "Lutego", "Marca", "Kwietnia", "Maja", "Czerwca", "Lipca", "Sierpnia", "Września", "Października", "Listopada", "Grudnia"];
-    
     timeline.innerHTML = "";
     grid.innerHTML = "";
     
@@ -322,10 +271,8 @@ function renderBooksyCalendar() {
     const totalHours = endHour - startHour;
     const pxPerMinute = 1.2; 
     const totalMinutes = totalHours * 60;
-    
     grid.style.height = `${totalMinutes * pxPerMinute}px`;
     
-    // Строим временную шкалу слева
     for (let h = startHour; h <= endHour; h++) {
         const label = document.createElement("div");
         label.className = "time-label";
@@ -334,18 +281,15 @@ function renderBooksyCalendar() {
         timeline.appendChild(label);
     }
 
-    // Режим "ДЕНЬ"
     if (calendarViewMode === "day") {
         scrollWrapper.classList.remove("week-view-active");
         title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()}`;
-        
         for (let m = 0; m < totalMinutes; m += 30) {
             const line = document.createElement("div");
             line.className = "grid-halfhour-line";
             line.style.top = `${m * pxPerMinute}px`;
             grid.appendChild(line);
         }
-        
         const targetDateStr = getFormattedISOBlockDate(selectedCalendarDate);
         const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
         
@@ -359,9 +303,7 @@ function renderBooksyCalendar() {
             if (topPos >= 0 && topPos < totalMinutes * pxPerMinute) {
                 const card = document.createElement("div");
                 card.className = "booksy-event-card";
-                card.style.top = `${topPos}px`;
-                card.style.left = "10px";
-                card.style.right = "10px";
+                card.style.top = `${topPos}px`; card.style.left = "10px"; card.style.right = "10px";
                 card.style.setProperty('--event-calculated-height', `${heightPos}px`);
                 
                 const isBlock = app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna";
@@ -374,36 +316,25 @@ function renderBooksyCalendar() {
                     <div class="event-service">${app.service}</div>
                     ${isBlock ? '' : `<div class="event-phone">📞 ${app.phone}</div>`}
                 `;
-                
-                // Клик открывает модалку управления визитом
                 card.onclick = () => openAppointmentDetailsModal(app);
                 grid.appendChild(card);
             }
         });
-    } 
-    // Режим "НЕДЕЛЯ"
-    else {
+    } else {
         scrollWrapper.classList.add("week-view-active");
-        
-        // Получаем дату понедельника текущей выбранной недели
         const currentDay = selectedCalendarDate.getDay();
         const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
         const mondayDate = new Date(selectedCalendarDate);
         mondayDate.setDate(mondayDate.getDate() + distanceToMonday);
-        
         const sundayDate = new Date(mondayDate);
         sundayDate.setDate(sundayDate.getDate() + 6);
-        
         title.innerText = `${mondayDate.getDate()} ${months[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${months[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
         
-        // Создаем 7 колонок сетки
         for (let d = 0; d < 7; d++) {
             const colDate = new Date(mondayDate);
             colDate.setDate(colDate.getDate() + d);
-            
             const col = document.createElement("div");
             col.className = "calendar-week-column";
-            
             const colHeader = document.createElement("div");
             colHeader.className = "week-column-header";
             if (colDate.toDateString() === new Date().toDateString()) colHeader.classList.add("today-col");
@@ -420,7 +351,6 @@ function renderBooksyCalendar() {
                 line.style.top = `${m * pxPerMinute}px`;
                 colGrid.appendChild(line);
             }
-            
             const targetDateStr = getFormattedISOBlockDate(colDate);
             const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
             
@@ -430,16 +360,13 @@ function renderBooksyCalendar() {
                 const startOffsetMinutes = (appH * 60 + appM) - (startHour * 60);
                 const topPos = startOffsetMinutes * pxPerMinute;
                 const heightPos = app.duration * pxPerMinute;
-                
                 if (topPos >= 0 && topPos < totalMinutes * pxPerMinute) {
                     const card = document.createElement("div");
                     card.className = "booksy-event-card week-card";
                     card.style.top = `${topPos}px`;
                     card.style.setProperty('--event-calculated-height', `${heightPos}px`);
-                    
                     const isBlock = app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna";
                     card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
-                    
                     card.innerHTML = `
                         <div class="event-time">${appTimeStr}</div>
                         <div class="event-name" style="font-size:11px;">${app.name}</div>
@@ -449,7 +376,6 @@ function renderBooksyCalendar() {
                     colGrid.appendChild(card);
                 }
             });
-            
             col.appendChild(colGrid);
             grid.appendChild(col);
         }
@@ -458,42 +384,28 @@ function renderBooksyCalendar() {
 
 function getEndTimeStr(startTimeStr, durationMin) {
     const [h, m] = startTimeStr.split(":").map(Number);
-    const d = new Date();
-    d.setHours(h, m + durationMin);
+    const d = new Date(); d.setHours(h, m + durationMin);
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
 function getFormattedISOBlockDate(dateObj) {
-    return dateObj.getFullYear() + "-" + 
-           String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
-           String(dateObj.getDate()).padStart(2, '0');
+    return dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0');
 }
 
-// ==========================================================================
-// ОКНО ДЕТАЛЕЙ, РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВИЗИТОВ
-// ==========================================================================
-
 let activeSelectedAppointment = null;
-
 function openAppointmentDetailsModal(app) {
     activeSelectedAppointment = app;
-    
     document.getElementById("details-name").innerText = app.name || "Brak";
     document.getElementById("details-phone").innerText = app.phone || "Brak";
     document.getElementById("details-service").innerText = app.service || "Brak";
-    
     const d = new Date(app.date);
     document.getElementById("details-datetime").innerText = d.toLocaleString("pl-PL");
     document.getElementById("details-duration").innerText = app.duration || 45;
-    
     switchToViewAppointment();
     document.getElementById("appointmentDetailsModal").style.display = "flex";
 }
 
-function closeAppointmentModal() {
-    document.getElementById("appointmentDetailsModal").style.display = "none";
-}
-
+function closeAppointmentModal() { document.getElementById("appointmentDetailsModal").style.display = "none"; }
 function switchToViewAppointment() {
     document.getElementById("appointment-details-view").style.display = "block";
     document.getElementById("appointment-edit-form").style.display = "none";
@@ -501,26 +413,20 @@ function switchToViewAppointment() {
 
 function switchToEditAppointment() {
     if (!activeSelectedAppointment) return;
-    
     document.getElementById("edit-app-name").value = activeSelectedAppointment.name || "";
     document.getElementById("edit-app-phone").value = activeSelectedAppointment.phone || "";
     document.getElementById("edit-app-service").value = activeSelectedAppointment.service || "";
     document.getElementById("edit-app-duration").value = activeSelectedAppointment.duration || 45;
-    
-    // Переводим в формат YYYY-MM-DDTHH:MM
     const d = new Date(activeSelectedAppointment.date);
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
     document.getElementById("edit-app-datetime").value = localISOTime;
-    
     document.getElementById("appointment-details-view").style.display = "none";
     document.getElementById("appointment-edit-form").style.display = "block";
 }
 
-// --- Функция сохранения изменений при редактировании (НЕ трогаем её) ---
 async function saveEditedAppointment() {
     if (!activeSelectedAppointment) return;
-    
     const payload = {
         action: "createBooking",
         editFlag: true,
@@ -532,45 +438,31 @@ async function saveEditedAppointment() {
         service: document.getElementById("edit-app-service").value.trim(),
         duration: parseInt(document.getElementById("edit-app-duration").value, 10) || 45
     };
-    
-    if (!payload.name || !payload.date) {
-        alert("Wypełnij wymagane pola!");
-        return;
-    }
-    
+    if (!payload.name || !payload.date) { alert("Wypełnij wymagane pola!"); return; }
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
-        
         alert("Wizyta została pomyślnie zmodyfikowana!");
         closeAppointmentModal();
         await loadSettings();
     } catch (e) {
-        console.error(e);
-        alert("Błąd zapisu.");
+        console.error(e); alert("Błąd zapisu.");
     }
 }
 
-// --- Обновленная функция удаления (ИСПРАВЛЕНА ОШИБКА ЗАКРЫТИЯ ОКНА) ---
 async function deleteAppointmentFromAdmin() {
     if (!activeSelectedAppointment) return;
     if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
-    
     const deleteBtn = document.querySelector("#appointment-details-view .btn-danger");
     const originalText = deleteBtn.innerHTML;
-    
-    // Блокируем кнопку и показываем лоадер
-    deleteBtn.innerText = "Usuwanie...";
-    deleteBtn.disabled = true;
+    deleteBtn.innerText = "Usuwanie..."; deleteBtn.disabled = true;
 
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
                 action: "createBooking",
@@ -580,25 +472,16 @@ async function deleteAppointmentFromAdmin() {
                 name: activeSelectedAppointment.name
             })
         });
-
         alert("Wizyta została pomyślnie usunięta!");
-        closeAppointmentModal(); // <-- ИСПРАВЛЕНО: Теперь окно закроется корректно!
-        await loadSettings(); // Перезагружаем календарь, чтобы запись исчезла
-        
+        closeAppointmentModal();
+        await loadSettings();
     } catch (error) {
         console.error("Błąd usuwania:", error);
         alert("Wystąpił błąd podczas usuwania wizyty.");
     } finally {
-        // ЭТОТ БЛОК ВЫПОЛНИТСЯ ВСЕГДА: возвращаем кнопку в норму
-        if (deleteBtn) {
-            deleteBtn.innerHTML = originalText;
-            deleteBtn.disabled = false;
-        }
+        if (deleteBtn) { deleteBtn.innerHTML = originalText; deleteBtn.disabled = false; }
     }
 }
-// ==========================================================================
-// УПРАВЛЕНИЕ ВЫХОДНЫМИ / БЛОКИРОВКА ВРЕМЕНИ
-// ==========================================================================
 
 function openBlockTimeModal() {
     document.getElementById("block-date").value = getFormattedISOBlockDate(selectedCalendarDate);
@@ -606,11 +489,7 @@ function openBlockTimeModal() {
     toggleBlockTimeFields();
     document.getElementById("blockTimeModal").style.display = "flex";
 }
-
-function closeBlockTimeModal() {
-    document.getElementById("blockTimeModal").style.display = "none";
-}
-
+function closeBlockTimeModal() { document.getElementById("blockTimeModal").style.display = "none"; }
 function toggleBlockTimeFields() {
     const type = document.getElementById("block-type").value;
     document.getElementById("block-hours-group").style.display = (type === "hours") ? "block" : "none";
@@ -620,12 +499,7 @@ async function submitBlockTime() {
     const type = document.getElementById("block-type").value;
     const dateVal = document.getElementById("block-date").value;
     const titleVal = document.getElementById("block-title").value.trim() || "Zablokowane";
-    
-    if (!dateVal) {
-        alert("Wybierz datę!");
-        return;
-    }
-    
+    if (!dateVal) { alert("Wybierz datę!"); return; }
     let startDateTimeIso, durationMin;
     
     if (type === "full_day") {
@@ -636,73 +510,44 @@ async function submitBlockTime() {
     } else {
         const startTime = document.getElementById("block-start-time").value;
         const endTime = document.getElementById("block-end-time").value;
-        if (!startTime || !endTime) {
-            alert("Wpisz godziny!");
-            return;
-        }
+        if (!startTime || !endTime) { alert("Wpisz godziny!"); return; }
         startDateTimeIso = dateVal + "T" + startTime;
         const [sh, sm] = startTime.split(":").map(Number);
         const [eh, em] = endTime.split(":").map(Number);
         durationMin = (eh * 60 + em) - (sh * 60 + sm);
     }
-    
-    if (durationMin <= 0) {
-        alert("Godzina zakończenia musi być po godzinie rozpoczęcia!");
-        return;
-    }
+    if (durationMin <= 0) { alert("Godzina zakończenia musi być po godzinie rozpoczęcia!"); return; }
     
     const payload = {
         action: "createBooking",
-        date: startDateTimeIso,
-        duration: durationMin,
-        name: titleVal,
-        service: "Rezerwacja zewnętrzna",
-        phone: "Google Calendar",
-        rodo: "Nie"
+        date: startDateTimeIso, duration: durationMin, name: titleVal,
+        service: "Rezerwacja zewnętrzna", phone: "Google Calendar", rodo: "Nie"
     };
-    
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
-        
         alert("Czas został zablokowany w kalendarzu!");
-        closeBlockTimeModal();
-        await loadSettings();
+        closeBlockTimeModal(); await loadSettings();
     } catch (e) {
-        console.error(e);
-        alert("Błąd blokowania czasu.");
+        console.error(e); alert("Błąd blokowania czasu.");
     }
 }
-
-// ==========================================================================
-// УПРАВЛЕНИЕ СЕРВИСАМИ В ТАБЛИЦЕ (СТАРЫЙ ФУНКЦИОНАЛ БЕЗ ИЗМЕНЕНИЙ)
-// ==========================================================================
 
 async function loadAdminServices() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
-
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Ładowanie usług...</td></tr>';
-
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
         const services = await response.json();
-
         currentServices = services || [];
-        
         const rawCategories = currentServices.map(s => s.category ? s.category.trim() : "");
         allCategories = [...new Set(rawCategories)].filter(c => c.length > 0);
-
-        undoStack = [];
-        redoStack = [];
-        hasUnsavedChanges = false;
-
-        renderTable();
-        updateUndoRedoButtons();
+        undoStack = []; redoStack = []; hasUnsavedChanges = false;
+        renderTable(); updateUndoRedoButtons();
     } catch (error) {
         console.error("Błąd:", error);
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Błąd połączenia.</td></tr>';
@@ -712,17 +557,12 @@ async function loadAdminServices() {
 function renderTable() {
     const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
-
     tbody.innerHTML = "";
-
     if (currentServices.length === 0 && allCategories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Brak usług.</td></tr>';
-        return;
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Brak usług.</td></tr>'; return;
     }
-
     const grouped = {};
     allCategories.forEach(cat => grouped[cat.trim()] = []);
-
     currentServices.forEach((service, originalIndex) => {
         const catKey = (service.category || "Inne").trim();
         if (!grouped[catKey]) grouped[catKey] = [];
@@ -733,7 +573,6 @@ function renderTable() {
         const servicesInCat = grouped[catName] || [];
         const headerTr = document.createElement("tr");
         headerTr.style.backgroundColor = "#fdf5f7"; 
-        
         const isFirst = index === 0;
         const isLast = index === allCategories.length - 1;
 
@@ -758,17 +597,11 @@ function renderTable() {
                 : '<span style="background: #5cb85c; color: white; padding: 2px 5px; border-radius:3px;">Opublikowany</span>';
 
             let categorySelectHTML = `<select onchange="moveServiceToCategory(${item.originalIndex}, this.value)">`;
-            allCategories.forEach(c => {
-                categorySelectHTML += `<option value="${c}" ${c.trim() === catName ? "selected" : ""}>${c}</option>`;
-            });
+            allCategories.forEach(c => { categorySelectHTML += `<option value="${c}" ${c.trim() === catName ? "selected" : ""}>${c}</option>`; });
             categorySelectHTML += `</select>`;
 
             tr.innerHTML = `
-                <td>${categorySelectHTML}</td>
-                <td><strong>${item.name}</strong></td>
-                <td>${item.price} zł</td>
-                <td>${item.duration} min</td>
-                <td>${statusBadge}</td>
+                <td>${categorySelectHTML}</td> <td><strong>${item.name}</strong></td> <td>${item.price} zł</td> <td>${item.duration} min</td> <td>${statusBadge}</td>
                 <td>
                     <button onclick="editService(${item.originalIndex})">Edytuj</button>
                     <button onclick="deleteService(${item.originalIndex})" style="color:red;">Usuń</button>
@@ -784,142 +617,85 @@ function moveCategoryOrder(index, direction) {
     if (direction === 'down' && index === allCategories.length - 1) return;
     saveToHistory();
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    const temp = allCategories[index];
-    allCategories[index] = allCategories[targetIndex];
-    allCategories[targetIndex] = temp;
-    sortServicesByGlobalCategoryOrder();
-    renderTable();
-    updateUndoRedoButtons();
+    const temp = allCategories[index]; allCategories[index] = allCategories[targetIndex]; allCategories[targetIndex] = temp;
+    sortServicesByGlobalCategoryOrder(); renderTable(); updateUndoRedoButtons();
 }
-
 function sortServicesByGlobalCategoryOrder() {
     currentServices.sort((a, b) => allCategories.indexOf((a.category || "").trim()) - allCategories.indexOf((b.category || "").trim()));
     currentServices.forEach(s => { s.status = "Szkic"; s.isLocalChange = true; });
 }
-
 function moveServiceToCategory(originalIndex, newCategoryName) {
     if (!currentServices[originalIndex]) return;
     saveToHistory();
     currentServices[originalIndex].category = newCategoryName.trim();
-    currentServices[originalIndex].status = "Szkic";
-    currentServices[originalIndex].isLocalChange = true;
-    sortServicesByGlobalCategoryOrder();
-    renderTable();
-    updateUndoRedoButtons();
+    currentServices[originalIndex].status = "Szkic"; currentServices[originalIndex].isLocalChange = true;
+    sortServicesByGlobalCategoryOrder(); renderTable(); updateUndoRedoButtons();
 }
-
 function saveToHistory() {
-    undoStack.push({
-        services: JSON.parse(JSON.stringify(currentServices)),
-        categories: JSON.parse(JSON.stringify(allCategories))
-    });
-    redoStack = []; 
-    hasUnsavedChanges = true;
-    updateUndoRedoButtons();
+    undoStack.push({ services: JSON.parse(JSON.stringify(currentServices)), categories: JSON.parse(JSON.stringify(allCategories)) });
+    redoStack = []; hasUnsavedChanges = true; updateUndoRedoButtons();
 }
-
 function undo() {
     if (undoStack.length > 0) {
         redoStack.push({ services: JSON.parse(JSON.stringify(currentServices)), categories: JSON.parse(JSON.stringify(allCategories)) });
-        const popped = undoStack.pop();
-        currentServices = popped.services;
-        allCategories = popped.categories;
-        renderTable();
-        updateUndoRedoButtons();
+        const popped = undoStack.pop(); currentServices = popped.services; allCategories = popped.categories;
+        renderTable(); updateUndoRedoButtons();
     }
 }
-
 function redo() {
     if (redoStack.length > 0) {
         undoStack.push({ services: JSON.parse(JSON.stringify(currentServices)), categories: JSON.parse(JSON.stringify(allCategories)) });
-        const popped = redoStack.pop();
-        currentServices = popped.services;
-        allCategories = popped.categories;
-        renderTable();
-        updateUndoRedoButtons();
+        const popped = redoStack.pop(); currentServices = popped.services; allCategories = popped.categories;
+        renderTable(); updateUndoRedoButtons();
     }
 }
-
 function updateUndoRedoButtons() {
     if (document.getElementById("undoBtn")) document.getElementById("undoBtn").disabled = undoStack.length === 0;
     if (document.getElementById("redoBtn")) document.getElementById("redoBtn").disabled = redoStack.length === 0;
 }
-
 function addServiceLocal(newService) {
-    saveToHistory();
-    currentServices.push(newService);
-    sortServicesByGlobalCategoryOrder();
-    renderTable();
-    updateUndoRedoButtons();
+    saveToHistory(); currentServices.push(newService); sortServicesByGlobalCategoryOrder(); renderTable(); updateUndoRedoButtons();
 }
-
 function updateServiceLocal(index, updatedService) {
-    saveToHistory();
-    currentServices[index] = updatedService;
-    sortServicesByGlobalCategoryOrder();
-    renderTable();
-    updateUndoRedoButtons();
+    saveToHistory(); currentServices[index] = updatedService; sortServicesByGlobalCategoryOrder(); renderTable(); updateUndoRedoButtons();
 }
-
 function deleteService(index) {
     if (confirm("Czy na pewno chcesz usunąć tę usługę?")) {
-        saveToHistory();
-        currentServices.splice(index, 1);
-        renderTable();
-        updateUndoRedoButtons();
+        saveToHistory(); currentServices.splice(index, 1); renderTable(); updateUndoRedoButtons();
     }
 }
 
 async function saveDraftsToCloud() {
-    const btn = document.getElementById("saveDraftsBtn");
-    if (!btn) return;
+    const btn = document.getElementById("saveDraftsBtn"); if (!btn) return;
     btn.disabled = true;
-
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors", 
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "saveDraftPrices", prices: currentServices })
         });
-        
-        hasUnsavedChanges = false;
-        currentServices.forEach(s => delete s.isLocalChange);
-        renderTable();
-        alert("Szkic zapisany!");
+        hasUnsavedChanges = false; currentServices.forEach(s => delete s.isLocalChange);
+        renderTable(); alert("Szkic zapisany!");
     } catch (e) {
-        console.error(e);
-        alert("Błąd połączenia.");
-    } finally {
-        btn.disabled = false;
-    }
+        console.error(e); alert("Błąd połączenia.");
+    } finally { btn.disabled = false; }
 }
 
 async function publishDrafts() {
     if (hasUnsavedChanges) {
-        if (confirm("Masz niezapisane zmiany. Czy zapisać je teraz jako Szkic i opublikować?")) {
-            await saveDraftsToCloud();
-        } else {
-            return;
-        }
+        if (confirm("Masz niezapisane zmiany. Czy zapisać je teraz jako Szkic i opublikować?")) { await saveDraftsToCloud(); } else { return; }
     }
     if (!confirm("Czy na pewno chcesz opublikować zmiany dla klientów?")) return;
-
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors", 
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "publishDraftToPublic" })
         });
-        
         alert("Cennik został opublikowany! Synchronizacja danych...");
-        setTimeout(async () => {
-            await loadAdminServices();
-        }, 1500); 
+        setTimeout(async () => { await loadAdminServices(); }, 1500); 
     } catch (e) {
-        console.error(e);
-        alert("Błąd połączenia.");
+        console.error(e); alert("Błąd połączenia.");
     }
 }
 
@@ -927,117 +703,74 @@ function toggleNewCategoryInput() {
     const select = document.getElementById("serviceCategorySelect");
     document.getElementById("newCategoryGroup").style.display = (select && select.value === "__NEW__") ? "block" : "none";
 }
-
 function closeServiceModal() { document.getElementById("serviceModal").style.display = "none"; }
-
 function openAddServiceModal() {
-    document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg";
-    document.getElementById("editServiceIndex").value = "-1";
-    document.getElementById("serviceName").value = "";
-    document.getElementById("servicePrice").value = "";
-    document.getElementById("serviceDuration").value = "";
-    buildCategorySelect("serviceCategorySelect", "");
-    document.getElementById("serviceModal").style.display = "flex";
+    document.getElementById("modalTitle").innerText = "Dodaj nowy zabieg"; document.getElementById("editServiceIndex").value = "-1";
+    document.getElementById("serviceName").value = ""; document.getElementById("servicePrice").value = ""; document.getElementById("serviceDuration").value = "";
+    buildCategorySelect("serviceCategorySelect", ""); document.getElementById("serviceModal").style.display = "flex";
 }
-
 function editService(index) {
-    const service = currentServices[index];
-    if (!service) return;
-    document.getElementById("modalTitle").innerText = "Edytuj zabieg";
-    document.getElementById("editServiceIndex").value = index;
-    document.getElementById("serviceName").value = service.name || "";
-    document.getElementById("servicePrice").value = service.price || 0;
+    const service = currentServices[index]; if (!service) return;
+    document.getElementById("modalTitle").innerText = "Edytuj zabieg"; document.getElementById("editServiceIndex").value = index;
+    document.getElementById("serviceName").value = service.name || ""; document.getElementById("servicePrice").value = service.price || 0;
     document.getElementById("serviceDuration").value = service.duration || 0;
-    buildCategorySelect("serviceCategorySelect", service.category);
-    document.getElementById("serviceModal").style.display = "flex";
+    buildCategorySelect("serviceCategorySelect", service.category); document.getElementById("serviceModal").style.display = "flex";
 }
 
 function buildCategorySelect(selectId, selectedValue) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
+    const select = document.getElementById(selectId); if (!select) return;
     select.innerHTML = "";
     allCategories.forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat; opt.innerText = cat;
+        const opt = document.createElement("option"); opt.value = cat; opt.innerText = cat;
         if (cat.trim().toLowerCase() === (selectedValue || "").trim().toLowerCase()) opt.selected = true;
         select.appendChild(opt);
     });
-    const optNew = document.createElement("option");
-    optNew.value = "__NEW__"; optNew.innerText = "➕ + Nowa kategoria";
+    const optNew = document.createElement("option"); optNew.value = "__NEW__"; optNew.innerText = "➕ + Nowa kategoria";
     if (selectedValue === "") optNew.selected = true;
-    select.appendChild(optNew);
-    toggleNewCategoryInput();
+    select.appendChild(optNew); toggleNewCategoryInput();
 }
 
 function saveServiceModalData() {
     const index = parseInt(document.getElementById("editServiceIndex").value, 10);
-    const select = document.getElementById("serviceCategorySelect");
-    let category = select.value.trim();
-    
+    const select = document.getElementById("serviceCategorySelect"); let category = select.value.trim();
     if (category === "__NEW__") {
         category = document.getElementById("serviceCategoryNew").value.trim();
-        if (category && !allCategories.some(c => c.toLowerCase() === category.toLowerCase())) {
-            allCategories.push(category);
-        }
+        if (category && !allCategories.some(c => c.toLowerCase() === category.toLowerCase())) { allCategories.push(category); }
     }
-
     const name = document.getElementById("serviceName").value.trim();
     const price = parseInt(document.getElementById("servicePrice").value, 10);
     const duration = parseInt(document.getElementById("serviceDuration").value, 10);
-
-    if (!category || !name || isNaN(price) || isNaN(duration)) {
-        alert("Wypełnij poprawnie wszystkie pola!");
-        return;
-    }
-
+    if (!category || !name || isNaN(price) || isNaN(duration)) { alert("Wypełnij poprawnie wszystkie pola!"); return; }
     const serviceData = { category, name, price, duration, status: "Szkic", isLocalChange: true };
     if (index === -1) addServiceLocal(serviceData); else updateServiceLocal(index, serviceData);
     closeServiceModal();
 }
 
 function openCategoryModal() {
-    const select = document.getElementById("renameCategorySelect");
-    if (!select) return;
+    const select = document.getElementById("renameCategorySelect"); if (!select) return;
     select.innerHTML = "";
     allCategories.forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat; opt.innerText = cat;
-        select.appendChild(opt);
+        const opt = document.createElement("option"); opt.value = cat; opt.innerText = cat; select.appendChild(opt);
     });
-    document.getElementById("renameCategoryNewName").value = "";
-    document.getElementById("categoryModal").style.display = "flex";
+    document.getElementById("renameCategoryNewName").value = ""; document.getElementById("categoryModal").style.display = "flex";
 }
-
 function closeCategoryModal() { document.getElementById("categoryModal").style.display = "none"; }
-
 function renameCategoryGlobal() {
-    const oldName = document.getElementById("renameCategorySelect").value;
-    const newName = document.getElementById("renameCategoryNewName").value.trim();
+    const oldName = document.getElementById("renameCategorySelect").value; const newName = document.getElementById("renameCategoryNewName").value.trim();
     if (!newName) return;
-    saveToHistory();
-    allCategories = allCategories.map(cat => cat === oldName ? newName : cat);
+    saveToHistory(); allCategories = allCategories.map(cat => cat === oldName ? newName : cat);
     currentServices.forEach(s => { if (s.category === oldName) { s.category = newName; s.status = "Szkic"; } });
-    renderTable();
-    closeCategoryModal();
+    renderTable(); closeCategoryModal();
 }
-
 function deleteCategoryGlobal() {
     const catToDelete = document.getElementById("renameCategorySelect").value;
     if (!catToDelete || !confirm(`Czy na pewno chcesz usunąć kategorię "${catToDelete}" wraz ze wszystkimi zabiegami?`)) return;
-    saveToHistory();
-    allCategories = allCategories.filter(cat => cat !== catToDelete);
+    saveToHistory(); allCategories = allCategories.filter(cat => cat !== catToDelete);
     currentServices = currentServices.filter(s => s.category !== catToDelete);
-    renderTable();
-    closeCategoryModal();
+    renderTable(); closeCategoryModal();
 }
-
 function addNewCategoryEmpty() {
-    const input = document.getElementById("createNewCategoryName");
-    const newCatName = input.value.trim();
+    const input = document.getElementById("createNewCategoryName"); const newCatName = input.value.trim();
     if (!newCatName || allCategories.some(c => c.toLowerCase() === newCatName.toLowerCase())) return;
-    saveToHistory();
-    allCategories.push(newCatName);
-    input.value = "";
-    renderTable();
-    closeCategoryModal();
+    saveToHistory(); allCategories.push(newCatName); input.value = ""; renderTable(); closeCategoryModal();
 }
