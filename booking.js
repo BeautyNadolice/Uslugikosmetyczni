@@ -1,8 +1,7 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfUP2LeEXKDQY6C_9TBU1Vf4biLc60q-Te2TrPrybVsiQhM23ul_WtsG4KebrJfpwnhA/exec";
-  
-let iti; 
+ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyxyVAiIGVsREt9oz-DBtGpoVmcYa0NwtNd4P8MhQ1m0rAaPMS-kKWI_mLA2Q9GYxm2MQ/exec";
+  let iti; 
 let allAvailableSlots = []; 
-let appointmentsData = []; // Новый массив для хранения точных интервалов занятости
+let appointmentsData = []; 
 let adminSettings = {
   buffer_hours: 1,
   safety_range_hours: 5,
@@ -14,7 +13,6 @@ let adminSettings = {
 let flatpickrInstance = null;
 let isClientApproved = false; 
 
-// Универсальный хелпер для выполнения GET-запросов через JSONP (100% обход CORS)
 function fetchJSONP(url) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -23,7 +21,6 @@ function fetchJSONP(url) {
       document.body.removeChild(script);
       resolve(data);
     };
-
     const separator = url.includes('?') ? '&' : '?';
     const script = document.createElement('script');
     script.src = `${url}${separator}callback=${callbackName}`;
@@ -36,7 +33,6 @@ function fetchJSONP(url) {
   });
 }
 
-// Загрузка галереи/портфолио
 async function loadPortfolio() {
   const container = document.getElementById("portfolio-container");
   if (!container) return;
@@ -138,10 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const verifyBtn = document.getElementById("verifyPhoneBtn");
   if (verifyBtn) { verifyBtn.addEventListener("click", checkExistingClient); }
-
   const serviceSelect = document.getElementById("serviceType");
   if (serviceSelect) { serviceSelect.addEventListener("change", onServiceChange); }
-
   const bookingForm = document.getElementById("bookingForm");
   if (bookingForm) { bookingForm.addEventListener("submit", submitForm); }
 
@@ -218,21 +212,15 @@ function onServiceChange() {
 
   const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
   initCalendar(savedDate);
-
   if (savedDate) { displayTimeSlots(savedDate); }
 }
 
 async function loadFreeSlots() {
   try {
     const data = await fetchJSONP(`${APPS_SCRIPT_URL}?checkBusy=true`); 
-    
     allAvailableSlots = data.busySlots || [];
-    appointmentsData = data.appointments || []; // <-- Используем этот массив, так как в нём есть точное endDate!
-    
-    if (data.settings) {
-      adminSettings = { ...adminSettings, ...data.settings }; 
-    }
-
+    appointmentsData = data.appointments || []; 
+    if (data.settings) { adminSettings = { ...adminSettings, ...data.settings }; }
     const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
     initCalendar(savedDate);
     if (savedDate) { displayTimeSlots(savedDate); }
@@ -247,18 +235,11 @@ function getBaseWorkingHours() {
   const baseWorkingHours = [];
   const startStr = adminSettings.work_start_hour || "09:00";
   const endStr = adminSettings.work_end_hour || "18:00";
-  
-  // Мы используем фиксированный жесткий шаг в 5 минут для генерации сетки.
-  // Это позволит находить слоты СРАЗУ же по окончании процедур (например, в 16:30 или 16:35),
-  // независимо от того, какой базовый шаг указан в настройках.
   const step = 5; 
-
   const [startH, startM] = startStr.split(":").map(Number);
   const [endH, endM] = endStr.split(":").map(Number);
-
   let currentTotalMinutes = (startH * 60) + startM;
   const totalEndMinutes = (endH * 60) + endM;
-
   while (currentTotalMinutes < totalEndMinutes) {
     const h = Math.floor(currentTotalMinutes / 60);
     const m = currentTotalMinutes % 60;
@@ -280,72 +261,49 @@ function getFreeSlotsForService(dateStr) {
   const serviceDurationMinutes = durationInput ? parseInt(durationInput.value, 10) : 45;
   const startOffsetMs = (parseInt(adminSettings.start_offset_minutes, 10) || 0) * 60 * 1000;
 
-  // Парсим занятые диапазоны из appointmentsData, где лежат точные данные с бэкенда
   const busyIntervalsOnThisDay = appointmentsData
     .filter(app => app.date && app.date.startsWith(dateStr))
     .map(app => {
-      return {
-        start: new Date(app.date),
-        end: new Date(app.endDate) // Берем точное время завершения из Календаря
-      };
+      return { start: new Date(app.date), end: new Date(app.endDate) };
     });
 
   const slotsFound = [];
-
   baseWorkingHours.forEach(time => {
     const slotStartDateTime = new Date(`${dateStr}T${time}`);
     const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
 
-    // 1. Проверка буфера времени для сегодняшнего дня
     if (dateStr === todayStr) {
       const timeDifferenceMs = slotStartDateTime.getTime() - now.getTime();
       const bufferMs = adminSettings.buffer_hours * 60 * 60 * 1000; 
       if (timeDifferenceMs < bufferMs) return; 
     }
 
-    // 2. Проверка выхода за границы рабочего дня
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
     const formattedEndStr = endStr.includes(":") ? endStr.substring(0, 5) : endStr + ":00";
     const endHourLimit = new Date(`${dateStr}T${formattedEndStr}`);
     if (slotEndDateTime.getTime() > endHourLimit.getTime()) return;
 
-    // 3. Честная проверка пересечений
     let conflictsWithBusy = false;
     for (let i = 0; i < busyIntervalsOnThisDay.length; i++) {
       const busy = busyIntervalsOnThisDay[i];
-      
-      // К концу занятого интервала добавляем смещение (offset) из настроек таблицы
       const allowedStartAfterBusy = new Date(busy.end.getTime() + startOffsetMs);
-
-      // Математика пересечения интервалов:
       if (slotStartDateTime.getTime() < allowedStartAfterBusy.getTime() && slotEndDateTime.getTime() > busy.start.getTime()) {
         conflictsWithBusy = true;
         break;
       }
     }
-
-    if (!conflictsWithBusy) {
-      slotsFound.push(time);
-    }
+    if (!conflictsWithBusy) { slotsFound.push(time); }
   });
 
-  // Чтобы не забивать экран пятиминутными кнопками (16:30, 16:35, 16:40...), 
-  // мы фильтруем результат: выводим слоты, кратные красивому шагу настроек (например, 15 или 30 мин),
-  // НО ВСЕГДА разрешаем вывод слота, который идет ровно встык после окончания любого визита + offset!
   const uiStep = parseInt(adminSettings.slot_interval_minutes, 10) || 15;
-  
   return slotsFound.filter(time => {
     const [h, m] = time.split(":").map(Number);
-    
-    // Проверяем, идет ли этот слот ровно на границе окончания какого-то визита + offset
     const currentSlotMs = new Date(`${dateStr}T${time}`).getTime();
     const isRightAfterAppointment = busyIntervalsOnThisDay.some(busy => {
       return currentSlotMs === (busy.end.getTime() + startOffsetMs);
     });
-
-    if (isRightAfterAppointment) return true; // Обязательно показываем "стыковой" слот!
-    
-    return (m % uiStep === 0); // В остальных случаях округляем до красивого шага (00, 15, 30, 45)
+    if (isRightAfterAppointment) return true; 
+    return (m % uiStep === 0); 
   });
 }
 
@@ -353,7 +311,6 @@ function initCalendar(defaultDate = "") {
   const calendarInput = document.getElementById("calendarInput");
   if (!calendarInput) return;
   if (flatpickrInstance) { flatpickrInstance.destroy(); }
-
   const disabledDates = [];
   const now = new Date();
 
@@ -364,7 +321,6 @@ function initCalendar(defaultDate = "") {
     const m = String(checkDate.getMonth() + 1).padStart(2, '0');
     const d = String(checkDate.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
-
     const slots = getFreeSlotsForService(dateStr);
     if (slots.length === 0) { disabledDates.push(dateStr); }
   }
@@ -391,7 +347,6 @@ function displayTimeSlots(selectedDateStr) {
     container.innerHTML = '<p style="color: red; font-size: 14px;">Brak wolnych godzin dla wybranego zabiegu.</p>';
     return;
   }
-
   freeHours.forEach(time => {
     const slotDiv = document.createElement("div");
     slotDiv.className = "time-slot";
@@ -440,7 +395,6 @@ async function checkExistingClient() {
       statusEl.innerHTML = "Klient zweryfikowany pomyślnie!";
       isClientApproved = true;
       toggleFormState(true); 
-      
       loadServicesIntoSelect().then(() => { return loadFreeSlots(); });
     } else {
       document.getElementById("clientName").value = "";
@@ -486,14 +440,11 @@ async function submitForm(event) {
 
     if (!result.isFree) {
       alert("Wybrana godzina jest już zajęta w kalendarzu. Proszę wybrać inny termin.");
-      
-      // Срочно обновляем данные с сервера
       await loadFreeSlots();
-      
       const selectedDateStr = document.getElementById("calendarInput").value;
       if (selectedDateStr) {
         initCalendar(selectedDateStr);
-        displayTimeSlots(selectedDateStr); // Сразу перерисовываем список, занятый слот гарантированно пропадет!
+        displayTimeSlots(selectedDateStr); 
       }
       return; 
     }
