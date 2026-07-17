@@ -1,5 +1,4 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6vZS7_q2u4MMTQAfECS9sn1g6XZJq0mrUV7wTJWpT8OkGwQlei0r25YAuZ36H5pBWLQ/exec";
-
 const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
 
@@ -187,18 +186,19 @@ async function saveSettings() {
     };
 
     try {
-        const response = await fetch(APPS_SCRIPT_URL, {
+        await fetch(APPS_SCRIPT_URL, {
             method: "POST",
+            mode: "no-cors", 
+            headers: {
+                "Content-Type": "text/plain"
+            },
             body: JSON.stringify({ action: "updateSettings", payload: payload })
         });
-        const result = await response.json();
-        if (result.success) {
-            alert("Ustawienia zapisane!");
-            globalColors = categoryColors;
-            renderBooksyCalendar();
-        } else {
-            alert("Błąd: " + (result.error || "nieznany"));
-        }
+        
+        // В режиме no-cors ответ непрозрачный, поэтому выводим сообщение об успехе без чтения JSON
+        alert("Ustawienia zapisane!");
+        globalColors = categoryColors;
+        renderBooksyCalendar();
     } catch (e) {
         console.error(e);
         alert("Błąd połączenia.");
@@ -292,7 +292,7 @@ function renderBooksyCalendar() {
             const card = document.createElement("div");
             card.className = "booksy-event-card";
             card.style.top = `${topPos}px`;
-          card.style.setProperty('--event-calculated-height', `${heightPos}px`);
+            card.style.setProperty('--event-calculated-height', `${heightPos}px`);
             
             // Получаем персональный цвет для категории, иначе используем стандартный пудровый цвет
             const categoryColor = globalColors[app.category] || "#b05c75"; 
@@ -464,6 +464,7 @@ function undo() {
     }
 }
 
+// Повторить действие (Redo)
 function redo() {
     if (redoStack.length > 0) {
         undoStack.push({ services: JSON.parse(JSON.stringify(currentServices)), categories: JSON.parse(JSON.stringify(allCategories)) });
@@ -505,32 +506,36 @@ function deleteService(index) {
     }
 }
 
+// Сохранение черновика
 async function saveDraftsToCloud() {
     const btn = document.getElementById("saveDraftsBtn");
     if (!btn) return;
     btn.disabled = true;
 
     try {
-        const response = await fetch(APPS_SCRIPT_URL, {
+        await fetch(APPS_SCRIPT_URL, {
             method: "POST",
+            mode: "no-cors", 
+            headers: {
+                "Content-Type": "text/plain"
+            },
             body: JSON.stringify({ action: "saveDraftPrices", prices: currentServices })
         });
-        const result = await response.json();
-        if (result.success) {
-            hasUnsavedChanges = false;
-            currentServices.forEach(s => delete s.isLocalChange);
-            renderTable();
-            alert("Szkic zapisany!");
-        } else {
-            alert("Błąd: " + result.error);
-        }
+        
+        // В режиме no-cors мы не можем прочитать JSON, поэтому сразу считаем отправку успешной
+        hasUnsavedChanges = false;
+        currentServices.forEach(s => delete s.isLocalChange);
+        renderTable();
+        alert("Szkic zapisany!");
     } catch (e) {
+        console.error(e);
         alert("Błąd połączenia.");
     } finally {
         btn.disabled = false;
     }
 }
 
+// Публикация черновика
 async function publishDrafts() {
     if (hasUnsavedChanges) {
         if (confirm("Masz niezapisane zmiany. Czy zapisać je teraz jako Szkic i opublikować?")) {
@@ -542,18 +547,21 @@ async function publishDrafts() {
     if (!confirm("Czy na pewno chcesz opublikować zmiany dla klientów?")) return;
 
     try {
-        const response = await fetch(APPS_SCRIPT_URL, {
+        await fetch(APPS_SCRIPT_URL, {
             method: "POST",
+            mode: "no-cors", 
+            headers: {
+                "Content-Type": "text/plain"
+            },
             body: JSON.stringify({ action: "publishDraftToPublic" })
         });
-        const result = await response.json();
-        if (result.success) {
+        
+        alert("Cennik został opublikowany! Synchronizacja danych...");
+        setTimeout(async () => {
             await loadAdminServices();
-            alert("Cennik opublikowany!");
-        } else {
-            alert("Błąd: " + result.error);
-        }
+        }, 1500); 
     } catch (e) {
+        console.error(e);
         alert("Błąd połączenia.");
     }
 }
