@@ -56,12 +56,32 @@
 
         <!-- Вкладки управления -->
         <div class="tabs-container">
-            <button class="tab-btn active" onclick="switchTab('cennik')">💰 Zarządzanie Cennikiem</button>
+            <button class="tab-btn active" onclick="switchTab('kalendarz')">📅 Kalendarz</button>
+            <button class="tab-btn" onclick="switchTab('cennik')">💰 Zarządzanie Cennikiem</button>
             <button class="tab-btn" onclick="switchTab('ustawienia')">⚙️ Ustawienia Pracy</button>
         </div>
 
+        <!-- ВКЛАДКА 0: ИНТЕРАКТИВНЫЙ КАЛЕНДАРЬ -->
+        <div id="tab-kalendarz" class="tab-content">
+            <div class="calendar-controls" style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+                <button class="btn-secondary" onclick="changeSelectedDate(-1)">◀ Poprzedni dzień</button>
+                <h3 id="calendar-current-date-title" style="margin: 0; font-size: 18px; font-weight: bold;">Piątek, 17 Lipca 2026</h3>
+                <button class="btn-secondary" onclick="changeSelectedDate(1)">Następny dzień ▶</button>
+            </div>
+            
+            <!-- Сетка Календаря -->
+            <div class="booksy-calendar-wrapper">
+                <div class="booksy-timeline" id="booksy-timeline">
+                    <!-- Заполняется часовыми отметками через JS -->
+                </div>
+                <div class="booksy-grid-container" id="booksy-grid">
+                    <!-- Заполняется линиями и карточками визитов через JS -->
+                </div>
+            </div>
+        </div>
+
         <!-- ВКЛАДКА 1: УПРАВЛЕНИЕ УСЛУГАМИ -->
-        <div id="tab-cennik" class="tab-content">
+        <div id="tab-cennik" class="tab-content" style="display: none;">
             <div class="admin-actions-bar">
                 <button id="undoBtn" class="btn-secondary" onclick="undo()" disabled>↩️ Cofnij (Ctrl+Z)</button>
                 <button id="redoBtn" class="btn-secondary" onclick="redo()" disabled>↪️ Ponów (Ctrl+Y)</button>
@@ -90,7 +110,7 @@
             </table>
         </div>
 
-        <!-- ВКЛАДКА 2: НАСТРОЙКИ РАБОЧЕГО ВРЕМЕНИ -->
+        <!-- ВКЛАДКА 2: НАСТРОЙКИ РАБОЧЕГО ВРЕМЕНИ И ЦВЕТОВ -->
         <div id="tab-ustawienia" class="tab-content" style="display: none;">
             <h3>Ustawienia harmonogramu</h3>
             <p style="color: #666; margin-bottom: 20px;">Konfiguracja godzin pracy oraz parametrów dostępności.</p>
@@ -105,9 +125,17 @@
                     <input type="text" id="work_end_hour" placeholder="18:00">
                 </div>
                 <div class="form-group">
-                    <label for="buffer_hours">Czas buforowy (w godzinach перед записью):</label>
+                    <label for="buffer_hours">Czas buforowy (w godzinach przed zapisem):</label>
                     <input type="number" id="buffer_hours" min="0" max="24">
                 </div>
+
+                <!-- Настройка цветов категорий -->
+                <h4 style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">Kolory kategorii w kalendarzu</h4>
+                <p style="color: #777; font-size: 13px;">Wybierz kolor dla każdej z kategorii usług, aby wyróżnić je na siatce kalendarza:</p>
+                <div id="categories-colors-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+                    <!-- Заполняется динамически через JS -->
+                </div>
+
                 <button id="saveSettingsBtn" class="btn-primary" onclick="saveSettings()">Zapisz ustawienia</button>
             </form>
         </div>
@@ -138,7 +166,7 @@
                 <input type="number" id="servicePrice" placeholder="0">
             </div>
             <div class="form-group">
-                <label>Czas trwania (min):</label>
+                <label>Czas trвания (min):</label>
                 <input type="number" id="serviceDuration" placeholder="45">
             </div>
             <div class="modal-footer">
