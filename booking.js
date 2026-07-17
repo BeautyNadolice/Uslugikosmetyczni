@@ -7,7 +7,8 @@ let adminSettings = {
   safety_range_hours: 5,
   slot_interval_minutes: 45,
   work_start_hour: "09:00",
-  work_end_hour: "18:00"
+  work_end_hour: "18:00",
+  start_offset_minutes: 0 // Смещение первого старта после занятого слота
 };
 let flatpickrInstance = null;
 let isClientApproved = false; 
@@ -277,7 +278,6 @@ async function loadFreeSlots() {
     const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
     initCalendar(savedDate);
     
-    // Если дата уже выбрана, сразу обновляем отображение кнопок времени
     if (savedDate) {
       displayTimeSlots(savedDate);
     }
@@ -296,8 +296,8 @@ function getBaseWorkingHours() {
   const startStr = adminSettings.work_start_hour || "09:00";
   const endStr = adminSettings.work_end_hour || "18:00";
   
-  // Чтобы расчет окон был гибким, мы генерируем сетку с мелким шагом (15 минут).
-  // Это позволит находить свободное время сразу после окончания процедур из таблицы.
+  // Мы используем мелкий шаг в 15 минут для построения сетки.
+  // Это позволит предлагать точные слоты сразу после окончания процедур.
   const step = 15; 
   const offset = parseInt(adminSettings.start_offset_minutes, 10) || 0; 
 
@@ -330,15 +330,31 @@ function getFreeSlotsForService(dateStr) {
   const baseWorkingHours = getBaseWorkingHours();
   const durationInput = document.getElementById("selectedDuration");
   const serviceDurationMinutes = durationInput ? parseInt(durationInput.value, 10) : 45;
+  const startOffsetMs = (parseInt(adminSettings.start_offset_minutes, 10) || 0) * 60 * 1000;
 
-  // Извлекаем все занятые временные диапазоны на выбранный день из таблицы
-  const busyIntervals = allAvailableSlots
-    .filter(slot => slot.startsWith(dateStr))
+  // Парсим все занятые интервалы на выбранный день
+  const busyIntervalsOnThisDay = allAvailableSlots
+    .filter(slot => {
+      // Если это объект c полями start/end (из Google Календаря)
+      if (typeof slot === 'object' && slot.start) {
+        return slot.start.startsWith(dateStr);
+      }
+      // Если это просто строка ISO
+      return slot.startsWith(dateStr);
+    })
     .map(slot => {
-      const slotStart = new Date(slot);
-      let busyStep = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
-      const slotEnd = new Date(slotStart.getTime() + (busyStep * 60 * 1000));
-      return { start: slotStart, end: slotEnd };
+      let start, end;
+      let busyStepMinutes = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
+
+      if (typeof slot === 'object' && slot.start) {
+        start = new Date(slot.start);
+        end = slot.end ? new Date(slot.end) : new Date(start.getTime() + (busyStepMinutes * 60 * 1000));
+      } else {
+        start = new Date(slot);
+        end = new Date(start.getTime() + (busyStepMinutes * 60 * 1000));
+      }
+
+      return { start, end };
     });
 
   return baseWorkingHours.filter(time => {
@@ -355,7 +371,7 @@ function getFreeSlotsForService(dateStr) {
       }
     }
 
-    // 2. Проверка выхода процедуры за рамки рабочего времени
+    // 2. Проверка выхода за границы рабочего дня
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
     const formattedEndStr = endStr.includes(":") ? endStr.substring(0, 5) : endStr + ":00";
     const endHourLimit = new Date(`${dateStr}T${formattedEndStr}`);
@@ -364,11 +380,17 @@ function getFreeSlotsForService(dateStr) {
       return false;
     }
 
-    // 3. Честная проверка пересечения интервалов: (Начало1 < Конец2) && (Конец1 > Начало2)
+    // 3. Честная проверка наложений интервалов с учетом смещения старта (start_offset_minutes)
     let conflictsWithBusy = false;
-    for (let i = 0; i < busyIntervals.length; i++) {
-      const busy = busyIntervals[i];
-      if (slotStartDateTime.getTime() < busy.end.getTime() && slotEndDateTime.getTime() > busy.start.getTime()) {
+    for (let i = 0; i < busyIntervalsOnThisDay.length; i++) {
+      const busy = busyIntervalsOnThisDay[i];
+      
+      // К концу занятого интервала добавляем смещение (offset), чтобы новый слот не мог начаться раньше этого буфера
+      const allowedStartAfterBusy = new Date(busy.end.getTime() + startOffsetMs);
+
+      // Новый визит пересекается, если его СТАРТ раньше реального разрешения (конец занятого + смещение)
+      // И его КОНЕЦ позже старта занятого интервала
+      if (slotStartDateTime.getTime() < allowedStartAfterBusy.getTime() && slotEndDateTime.getTime() > busy.start.getTime()) {
         conflictsWithBusy = true;
         break;
       }
@@ -522,7 +544,7 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
-// Отправка формы бронирования (использует JSONP для проверки и обычный fetch-no-cors для записи)
+// Отправка формы бронирования
 async function submitForm(event) {
   event.preventDefault();
 
@@ -552,12 +574,14 @@ async function submitForm(event) {
 
     if (!result.isFree) {
       alert("Wybrana godzina jest już zajęta w kalendarzu. Proszę wybrać inny termin.");
+      
+      // ИСПРАВЛЕНО: Принудительно ждем загрузки свежих занятых слотов с сервера
       await loadFreeSlots();
       
       const selectedDateStr = document.getElementById("calendarInput").value;
       if (selectedDateStr) {
         initCalendar(selectedDateStr);
-        displayTimeSlots(selectedDateStr);
+        displayTimeSlots(selectedDateStr); // Сразу перерисовываем кнопки, чтобы занятый слот пропал!
       }
       
       submitBtn.disabled = false;
@@ -569,7 +593,6 @@ async function submitForm(event) {
     const phoneInput = document.getElementById("clientPhone");
     let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
 
-    // Исправлено обращение к плагину iti без лишнего объекта утилит intlTelInputUtils
     if (iti && iti.isValidNumber()) {
       phoneToSubmit = iti.getNumber().replace(/\s+/g, '');
     } else if (/^\d{9}$/.test(rawPhone)) {
@@ -600,8 +623,6 @@ async function submitForm(event) {
     
     alert("Wizyta została pomyślnie zarezerwowana!");
     closeBookingModal();
-    
-    // После успешной записи заново запрашиваем базу, чтобы только что занятый слот мгновенно исчез
     await loadFreeSlots(); 
   } catch (error) {
     alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
