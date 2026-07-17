@@ -517,39 +517,7 @@ function switchToEditAppointment() {
     document.getElementById("appointment-edit-form").style.display = "block";
 }
 
-// УДАЛЕНИЕ ЗАПИСИ ИЗ АДМИНКИ С СИНХРОНИЗАЦИЕЙ С ТАБЛИЦЕЙ И КАЛЕНДАРЕМ
-async function deleteAppointmentFromAdmin() {
-    if (!activeSelectedAppointment) return;
-    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
-    
-    const originalText = document.querySelector("#appointment-details-view .btn-danger").innerText;
-    document.querySelector("#appointment-details-view .btn-danger").innerText = "Usuwanie...";
-    
-    try {
-        // Мы отправляем запрос POST с типом deleteBooking на Apps Script бэкенд
-        await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({
-                action: "createBooking", // используем ту же структуру, но передаем специальный флаг удаления
-                deleteFlag: true,
-                date: activeSelectedAppointment.date,
-                phone: activeSelectedAppointment.phone,
-                name: activeSelectedAppointment.name
-            })
-        });
-        
-        alert("Wizyta została pomyślnie usunięta!");
-        closeAppointmentModal();
-        await loadSettings(); // Перезагружаем календарную сетку
-    } catch (e) {
-        console.error(e);
-        alert("Błąd соединения с сервером.");
-    }
-}
-
-// СОХРАНЕНИЕ ОТРЕДАКТИРОВАННОГО ВИЗИТА
+// --- Функция сохранения изменений при редактировании (НЕ трогаем её) ---
 async function saveEditedAppointment() {
     if (!activeSelectedAppointment) return;
     
@@ -587,6 +555,45 @@ async function saveEditedAppointment() {
     }
 }
 
+// --- Обновленная функция удаления (её мы обновили блоком finally) ---
+async function deleteAppointmentFromAdmin() {
+    if (!activeSelectedAppointment) return;
+    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
+    
+    const deleteBtn = document.querySelector("#appointment-details-view .btn-danger");
+    const originalText = deleteBtn.innerHTML;
+    
+    // Блокируем кнопку и показываем лоадер
+    deleteBtn.innerText = "Usuwanie...";
+    deleteBtn.disabled = true;
+
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                action: "createBooking",
+                deleteFlag: true,
+                date: activeSelectedAppointment.date,
+                phone: activeSelectedAppointment.phone,
+                name: activeSelectedAppointment.name
+            })
+        });
+
+        alert("Wizyta została pomyślnie usunięta!");
+        closeAppointmentDetails();
+        await loadSettings(); // Перезагружаем календарь, чтобы запись исчезла
+        
+    } catch (error) {
+        console.error("Błąd usuвания:", error);
+        alert("Wystąpił błąd podczas usuwania wizyty.");
+    } finally {
+        // ЭТОТ БЛОК ВЫПОЛНИТСЯ ВСЕГДА: возвращаем кнопку в норму
+        deleteBtn.innerHTML = originalText;
+        deleteBtn.disabled = false;
+    }
+}
 // ==========================================================================
 // УПРАВЛЕНИЕ ВЫХОДНЫМИ / БЛОКИРОВКА ВРЕМЕНИ
 // ==========================================================================
