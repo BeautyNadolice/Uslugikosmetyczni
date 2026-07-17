@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmAxJ8Rh3eaweNE-f_-FnxyR7-meC9AyTBYx1aU70Ola5VIQNnSMRjS77NZopx0k8KVg/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwogQIym6MZu2acwa3eRPMxOhyuS2u5EO3nu8vYZx71Et-9ULq5bSxw-FG7WlhiTkEFhQ/exec";
   
 let iti; 
 let allAvailableSlots = []; 
@@ -276,6 +276,11 @@ async function loadFreeSlots() {
 
     const savedDate = document.getElementById("calendarInput") ? document.getElementById("calendarInput").value : "";
     initCalendar(savedDate);
+    
+    // Если дата уже выбрана, сразу обновляем отображение кнопок времени
+    if (savedDate) {
+      displayTimeSlots(savedDate);
+    }
   } catch (error) {
     console.error("Błąd ładowania terminów:", error);
     const container = document.getElementById("timeSlotsContainer");
@@ -290,7 +295,10 @@ function getBaseWorkingHours() {
   
   const startStr = adminSettings.work_start_hour || "09:00";
   const endStr = adminSettings.work_end_hour || "18:00";
-  const step = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
+  
+  // Чтобы расчет окон был гибким, мы генерируем сетку с мелким шагом (15 минут).
+  // Это позволит находить свободное время сразу после окончания процедур из таблицы.
+  const step = 15; 
   const offset = parseInt(adminSettings.start_offset_minutes, 10) || 0; 
 
   const [startH, startM] = startStr.split(":").map(Number);
@@ -323,21 +331,21 @@ function getFreeSlotsForService(dateStr) {
   const durationInput = document.getElementById("selectedDuration");
   const serviceDurationMinutes = durationInput ? parseInt(durationInput.value, 10) : 45;
 
-  const busyTimesOnThisDay = allAvailableSlots
+  // Извлекаем все занятые временные диапазоны на выбранный день из таблицы
+  const busyIntervals = allAvailableSlots
     .filter(slot => slot.startsWith(dateStr))
     .map(slot => {
-      const parts = slot.split("T");
-      return parts[1] ? parts[1].substring(0, 5) : ""; 
+      const slotStart = new Date(slot);
+      let busyStep = parseInt(adminSettings.slot_interval_minutes, 10) || 45;
+      const slotEnd = new Date(slotStart.getTime() + (busyStep * 60 * 1000));
+      return { start: slotStart, end: slotEnd };
     });
 
   return baseWorkingHours.filter(time => {
-    if (busyTimesOnThisDay.includes(time)) {
-      return false;
-    }
-
-    const [hours, minutes] = time.split(":").map(Number);
     const slotStartDateTime = new Date(`${dateStr}T${time}`);
+    const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
 
+    // 1. Проверка буфера времени для сегодняшнего дня
     if (dateStr === todayStr) {
       const timeDifferenceMs = slotStartDateTime.getTime() - now.getTime();
       const bufferMs = adminSettings.buffer_hours * 60 * 60 * 1000; 
@@ -347,8 +355,7 @@ function getFreeSlotsForService(dateStr) {
       }
     }
 
-    const slotEndDateTime = new Date(slotStartDateTime.getTime() + (serviceDurationMinutes * 60 * 1000));
-    
+    // 2. Проверка выхода процедуры за рамки рабочего времени
     const endStr = String(adminSettings.work_end_hour || "18:00").trim();
     const formattedEndStr = endStr.includes(":") ? endStr.substring(0, 5) : endStr + ":00";
     const endHourLimit = new Date(`${dateStr}T${formattedEndStr}`);
@@ -357,19 +364,15 @@ function getFreeSlotsForService(dateStr) {
       return false;
     }
 
+    // 3. Честная проверка пересечения интервалов: (Начало1 < Конец2) && (Конец1 > Начало2)
     let conflictsWithBusy = false;
-    busyTimesOnThisDay.forEach(busyTime => {
-      const busyStart = new Date(`${dateStr}T${busyTime}`);
-      
-      let busyStep = parseInt(adminSettings.slot_interval_minutes, 10);
-      if (isNaN(busyStep) || busyStep <= 0) busyStep = 45;
-
-      const busyEnd = new Date(busyStart.getTime() + (busyStep * 60 * 1000));
-
-      if (slotStartDateTime.getTime() < busyEnd.getTime() && slotEndDateTime.getTime() > busyStart.getTime()) {
+    for (let i = 0; i < busyIntervals.length; i++) {
+      const busy = busyIntervals[i];
+      if (slotStartDateTime.getTime() < busy.end.getTime() && slotEndDateTime.getTime() > busy.start.getTime()) {
         conflictsWithBusy = true;
+        break;
       }
-    });
+    }
 
     if (conflictsWithBusy) {
       return false;
@@ -566,8 +569,9 @@ async function submitForm(event) {
     const phoneInput = document.getElementById("clientPhone");
     let rawPhone = phoneInput.value.replace(/\s+/g, '').replace(/-/g, '');
 
+    // Исправлено обращение к плагину iti без лишнего объекта утилит intlTelInputUtils
     if (iti && iti.isValidNumber()) {
-      phoneToSubmit = iti.getNumber(intlTelInputUtils.numberFormat.E164).replace(/\s+/g, '');
+      phoneToSubmit = iti.getNumber().replace(/\s+/g, '');
     } else if (/^\d{9}$/.test(rawPhone)) {
       phoneToSubmit = "+48" + rawPhone;
     } else {
@@ -596,7 +600,9 @@ async function submitForm(event) {
     
     alert("Wizyta została pomyślnie zarezerwowana!");
     closeBookingModal();
-    loadFreeSlots(); 
+    
+    // После успешной записи заново запрашиваем базу, чтобы только что занятый слот мгновенно исчез
+    await loadFreeSlots(); 
   } catch (error) {
     alert("Wystąpił błąd podczas rezerwacji. Spróbuj ponownie.");
     console.error(error);
