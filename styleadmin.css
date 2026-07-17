@@ -522,3 +522,209 @@ body {
     margin-top: auto; /* Телефон всегда прижат к самому низу растянувшейся карточки */
     padding-top: 4px;
 }
+/* ==========================================================================
+   НОВЫЕ СТИЛИ ДЛЯ ИНТЕРАКТИВНОГО ДВУХПАНЕЛЬНОГО КАЛЕНДАРЯ И МОДАЛОК
+   ========================================================================== */
+
+/* Шапка управления календарем */
+.calendar-layout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.calendar-view-toggle {
+    display: flex;
+    background: #e9e9e9;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
+.btn-toggle {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-toggle.active {
+    background-color: #ffffff;
+    color: var(--text-main);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.calendar-date-scroller {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.calendar-date-scroller h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 220px;
+    text-align: center;
+}
+
+.btn-block-time {
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-block-time:hover { background-color: #222; }
+
+/* Двухколоночная сетка */
+.calendar-two-columns {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+/* Левый сайдбар с мини-календарем */
+.calendar-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid #eef2f5;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+
+.mini-month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.mini-month-header button {
+    background: none;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 8px;
+}
+.mini-month-header span {
+    font-weight: bold;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.mini-month-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 11px;
+    font-weight: bold;
+    color: #999;
+    margin-bottom: 6px;
+}
+
+.mini-month-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.mini-date-cell {
+    text-align: center;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #444;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.1s;
+}
+.mini-date-cell:hover { background: #f0f0f0; }
+.mini-date-cell.today { border: 1px solid #b05c75; font-weight: bold; color: #b05c75; }
+.mini-date-cell.selected { background-color: #b05c75 !important; color: #fff !important; font-weight: bold; }
+
+/* Правая область расписания */
+.calendar-main-schedule {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+/* Стили недельного вида */
+.week-view-active {
+    padding: 10px 0 0 0 !important;
+}
+.week-view-active .booksy-timeline {
+    margin-top: 45px; /* Сдвиг шкалы времени под заголовки колонок */
+}
+
+.calendar-week-column {
+    flex: 1;
+    min-width: 100px;
+    border-left: 1px solid #eef2f5;
+    display: flex;
+    flex-direction: column;
+}
+
+.week-column-header {
+    height: 45px;
+    text-align: center;
+    font-size: 12px;
+    border-bottom: 1px solid #eef2f5;
+    padding-top: 4px;
+    box-sizing: border-box;
+    background: #fafbfc;
+}
+.week-column-header strong { font-size: 16px; color: #333; }
+.week-column-header.today-col { background: #fff0f3; color: #b05c75; }
+.week-column-header.today-col strong { color: #b05c75; }
+
+.week-column-grid-inner {
+    position: relative;
+    background-image: linear-gradient(#f9fafb 1px, transparent 1px);
+    background-size: 100% 30px;
+}
+
+.booksy-event-card.week-card {
+    left: 2px !important;
+    right: 2px !important;
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    cursor: pointer;
+}
+
+/* Строки деталей в модальном окне */
+.details-row {
+    margin-bottom: 12px;
+    font-size: 14px;
+    border-bottom: 1px dashed #f5f5f5;
+    padding-bottom: 8px;
+}
+.details-row strong { color: #555; width: 110px; display: inline-block; }
+
+/* Безопасный курсор для карточек */
+.booksy-event-card {
+    cursor: pointer;
+}
+
+/* Адаптивность для узких экранов */
+@media (max-width: 800px) {
+    .calendar-two-columns {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .calendar-sidebar {
+        width: auto;
+    }
+}
