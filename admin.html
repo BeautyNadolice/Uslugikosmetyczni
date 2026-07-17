@@ -10,15 +10,13 @@
 </head>
 <body>
 
-    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ (показывается по умолчанию, если сессия пуста) -->
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
     <div id="login-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content" style="max-width: 400px; text-align: center; position: relative;">
             <span class="close-btn" onclick="closeLoginModal()">&times;</span>
-            
             <h2 style="color: #b05c75; margin-bottom: 8px; font-size: 24px;">Panel Administratora</h2>
             <p style="color: #666; margin-bottom: 25px; font-size: 14px;">Zaloguj się, aby zarządzać cennikiem i ustawieniami</p>
 
-            <!-- КНОПКА GOOGLE SIGN-IN -->
             <div class="google-signin-wrapper" style="display: flex; justify-content: center; margin-bottom: 15px;">
                 <div id="g_id_onload"
                      data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
@@ -35,7 +33,6 @@
                 </div>
             </div>
 
-            <!-- ТЕСТОВЫЙ БЫСТРЫЙ ВХОД -->
             <div class="test-bypass-section" style="margin-top: 25px; border-top: 1px dashed #f2d6dc; padding-top: 20px;">
                 <button class="test-btn" onclick="loginTest()">
                     🔐 Zaloguj się przez TEST (Szybki start)
@@ -45,16 +42,14 @@
         </div>
     </div>
 
-    <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ АДМИНКИ (скрыта до успешного логина) -->
+    <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ АДМИНКИ -->
     <div id="admin-panel-wrapper" class="container" style="display: none;">
         
-        <!-- Шапка навигации -->
         <header class="admin-nav">
             <h2>Nail-Art Daria Admin</h2>
             <button class="logout-btn" onclick="logout()">Wyloguj się 🚪</button>
         </header>
 
-        <!-- Вкладки управления -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="switchTab('kalendarz')">📅 Kalendarz</button>
             <button class="tab-btn" onclick="switchTab('cennik')">💰 Zarządzanie Cennikiem</button>
@@ -63,19 +58,39 @@
 
         <!-- ВКЛАДКА 0: ИНТЕРАКТИВНЫЙ КАЛЕНДАРЬ -->
         <div id="tab-kalendarz" class="tab-content">
-            <div class="calendar-controls" style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
-                <button class="btn-secondary" onclick="changeSelectedDate(-1)">◀ Poprzedni dzień</button>
-                <h3 id="calendar-current-date-title" style="margin: 0; font-size: 18px; font-weight: bold;">Piątek, 17 Lipca 2026</h3>
-                <button class="btn-secondary" onclick="changeSelectedDate(1)">Następny dzień ▶</button>
+            <div class="calendar-layout-header">
+                <div class="calendar-view-toggle">
+                    <button id="view-day-btn" class="btn-toggle active" onclick="setCalendarView('day')">Dzień</button>
+                    <button id="view-week-btn" class="btn-toggle" onclick="setCalendarView('week')">Tydzień</button>
+                </div>
+                <div class="calendar-date-scroller">
+                    <button class="btn-secondary" onclick="changeSelectedDate(-1)">◀</button>
+                    <h3 id="calendar-current-date-title">Piątek, 17 Lipca 2026</h3>
+                    <button class="btn-secondary" onclick="changeSelectedDate(1)">▶</button>
+                </div>
+                <button class="btn-block-time" onclick="openBlockTimeModal()">🔒 Dodaj wolne / Zablokuj czas</button>
             </div>
             
-            <!-- Сетка Календаря -->
-            <div class="booksy-calendar-wrapper">
-                <div class="booksy-timeline" id="booksy-timeline">
-                    <!-- Заполняется часовыми отметками через JS -->
+            <div class="calendar-two-columns">
+                <!-- Левая колонка: Мини-календарь на месяц -->
+                <div class="calendar-sidebar">
+                    <div class="mini-month-header">
+                        <button onclick="changeMiniMonth(-1)">◀</button>
+                        <span id="mini-month-title">Lipiec 2026</span>
+                        <button onclick="changeMiniMonth(1)">▶</button>
+                    </div>
+                    <div class="mini-month-weekdays">
+                        <div>Pn</div><div>Wt</div><div>Śr</div><div>Cz</div><div>Pt</div><div>Sb</div><div>Nd</div>
+                    </div>
+                    <div id="mini-month-days-grid" class="mini-month-days-grid"></div>
                 </div>
-                <div class="booksy-grid-container" id="booksy-grid">
-                    <!-- Заполняется линиями и карточками визитов через JS -->
+
+                <!-- Правая колонка: Сетка расписания -->
+                <div class="calendar-main-schedule">
+                    <div class="booksy-calendar-wrapper" id="booksy-cal-scroll-node">
+                        <div class="booksy-timeline" id="booksy-timeline"></div>
+                        <div class="booksy-grid-container" id="booksy-grid"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -88,7 +103,6 @@
                 <span class="action-divider"></span>
                 <button class="btn-primary" onclick="openAddServiceModal()">➕ Dodaj nowy zabieg</button>
                 <button class="btn-secondary" onclick="openCategoryModal()">🏷️ Zarządzaj kategoriami</button>
-                
                 <button id="saveDraftsBtn" class="btn-save-draft" onclick="saveDraftsToCloud()">💾 Zapisz Szkic</button>
                 <button class="btn-publish-danger" onclick="publishDrafts()">🚀 Opublikuj Cennik</button>
             </div>
@@ -104,9 +118,7 @@
                         <th style="width: 10%;">Akcje</th>
                     </tr>
                 </thead>
-                <tbody id="adminServicesTableBody">
-                    <!-- Заполняется динамически через JS -->
-                </tbody>
+                <tbody id="adminServicesTableBody"></tbody>
             </table>
         </div>
 
@@ -125,16 +137,12 @@
                     <input type="text" id="work_end_hour" placeholder="18:00">
                 </div>
                 <div class="form-group">
-                    <label for="buffer_hours">Czas buforowy (w godzinach przed zapisem):</label>
+                    <label for="buffer_hours">Czas buforowy (w godzinach перед записью):</label>
                     <input type="number" id="buffer_hours" min="0" max="24">
                 </div>
 
-                <!-- Настройка цветов категорий -->
                 <h4 style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">Kolory kategorii w kalendarzu</h4>
-                <p style="color: #777; font-size: 13px;">Wybierz kolor dla każdej z kategorii usług, aby wyróżnić je na siatce kalendarza:</p>
-                <div id="categories-colors-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
-                    <!-- Заполняется динамически через JS -->
-                </div>
+                <div id="categories-colors-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;"></div>
 
                 <button id="saveSettingsBtn" class="btn-primary" onclick="saveSettings()">Zapisz ustawienia</button>
             </form>
@@ -166,7 +174,7 @@
                 <input type="number" id="servicePrice" placeholder="0">
             </div>
             <div class="form-group">
-                <label>Czas trвания (min):</label>
+                <label>Czas trwania (min):</label>
                 <input type="number" id="serviceDuration" placeholder="45">
             </div>
             <div class="modal-footer">
@@ -201,6 +209,99 @@
                 <input type="text" id="createNewCategoryName" placeholder="Nazwa nowej kategorii...">
             </div>
             <button class="btn-secondary" onclick="addNewCategoryEmpty()" style="width: 100%;">Utwórz pustą kategorię</button>
+        </div>
+    </div>
+
+    <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: ПРОСМОТР / РЕДАКТИРОВАНИЕ / УДАЛЕНИЕ ВИЗИТА -->
+    <div id="appointmentDetailsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Szczegóły rezerwacji</h4>
+                <button class="modal-close" onclick="closeAppointmentModal()">&times;</button>
+            </div>
+            <div id="appointment-details-view">
+                <input type="hidden" id="details-app-index" value="">
+                <div class="details-row"><strong>Klient:</strong> <span id="details-name"></span></div>
+                <div class="details-row"><strong>Telefon:</strong> <span id="details-phone"></span></div>
+                <div class="details-row"><strong>Zabieg:</strong> <span id="details-service"></span></div>
+                <div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div>
+                <div class="details-row"><strong>Czas trwania:</strong> <span id="details-duration"></span> min</div>
+                
+                <div class="modal-footer" style="margin-top: 25px; justify-content: space-between;">
+                    <button class="btn-danger" onclick="deleteAppointmentFromAdmin()">Usuń wizytę 🗑️</button>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-secondary" onclick="closeAppointmentModal()">Zamknij</button>
+                        <button class="btn-primary" onclick="switchToEditAppointment()">Edytuj ✏️</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Форма редактирования визита (переключается внутри модалки) -->
+            <div id="appointment-edit-form" style="display: none;">
+                <div class="form-group">
+                    <label>Imię i Nazwisko:</label>
+                    <input type="text" id="edit-app-name">
+                </div>
+                <div class="form-group">
+                    <label>Telefon:</label>
+                    <input type="text" id="edit-app-phone">
+                </div>
+                <div class="form-group">
+                    <label>Usługa / Zabieg:</label>
+                    <input type="text" id="edit-app-service">
+                </div>
+                <div class="form-group">
+                    <label>Data i Godzina rozpoczęcia:</label>
+                    <input type="datetime-local" id="edit-app-datetime">
+                </div>
+                <div class="form-group">
+                    <label>Czas trwania (min):</label>
+                    <input type="number" id="edit-app-duration">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="switchToViewAppointment()">Anuluj</button>
+                    <button class="btn-primary" onclick="saveEditedAppointment()">Zapisz zmiany</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: БЛОКИРОВКА ВРЕМЕНИ / ВЫХОДНОЙ -->
+    <div id="blockTimeModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Zablokuj czas / Dodaj wolne</h4>
+                <button class="modal-close" onclick="closeBlockTimeModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Typ blokady:</label>
+                <select id="block-type" onchange="toggleBlockTimeFields()">
+                    <option value="hours">Konkretne godziny w wybranym dniu</option>
+                    <option value="full_day">Cały dzień wolny</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Data:</label>
+                <input type="date" id="block-date">
+            </div>
+            <div id="block-hours-group">
+                <div class="form-group">
+                    <label>Godzina rozpoczęcia:</label>
+                    <input type="time" id="block-start-time" value="09:00">
+                </div>
+                <div class="form-group">
+                    <label>Godzina zakończenia:</label>
+                    <input type="time" id="block-end-time" value="18:00">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Nazwa blokady (np. Urlop, Obiady, Wolne):</label>
+                <input type="text" id="block-title" value="Zablokowane">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeBlockTimeModal()">Anuluj</button>
+                <button class="btn-primary" onclick="submitBlockTime()">Zablokuj czas 🔒</button>
+            </div>
         </div>
     </div>
 
