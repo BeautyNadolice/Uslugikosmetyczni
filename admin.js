@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQkcqFhsrIr_cc_0shpUVCU6XzBFe-A0AFa1OojzJQFNEeoNnxhukmc_bCosK6PUNLSA/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9H1u78awRyCKjiXloJj1IqLue0T666IWiN5O-mOmtSA4i_8WucRGjadv_F0sM28Hpwg/exec";
 
 const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
@@ -8,6 +8,16 @@ let allCategories = [];
 let undoStack = [];             
 let redoStack = [];             
 let hasUnsavedChanges = false;  
+
+// ПЕРЕМЕННЫЕ ДЛЯ РАБОТЫ КАЛЕНДАРЯ
+let selectedCalendarDate = new Date(); // Текущая открытая дата в календаре
+let appointmentsData = [];             // Записи из таблицы (Wizyty)
+let globalColors = {};                 // Цвета категорий
+let settingsData = {                   // Настройки по умолчанию
+    work_start_hour: "09:00",
+    work_end_hour: "18:00",
+    buffer_hours: 1
+};
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuthSession();
@@ -48,7 +58,6 @@ function checkAuthSession() {
 }
 
 function showAdminPanel() {
-    // Скрываем модалку входа и открываем рабочую область
     document.getElementById("login-modal").style.display = "none";
     document.getElementById("admin-panel-wrapper").style.display = "block";
     loadAdminServices();
@@ -56,13 +65,11 @@ function showAdminPanel() {
 }
 
 function showLoginScreen() {
-    // Показываем модалку входа, скрываем рабочую область
     document.getElementById("login-modal").style.display = "flex";
     document.getElementById("admin-panel-wrapper").style.display = "none";
 }
 
 function closeLoginModal() {
-    // Если администратор закрывает окно без логина — возвращаем его на главную
     document.getElementById("login-modal").style.display = "none";
     window.location.href = "index.html";
 }
@@ -128,20 +135,35 @@ function switchTab(tabName) {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
+// Изменение текущего отображаемого дня в календаре
+function changeSelectedDate(days) {
+    selectedCalendarDate.setDate(selectedCalendarDate.getDate() + days);
+    renderBooksyCalendar();
+}
+
+// Загрузка настроек, встреч и персональных цветов
 async function loadSettings() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?checkBusy=true");
         const data = await response.json();
         if (data.settings) {
+            settingsData = data.settings;
             document.getElementById("work_start_hour").value = data.settings.work_start_hour || "09:00";
             document.getElementById("work_end_hour").value = data.settings.work_end_hour || "18:00";
             document.getElementById("buffer_hours").value = data.settings.buffer_hours || 1;
+            
+            globalColors = data.settings.colors || {};
+            appointmentsData = data.appointments || [];
+            
+            buildColorsEditor();
+            renderBooksyCalendar();
         }
     } catch (e) {
         console.error("Błąd ładowania ustawień:", e);
     }
 }
 
+// Сохранение настроек и кастомных цветов категорий
 async function saveSettings() {
     const btn = document.getElementById("saveSettingsBtn");
     if (!btn) return;
@@ -149,10 +171,19 @@ async function saveSettings() {
     btn.innerText = "Zapisywanie...";
     btn.disabled = true;
 
+    // Сбор цветов из палитры
+    const categoryColors = {};
+    const colorInputs = document.querySelectorAll("#categories-colors-list input[type='color']");
+    colorInputs.forEach(input => {
+        const cat = input.getAttribute("data-category");
+        categoryColors[cat] = input.value;
+    });
+
     const payload = {
         work_start_hour: document.getElementById("work_start_hour").value.trim(),
         work_end_hour: document.getElementById("work_end_hour").value.trim(),
-        buffer_hours: parseInt(document.getElementById("buffer_hours").value) || 1
+        buffer_hours: parseInt(document.getElementById("buffer_hours").value) || 1,
+        colors: categoryColors
     };
 
     try {
@@ -161,8 +192,13 @@ async function saveSettings() {
             body: JSON.stringify({ action: "updateSettings", payload: payload })
         });
         const result = await response.json();
-        if (result.success) alert("Ustawienia zapisane!");
-        else alert("Błąd: " + (result.error || "nieznany"));
+        if (result.success) {
+            alert("Ustawienia zapisane!");
+            globalColors = categoryColors;
+            renderBooksyCalendar();
+        } else {
+            alert("Błąd: " + (result.error || "nieznany"));
+        }
     } catch (e) {
         console.error(e);
         alert("Błąd połączenia.");
@@ -170,6 +206,115 @@ async function saveSettings() {
         btn.innerText = originalText;
         btn.disabled = false;
     }
+}
+
+// Построение палитры цветов в настройках на основе существующих категорий
+function buildColorsEditor() {
+    const container = document.getElementById("categories-colors-list");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    if (allCategories.length === 0) {
+        container.innerHTML = "<p style='grid-column: span 2; color:#999; text-align:center;'>Wpierw dodaj usługi w Cenniku, aby móc zmieniać ich kolory.</p>";
+        return;
+    }
+    
+    allCategories.forEach(cat => {
+        const defaultColor = globalColors[cat] || "#b05c75"; 
+        const div = document.createElement("div");
+        div.style = "display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 10px; border-radius:6px; border: 1px solid #eee;";
+        div.innerHTML = `
+            <span style="font-weight: bold; font-size:13px; color:#444;">${cat}</span>
+            <input type="color" data-category="${cat}" value="${defaultColor}" style="border:none; cursor:pointer; width:45px; height:30px; border-radius:4px; padding:0;">
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Генерация Booksy-сетки календаря
+function renderBooksyCalendar() {
+    const timeline = document.getElementById("booksy-timeline");
+    const grid = document.getElementById("booksy-grid");
+    const title = document.getElementById("calendar-current-date-title");
+    if (!timeline || !grid) return;
+    
+    // Склонение месяцев и дней на польском
+    const daysOfWeek = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+    const months = ["Stycznia", "Lutego", "Marca", "Kwietnia", "Maja", "Czerwca", "Lipca", "Sierpnia", "Września", "Października", "Listopada", "Grudnia"];
+    
+    title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()}`;
+    
+    timeline.innerHTML = "";
+    grid.innerHTML = "";
+    
+    const startHour = parseInt((settingsData.work_start_hour || "09:00").split(":")[0], 10);
+    const endHour = parseInt((settingsData.work_end_hour || "18:00").split(":")[0], 10);
+    const totalHours = endHour - startHour;
+    
+    const pxPerMinute = 1.2; 
+    
+    // Создание временных меток слева
+    for (let h = startHour; h <= endHour; h++) {
+        const label = document.createElement("div");
+        label.className = "time-label";
+        label.style.height = `${60 * pxPerMinute}px`;
+        label.innerText = `${h.toString().padStart(2, '0')}:00`;
+        timeline.appendChild(label);
+    }
+    
+    const totalMinutes = totalHours * 60;
+    grid.style.height = `${totalMinutes * pxPerMinute}px`;
+    
+    // Отрисовка разделительных линий по 30 минут
+    for (let m = 0; m < totalMinutes; m += 30) {
+        const line = document.createElement("div");
+        line.className = "grid-halfhour-line";
+        line.style.top = `${m * pxPerMinute}px`;
+        grid.appendChild(line);
+    }
+    
+    // Фильтрация записей только на выбранный день
+    const targetDateStr = selectedCalendarDate.getFullYear() + "-" + 
+                          String(selectedCalendarDate.getMonth() + 1).padStart(2, '0') + "-" + 
+                          String(selectedCalendarDate.getDate()).padStart(2, '0');
+    
+    const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
+    
+    targetAppointments.forEach(app => {
+        const appTimeStr = app.date.split("T")[1]; // "HH:MM"
+        const [appH, appM] = appTimeStr.split(":").map(Number);
+        
+        const startOffsetMinutes = (appH * 60 + appM) - (startHour * 60);
+        const topPos = startOffsetMinutes * pxPerMinute;
+        const heightPos = app.duration * pxPerMinute;
+        
+        if (topPos >= 0 && topPos < totalMinutes * pxPerMinute) {
+            const card = document.createElement("div");
+            card.className = "booksy-event-card";
+            card.style.top = `${topPos}px`;
+            card.style.height = `${heightPos}px`;
+            
+            // Получаем персональный цвет для категории, иначе используем стандартный пудровый цвет
+            const categoryColor = globalColors[app.category] || "#b05c75"; 
+            card.style.backgroundColor = categoryColor;
+            
+            card.innerHTML = `
+                <div class="event-time">${appTimeStr} - ${getEndTimeStr(appTimeStr, app.duration)}</div>
+                <div class="event-name">${app.name}</div>
+                <div class="event-service">${app.service}</div>
+                <div class="event-phone">📞 ${app.phone}</div>
+            `;
+            
+            grid.appendChild(card);
+        }
+    });
+}
+
+function getEndTimeStr(startTimeStr, durationMin) {
+    const [h, m] = startTimeStr.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m + durationMin);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
 async function loadAdminServices() {
@@ -464,7 +609,7 @@ function buildCategorySelect(selectId, selectedValue) {
 }
 
 function saveServiceModalData() {
-    const index = parseInt(document.getElementById("editServiceIndex").value);
+    const index = parseInt(document.getElementById("editServiceIndex").value, 10);
     const select = document.getElementById("serviceCategorySelect");
     let category = select.value.trim();
     
@@ -476,8 +621,8 @@ function saveServiceModalData() {
     }
 
     const name = document.getElementById("serviceName").value.trim();
-    const price = parseInt(document.getElementById("servicePrice").value);
-    const duration = parseInt(document.getElementById("serviceDuration").value);
+    const price = parseInt(document.getElementById("servicePrice").value, 10);
+    const duration = parseInt(document.getElementById("serviceDuration").value, 10);
 
     if (!category || !name || isNaN(price) || isNaN(duration)) {
         alert("Wypełnij poprawnie wszystkie pola!");
