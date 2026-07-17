@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzdAGenxHuHo0-uawsOM6XWHnjBVdARSg9uhVOP0L0ta20qOBkMl81j3L4EKolmlleVQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypeHjoGI5ve_gGR1K5Huf-_6rMTTeFYp8TR_5qWIxvvliutESi6sFyXPAAGSdv-E053g/exec";
 const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
 
