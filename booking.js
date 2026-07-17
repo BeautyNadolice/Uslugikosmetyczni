@@ -1,4 +1,5 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzdAGenxHuHo0-uawsOM6XWHnjBVdARSg9uhVOP0L0ta20qOBkMl81j3L4EKolmlleVQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6vZS7_q2u4MMTQAfECS9sn1g6XZJq0mrUV7wTJWpT8OkGwQlei0r25YAuZ36H5pBWLQ/exec";
+  
 let iti; 
 let allAvailableSlots = []; 
 let adminSettings = {
@@ -11,7 +12,29 @@ let adminSettings = {
 let flatpickrInstance = null;
 let isClientApproved = false; 
 
-// Загрузка галереи/портфолио из Google Диска по категориям
+// Универсальный хелпер для выполнения GET-запросов через JSONP (100% обход CORS)
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+
+    const separator = url.includes('?') ? '&' : '?';
+    const script = document.createElement('script');
+    script.src = `${url}${separator}callback=${callbackName}`;
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error("JSONP request failed"));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+// Загрузка галереи/портфолио с обходом CORS
 async function loadPortfolio() {
   const container = document.getElementById("portfolio-container");
   if (!container) return;
@@ -19,32 +42,28 @@ async function loadPortfolio() {
   container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Ładowanie galerii...</p>';
 
   try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?getPortfolio=true`);
-    const data = await response.json();
+    const data = await fetchJSONP(`${APPS_SCRIPT_URL}?getPortfolio=true`);
 
-    container.innerHTML = ""; // Очищаем текст загрузки
+    container.innerHTML = ""; 
     let loadedAny = false;
 
     if (data && data.length > 0) {
       data.forEach(category => {
-        // 1. Создаем заголовок для папки-категории (например, "Stylizacja rzęs")
         const title = document.createElement("h3");
         title.innerText = category.category;
         container.appendChild(title);
 
-        // 2. Создаем сетку под эту категорию
         const grid = document.createElement("div");
         grid.className = "gallery-grid";
 
-        // 3. Заполняем сетку фотографиями
         category.images.forEach(img => {
           const imgEl = document.createElement("img");
           imgEl.src = img.url;
-          imgEl.className = "gallery-item"; // Класс из вашего CSS!
+          imgEl.className = "gallery-item"; 
           imgEl.alt = img.name || category.category;
           
           imgEl.onerror = function() {
-            this.src = "https://via.placeholder.com/300"; // Заглушка, если фото не доступно
+            this.src = "https://via.placeholder.com/300"; 
           };
           
           grid.appendChild(imgEl);
@@ -69,8 +88,7 @@ async function loadServicesIntoSelect() {
   if (!serviceSelect) return;
 
   try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?getPrices=true`);
-    const services = await response.json();
+    const services = await fetchJSONP(`${APPS_SCRIPT_URL}?getPrices=true`);
 
     serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
 
@@ -105,7 +123,6 @@ async function loadServicesIntoSelect() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Инициализируем динамическую галерею
   loadPortfolio();
 
   const phoneInput = document.getElementById("clientPhone");
@@ -250,8 +267,7 @@ function onServiceChange() {
 
 async function loadFreeSlots() {
   try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?checkBusy=true`);
-    const data = await response.json(); 
+    const data = await fetchJSONP(`${APPS_SCRIPT_URL}?checkBusy=true`); 
     
     allAvailableSlots = data.busySlots || [];
     if (data.settings) {
@@ -430,7 +446,7 @@ function displayTimeSlots(selectedDateStr) {
   });
 }
 
-// Исправленная функция проверки клиента по номеру (проверяет статус CORS безопасным образом)
+// Новая функция проверки с JSONP (убивает ошибки CORS)
 async function checkExistingClient() {
   const statusEl = document.getElementById("clientStatus");
   const phoneInput = document.getElementById("clientPhone");
@@ -459,18 +475,8 @@ async function checkExistingClient() {
   statusEl.innerHTML = "Sprawdzanie danych...";
 
   try {
-    const response = await fetch(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error("Błąd sieci");
-    }
-
-    const data = await response.json();
+    // Выполняем GET-запрос через JSONP
+    const data = await fetchJSONP(`${APPS_SCRIPT_URL}?phone=${encodeURIComponent(fullPhoneNumber)}`);
 
     if (data && data.found && data.name) {
       document.getElementById("clientName").value = data.name;
@@ -491,7 +497,7 @@ async function checkExistingClient() {
       toggleFormState(false); 
     }
   } catch (error) {
-    console.error("Błąd CORS lub sieci при проверке телефона:", error);
+    console.error("Błąd проверки телефона:", error);
     statusEl.style.color = "red";
     statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
     isClientApproved = false;
@@ -513,7 +519,7 @@ function resetBookingForm() {
   toggleFormState(false);
 }
 
-// Отправка формы бронирования на сервер Google Apps Script
+// Отправка формы бронирования (использует JSONP для проверки и обычный fetch-no-cors для записи)
 async function submitForm(event) {
   event.preventDefault();
 
@@ -533,12 +539,13 @@ async function submitForm(event) {
   }
 
   submitBtn.disabled = true;
-  submitBtn.innerText = "Sprawdzanie terminu w kalendarzu...";
+  submitBtn.innerText = "Sprawdzanie terminu...";
 
   try {
     const serviceDuration = durationInput ? parseInt(durationInput.value, 10) : 60;
-    const checkResponse = await fetch(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}&duration=${serviceDuration}`);
-    const result = await checkResponse.json();
+    
+    // Проверяем занятость одиночного слота через безопасный JSONP
+    const result = await fetchJSONP(`${APPS_SCRIPT_URL}?checkSingleSlot=${encodeURIComponent(finalDateTimeValue)}&duration=${serviceDuration}`);
 
     if (!result.isFree) {
       alert("Wybrana godzina jest już zajęta w kalendarzu. Proszę wybrać inny termin.");
@@ -579,7 +586,7 @@ async function submitForm(event) {
       rodo: rodoConsent && rodoConsent.checked ? "Tak" : "Nie"
     };
 
-    // Чтобы POST-запрос гарантированно не упирался в CORS при отправке, шлем text/plain с no-cors
+    // Отправка POST в режиме no-cors (CORS-безопасная отправка в один конец)
     await fetch(APPS_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
