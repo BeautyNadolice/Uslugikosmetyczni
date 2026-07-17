@@ -459,16 +459,16 @@ body {
     left: 10px;
     right: 10px;
     border-radius: 8px;
-    padding: 6px 10px; /* Немного уменьшили внутренние отступы */
+    padding: 6px 10px; /* Слегка уменьшили внутренние отступы */
     box-sizing: border-box;
     color: #ffffff;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    font-size: 11px; /* Слегка уменьшили базовый шрифт */
+    font-size: 11px; /* Сделали базовый шрифт чуть аккуратнее */
     overflow: hidden;
-    line-height: 1.2; /* Уменьшили межстрочный интервал */
+    line-height: 1.25; /* Комфортный межстрочный интервал */
     transition: transform 0.2s;
 }
 
@@ -482,34 +482,35 @@ body {
     font-size: 11px;
     opacity: 0.9;
     margin-bottom: 2px;
-    flex-shrink: 0; /* Не дает времени сжиматься */
+    flex-shrink: 0; /* ЗАПРЕЩАЕМ сжимать блок времени */
 }
 
 .booksy-event-card .event-name {
     font-weight: 700;
-    font-size: 12px; /* Чуть уменьшили */
+    font-size: 12px; /* Слегка уменьшили для компактности */
     margin-bottom: 2px;
     text-shadow: 0 1px 2px rgba(0,0,0,0.15);
-    flex-shrink: 0; /* Не дает имени сжиматься */
+    flex-shrink: 0; /* ЗАПРЕЩАЕМ сжимать блок имени */
 }
 
-/* Самое проблемное место */
+/* Название услуги теперь будет читабельным */
 .booksy-event-card .event-service {
     font-style: italic;
-    font-size: 10.5px; /* Уменьшили размер названия услуги */
+    font-size: 11px;
     opacity: 0.95;
-    white-space: normal; /* РАЗРЕШАЕМ перенос длинного текста на новую строку */
+    white-space: normal; /* РАЗРЕШАЕМ перенос на новую строку */
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* Показываем максимум 2 строки, если не влезает */
+    -webkit-line-clamp: 2; /* Показываем максимум 2 строки, если текст очень длинный */
     -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; /* В конце длинной строки появится красивое троеточие ... */
+    flex-shrink: 1; /* Позволяет блоку адаптироваться, но теперь без экстремального сплющивания */
     margin-bottom: 4px;
 }
 
 .booksy-event-card .event-phone {
-    font-size: 10px;
-    margin-top: auto; /* Прижимает телефон к низу */
+    font-size: 11px;
+    margin-top: auto; /* Оставляет телефон прижатым к низу */
     opacity: 0.9;
-    flex-shrink: 0; /* Не дает телефону сжиматься */
+    flex-shrink: 0; /* ЗАПРЕЩАЕМ сжимать блок телефона */
 }
