@@ -555,7 +555,7 @@ async function saveEditedAppointment() {
     }
 }
 
-// --- Обновленная функция удаления (её мы обновили блоком finally) ---
+// --- Обновленная функция удаления (ИСПРАВЛЕНА ОШИБКА ЗАКРЫТИЯ ОКНА) ---
 async function deleteAppointmentFromAdmin() {
     if (!activeSelectedAppointment) return;
     if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
@@ -582,16 +582,18 @@ async function deleteAppointmentFromAdmin() {
         });
 
         alert("Wizyta została pomyślnie usunięta!");
-        closeAppointmentDetails();
+        closeAppointmentModal(); // <-- ИСПРАВЛЕНО: Теперь окно закроется корректно!
         await loadSettings(); // Перезагружаем календарь, чтобы запись исчезла
         
     } catch (error) {
-        console.error("Błąd usuвания:", error);
+        console.error("Błąd usuwania:", error);
         alert("Wystąpił błąd podczas usuwania wizyty.");
     } finally {
         // ЭТОТ БЛОК ВЫПОЛНИТСЯ ВСЕГДА: возвращаем кнопку в норму
-        deleteBtn.innerHTML = originalText;
-        deleteBtn.disabled = false;
+        if (deleteBtn) {
+            deleteBtn.innerHTML = originalText;
+            deleteBtn.disabled = false;
+        }
     }
 }
 // ==========================================================================
