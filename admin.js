@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzaPHFLd2DO4EjaWmSRAhV7N9siNDDqitgn2yfA3IQS4J7sqs_ZpRa1CKBe1U0DlBTSFw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyO5CRSqRcnINYM4TIgRkUEsh6pIKWNn253jXrD7vy0n8ToI6Jp3bFK1WUZz0QL36DMqw/exec";
 const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
 
@@ -12,7 +12,7 @@ let selectedCalendarDate = new Date();
 let miniMonthDate = new Date();        
 let calendarViewMode = "day";          
 let appointmentsData = [];             
-let clientsCRMData = {}; // Новая глобальная база клиентов для быстрого CRM-поиска
+let clientsCRMData = {}; // Globalna baza klientów dla szybkiego CRM-wyszukiwania
 let globalColors = {};                 
 let settingsData = {                   
     work_start_hour: "09:00",
@@ -63,7 +63,7 @@ function showAdminPanel() {
 
 function showLoginScreen() {
     document.getElementById("login-modal").style.display = "flex";
-    document.getElementById("admin-panel-wrapper").style.none = "none";
+    document.getElementById("admin-panel-wrapper").style.display = "none"; // POPRAWIONO: .style.none na .style.display
 }
 
 function closeLoginModal() {
@@ -126,8 +126,10 @@ function switchTab(tabName) {
 
 function setCalendarView(mode) {
     calendarViewMode = mode;
-    document.getElementById("view-day-btn").classList.toggle("active", mode === "day");
-    document.getElementById("view-week-btn").classList.toggle("active", mode === "week");
+    const dayBtn = document.getElementById("view-day-btn");
+    const weekBtn = document.getElementById("view-week-btn");
+    if (dayBtn) dayBtn.classList.toggle("active", mode === "day");
+    if (weekBtn) weekBtn.classList.toggle("active", mode === "week");
     renderBooksyCalendar();
 }
 
@@ -141,7 +143,7 @@ function changeSelectedDate(days) {
     renderBooksyCalendar();
 }
 
-// Проверка: является ли день рабочим по плавающему графику смен
+// Sprawdzenie: czy dzień jest roboczy według elastycznego grafiku Darii
 function isWorkingDay(dateObj) {
     if (!settingsData.schedule_cycle || !settingsData.schedule_anchor_date) return true;
     
@@ -153,20 +155,18 @@ function isWorkingDay(dateObj) {
     const diffTime = current.getTime() - anchor.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays < 0) return true; // Страховка для старых дат
+    if (diffDays < 0) return true; // Zabezpieczenie dla starych dat
     
     const cyclePattern = settingsData.schedule_cycle.split('-').map(Number); // [1, 1, 2]
-    const totalCyclePeriod = cyclePattern.reduce((a, b) => a + b, 0); // 4 дня всего в цикле
+    const totalCyclePeriod = cyclePattern.reduce((a, b) => a + b, 0); // 4 dni w cyklu
     
-    const dayInCycle = diffDays % totalCyclePeriod; // Позиция внутри текущего цикла
+    const dayInCycle = diffDays % totalCyclePeriod; // Pozycja wewnątrz obecnego cyklu
     
-    // Пример для 1-1-2 (1 раб, 1 вых, 2 раб): 
-    // Индексы дней: 0 -> Раб, 1 -> Вых, 2 -> Раб, 3 -> Раб
     let runningSum = 0;
     for (let i = 0; i < cyclePattern.length; i++) {
         runningSum += cyclePattern[i];
         if (dayInCycle < runningSum) {
-            return i % 2 === 0; // Четные блоки — рабочие, нечетные — выходные
+            return i % 2 === 0; // Parzyste bloki – robocze, nieparzyste – wolne
         }
     }
     return true;
@@ -178,18 +178,21 @@ async function loadSettings() {
         const data = await response.json();
         if (data.settings) {
             settingsData = Object.assign(settingsData, data.settings);
-            document.getElementById("work_start_hour").value = data.settings.work_start_hour || "09:00";
-            document.getElementById("work_end_hour").value = data.settings.work_end_hour || "18:00";
-            document.getElementById("buffer_hours").value = data.settings.buffer_hours || 1;
             
-            if (document.getElementById("schedule_cycle")) {
-                document.getElementById("schedule_cycle").value = data.settings.schedule_cycle || "1-1-2";
-            }
+            const startHourEl = document.getElementById("work_start_hour");
+            const endHourEl = document.getElementById("work_end_hour");
+            const bufferEl = document.getElementById("buffer_hours");
+            const cycleEl = document.getElementById("schedule_cycle");
+
+            if (startHourEl) startHourEl.value = data.settings.work_start_hour || "09:00";
+            if (endHourEl) endHourEl.value = data.settings.work_end_hour || "18:00";
+            if (bufferEl) bufferEl.value = data.settings.buffer_hours || 1;
+            if (cycleEl) cycleEl.value = data.settings.schedule_cycle || "1-1-2";
             
             globalColors = data.settings.colors || {};
             appointmentsData = data.appointments || [];
             
-            // Преобразуем массив клиентов CRM в удобный объект (хэш-мапу) по номеру телефона
+            // Konwersja tablicy CRM klientów na obiekt mapy (klucz: telefon)
             clientsCRMData = {};
             if (data.clients) {
                 data.clients.forEach(c => {
@@ -220,11 +223,16 @@ async function saveSettings() {
         categoryColors[cat] = input.value;
     });
 
+    const startHourEl = document.getElementById("work_start_hour");
+    const endHourEl = document.getElementById("work_end_hour");
+    const bufferEl = document.getElementById("buffer_hours");
+    const cycleEl = document.getElementById("schedule_cycle");
+
     const payload = {
-        work_start_hour: document.getElementById("work_start_hour").value.trim(),
-        work_end_hour: document.getElementById("work_end_hour").value.trim(),
-        buffer_hours: parseInt(document.getElementById("buffer_hours").value) || 1,
-        schedule_cycle: document.getElementById("schedule_cycle") ? document.getElementById("schedule_cycle").value.trim() : "1-1-2",
+        work_start_hour: startHourEl ? startHourEl.value.trim() : "09:00",
+        work_end_hour: endHourEl ? endHourEl.value.trim() : "18:00",
+        buffer_hours: bufferEl ? parseInt(bufferEl.value, 10) : 1,
+        schedule_cycle: cycleEl ? cycleEl.value.trim() : "1-1-2",
         colors: categoryColors
     };
 
@@ -293,7 +301,7 @@ function renderMiniMonthCalendar() {
         dayCell.innerText = day;
         const cellDate = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), day);
         
-        // Визуальная подсветка выходных дней Daria в мини-календаре
+        // Podświetlenie dni wolnych Darii w kalendarzu mini
         if (!isWorkingDay(cellDate)) {
             dayCell.classList.add("daria-day-off");
         }
@@ -337,11 +345,12 @@ function renderBooksyCalendar() {
     }
 
     if (calendarViewMode === "day") {
-        scrollWrapper.classList.remove("week-view-active");
+        if (scrollWrapper) scrollWrapper.classList.remove("week-view-active");
         
-        // Показываем в заголовке, рабочий ли это день
         const isWork = isWorkingDay(selectedCalendarDate);
-        title.innerHTML = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()} ${isWork ? '💼' : '<span style="color:#d9534f;">(Dzień Wolny 🛑)</span>'}`;
+        if (title) {
+            title.innerHTML = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()} ${isWork ? '💼' : '<span style="color:#d9534f;">(Dzień Wolny 🛑)</span>'}`;
+        }
         
         if (!isWork) {
             grid.classList.add("grid-day-off-watermark");
@@ -375,7 +384,6 @@ function renderBooksyCalendar() {
                 card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
                 if (isBlock) card.style.borderLeft = "4px solid #cc0000";
 
-                // Проверка CRM надежности клиента прямо в карточке (Индикатор "🔥 Warn" если много отмен)
                 let clientBadge = "";
                 const clientCRM = clientsCRMData[String(app.phone).trim()];
                 if (clientCRM && parseInt(clientCRM.canceled || 0) > 1) {
@@ -393,7 +401,7 @@ function renderBooksyCalendar() {
             }
         });
     } else {
-        scrollWrapper.classList.add("week-view-active");
+        if (scrollWrapper) scrollWrapper.classList.add("week-view-active");
         grid.classList.remove("grid-day-off-watermark");
         const currentDay = selectedCalendarDate.getDay();
         const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
@@ -401,7 +409,9 @@ function renderBooksyCalendar() {
         mondayDate.setDate(mondayDate.getDate() + distanceToMonday);
         const sundayDate = new Date(mondayDate);
         sundayDate.setDate(sundayDate.getDate() + 6);
-        title.innerText = `${mondayDate.getDate()} ${months[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${months[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
+        if (title) {
+            title.innerText = `${mondayDate.getDate()} ${months[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${months[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
+        }
         
         for (let d = 0; d < 7; d++) {
             const colDate = new Date(mondayDate);
@@ -479,37 +489,42 @@ function openAppointmentDetailsModal(app) {
     document.getElementById("details-datetime").innerText = d.toLocaleString("pl-PL");
     document.getElementById("details-duration").innerText = app.duration || 45;
     
-    // --- ИНТЕГРАЦИЯ CRM КАРТОЧКИ ---
+    // --- INTEGRACJA BLOKU CRM ---
     const crmContainer = document.getElementById("crm-client-info-block");
     const cleanPhone = String(app.phone).trim();
     
-    if (app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna") {
-        crmContainer.style.display = "none";
-    } else if (clientsCRMData[cleanPhone]) {
-        const client = clientsCRMData[cleanPhone];
-        crmContainer.style.display = "block";
-        document.getElementById("crm-stat-visits").innerText = client.visits || 0;
-        document.getElementById("crm-stat-canceled").innerText = client.canceled || 0;
-        document.getElementById("crm-stat-lastdate").innerText = client.last_visit ? client.last_visit.split("T")[0] : "Brak danych";
-        
-        // Подсветка статуса
-        const ratio = parseInt(client.canceled || 0);
-        const badgeElement = document.getElementById("crm-client-status-badge");
-        if (ratio >= 2) {
-            badgeElement.className = "crm-badge-danger";
-            badgeElement.innerText = "🚨 Problemowy (Dużo odwołań!)";
+    if (crmContainer) {
+        if (app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna") {
+            crmContainer.style.display = "none";
+        } else if (clientsCRMData[cleanPhone]) {
+            const client = clientsCRMData[cleanPhone];
+            crmContainer.style.display = "block";
+            document.getElementById("crm-stat-visits").innerText = client.visits || 0;
+            document.getElementById("crm-stat-canceled").innerText = client.canceled || 0;
+            document.getElementById("crm-stat-lastdate").innerText = client.last_visit ? client.last_visit.split("T")[0] : "Brak danych";
+            
+            const ratio = parseInt(client.canceled || 0, 10);
+            const badgeElement = document.getElementById("crm-client-status-badge");
+            if (badgeElement) {
+                if (ratio >= 2) {
+                    badgeElement.className = "crm-badge-danger";
+                    badgeElement.innerText = "🚨 Problemowy (Dużo odwołań!)";
+                } else {
+                    badgeElement.className = "crm-badge-success";
+                    badgeElement.innerText = "⭐ Zaufany klient";
+                }
+            }
         } else {
-            badgeElement.className = "crm-badge-success";
-            badgeElement.innerText = "⭐ Zaufany klient";
+            crmContainer.style.display = "block";
+            document.getElementById("crm-stat-visits").innerText = "1";
+            document.getElementById("crm-stat-canceled").innerText = "0";
+            document.getElementById("crm-stat-lastdate").innerText = "Nowy klient";
+            const badgeElement = document.getElementById("crm-client-status-badge");
+            if (badgeElement) {
+                badgeElement.className = "crm-badge-success";
+                badgeElement.innerText = "🌱 Nowy klient (Pierwsza wizyta)";
+            }
         }
-    } else {
-        crmContainer.style.display = "block";
-        document.getElementById("crm-stat-visits").innerText = "1";
-        document.getElementById("crm-stat-canceled").innerText = "0";
-        document.getElementById("crm-stat-lastdate").innerText = "Nowy klient";
-        const badgeElement = document.getElementById("crm-client-status-badge");
-        badgeElement.className = "crm-badge-success";
-        badgeElement.innerText = "🌱 Nowy klient (Pierwsza wizyta)";
     }
     
     switchToViewAppointment();
@@ -568,8 +583,12 @@ async function deleteAppointmentFromAdmin() {
     if (!activeSelectedAppointment) return;
     if (!confirm(`Czy na pewno chcesz ODWOŁAĆ wizytę klienta: ${activeSelectedAppointment.name}? Wizyta zostanie przeniesiona do archiwum CRM, a statystyki klienta zostaną zaktualizowane.`)) return;
     const deleteBtn = document.querySelector("#appointment-details-view .btn-danger");
-    const originalText = deleteBtn.innerHTML;
-    deleteBtn.innerText = "Usuwanie..."; deleteBtn.disabled = true;
+    let originalText = "";
+    if (deleteBtn) {
+        originalText = deleteBtn.innerHTML;
+        deleteBtn.innerText = "Usuwanie..."; 
+        deleteBtn.disabled = true;
+    }
 
     try {
         await fetch(APPS_SCRIPT_URL, {
@@ -603,7 +622,8 @@ function openBlockTimeModal() {
 function closeBlockTimeModal() { document.getElementById("blockTimeModal").style.display = "none"; }
 function toggleBlockTimeFields() {
     const type = document.getElementById("block-type").value;
-    document.getElementById("block-hours-group").style.display = (type === "hours") ? "block" : "none";
+    const hoursGroup = document.getElementById("block-hours-group");
+    if (hoursGroup) hoursGroup.style.display = (type === "hours") ? "block" : "none";
 }
 
 async function submitBlockTime() {
@@ -643,7 +663,7 @@ async function submitBlockTime() {
         alert("Czas został zablokowany w kalendarzu!");
         closeBlockTimeModal(); await loadSettings();
     } catch (e) {
-        console.error(e); alert("Błąd blocking czasu.");
+        console.error(e); alert("Błąd blokowania czasu.");
     }
 }
 
@@ -812,7 +832,8 @@ async function publishDrafts() {
 
 function toggleNewCategoryInput() {
     const select = document.getElementById("serviceCategorySelect");
-    document.getElementById("newCategoryGroup").style.display = (select && select.value === "__NEW__") ? "block" : "none";
+    const newCatGroup = document.getElementById("newCategoryGroup");
+    if (newCatGroup) newCatGroup.style.display = (select && select.value === "__NEW__") ? "block" : "none";
 }
 function closeServiceModal() { document.getElementById("serviceModal").style.display = "none"; }
 function openAddServiceModal() {
