@@ -139,74 +139,6 @@ function logout() {
    SYSTEM LOAD
    ========================================================== */
 
-async function loadSystem() {
-
-    await loadServices();
-
-    await loadSettings();
-
-    renderDashboard();
-
-}
-
-
-async function loadSettings() {
-
-    try {
-
-        const response =
-            await fetch(
-                APPS_SCRIPT_URL +
-                "?checkBusy=true"
-            );
-
-        const data =
-            await response.json();
-
-        settingsData =
-            data.settings || {};
-
-        appointmentsData =
-            data.appointments || [];
-
-        globalColors = {};
-
-        if (
-            settingsData.colors
-        ) {
-
-            Object.keys(
-                settingsData.colors
-            ).forEach(key => {
-
-                globalColors[key] =
-                    settingsData.colors[key];
-
-            });
-
-        }
-
-        allCategories =
-            settingsData.all_categories || [];
-
-        renderMiniMonthCalendar();
-
-        renderBooksyCalendar();
-
-    }
-
-    catch(err) {
-
-        console.error(
-            "Settings error",
-            err
-        );
-
-    }
-
-}
-
-
 async function loadServices() {
 
     try {
@@ -220,19 +152,90 @@ async function loadServices() {
         currentServices =
             await response.json();
 
+        renderServicesTable();
+
     }
 
     catch(err) {
 
-        console.error(
-            err
-        );
+        console.error(err);
 
     }
 
 }
+function renderServicesTable() {
 
+    const tbody =
+        document.getElementById(
+            "adminServicesTableBody"
+        );
 
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (
+        !currentServices ||
+        currentServices.length === 0
+    ) {
+
+        tbody.innerHTML =
+            `
+            <tr>
+                <td colspan="6"
+                    style="text-align:center;">
+                    Brak usług
+                </td>
+            </tr>
+            `;
+
+        return;
+
+    }
+
+    currentServices.forEach(service => {
+
+        const tr =
+            document.createElement("tr");
+
+        tr.innerHTML = `
+
+            <td>
+                ${service.category || ""}
+            </td>
+
+            <td>
+                ${service.name || ""}
+            </td>
+
+            <td>
+                ${service.price || 0} zł
+            </td>
+
+            <td>
+                ${service.duration || 0} min
+            </td>
+
+            <td>
+                ${service.status || ""}
+            </td>
+
+            <td>
+                <button
+                    class="btn-secondary">
+
+                    Edytuj
+
+                </button>
+            </td>
+
+        `;
+
+        tbody.appendChild(tr);
+
+    });
+
+}
 /* ==========================================================
    SIDEBAR TABS
    ========================================================== */
