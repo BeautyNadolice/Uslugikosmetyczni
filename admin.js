@@ -1533,12 +1533,7 @@ setInterval(()=>{
 /* ==========================================================
    LOAD SYSTEM EXTENSION
    ========================================================== */
-
-const _oldLoadSystem =
-    loadSystem;
-
-loadSystem =
-async function(){
+async function loadSystem() {
 
     await loadServices();
 
@@ -1552,7 +1547,8 @@ async function(){
 
     buildColorsEditor();
 
-};
+}
+
 /* ==========================================================
    GOOGLE LOGIN CALLBACK
    ========================================================== */
