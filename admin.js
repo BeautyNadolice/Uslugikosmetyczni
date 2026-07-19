@@ -672,9 +672,9 @@ function renderMiniMonthCalendar(){
 function renderBooksyCalendar(){
 
     const grid =
-        document.getElementById(
-            "booksy-grid"
-        );
+    document.getElementById("booksy-grid");
+
+if (!grid) return;
 
     if(!grid) return;
 
