@@ -1,5 +1,5 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhokxJb8mrF71U96L41eRdFX-HUZtl5OtM7pj24TtNRZoFy9rreCRa1j3Ua7df1Fq2ag/exec";
-const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
+const ALLOWED_EMAIL = "strsasa@gmail.com"; // Zaktualizowane na podstawie zrzutu ekranu kalendarza
 
 let currentServices = [];       
 let allCategories = []; 
@@ -45,10 +45,6 @@ function logout() {
     window.location.reload();
 }
 
-function closeLoginModal() {
-    document.getElementById("login-modal").style.display = "none";
-}
-
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -92,20 +88,43 @@ async function loadSettings() {
         const data = await response.json();
         if (data.settings) {
             settingsData = data.settings;
-            globalColors = data.settings.colors || {};
+            
+            // Mapowanie kolorów uwzględniające prefiks "color_" z bazy danych
+            globalColors = {};
+            if(data.settings.colors) {
+                Object.keys(data.settings.colors).forEach(key => {
+                    const cleanKey = key.replace("color_", "").trim();
+                    globalColors[cleanKey] = data.settings.colors[key];
+                });
+            }
+            
             allCategories = data.settings.all_categories || [];
             appointmentsData = data.appointments || [];
             
+            // Mapowanie obiektów bazy na zmienne JS (Dopasowanie do kolumn: Data/Godzina, Imię, Zabieg, Telefon)
+            appointmentsData = appointmentsData.map(app => {
+                return {
+                    date: app["Data/Godzina"] || app.date,
+                    name: app["Imię"] || app.name,
+                    service: app["Zabieg"] || app.service,
+                    phone: app["Telefon"] || app.phone,
+                    duration: app["Czas trwania"] || app.duration || 45,
+                    category: "Inne"
+                };
+            });
+            
             appointmentsData.forEach(app => {
-                const match = currentServices.find(s => s.name.trim().toLowerCase() === app.service.trim().toLowerCase());
-                app.category = match ? match.category : "Inne";
+                if (app.service) {
+                    const match = currentServices.find(s => s.name.trim().toLowerCase() === app.service.trim().toLowerCase());
+                    if (match) app.category = match.category.trim();
+                }
             });
 
             buildColorsEditor();
             renderBooksyCalendar();
         }
     } catch (e) {
-        console.error("Błąd ładowania ustawień:", e);
+        console.error("Błąd ładowania ustawień systemu:", e);
     }
 }
 
@@ -126,10 +145,10 @@ function renderBooksyCalendar() {
     if (calendarViewMode === "day") {
         title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]}`;
         const targetDateStr = getFormattedISOBlockDate(selectedCalendarDate);
-        const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
+        const targetAppointments = appointmentsData.filter(app => app.date && app.date.startsWith(targetDateStr));
         
         if (targetAppointments.length === 0) {
-            grid.innerHTML = `<div style="padding: 40px; text-align: center; color: #999; font-weight: bold; width:100%;">Brak zaplanowanych wizyt. ✨</div>`;
+            grid.innerHTML = `<div style="padding: 40px; text-align: center; color: #999; font-weight: bold; width:100%;">Brak zaplanowanych wizyt na ten dzień. ✨</div>`;
             return;
         }
 
@@ -137,7 +156,7 @@ function renderBooksyCalendar() {
             const appTimeStr = app.date.split("T")[1].substring(0, 5);
             const card = document.createElement("div");
             card.className = "booksy-event-card";
-            card.style = "position: relative; margin: 10px 0; padding: 12px; border-radius: 8px; color: white;";
+            card.style = "position: relative; margin: 10px 0; padding: 12px; border-radius: 8px; color: white; cursor: pointer;";
             
             const isBlock = app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna";
             card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
@@ -164,7 +183,7 @@ function renderBooksyCalendar() {
             const colDate = new Date(mondayDate);
             colDate.setDate(colDate.getDate() + d);
             const targetDateStr = getFormattedISOBlockDate(colDate);
-            const targetAppointments = appointmentsData.filter(app => app.date.startsWith(targetDateStr));
+            const targetAppointments = appointmentsData.filter(app => app.date && app.date.startsWith(targetDateStr));
             
             if (targetAppointments.length > 0) {
                 hasAnyWeeklyBooking = true;
@@ -193,6 +212,7 @@ function renderBooksyCalendar() {
         const currentYear = selectedCalendarDate.getFullYear();
         
         const monthlyAppointments = appointmentsData.filter(app => {
+            if(!app.date) return false;
             const d = new Date(app.date);
             return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         });
@@ -304,7 +324,7 @@ function saveAppointment() {
             document.getElementById('appointmentModal').style.display = 'none';
             loadSettings(); 
         } else { alert("Błąd: " + data.error); }
-    }).catch(err => alert("Błąd sieci."));
+    }).catch(err => alert("Błąd sieci połączenia."));
 }
 
 function saveEditedAppointment() {
@@ -339,7 +359,7 @@ function saveEditedAppointment() {
 }
 
 function deleteAppointmentFromAdmin() {
-    if (!currentEditingAppointment || !confirm("Czy na pewno chcesz odwołać i usunąć tę wizytę?")) return;
+    if (!currentEditingAppointment || !confirm("Czy na pewno chcesz odwołać tę wizytę?")) return;
 
     fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -374,23 +394,25 @@ function renderTable() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    // Usuwamy sztywne filtrowanie wielkości liter (toLowerCase/trim), aby tabela zawsze widziała cennik
-    const categoriesToRender = currentServices.map(s => s.category.trim());
-    const uniqueCategories = [...new Set(categoriesToRender)];
+    if (!currentServices || currentServices.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">Brak danych w cenniku.</td></tr>`;
+        return;
+    }
+
+    const uniqueCategories = [...new Set(currentServices.map(s => s.category ? s.category.trim() : "Inne"))];
 
     uniqueCategories.forEach(catName => {
-        const servicesInCat = currentServices.filter(s => s.category.trim() === catName);
+        const servicesInCat = currentServices.filter(s => (s.category ? s.category.trim() : "Inne") === catName);
         const headerTr = document.createElement("tr");
         headerTr.innerHTML = `<td colspan="6" style="font-weight: bold; padding: 10px; background: #faf0f2;">🏷️ Kategoria: ${catName}</td>`;
         tbody.appendChild(headerTr);
 
-        servicesInCat.forEach((item, originalIndex) => {
+        servicesInCat.forEach((item) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td>${item.category}</td> <td><strong>${item.name}</strong></td> <td>${item.price} zł</td> <td>${item.duration} min</td> <td>${item.status}</td>
+                <td>${item.category || "Inne"}</td> <td><strong>${item.name}</strong></td> <td>${item.price} zł</td> <td>${item.duration} min</td> <td>${item.status || "Aktywna"}</td>
                 <td>
                     <button onclick="alert('Edycja w przygotowaniu')">Edytuj</button>
-                    <button style="color:red; margin-left:5px;" onclick="alert('Usuwanie w przygotowaniu')">Usuń</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -403,6 +425,7 @@ function calculateFinanceReport() {
     const now = new Date();
     
     appointmentsData.forEach(app => {
+        if(!app.date || !app.service) return;
         const appDate = new Date(app.date);
         const match = currentServices.find(s => s.name.trim().toLowerCase() === app.service.trim().toLowerCase());
         const price = match ? parseFloat(match.price) || 0 : 0;
@@ -421,8 +444,11 @@ function calculateFinanceReport() {
 }
 
 function getEndTimeStr(startTimeStr, durationMin) {
-    const [h, m] = startTimeStr.split(":").map(Number);
-    const d = new Date(); d.setHours(h, m + parseInt(durationMin));
+    if(!startTimeStr) return "";
+    const parts = startTimeStr.split(":");
+    const h = parseInt(parts[0]) || 0;
+    const m = parseInt(parts[1]) || 0;
+    const d = new Date(); d.setHours(h, m + parseInt(durationMin || 45));
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
@@ -461,10 +487,11 @@ function buildColorsEditor() {
     const container = document.getElementById("categories-colors-list");
     if (!container) return; container.innerHTML = "";
     allCategories.forEach(cat => {
-        const defaultColor = globalColors[cat] || "#b05c75"; 
+        const cleanCat = cat.replace("color_", "").trim();
+        const defaultColor = globalColors[cleanCat] || "#b05c75"; 
         const div = document.createElement("div");
         div.style = "display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 10px; border-radius:6px; border: 1px solid #eee;";
-        div.innerHTML = `<span style="font-weight: bold; font-size:13px; color:#444;">${cat}</span><input type="color" data-category="${cat}" value="${defaultColor}" style="border:none; cursor:pointer; width:45px; height:30px;">`;
+        div.innerHTML = `<span style="font-weight: bold; font-size:13px; color:#444;">${cleanCat}</span><input type="color" data-category="${cleanCat}" value="${defaultColor}" style="border:none; cursor:pointer; width:45px; height:30px;">`;
         container.appendChild(div);
     });
 }
@@ -472,7 +499,8 @@ function buildColorsEditor() {
 async function saveSettings() {
     const categoryColors = {};
     document.querySelectorAll("#categories-colors-list input[type='color']").forEach(input => {
-        categoryColors[input.getAttribute("data-category")] = input.value;
+        const cat = input.getAttribute("data-category");
+        categoryColors["color_" + cat] = input.value;
     });
     try {
         await fetch(APPS_SCRIPT_URL, {
@@ -480,9 +508,9 @@ async function saveSettings() {
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({ action: "updateSettings", payload: { colors: categoryColors } })
         });
-        alert("Kolory zapisane.");
+        alert("Ustawienia kolorów zostały zapisane pomyślnie w bazie!");
         await loadSettings();
-    } catch(e) { alert("Błąd zapisu."); }
+    } catch(e) { alert("Błąd zapisu ustawień."); }
 }
 
 function handleCredentialResponse(response) { console.log(response); }
@@ -493,5 +521,3 @@ function toggleBlockTimeFields() {
     document.getElementById("block-hours-group").style.display = (type === "hours") ? "block" : "none";
 }
 function submitBlockTime() { closeBlockTimeModal(); }
-function openCategoryModal() { document.getElementById("categoryModal").style.display = "flex"; }
-function closeCategoryModal() { document.getElementById("categoryModal").style.display = "none"; }
