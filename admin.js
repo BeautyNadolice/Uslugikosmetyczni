@@ -101,7 +101,15 @@ async function showAdminPanel() {
         "admin-panel-wrapper"
     ).style.display = "flex";
 
-    await loadSystem();
+    try{
+
+        await loadSystem();
+
+    }catch(e){
+
+        console.error(e);
+
+    }
 
 }
 
@@ -250,18 +258,18 @@ function switchTab(tabName) {
 
     }
 
-    const activeBtn =
-    document.querySelector(
-        `.nav-btn[onclick*="${tabName}"]`
+   const activeBtn =
+document.querySelector(
+    `.nav-btn[onclick*="${tabName}"]`
+);
+
+if(activeBtn){
+
+    activeBtn.classList.add(
+        "active"
     );
 
-    if(activeButton) {
-
-        activeButton.classList.add(
-            "active"
-        );
-
-    }
+}
 
 
     if(tabName === "dashboard") {
@@ -1058,9 +1066,9 @@ async function loadClients(){
 
         customersData =
             await response.json();
-
+/* ==========================================================
         renderClients();
-
+========================================================== */
     }
 
     catch(error){
@@ -1219,9 +1227,9 @@ async function deleteClient(phone){
                 })
             }
         );
-
+/* ==========================================================
         await loadClients();
-
+ ========================================================== */
     }
 
     catch(error){
