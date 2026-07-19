@@ -1066,9 +1066,7 @@ async function loadClients(){
 
         customersData =
             await response.json();
-/* ==========================================================
         renderClients();
-========================================================== */
     }
 
     catch(error){
