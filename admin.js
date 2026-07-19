@@ -1543,6 +1543,8 @@ async function(){
 
     await loadSettings();
 
+    await loadClients();
+
     renderDashboard();
 
     calculateFinanceReport();
@@ -1550,7 +1552,6 @@ async function(){
     buildColorsEditor();
 
 };
-
 /* ==========================================================
    GOOGLE LOGIN CALLBACK
    ========================================================== */
