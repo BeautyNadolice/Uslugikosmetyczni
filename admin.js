@@ -277,27 +277,29 @@ function saveAppointment() {
     payload.oldName = currentEditingAppointment.oldName;
   }
 
-  // Отправка данных в Google Apps Script API (zmieniono na poprawне APPS_SCRIPT_URL)
+  // Wysyłanie danych do Google Apps Script API
   fetch(APPS_SCRIPT_URL, {
     method: "POST",
-    mode: "no-cors",
+    mode: "cors", // Zmieniono z "no-cors" na "cors"
     headers: {
-      "Content-Type": "text/plain"
+      "Content-Type": "text/plain" // Google Apps Script najlepiej toleruje text/plain przy parsowaniu JSON
     },
     body: JSON.stringify(payload)
   })
-  .then(() => {
-    alert(currentEditingAppointment ? "Pomyślnie zmieniono rezerwację!" : "Nowa wizyta została utworzona!");
-    document.getElementById('appointmentModal').style.display = 'none';
-    
-    // Odświeżamy dane bazy i przebudowujemy kalendarz
-    loadSettings(); 
+  .then(response => response.json()) // Parsujemy odpowiedź zwrotną z Google
+  .then(data => {
+    if (data.success) {
+      alert(currentEditingAppointment ? "Pomyślnie zmieniono rezerwację!" : "Nowa wizyta została utworzona!");
+      document.getElementById('appointmentModal').style.display = 'none';
+      loadSettings(); // Odświeżenie kalendarza
+    } else {
+      alert("Błąd serwera: " + data.error);
+    }
   })
   .catch(err => {
-    console.error("Ошибка сохранения:", err);
-    alert("Nie udało się zapisać wizyty.");
+    console.error("Obsługa błędu sieci:", err);
+    alert("Nie udało się zapisać wizyty z powodu błędu sieci.");
   });
-}
 
 function getEndTimeStr(startTimeStr, durationMin) {
     const [h, m] = startTimeStr.split(":").map(Number);
