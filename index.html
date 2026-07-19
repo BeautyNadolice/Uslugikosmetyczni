@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
 
-    .cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
-    r/dist/flatpickr.min.css">
-    cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
+    /ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
+    .min.css">
+    pickr/dist/themes/material_gold.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -21,8 +21,7 @@
         <div class="subtitle">Technik usług kosmetycznych</div>
         <p class="bio">
             Dyplomowana specjalistka branży beauty w Polsce.
-            Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs
-            oraz idealna pielęgnacja ✨
+            Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨
         </p>
     </section>
 
@@ -31,21 +30,13 @@
     </button>
 
     <div style="margin-top:15px;text-align:center;">
-        <a href="admin.html"
-           style="display:inline-block;
-                  color:var(--text-muted,#777);
-                  font-size:12px;
-                  text-decoration:none;
-                  border:1px dashed var(--accent-color,#c2a383);
-                  padding:6px 12px;
-                  border-radius:4px;
-                  transition:all .2s ease;">
+        admin.html">
             ⚙️ Panel Administratora
         </a>
     </div>
 
     <section id="portfolio-container">
-        <!-- JS ładuje galerie -->
+        <!-- JS ładuje galerię -->
     </section>
 
 </div>
@@ -56,9 +47,7 @@
 
         <span class="close-btn" onclick="closeBookingModal()">&times;</span>
 
-        <h2 style="margin-bottom:20px;
-                   color:var(--accent-color);
-                   text-align:center;">
+        <h2>
             Rezerwacja wizyty
         </h2>
 
@@ -66,9 +55,7 @@
 
             <div class="form-group">
 
-                <label>
-                    Numer telefonu *
-                </label>
+                <label>Numer telefonu *</label>
 
                 <div style="display:flex;gap:10px;align-items:stretch;">
 
@@ -85,9 +72,10 @@
 
                 </div>
 
-                <div id="clientStatus"
-                     class="status-message"
-                     style="display:none;">
+                <div
+                    id="clientStatus"
+                    class="status-message"
+                    style="display:none;">
                 </div>
 
             </div>
@@ -147,8 +135,15 @@
                     </p>
                 </div>
 
-                <input type="hidden" id="finalDateTime" required>
-                <input type="hidden" id="selectedDuration" value="45">
+                <input
+                    type="hidden"
+                    id="finalDateTime"
+                    required>
+
+                <input
+                    type="hidden"
+                    id="selectedDuration"
+                    value="45">
 
             </div>
 
@@ -163,7 +158,8 @@
                     disabled>
 
                 <label for="rodoConsent">
-                    Wyrażam zgodę na przetwarzanie danych osobowych.
+                    Wyrażam zgodę na przetwarzanie moich danych osobowych przez
+                    <strong>Nail-Art Daria</strong>.
                 </label>
 
             </div>
@@ -183,41 +179,39 @@
 </div>
 
 <div style="text-align:center;margin:40px 0;">
-    <button
-        onclick="document.getElementById('contact-form-modal').style.display='block'">
+    <button onclick="document.getElementById('contact-form-modal').style.display='block'">
         Napisz do nas
     </button>
 </div>
 
-<div id="contact-form-modal"
-     style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;">
+<div
+    id="contact-form-modal"
+    style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;">
 
-    <div style="background:white;
-                width:90%;
-                max-width:600px;
-                margin:50px auto;
-                padding:20px;">
+    <div
+        style="background:white;width:90%;max-width:600px;margin:50px auto;padding:20px;">
 
         <span
             onclick="document.getElementById('contact-form-modal').style.display='none'">
             &times;
         </span>
 
-        /d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform?embedded=true"
+        <iframe
+            src="https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform?embedded=true"
             width="100%"
             height="500"
             frameborder="0">
-            Ładowanie…
+            Ładowanie...
         </iframe>
 
     </div>
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-/flatpickr"></script>
-/dist/l10n/pl.js"></script>
-<script src="booking.js"></script>
+/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+.net/npm/flatpickr/dist/l10n/pl.js"></script>
+"></script>
 
 </body>
 </html>
