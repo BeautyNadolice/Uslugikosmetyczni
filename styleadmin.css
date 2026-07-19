@@ -142,4 +142,205 @@ body {
 
     padding: 0 20px;
 }
+.sidebar-footer{
+    padding:20px;
+}
 
+.nav-btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-toggle{
+
+    border:none;
+    border-radius:12px;
+    padding:12px 16px;
+    cursor:pointer;
+    transition:.2s;
+
+}
+
+.nav-btn{
+
+    background:white;
+    text-align:left;
+
+}
+
+.nav-btn.active{
+
+    background:var(--color-accent);
+    color:white;
+
+}
+
+.main-content{
+
+    flex:1;
+    margin-left:280px;
+    padding:30px;
+    width:calc(100% - 280px);
+
+}
+
+.page-header{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:24px;
+
+}
+
+.dashboard-grid{
+
+    display:grid;
+    grid-template-columns:
+        repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+
+}
+
+.dashboard-card{
+
+    background:white;
+    border-radius:18px;
+    padding:24px;
+    box-shadow:var(--shadow-card);
+
+}
+
+.dashboard-card h3{
+
+    margin-top:0;
+    color:var(--text-muted);
+
+}
+
+.dashboard-card span{
+
+    font-size:28px;
+    font-weight:700;
+
+}
+
+.admin-table{
+
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:18px;
+    overflow:hidden;
+
+}
+
+.admin-table th,
+.admin-table td{
+
+    padding:14px;
+    border-bottom:1px solid #eee;
+    text-align:left;
+
+}
+
+.calendar-three-columns{
+
+    display:flex;
+    gap:20px;
+
+}
+
+.calendar-sidebar{
+
+    width:300px;
+    background:white;
+    padding:20px;
+    border-radius:18px;
+
+}
+
+.calendar-main-schedule{
+
+    flex:1;
+    background:white;
+    padding:20px;
+    border-radius:18px;
+
+}
+
+.booksy-event-card{
+
+    padding:12px;
+    margin-bottom:10px;
+    border-radius:12px;
+    color:white;
+
+}
+
+.mini-month-days-grid{
+
+    display:grid;
+    grid-template-columns:
+        repeat(7,1fr);
+    gap:6px;
+
+}
+
+.mini-date-cell{
+
+    padding:10px;
+    text-align:center;
+    border-radius:8px;
+    cursor:pointer;
+
+}
+
+.mini-date-cell.today{
+
+    background:#f6dce3;
+
+}
+
+.mini-date-cell.selected{
+
+    background:var(--color-accent);
+    color:white;
+
+}
+
+.form-group{
+
+    margin-bottom:20px;
+
+}
+
+.form-group input{
+
+    width:100%;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:10px;
+
+}
+
+.modal-overlay{
+
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.35);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+
+}
+
+.modal-content{
+
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    width:500px;
+    max-width:90%;
+
+}
