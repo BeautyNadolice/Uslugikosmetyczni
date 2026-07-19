@@ -12,11 +12,14 @@ let selectedCalendarDate = new Date();
 let miniMonthDate = new Date();        
 let calendarViewMode = "day";          
 let appointmentsData = [];             
+let clientsCRMData = {}; // Новая глобальная база клиентов для быстрого CRM-поиска
 let globalColors = {};                 
 let settingsData = {                   
     work_start_hour: "09:00",
     work_end_hour: "18:00",
-    buffer_hours: 1
+    buffer_hours: 1,
+    schedule_cycle: "1-1-2",
+    schedule_anchor_date: "2026-07-01"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -60,7 +63,7 @@ function showAdminPanel() {
 
 function showLoginScreen() {
     document.getElementById("login-modal").style.display = "flex";
-    document.getElementById("admin-panel-wrapper").style.display = "none";
+    document.getElementById("admin-panel-wrapper").style.none = "none";
 }
 
 function closeLoginModal() {
@@ -138,17 +141,62 @@ function changeSelectedDate(days) {
     renderBooksyCalendar();
 }
 
+// Проверка: является ли день рабочим по плавающему графику смен
+function isWorkingDay(dateObj) {
+    if (!settingsData.schedule_cycle || !settingsData.schedule_anchor_date) return true;
+    
+    const anchor = new Date(settingsData.schedule_anchor_date);
+    anchor.setHours(0,0,0,0);
+    const current = new Date(dateObj);
+    current.setHours(0,0,0,0);
+    
+    const diffTime = current.getTime() - anchor.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return true; // Страховка для старых дат
+    
+    const cyclePattern = settingsData.schedule_cycle.split('-').map(Number); // [1, 1, 2]
+    const totalCyclePeriod = cyclePattern.reduce((a, b) => a + b, 0); // 4 дня всего в цикле
+    
+    const dayInCycle = diffDays % totalCyclePeriod; // Позиция внутри текущего цикла
+    
+    // Пример для 1-1-2 (1 раб, 1 вых, 2 раб): 
+    // Индексы дней: 0 -> Раб, 1 -> Вых, 2 -> Раб, 3 -> Раб
+    let runningSum = 0;
+    for (let i = 0; i < cyclePattern.length; i++) {
+        runningSum += cyclePattern[i];
+        if (dayInCycle < runningSum) {
+            return i % 2 === 0; // Четные блоки — рабочие, нечетные — выходные
+        }
+    }
+    return true;
+}
+
 async function loadSettings() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?checkBusy=true");
         const data = await response.json();
         if (data.settings) {
-            settingsData = data.settings;
+            settingsData = Object.assign(settingsData, data.settings);
             document.getElementById("work_start_hour").value = data.settings.work_start_hour || "09:00";
             document.getElementById("work_end_hour").value = data.settings.work_end_hour || "18:00";
             document.getElementById("buffer_hours").value = data.settings.buffer_hours || 1;
+            
+            if (document.getElementById("schedule_cycle")) {
+                document.getElementById("schedule_cycle").value = data.settings.schedule_cycle || "1-1-2";
+            }
+            
             globalColors = data.settings.colors || {};
             appointmentsData = data.appointments || [];
+            
+            // Преобразуем массив клиентов CRM в удобный объект (хэш-мапу) по номеру телефона
+            clientsCRMData = {};
+            if (data.clients) {
+                data.clients.forEach(c => {
+                    clientsCRMData[String(c.phone).trim()] = c;
+                });
+            }
+            
             buildColorsEditor();
             miniMonthDate = new Date(selectedCalendarDate);
             renderBooksyCalendar();
@@ -176,6 +224,7 @@ async function saveSettings() {
         work_start_hour: document.getElementById("work_start_hour").value.trim(),
         work_end_hour: document.getElementById("work_end_hour").value.trim(),
         buffer_hours: parseInt(document.getElementById("buffer_hours").value) || 1,
+        schedule_cycle: document.getElementById("schedule_cycle") ? document.getElementById("schedule_cycle").value.trim() : "1-1-2",
         colors: categoryColors
     };
 
@@ -243,6 +292,12 @@ function renderMiniMonthCalendar() {
         dayCell.className = "mini-date-cell";
         dayCell.innerText = day;
         const cellDate = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), day);
+        
+        // Визуальная подсветка выходных дней Daria в мини-календаре
+        if (!isWorkingDay(cellDate)) {
+            dayCell.classList.add("daria-day-off");
+        }
+        
         if (cellDate.toDateString() === today.toDateString()) { dayCell.classList.add("today"); }
         if (cellDate.toDateString() === selectedCalendarDate.toDateString()) { dayCell.classList.add("selected"); }
         dayCell.onclick = () => {
@@ -283,7 +338,17 @@ function renderBooksyCalendar() {
 
     if (calendarViewMode === "day") {
         scrollWrapper.classList.remove("week-view-active");
-        title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()}`;
+        
+        // Показываем в заголовке, рабочий ли это день
+        const isWork = isWorkingDay(selectedCalendarDate);
+        title.innerHTML = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()} ${isWork ? '💼' : '<span style="color:#d9534f;">(Dzień Wolny 🛑)</span>'}`;
+        
+        if (!isWork) {
+            grid.classList.add("grid-day-off-watermark");
+        } else {
+            grid.classList.remove("grid-day-off-watermark");
+        }
+
         for (let m = 0; m < totalMinutes; m += 30) {
             const line = document.createElement("div");
             line.className = "grid-halfhour-line";
@@ -310,9 +375,16 @@ function renderBooksyCalendar() {
                 card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
                 if (isBlock) card.style.borderLeft = "4px solid #cc0000";
 
+                // Проверка CRM надежности клиента прямо в карточке (Индикатор "🔥 Warn" если много отмен)
+                let clientBadge = "";
+                const clientCRM = clientsCRMData[String(app.phone).trim()];
+                if (clientCRM && parseInt(clientCRM.canceled || 0) > 1) {
+                    clientBadge = ` <span class="crm-warn-badge">⚠️ Ryzyko (${clientCRM.canceled} odwołań)</span>`;
+                }
+
                 card.innerHTML = `
                     <div class="event-time">${appTimeStr} - ${getEndTimeStr(appTimeStr, app.duration)}</div>
-                    <div class="event-name">${app.name}</div>
+                    <div class="event-name">${app.name}${clientBadge}</div>
                     <div class="event-service">${app.service}</div>
                     ${isBlock ? '' : `<div class="event-phone">📞 ${app.phone}</div>`}
                 `;
@@ -322,6 +394,7 @@ function renderBooksyCalendar() {
         });
     } else {
         scrollWrapper.classList.add("week-view-active");
+        grid.classList.remove("grid-day-off-watermark");
         const currentDay = selectedCalendarDate.getDay();
         const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
         const mondayDate = new Date(selectedCalendarDate);
@@ -335,10 +408,14 @@ function renderBooksyCalendar() {
             colDate.setDate(colDate.getDate() + d);
             const col = document.createElement("div");
             col.className = "calendar-week-column";
+            
+            const isWork = isWorkingDay(colDate);
+            if (!isWork) col.classList.add("column-day-off-bg");
+
             const colHeader = document.createElement("div");
             colHeader.className = "week-column-header";
             if (colDate.toDateString() === new Date().toDateString()) colHeader.classList.add("today-col");
-            colHeader.innerHTML = `<strong>${colDate.getDate()}</strong><div>${daysOfWeek[colDate.getDay()].substring(0, 3)}</div>`;
+            colHeader.innerHTML = `<strong>${colDate.getDate()}</strong><div>${daysOfWeek[colDate.getDay()].substring(0, 3)} ${isWork ? '' : '🛑'}</div>`;
             col.appendChild(colHeader);
             
             const colGrid = document.createElement("div");
@@ -401,6 +478,40 @@ function openAppointmentDetailsModal(app) {
     const d = new Date(app.date);
     document.getElementById("details-datetime").innerText = d.toLocaleString("pl-PL");
     document.getElementById("details-duration").innerText = app.duration || 45;
+    
+    // --- ИНТЕГРАЦИЯ CRM КАРТОЧКИ ---
+    const crmContainer = document.getElementById("crm-client-info-block");
+    const cleanPhone = String(app.phone).trim();
+    
+    if (app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna") {
+        crmContainer.style.display = "none";
+    } else if (clientsCRMData[cleanPhone]) {
+        const client = clientsCRMData[cleanPhone];
+        crmContainer.style.display = "block";
+        document.getElementById("crm-stat-visits").innerText = client.visits || 0;
+        document.getElementById("crm-stat-canceled").innerText = client.canceled || 0;
+        document.getElementById("crm-stat-lastdate").innerText = client.last_visit ? client.last_visit.split("T")[0] : "Brak danych";
+        
+        // Подсветка статуса
+        const ratio = parseInt(client.canceled || 0);
+        const badgeElement = document.getElementById("crm-client-status-badge");
+        if (ratio >= 2) {
+            badgeElement.className = "crm-badge-danger";
+            badgeElement.innerText = "🚨 Problemowy (Dużo odwołań!)";
+        } else {
+            badgeElement.className = "crm-badge-success";
+            badgeElement.innerText = "⭐ Zaufany klient";
+        }
+    } else {
+        crmContainer.style.display = "block";
+        document.getElementById("crm-stat-visits").innerText = "1";
+        document.getElementById("crm-stat-canceled").innerText = "0";
+        document.getElementById("crm-stat-lastdate").innerText = "Nowy klient";
+        const badgeElement = document.getElementById("crm-client-status-badge");
+        badgeElement.className = "crm-badge-success";
+        badgeElement.innerText = "🌱 Nowy klient (Pierwsza wizyta)";
+    }
+    
     switchToViewAppointment();
     document.getElementById("appointmentDetailsModal").style.display = "flex";
 }
@@ -455,7 +566,7 @@ async function saveEditedAppointment() {
 
 async function deleteAppointmentFromAdmin() {
     if (!activeSelectedAppointment) return;
-    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
+    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ wizytę klienta: ${activeSelectedAppointment.name}? Wizyta zostanie przeniesiona do archiwum CRM, a statystyki klienta zostaną zaktualizowane.`)) return;
     const deleteBtn = document.querySelector("#appointment-details-view .btn-danger");
     const originalText = deleteBtn.innerHTML;
     deleteBtn.innerText = "Usuwanie..."; deleteBtn.disabled = true;
@@ -472,7 +583,7 @@ async function deleteAppointmentFromAdmin() {
                 name: activeSelectedAppointment.name
             })
         });
-        alert("Wizyta została pomyślnie usunięta!");
+        alert("Wizyta została odwołana i zapisana w historii klienta!");
         closeAppointmentModal();
         await loadSettings();
     } catch (error) {
@@ -532,7 +643,7 @@ async function submitBlockTime() {
         alert("Czas został zablokowany w kalendarzu!");
         closeBlockTimeModal(); await loadSettings();
     } catch (e) {
-        console.error(e); alert("Błąd blokowania czasu.");
+        console.error(e); alert("Błąd blocking czasu.");
     }
 }
 
