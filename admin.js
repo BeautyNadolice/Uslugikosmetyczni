@@ -61,8 +61,7 @@ function setCalendarView(mode) {
     calendarViewMode = mode;
     document.getElementById("view-day-btn").classList.toggle("active", mode === "day");
     document.getElementById("view-week-btn").classList.toggle("active", mode === "week");
-    document.getElementById("view-month-btn").classList.toggle("active", mode === "month");
-    renderBooksyCalendar();
+      renderBooksyCalendar();
 }
 
 function changeSelectedDate(days) {
