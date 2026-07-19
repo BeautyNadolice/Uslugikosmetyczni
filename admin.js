@@ -231,28 +231,11 @@ async function loadServices() {
 
 function switchTab(tabName) {
 
-    document
-        .querySelectorAll(
-            ".tab-page"
-        )
-        .forEach(page => {
+    document.querySelectorAll('.tab-page')
+        .forEach(tab => tab.style.display = 'none');
 
-            page.style.display =
-                "none";
-
-        });
-
-    document
-        .querySelectorAll(
-            ".nav-btn"
-        )
-        .forEach(btn => {
-
-            btn.classList.remove(
-                "active"
-            );
-
-        });
+    document.querySelectorAll('.nav-btn')
+        .forEach(btn => btn.classList.remove('active'));
 
 
     const page =
