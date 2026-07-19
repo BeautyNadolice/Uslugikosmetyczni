@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhokxJb8mrF71U96L41eRdFX-HUZtl5OtM7pj24TtNRZoFy9rreCRa1j3Ua7df1Fq2ag/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgZ-FgaxZszGtFHPQdj8TghVgDWf3TCvIBXMh9yCS-vkysbGrHmAOEwNH144JB2cyvcA/exec";
 const ALLOWED_EMAIL = "strsasa@gmail.com"; // Zaktualizowane na podstawie zrzutu ekranu kalendarza
 
 let currentServices = [];       
