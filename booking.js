@@ -1,4 +1,4 @@
- const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfUP2LeEXKDQY6C_9TBU1Vf4biLc60q-Te2TrPrybVsiQhM23ul_WtsG4KebrJfpwnhA/exec";
+ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGi2H3nYXji504kGW_ItwYqosWqatAg2XFtCJQyq44Fc_0Bcc__r1rhgAqdUzBdHW6ow/exec";
   let iti; 
 let allAvailableSlots = []; 
 let appointmentsData = []; 
