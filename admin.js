@@ -236,6 +236,59 @@ function renderServicesTable() {
     });
 
 }
+async function loadSettings() {
+
+    try {
+
+        const response =
+            await fetch(
+                APPS_SCRIPT_URL +
+                "?checkBusy=true"
+            );
+
+        const data =
+            await response.json();
+
+        settingsData =
+            data.settings || {};
+
+        appointmentsData =
+            data.appointments || [];
+
+        globalColors = {};
+
+        if (settingsData.colors) {
+
+            Object.keys(
+                settingsData.colors
+            ).forEach(key => {
+
+                globalColors[key] =
+                    settingsData.colors[key];
+
+            });
+
+        }
+
+        allCategories =
+            settingsData.all_categories || [];
+
+        renderMiniMonthCalendar();
+
+        renderBooksyCalendar();
+
+    }
+
+    catch(err) {
+
+        console.error(
+            "Settings error",
+            err
+        );
+
+    }
+
+}
 /* ==========================================================
    SIDEBAR TABS
    ========================================================== */
