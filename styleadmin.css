@@ -19,7 +19,7 @@
     --border-radius-base: 16px;
     --shadow-offset-y: 6px;
     --shadow-blur: 20px;
-    --shadow-opacity: 0.04;
+    --shadow-opacity: 0.04; /* POPRAWKA: Dodana zmienna, którą steruje Twój skrypt JS */
     
     /* Динамічний розрахунок тіні */
     --premium-box-shadow: 0px var(--shadow-offset-y) var(--shadow-blur) rgba(0, 0, 0, var(--shadow-opacity)),
@@ -89,6 +89,12 @@ body {
     color: var(--text-main);
 }
 
+.column-header h1 {
+    font-size: 20px;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
 .column-content {
     padding: 20px;
     flex-grow: 1;
@@ -132,12 +138,6 @@ body {
 }
 
 /* Колонка 2: Головний розклад */
-.main-header h1 {
-    font-size: 20px;
-    text-transform: none;
-    letter-spacing: normal;
-}
-
 .schedule-scroll-node {
     background-color: var(--bg-page);
     margin: 15px;
