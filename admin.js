@@ -1058,3 +1058,524 @@ function submitBlockTime(){
     );
 
 }
+/* ==========================================================
+   CLIENTS
+   CRM V2
+   ========================================================== */
+
+async function loadClients(){
+
+    try{
+
+        const response =
+            await fetch(
+                APPS_SCRIPT_URL +
+                "?getClients=true"
+            );
+
+        customersData =
+            await response.json();
+
+        renderClients();
+
+    }
+
+    catch(error){
+
+        console.error(
+            "Clients error",
+            error
+        );
+
+        customersData = [];
+
+    }
+
+}
+
+
+function renderClients(){
+
+    const tbody =
+        document.getElementById(
+            "clientsTableBody"
+        );
+
+    if(!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if(
+        !customersData ||
+        customersData.length === 0
+    ){
+
+        tbody.innerHTML = `
+
+            <tr>
+
+                <td colspan="6"
+                    style="text-align:center;">
+
+                    Brak klientów
+
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+    customersData.forEach(client=>{
+
+        const tr =
+            document.createElement(
+                "tr"
+            );
+
+        tr.innerHTML = `
+
+            <td>
+                ${client.name || ""}
+            </td>
+
+            <td>
+                ${client.phone || ""}
+            </td>
+
+            <td>
+                ${client.visits || 0}
+            </td>
+
+            <td>
+                ${client.cancelled || 0}
+            </td>
+
+            <td>
+                ${client.lastVisit || "-"}
+            </td>
+
+            <td>
+
+                <button
+                    class="btn-secondary"
+                    onclick="editClient('${client.phone}')">
+
+                    Edytuj
+
+                </button>
+
+                <button
+                    class="btn-danger"
+                    onclick="deleteClient('${client.phone}')">
+
+                    Usuń
+
+                </button>
+
+            </td>
+
+        `;
+
+        tbody.appendChild(
+            tr
+        );
+
+    });
+
+}
+
+
+/* ==========================================================
+   CLIENT CRUD
+   ========================================================== */
+
+function editClient(phone){
+
+    alert(
+        "Edycja klienta V2\nTelefon: " +
+        phone
+    );
+
+}
+
+
+async function deleteClient(phone){
+
+    if(
+        !confirm(
+            "Usunąć klienta?"
+        )
+    ){
+        return;
+    }
+
+    try{
+
+        await fetch(
+            APPS_SCRIPT_URL,
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                    "text/plain"
+                },
+
+                body:JSON.stringify({
+
+                    action:
+                    "deleteClient",
+
+                    phone:
+                    phone
+
+                })
+            }
+        );
+
+        await loadClients();
+
+    }
+
+    catch(error){
+
+        console.error(error);
+
+    }
+
+}
+
+
+/* ==========================================================
+   FINANCE
+   ========================================================== */
+
+function calculateFinanceReport(){
+
+    let todaySum = 0;
+
+    let weekSum = 0;
+
+    let monthSum = 0;
+
+    const now =
+        new Date();
+
+
+    const firstDayOfWeek =
+        new Date(now);
+
+    const currentDay =
+        now.getDay();
+
+    const offset =
+        currentDay === 0
+        ? 6
+        : currentDay - 1;
+
+    firstDayOfWeek.setDate(
+        now.getDate() - offset
+    );
+
+    firstDayOfWeek.setHours(
+        0,0,0,0
+    );
+
+    const lastDayOfWeek =
+        new Date(
+            firstDayOfWeek
+        );
+
+    lastDayOfWeek.setDate(
+        firstDayOfWeek.getDate()
+        + 6
+    );
+
+    lastDayOfWeek.setHours(
+        23,59,59,999
+    );
+
+
+    appointmentsData.forEach(app=>{
+
+        if(
+            !app.date ||
+            !app.service
+        ){
+            return;
+        }
+
+        const service =
+            currentServices.find(
+                s =>
+                s.name &&
+                app.service &&
+                s.name.trim()
+                .toLowerCase()
+                ===
+                app.service.trim()
+                .toLowerCase()
+            );
+
+        const price =
+            service
+            ?
+            Number(service.price)
+            :
+            0;
+
+        const appDate =
+            new Date(app.date);
+
+        if(
+            appDate.toDateString()
+            ===
+            now.toDateString()
+        ){
+
+            todaySum += price;
+
+        }
+
+        if(
+            appDate >= firstDayOfWeek &&
+            appDate <= lastDayOfWeek
+        ){
+
+            weekSum += price;
+
+        }
+
+        if(
+            appDate.getMonth()
+            ===
+            now.getMonth()
+            &&
+            appDate.getFullYear()
+            ===
+            now.getFullYear()
+        ){
+
+            monthSum += price;
+
+        }
+
+    });
+
+
+    setText(
+        "finance-today",
+        todaySum.toFixed(2)
+        + " zł"
+    );
+
+    setText(
+        "finance-week",
+        weekSum.toFixed(2)
+        + " zł"
+    );
+
+    setText(
+        "finance-month",
+        monthSum.toFixed(2)
+        + " zł"
+    );
+
+}
+
+
+/* ==========================================================
+   CATEGORY COLOR SYSTEM
+   ========================================================== */
+
+function buildColorsEditor(){
+
+    const container =
+        document.getElementById(
+            "categories-colors-list"
+        );
+
+    if(!container) return;
+
+    container.innerHTML = "";
+
+    allCategories.forEach(cat=>{
+
+        const row =
+            document.createElement(
+                "div"
+            );
+
+        row.className =
+            "category-color-row";
+
+        const color =
+            globalColors[cat]
+            ||
+            "#b05c75";
+
+        row.innerHTML = `
+
+            <label>
+
+                ${cat}
+
+            </label>
+
+            <input
+                type="color"
+                data-category="${cat}"
+                value="${color}">
+
+        `;
+
+        container.appendChild(
+            row
+        );
+
+    });
+
+}
+
+
+/* ==========================================================
+   SAVE SETTINGS
+   ========================================================== */
+
+async function saveSettings(){
+
+    const categoryColors =
+        {};
+
+    document
+        .querySelectorAll(
+            "#categories-colors-list input[type='color']"
+        )
+        .forEach(input=>{
+
+            categoryColors[
+                input.dataset.category
+            ] =
+            input.value;
+
+        });
+
+    try{
+
+        await fetch(
+            APPS_SCRIPT_URL,
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                    "text/plain"
+                },
+
+                body:
+                JSON.stringify({
+
+                    action:
+                    "updateSettings",
+
+                    payload:{
+
+                        work_start_hour:
+                        document.getElementById(
+                            "work_start_hour"
+                        ).value,
+
+                        work_end_hour:
+                        document.getElementById(
+                            "work_end_hour"
+                        ).value,
+
+                        colors:
+                        categoryColors
+
+                    }
+
+                })
+
+            }
+        );
+
+        alert(
+            "Ustawienia zapisane"
+        );
+
+        await loadSettings();
+
+    }
+
+    catch(error){
+
+        console.error(
+            error
+        );
+
+        alert(
+            "Błąd zapisu"
+        );
+
+    }
+
+}
+
+
+/* ==========================================================
+   DASHBOARD AUTO REFRESH
+   ========================================================== */
+
+setInterval(()=>{
+
+    renderDashboard();
+
+},30000);
+
+
+/* ==========================================================
+   LOAD SYSTEM EXTENSION
+   ========================================================== */
+
+const _oldLoadSystem =
+    loadSystem;
+
+loadSystem =
+async function(){
+
+    await loadServices();
+
+    await loadSettings();
+
+    await loadClients();
+
+    renderDashboard();
+
+    calculateFinanceReport();
+
+    buildColorsEditor();
+
+};
+
+
+/* ==========================================================
+   GOOGLE LOGIN CALLBACK
+   ========================================================== */
+
+function handleCredentialResponse(response){
+
+    console.log(
+        response
+    );
+
+}
+
+
+/* ==========================================================
+   END OF PART 5
+   ========================================================== */
