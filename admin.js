@@ -184,7 +184,107 @@ function renderBooksyCalendar() {
         }
     }
 }
+// Переменная для хранения состояния: редактируем мы или создаем с нуля
+let currentEditingAppointment = null; 
 
+/**
+ * Открывает модальное окно для СОЗДАНИЯ новой записи
+ */
+function openCreateModal(selectedDate = new Date()) {
+  currentEditingAppointment = null; // Сбрасываем флаг редактирования
+  
+  // Обнуляем поля формы или ставим значения по умолчанию
+  document.getElementById('appointmentName').value = "";
+  document.getElementById('appointmentPhone').value = "";
+  document.getElementById('appointmentService').value = "";
+  document.getElementById('appointmentDuration').value = "45";
+  
+  // Устанавливаем дату и время
+  const localIsoString = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  document.getElementById('appointmentDateTime').value = localIsoString;
+  
+  document.getElementById('modalTitle').innerText = "Создать новую запись";
+  // Показываем ваше модальное окно (код зависит от вашей верстки, например:)
+  document.getElementById('appointmentModal').style.display = 'block';
+}
+
+/**
+ * Открывает модальное окно для РЕДАКТИРОВАНИЯ существующей записи
+ */
+function openEditModal(appointmentData) {
+  // Запоминаем старые данные, чтобы Apps Script смог найти исходную строчку
+  currentEditingAppointment = {
+    oldDate: appointmentData.date,
+    oldName: appointmentData.name
+  };
+  
+  // Заполняем форму текущими данными визита
+  document.getElementById('appointmentName').value = appointmentData.name;
+  document.getElementById('appointmentPhone').value = appointmentData.phone;
+  document.getElementById('appointmentService').value = appointmentData.service;
+  document.getElementById('appointmentDuration').value = appointmentData.duration || "45";
+  
+  const dateObj = new Date(appointmentData.date);
+  const localIsoString = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  document.getElementById('appointmentDateTime').value = localIsoString;
+  
+  document.getElementById('modalTitle').innerText = "Редактировать запись";
+  document.getElementById('appointmentModal').style.display = 'block';
+}
+
+/**
+ * Функция отправки данных на сервер (срабатывает при нажатии кнопки "Сохранить")
+ */
+function saveAppointment() {
+  const name = document.getElementById('appointmentName').value.trim();
+  const phone = document.getElementById('appointmentPhone').value.trim();
+  const service = document.getElementById('appointmentService').value.trim();
+  const duration = document.getElementById('appointmentDuration').value;
+  const dateTime = document.getElementById('appointmentDateTime').value;
+
+  if (!dateTime || !name) {
+    alert("Имя и Дата/Время обязательны для заполнения!");
+    return;
+  }
+
+  // Базовый пакет данных
+  let payload = {
+    action: "createBooking",
+    name: name,
+    phone: phone,
+    service: service,
+    duration: duration,
+    date: new Date(dateTime).toISOString()
+  };
+
+  // Если мы в режиме редактирования, добавляем маркеры для Apps Script
+  if (currentEditingAppointment) {
+    payload.editFlag = true;
+    payload.oldDate = new Date(currentEditingAppointment.oldDate).toISOString();
+    payload.oldName = currentEditingAppointment.oldName;
+  }
+
+  // Отправка данных в Google Apps Script API
+  // Укажите вашу переменную с URL-адресом развертывания (Web App URL)
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors", // или cors, в зависимости от настроек заголовков
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(() => {
+    alert(currentEditingAppointment ? "Запись успешно изменена!" : "Новая запись создана!");
+    document.getElementById('appointmentModal').style.display = 'none';
+    // Здесь вызываем вашу функцию обновления календаря/таблицы на экране
+    if (typeof refreshCalendar === "function") refreshCalendar(); 
+  })
+  .catch(err => {
+    console.error("Ошибка сохранения:", err);
+    alert("Не удалось сохранить запись.");
+  });
+}
 function getEndTimeStr(startTimeStr, durationMin) {
     const [h, m] = startTimeStr.split(":").map(Number);
     const d = new Date(); d.setHours(h, m + durationMin);
