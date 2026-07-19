@@ -14,7 +14,7 @@ let appointmentsData = [];
 let globalColors = {};                 
 let settingsData = {};
 
-// Переменная для хранения состояния: редактируем мы или создаем с нуля
+// Przełącznik stanu: edycja czy nowa rezerwacja
 let currentEditingAppointment = null; 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -110,12 +110,12 @@ async function loadSettings() {
 
 // Kompaktowy kalendarz bez sztywnych godzin - tylko zajęte bloki
 function renderBooksyCalendar() {
-    renderMiniMonthCalendar();
     const timeline = document.getElementById("booksy-timeline");
     const grid = document.getElementById("booksy-grid");
     const title = document.getElementById("calendar-current-date-title");
     if (!timeline || !grid) return;
     
+    renderMiniMonthCalendar();
     timeline.innerHTML = "";
     grid.innerHTML = "";
     grid.style.height = "auto"; 
@@ -198,47 +198,43 @@ function renderBooksyCalendar() {
 }
 
 /**
- * Открывает модальное окно для СОЗДАНИЯ новой записи
+ * Otwiera modal do TWORZENIA nowej rezerwacji
  */
 function openCreateModal(selectedDate = new Date()) {
-  currentEditingAppointment = null; // Сбрасываем флаг редактирования
-  
-  // Обнуляем поля формы или ставим значения по умолчанию
-  document.getElementById('appointmentName').value = "";
-  document.getElementById('appointmentPhone').value = "";
-  document.getElementById('appointmentService').value = "";
-  document.getElementById('appointmentDuration').value = "45";
-  
-  // Устанавливаем дату и время
-  const localIsoString = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  document.getElementById('appointmentDateTime').value = localIsoString;
-  
-  document.getElementById('modalTitleAppointment').innerText = "Utwórz nową wizytę";
-  document.getElementById('appointmentModal').style.display = 'flex';
+    currentEditingAppointment = null; 
+    
+    document.getElementById('appointmentName').value = "";
+    document.getElementById('appointmentPhone').value = "";
+    document.getElementById('appointmentService').value = "";
+    document.getElementById('appointmentDuration').value = "45";
+    
+    const localIsoString = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('appointmentDateTime').value = localIsoString;
+    
+    document.getElementById('modalTitleAppointment').innerText = "Utwórz nową wizytę";
+    document.getElementById('appointmentModal').style.display = 'flex';
 }
 
 /**
- * Открывает модальное окно для РЕДАКТИРОВАНИЯ существующей записи
+ * Otwiera modal do EDYCJI istniejącej rezerwacji
  */
 function openEditModal(appointmentData) {
-  // Запоминаем старые данные, чтобы Apps Script смог найти исходную строчку
-  currentEditingAppointment = {
-    oldDate: appointmentData.date,
-    oldName: appointmentData.name
-  };
-  
-  // Заполняем форму текущими данными визита
-  document.getElementById('appointmentName').value = appointmentData.name;
-  document.getElementById('appointmentPhone').value = appointmentData.phone;
-  document.getElementById('appointmentService').value = appointmentData.service;
-  document.getElementById('appointmentDuration').value = appointmentData.duration || "45";
-  
-  const dateObj = new Date(appointmentData.date);
-  const localIsoString = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  document.getElementById('appointmentDateTime').value = localIsoString;
-  
-  document.getElementById('modalTitleAppointment').innerText = "Edytuj wizytę";
-  document.getElementById('appointmentModal').style.display = 'flex';
+    currentEditingAppointment = {
+        oldDate: appointmentData.date,
+        oldName: appointmentData.name
+    };
+    
+    document.getElementById('appointmentName').value = appointmentData.name;
+    document.getElementById('appointmentPhone').value = appointmentData.phone;
+    document.getElementById('appointmentService').value = appointmentData.service;
+    document.getElementById('appointmentDuration').value = appointmentData.duration || "45";
+    
+    const dateObj = new Date(appointmentData.date);
+    const localIsoString = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('appointmentDateTime').value = localIsoString;
+    
+    document.getElementById('modalTitleAppointment').innerText = "Edytuj wizytę";
+    document.getElementById('appointmentModal').style.display = 'flex';
 }
 
 function closeCreateAppointmentModal() {
@@ -246,60 +242,58 @@ function closeCreateAppointmentModal() {
 }
 
 /**
- * Функция отправки данных на сервер (срабатывает при нажатии кнопки "Сохранить")
+ * Funkcja wysyłania danych wizyty na serwer Google Apps Script
  */
 function saveAppointment() {
-  const name = document.getElementById('appointmentName').value.trim();
-  const phone = document.getElementById('appointmentPhone').value.trim();
-  const service = document.getElementById('appointmentService').value.trim();
-  const duration = document.getElementById('appointmentDuration').value;
-  const dateTime = document.getElementById('appointmentDateTime').value;
+    const name = document.getElementById('appointmentName').value.trim();
+    const phone = document.getElementById('appointmentPhone').value.trim();
+    const service = document.getElementById('appointmentService').value.trim();
+    const duration = document.getElementById('appointmentDuration').value;
+    const dateTime = document.getElementById('appointmentDateTime').value;
 
-  if (!dateTime || !name) {
-    alert("Imię oraz Data/Godzina są wymagane!");
-    return;
-  }
-
-  // Базовый пакет данных
-  let payload = {
-    action: "createBooking",
-    name: name,
-    phone: phone,
-    service: service,
-    duration: duration,
-    date: new Date(dateTime).toISOString()
-  };
-
-  // Если мы в режиме редактирования, добавляем маркеры для Apps Script
-  if (currentEditingAppointment) {
-    payload.editFlag = true;
-    payload.oldDate = new Date(currentEditingAppointment.oldDate).toISOString();
-    payload.oldName = currentEditingAppointment.oldName;
-  }
-
-  // Wysyłanie danych do Google Apps Script API
-  fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    mode: "cors", // Zmieniono z "no-cors" na "cors"
-    headers: {
-      "Content-Type": "text/plain" // Google Apps Script najlepiej toleruje text/plain przy parsowaniu JSON
-    },
-    body: JSON.stringify(payload)
-  })
-  .then(response => response.json()) // Parsujemy odpowiedź zwrotną z Google
-  .then(data => {
-    if (data.success) {
-      alert(currentEditingAppointment ? "Pomyślnie zmieniono rezerwację!" : "Nowa wizyta została utworzona!");
-      document.getElementById('appointmentModal').style.display = 'none';
-      loadSettings(); // Odświeżenie kalendarza
-    } else {
-      alert("Błąd serwera: " + data.error);
+    if (!dateTime || !name) {
+        alert("Imię oraz Data/Godzina są wymagane!");
+        return;
     }
-  })
-  .catch(err => {
-    console.error("Obsługa błędu sieci:", err);
-    alert("Nie udało się zapisać wizyty z powodu błędu sieci.");
-  });
+
+    let payload = {
+        action: "createBooking",
+        name: name,
+        phone: phone,
+        service: service,
+        duration: duration,
+        date: new Date(dateTime).toISOString()
+    };
+
+    if (currentEditingAppointment) {
+        payload.editFlag = true;
+        payload.oldDate = new Date(currentEditingAppointment.oldDate).toISOString();
+        payload.oldName = currentEditingAppointment.oldName;
+    }
+
+    fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "cors", 
+        headers: {
+            "Content-Type": "text/plain" 
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json()) 
+    .then(data => {
+        if (data.success) {
+            alert(currentEditingAppointment ? "Pomyślnie zmieniono rezerwację!" : "Nowa wizyta została utworzona!");
+            document.getElementById('appointmentModal').style.display = 'none';
+            loadSettings(); 
+        } else {
+            alert("Błąd serwera: " + data.error);
+        }
+    })
+    .catch(err => {
+        console.error("Obsługa błędu sieci:", err);
+        alert("Nie udało się zapisać wizyty z powodu błędu sieci.");
+    });
+} // <--- TUTAJ BRAKOWAŁO TEJ KLAMRY ZAMYKAJĄCEJ FUNKCJĘ SAVEAPPOINTMENT!
 
 function getEndTimeStr(startTimeStr, durationMin) {
     const [h, m] = startTimeStr.split(":").map(Number);
@@ -344,8 +338,6 @@ async function loadAdminServices() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?getPrices=true");
         currentServices = await response.json();
-        
-        // Dynamiczne ukrywanie kategorii bez przypisanych usług w Cenniku przy zachowaniu jej w ustawieniach
         renderTable();
     } catch (error) {
         console.error("Błąd ładowania usług:", error);
@@ -357,7 +349,6 @@ function renderTable() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    // Pokazujemy tylko kategorie, które mają przynajmniej jeden zabieg w cenniku
     const visibleCategories = allCategories.filter(cat => currentServices.some(s => s.category.trim() === cat.trim()));
 
     visibleCategories.forEach(catName => {
@@ -385,7 +376,6 @@ function buildColorsEditor() {
     if (!container) return;
     container.innerHTML = "";
     
-    // W sekcji Ustawienia Kolorów wyświetlamy absolutnie WSZYSTKIE kiedykolwiek dodane kategorie
     allCategories.forEach(cat => {
         const defaultColor = globalColors[cat] || "#b05c75"; 
         const div = document.createElement("div");
@@ -419,7 +409,6 @@ async function addNewCategoryEmpty() {
     const newCatName = input.value.trim();
     if (!newCatName) return;
     
-    // Dodawanie nowej kategorii bezpośrednio do trwałej bazy poprzez nadanie domyślnego koloru
     const updatedColors = { ...globalColors };
     updatedColors[newCatName] = "#b05c75";
 
