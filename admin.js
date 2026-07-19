@@ -1,5 +1,5 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyO5CRSqRcnINYM4TIgRkUEsh6pIKWNn253jXrD7vy0n8ToI6Jp3bFK1WUZz0QL36DMqw/exec";
-const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
+const ALLOWED_EMAIL = "strsasa@gmail.com"; 
 let currentUserEmail = null;
 
 let currentServices = [];       
@@ -153,7 +153,7 @@ function isWorkingDay(dateObj) {
     current.setHours(0,0,0,0);
     
     const diffTime = current.getTime() - anchor.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 24));
     
     if (diffDays < 0) return true; // Zabezpieczenie dla starych dat
     
