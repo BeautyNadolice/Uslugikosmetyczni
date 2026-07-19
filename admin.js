@@ -1,5 +1,5 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyO5CRSqRcnINYM4TIgRkUEsh6pIKWNn253jXrD7vy0n8ToI6Jp3bFK1WUZz0QL36DMqw/exec";
-const ALLOWED_EMAIL = "strsasa@gmail.com"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzaPHFLd2DO4EjaWmSRAhV7N9siNDDqitgn2yfA3IQS4J7sqs_ZpRa1CKBe1U0DlBTSFw/exec";
+const ALLOWED_EMAIL = "vasha_jena@gmail.com"; 
 let currentUserEmail = null;
 
 let currentServices = [];       
@@ -12,14 +12,11 @@ let selectedCalendarDate = new Date();
 let miniMonthDate = new Date();        
 let calendarViewMode = "day";          
 let appointmentsData = [];             
-let clientsCRMData = {}; // Globalna baza klientów dla szybkiego CRM-wyszukiwania
 let globalColors = {};                 
 let settingsData = {                   
     work_start_hour: "09:00",
     work_end_hour: "18:00",
-    buffer_hours: 1,
-    schedule_cycle: "1-1-2",
-    schedule_anchor_date: "2026-07-01"
+    buffer_hours: 1
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -63,7 +60,7 @@ function showAdminPanel() {
 
 function showLoginScreen() {
     document.getElementById("login-modal").style.display = "flex";
-    document.getElementById("admin-panel-wrapper").style.display = "none"; // POPRAWIONO: .style.none na .style.display
+    document.getElementById("admin-panel-wrapper").style.display = "none";
 }
 
 function closeLoginModal() {
@@ -126,10 +123,8 @@ function switchTab(tabName) {
 
 function setCalendarView(mode) {
     calendarViewMode = mode;
-    const dayBtn = document.getElementById("view-day-btn");
-    const weekBtn = document.getElementById("view-week-btn");
-    if (dayBtn) dayBtn.classList.toggle("active", mode === "day");
-    if (weekBtn) weekBtn.classList.toggle("active", mode === "week");
+    document.getElementById("view-day-btn").classList.toggle("active", mode === "day");
+    document.getElementById("view-week-btn").classList.toggle("active", mode === "week");
     renderBooksyCalendar();
 }
 
@@ -143,63 +138,26 @@ function changeSelectedDate(days) {
     renderBooksyCalendar();
 }
 
-// Sprawdzenie: czy dzień jest roboczy według elastycznego grafiku Darii
-function isWorkingDay(dateObj) {
-    if (!settingsData.schedule_cycle || !settingsData.schedule_anchor_date) return true;
-    
-    const anchor = new Date(settingsData.schedule_anchor_date);
-    anchor.setHours(0,0,0,0);
-    const current = new Date(dateObj);
-    current.setHours(0,0,0,0);
-    
-    const diffTime = current.getTime() - anchor.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 24));
-    
-    if (diffDays < 0) return true; // Zabezpieczenie dla starych dat
-    
-    const cyclePattern = settingsData.schedule_cycle.split('-').map(Number); // [1, 1, 2]
-    const totalCyclePeriod = cyclePattern.reduce((a, b) => a + b, 0); // 4 dni w cyklu
-    
-    const dayInCycle = diffDays % totalCyclePeriod; // Pozycja wewnątrz obecnego cyklu
-    
-    let runningSum = 0;
-    for (let i = 0; i < cyclePattern.length; i++) {
-        runningSum += cyclePattern[i];
-        if (dayInCycle < runningSum) {
-            return i % 2 === 0; // Parzyste bloki – robocze, nieparzyste – wolne
-        }
-    }
-    return true;
-}
-
 async function loadSettings() {
     try {
         const response = await fetch(APPS_SCRIPT_URL + "?checkBusy=true");
         const data = await response.json();
         if (data.settings) {
-            settingsData = Object.assign(settingsData, data.settings);
-            
-            const startHourEl = document.getElementById("work_start_hour");
-            const endHourEl = document.getElementById("work_end_hour");
-            const bufferEl = document.getElementById("buffer_hours");
-            const cycleEl = document.getElementById("schedule_cycle");
-
-            if (startHourEl) startHourEl.value = data.settings.work_start_hour || "09:00";
-            if (endHourEl) endHourEl.value = data.settings.work_end_hour || "18:00";
-            if (bufferEl) bufferEl.value = data.settings.buffer_hours || 1;
-            if (cycleEl) cycleEl.value = data.settings.schedule_cycle || "1-1-2";
-            
+            settingsData = data.settings;
+            document.getElementById("work_start_hour").value = data.settings.work_start_hour || "09:00";
+            document.getElementById("work_end_hour").value = data.settings.work_end_hour || "18:00";
+            document.getElementById("buffer_hours").value = data.settings.buffer_hours || 1;
             globalColors = data.settings.colors || {};
             appointmentsData = data.appointments || [];
             
-            // Konwersja tablicy CRM klientów na obiekt mapy (klucz: telefon)
-            clientsCRMData = {};
-            if (data.clients) {
-                data.clients.forEach(c => {
-                    clientsCRMData[String(c.phone).trim()] = c;
-                });
-            }
-            
+            // Mapowanie kategorii dla poprawnych kolorów w kalendarzu
+            appointmentsData.forEach(app => {
+                if (app.phone !== "Google Calendar" && app.service !== "Rezerwacja zewnętrzna") {
+                    const match = currentServices.find(s => s.name.trim().toLowerCase() === app.service.trim().toLowerCase());
+                    app.category = match ? match.category : "Inne";
+                }
+            });
+
             buildColorsEditor();
             miniMonthDate = new Date(selectedCalendarDate);
             renderBooksyCalendar();
@@ -223,16 +181,10 @@ async function saveSettings() {
         categoryColors[cat] = input.value;
     });
 
-    const startHourEl = document.getElementById("work_start_hour");
-    const endHourEl = document.getElementById("work_end_hour");
-    const bufferEl = document.getElementById("buffer_hours");
-    const cycleEl = document.getElementById("schedule_cycle");
-
     const payload = {
-        work_start_hour: startHourEl ? startHourEl.value.trim() : "09:00",
-        work_end_hour: endHourEl ? endHourEl.value.trim() : "18:00",
-        buffer_hours: bufferEl ? parseInt(bufferEl.value, 10) : 1,
-        schedule_cycle: cycleEl ? cycleEl.value.trim() : "1-1-2",
+        work_start_hour: document.getElementById("work_start_hour").value.trim(),
+        work_end_hour: document.getElementById("work_end_hour").value.trim(),
+        buffer_hours: parseInt(document.getElementById("buffer_hours").value) || 1,
         colors: categoryColors
     };
 
@@ -300,12 +252,6 @@ function renderMiniMonthCalendar() {
         dayCell.className = "mini-date-cell";
         dayCell.innerText = day;
         const cellDate = new Date(miniMonthDate.getFullYear(), miniMonthDate.getMonth(), day);
-        
-        // Podświetlenie dni wolnych Darii w kalendarzu mini
-        if (!isWorkingDay(cellDate)) {
-            dayCell.classList.add("daria-day-off");
-        }
-        
         if (cellDate.toDateString() === today.toDateString()) { dayCell.classList.add("today"); }
         if (cellDate.toDateString() === selectedCalendarDate.toDateString()) { dayCell.classList.add("selected"); }
         dayCell.onclick = () => {
@@ -345,19 +291,8 @@ function renderBooksyCalendar() {
     }
 
     if (calendarViewMode === "day") {
-        if (scrollWrapper) scrollWrapper.classList.remove("week-view-active");
-        
-        const isWork = isWorkingDay(selectedCalendarDate);
-        if (title) {
-            title.innerHTML = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()} ${isWork ? '💼' : '<span style="color:#d9534f;">(Dzień Wolny 🛑)</span>'}`;
-        }
-        
-        if (!isWork) {
-            grid.classList.add("grid-day-off-watermark");
-        } else {
-            grid.classList.remove("grid-day-off-watermark");
-        }
-
+        scrollWrapper.classList.remove("week-view-active");
+        title.innerText = `${daysOfWeek[selectedCalendarDate.getDay()]}, ${selectedCalendarDate.getDate()} ${months[selectedCalendarDate.getMonth()]} ${selectedCalendarDate.getFullYear()}`;
         for (let m = 0; m < totalMinutes; m += 30) {
             const line = document.createElement("div");
             line.className = "grid-halfhour-line";
@@ -384,15 +319,9 @@ function renderBooksyCalendar() {
                 card.style.backgroundColor = isBlock ? "#555555" : (globalColors[app.category] || "#b05c75");
                 if (isBlock) card.style.borderLeft = "4px solid #cc0000";
 
-                let clientBadge = "";
-                const clientCRM = clientsCRMData[String(app.phone).trim()];
-                if (clientCRM && parseInt(clientCRM.canceled || 0) > 1) {
-                    clientBadge = ` <span class="crm-warn-badge">⚠️ Ryzyko (${clientCRM.canceled} odwołań)</span>`;
-                }
-
                 card.innerHTML = `
                     <div class="event-time">${appTimeStr} - ${getEndTimeStr(appTimeStr, app.duration)}</div>
-                    <div class="event-name">${app.name}${clientBadge}</div>
+                    <div class="event-name">${app.name}</div>
                     <div class="event-service">${app.service}</div>
                     ${isBlock ? '' : `<div class="event-phone">📞 ${app.phone}</div>`}
                 `;
@@ -401,31 +330,24 @@ function renderBooksyCalendar() {
             }
         });
     } else {
-        if (scrollWrapper) scrollWrapper.classList.add("week-view-active");
-        grid.classList.remove("grid-day-off-watermark");
+        scrollWrapper.classList.add("week-view-active");
         const currentDay = selectedCalendarDate.getDay();
         const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
         const mondayDate = new Date(selectedCalendarDate);
         mondayDate.setDate(mondayDate.getDate() + distanceToMonday);
         const sundayDate = new Date(mondayDate);
         sundayDate.setDate(sundayDate.getDate() + 6);
-        if (title) {
-            title.innerText = `${mondayDate.getDate()} ${months[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${months[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
-        }
+        title.innerText = `${mondayDate.getDate()} ${months[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${months[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
         
         for (let d = 0; d < 7; d++) {
             const colDate = new Date(mondayDate);
             colDate.setDate(colDate.getDate() + d);
             const col = document.createElement("div");
             col.className = "calendar-week-column";
-            
-            const isWork = isWorkingDay(colDate);
-            if (!isWork) col.classList.add("column-day-off-bg");
-
             const colHeader = document.createElement("div");
             colHeader.className = "week-column-header";
             if (colDate.toDateString() === new Date().toDateString()) colHeader.classList.add("today-col");
-            colHeader.innerHTML = `<strong>${colDate.getDate()}</strong><div>${daysOfWeek[colDate.getDay()].substring(0, 3)} ${isWork ? '' : '🛑'}</div>`;
+            colHeader.innerHTML = `<strong>${colDate.getDate()}</strong><div>${daysOfWeek[colDate.getDay()].substring(0, 3)}</div>`;
             col.appendChild(colHeader);
             
             const colGrid = document.createElement("div");
@@ -488,45 +410,6 @@ function openAppointmentDetailsModal(app) {
     const d = new Date(app.date);
     document.getElementById("details-datetime").innerText = d.toLocaleString("pl-PL");
     document.getElementById("details-duration").innerText = app.duration || 45;
-    
-    // --- INTEGRACJA BLOKU CRM ---
-    const crmContainer = document.getElementById("crm-client-info-block");
-    const cleanPhone = String(app.phone).trim();
-    
-    if (crmContainer) {
-        if (app.phone === "Google Calendar" || app.service === "Rezerwacja zewnętrzna") {
-            crmContainer.style.display = "none";
-        } else if (clientsCRMData[cleanPhone]) {
-            const client = clientsCRMData[cleanPhone];
-            crmContainer.style.display = "block";
-            document.getElementById("crm-stat-visits").innerText = client.visits || 0;
-            document.getElementById("crm-stat-canceled").innerText = client.canceled || 0;
-            document.getElementById("crm-stat-lastdate").innerText = client.last_visit ? client.last_visit.split("T")[0] : "Brak danych";
-            
-            const ratio = parseInt(client.canceled || 0, 10);
-            const badgeElement = document.getElementById("crm-client-status-badge");
-            if (badgeElement) {
-                if (ratio >= 2) {
-                    badgeElement.className = "crm-badge-danger";
-                    badgeElement.innerText = "🚨 Problemowy (Dużo odwołań!)";
-                } else {
-                    badgeElement.className = "crm-badge-success";
-                    badgeElement.innerText = "⭐ Zaufany klient";
-                }
-            }
-        } else {
-            crmContainer.style.display = "block";
-            document.getElementById("crm-stat-visits").innerText = "1";
-            document.getElementById("crm-stat-canceled").innerText = "0";
-            document.getElementById("crm-stat-lastdate").innerText = "Nowy klient";
-            const badgeElement = document.getElementById("crm-client-status-badge");
-            if (badgeElement) {
-                badgeElement.className = "crm-badge-success";
-                badgeElement.innerText = "🌱 Nowy klient (Pierwsza wizyta)";
-            }
-        }
-    }
-    
     switchToViewAppointment();
     document.getElementById("appointmentDetailsModal").style.display = "flex";
 }
@@ -581,14 +464,10 @@ async function saveEditedAppointment() {
 
 async function deleteAppointmentFromAdmin() {
     if (!activeSelectedAppointment) return;
-    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ wizytę klienta: ${activeSelectedAppointment.name}? Wizyta zostanie przeniesiona do archiwum CRM, a statystyki klienta zostaną zaktualizowane.`)) return;
+    if (!confirm(`Czy na pewno chcesz ODWOŁAĆ i całkowicie usunąć wizytę klienta: ${activeSelectedAppointment.name}? Zmiana usunie ją z Tabeli oraz Kalendarza Google.`)) return;
     const deleteBtn = document.querySelector("#appointment-details-view .btn-danger");
-    let originalText = "";
-    if (deleteBtn) {
-        originalText = deleteBtn.innerHTML;
-        deleteBtn.innerText = "Usuwanie..."; 
-        deleteBtn.disabled = true;
-    }
+    const originalText = deleteBtn.innerHTML;
+    deleteBtn.innerText = "Usuwanie..."; deleteBtn.disabled = true;
 
     try {
         await fetch(APPS_SCRIPT_URL, {
@@ -602,7 +481,7 @@ async function deleteAppointmentFromAdmin() {
                 name: activeSelectedAppointment.name
             })
         });
-        alert("Wizyta została odwołana i zapisana w historii klienta!");
+        alert("Wizyta została pomyślnie usunięta!");
         closeAppointmentModal();
         await loadSettings();
     } catch (error) {
@@ -622,8 +501,7 @@ function openBlockTimeModal() {
 function closeBlockTimeModal() { document.getElementById("blockTimeModal").style.display = "none"; }
 function toggleBlockTimeFields() {
     const type = document.getElementById("block-type").value;
-    const hoursGroup = document.getElementById("block-hours-group");
-    if (hoursGroup) hoursGroup.style.display = (type === "hours") ? "block" : "none";
+    document.getElementById("block-hours-group").style.display = (type === "hours") ? "block" : "none";
 }
 
 async function submitBlockTime() {
@@ -832,8 +710,7 @@ async function publishDrafts() {
 
 function toggleNewCategoryInput() {
     const select = document.getElementById("serviceCategorySelect");
-    const newCatGroup = document.getElementById("newCategoryGroup");
-    if (newCatGroup) newCatGroup.style.display = (select && select.value === "__NEW__") ? "block" : "none";
+    document.getElementById("newCategoryGroup").style.display = (select && select.value === "__NEW__") ? "block" : "none";
 }
 function closeServiceModal() { document.getElementById("serviceModal").style.display = "none"; }
 function openAddServiceModal() {
