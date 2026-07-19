@@ -728,3 +728,107 @@ body {
         width: auto;
     }
 }
+/* --- Стили для интеграции CRM карточки и плавающего графика --- */
+
+/* Блок CRM внутри модалки */
+.crm-info-box {
+    background: #fdf6f7;
+    border: 1px solid #f3d1d7;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin: 15px 0;
+}
+.crm-info-box h5 {
+    margin: 0 0 10px 0;
+    color: #b05c75;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.crm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+.crm-stat-item {
+    background: #fff;
+    padding: 8px 5px;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+.crm-stat-num {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    display: block;
+}
+.crm-stat-label {
+    font-size: 10px;
+    color: #888;
+}
+
+/* Статусы надежности клиентов */
+.crm-badge-success {
+    display: inline-block;
+    background: #e2fbe8;
+    color: #1e7e34;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+.crm-badge-danger {
+    display: inline-block;
+    background: #fce8e6;
+    color: #c53929;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+    animation: pulseCRM 2s infinite;
+}
+@keyframes pulseCRM {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+/* Предупреждение прямо в карточке на сетке */
+.crm-warn-badge {
+    background: #ffc107;
+    color: #212529;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+/* Подсветка Дней отдыха Дарьи */
+.mini-date-cell.daria-day-off {
+    background-color: #f7f1f3;
+    color: #cfa1ae;
+    text-decoration: line-through;
+}
+.mini-date-cell.daria-day-off:hover {
+    background-color: #eddfe3;
+}
+
+/* Водяной знак для Дня отдыха на всю дневную сетку */
+.grid-day-off-watermark {
+    background-color: #fcf8f9 !important;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(176, 92, 117, 0.03) 35px, rgba(176, 92, 117, 0.03) 70px) !important;
+}
+
+/* Колонка выходного дня в недельном виде */
+.column-day-off-bg {
+    background-color: #faf6f7 !important;
+}
