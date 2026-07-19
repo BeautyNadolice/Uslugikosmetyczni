@@ -3,308 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nail-Art Daria Admin Panel</title>
-    <!-- Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <title>Panel Administratora - System Rezerwacji</title>
     <link rel="stylesheet" href="styleadmin.css">
+    <!-- Logowanie przez Google -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
-    <div id="login-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 400px; text-align: center; position: relative;">
-            <span class="close-btn" onclick="closeLoginModal()">&times;</span>
-            <h2 style="color: #b05c75; margin-bottom: 8px; font-size: 24px;">Panel Administratora</h2>
-            <p style="color: #666; margin-bottom: 25px; font-size: 14px;">Zaloguj się, aby zarządzać cennikiem i ustawieniami</p>
-
-            <div class="google-signin-wrapper" style="display: flex; justify-content: center; margin-bottom: 15px;">
+    <!-- MODAL LOGOWANIA (Pokazywany domyślnie, ukrywany po autoryzacji) -->
+    <div id="login-modal" class="login-overlay">
+        <div class="login-box">
+            <h2>Panel Administratora</h2>
+            <p>Zaloguj się kontem Google, aby zarządzać kalendarzem i cennikiem.</p>
+            <div class="login-buttons">
+                <!-- Oficjalny przycisk Google Auth -->
                 <div id="g_id_onload"
-                     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                     data-client_id="TWÓJ_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
                      data-auto_prompt="false">
                 </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-size="large"
-                     data-theme="outline"
-                     data-text="sign_in_with"
-                     data-shape="rectangular"
-                     data-logo_alignment="left">
-                </div>
-            </div>
-
-            <div class="test-bypass-section" style="margin-top: 25px; border-top: 1px dashed #f2d6dc; padding-top: 20px;">
-                <button class="test-btn" onclick="loginTest()">
-                    🔐 Zaloguj się przez TEST (Szybki start)
-                </button>
-                <p style="font-size: 12px; color: #999; margin-top: 8px;">Вход без проверки Google (для разработки)</p>
+                <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+                
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                <button type="button" class="btn-test-login" onclick="loginTest()">Zaloguj jako Test-Admin</button>
+                <button type="button" class="btn-close-login" onclick="closeLoginModal()">Powrót do strony głównej</button>
             </div>
         </div>
     </div>
 
-    <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ АДМИНКИ -->
-    <div id="admin-panel-wrapper" class="container" style="display: none;">
+    <!-- GŁÓWNY KONTENER PANELU (Ukryty do momentu zalogowania) -->
+    <div id="admin-panel-wrapper" style="display: none;">
         
-        <header class="admin-nav">
-            <h2>Nail-Art Daria Admin</h2>
-            <button class="logout-btn" onclick="logout()">Wyloguj się 🚪</button>
+        <!-- NAGŁÓWEK PANELU -->
+        <header class="admin-header">
+            <div class="header-left">
+                <h1>Panel Zarządzania Darii</h1>
+                <span class="badge-admin">Admin Mode</span>
+            </div>
+            <div class="header-right">
+                <button class="btn-logout" onclick="logout()">Wyloguj się 🚪</button>
+            </div>
         </header>
 
-        <div class="tabs-container">
-            <button class="tab-btn active" onclick="switchTab('kalendarz')">📅 Kalendarz</button>
+        <!-- NAWIGACJA ZAKŁADEK -->
+        <nav class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('kalendarz')">📅 Kalendarz Rezerwacji</button>
             <button class="tab-btn" onclick="switchTab('cennik')">💰 Zarządzanie Cennikiem</button>
-            <button class="tab-btn" onclick="switchTab('ustawienia')">⚙️ Ustawienia Pracy</button>
-        </div>
+            <button class="tab-btn" onclick="switchTab('ustawienia')">⚙️ Ustawienia Ogólne</button>
+        </nav>
 
-        <!-- ВКЛАДКА 0: ИНТЕРАКТИВНЫЙ КАЛЕНДАРЬ -->
-        <div id="tab-kalendarz" class="tab-content">
-            <div class="calendar-layout-header">
-                <div class="calendar-view-toggle">
-                    <button id="view-day-btn" class="btn-toggle active" onclick="setCalendarView('day')">Dzień</button>
-                    <button id="view-week-btn" class="btn-toggle" onclick="setCalendarView('week')">Tydzień</button>
-                </div>
-                <div class="calendar-date-scroller">
-                    <button class="btn-secondary" onclick="changeSelectedDate(-1)">◀</button>
-                    <h3 id="calendar-current-date-title">Piątek, 17 Lipca 2026</h3>
-                    <button class="btn-secondary" onclick="changeSelectedDate(1)">▶</button>
-                </div>
-                <button class="btn-block-time" onclick="openBlockTimeModal()">🔒 Dodaj wolne / Zablokuj czas</button>
-            </div>
-            
-            <div class="calendar-two-columns">
-                <!-- Левая колонка: Мини-календарь на месяц -->
-                <div class="calendar-sidebar">
-                    <div class="mini-month-header">
-                        <button onclick="changeMiniMonth(-1)">◀</button>
-                        <span id="mini-month-title">Lipiec 2026</span>
-                        <button onclick="changeMiniMonth(1)">▶</button>
+        <!-- TREŚĆ PANELU -->
+        <main class="admin-content">
+
+            <!-- ZAKŁADKA 1: KALENDARZ (STYL BOOKSY) -->
+            <section id="tab-kalendarz" class="tab-content" style="display: block;">
+                <div class="calendar-layout">
+                    
+                    <!-- Lewy panel: Mini podgląd i akcje -->
+                    <aside class="calendar-sidebar">
+                        <button class="btn-primary btn-block" onclick="openBlockTimeModal()">🔒 Zablokuj czas / Urlop</button>
+                        
+                        <!-- Mini Kalendarzyk -->
+                        <div class="mini-month-container">
+                            <div class="mini-month-header">
+                                <button onclick="changeMiniMonth(-1)">◀</button>
+                                <span id="mini-month-title">Miesiąc Rok</span>
+                                <button onclick="changeMiniMonth(1)">▶</button>
+                            </div>
+                            <div class="mini-month-weekdays">
+                                <div>Pn</div><div>Wt</div><div>Śr</div><div>Cz</div><div>Pt</div><div>Sb</div><div>Nd</div>
+                            </div>
+                            <div id="mini-month-days-grid" class="mini-month-grid"></div>
+                        </div>
+                    </nav>
+
+                    <!-- Prawy panel: Główna siatka godzinowa -->
+                    <div class="calendar-main-view">
+                        <div class="calendar-toolbar">
+                            <h2 id="calendar-current-date-title">Poniedziałek, 1 Stycznia 2026</h2>
+                            <div class="view-switcher">
+                                <button id="view-day-btn" class="active" onclick="setCalendarView('day')">Dzień</button>
+                                <button id="view-week-btn" onclick="setCalendarView('week')">Tydzień</button>
+                            </div>
+                            <div class="date-navigator">
+                                <button onclick="changeSelectedDate(-1)">◀ Poprzedni</button>
+                                <button onclick="selectedCalendarDate = new Date(); renderBooksyCalendar();">Dzisiaj</button>
+                                <button onclick="changeSelectedDate(1)">Następny ▶</button>
+                            </div>
+                        </div>
+
+                        <!-- Oś czasu i siatka -->
+                        <div class="booksy-scroller" id="booksy-cal-scroll-node">
+                            <div class="booksy-timeline-wrapper">
+                                <div id="booksy-timeline" class="booksy-hours-axis">
+                                    <!-- Generowane dynamicznie: 09:00, 10:00... -->
+                                </div>
+                                <div id="booksy-grid" class="booksy-appointments-grid">
+                                    <!-- Generowane dynamicznie: paski wizyt -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mini-month-weekdays">
-                        <div>Pn</div><div>Wt</div><div>Śr</div><div>Cz</div><div>Pt</div><div>Sb</div><div>Nd</div>
+
+                </div>
+            </section>
+
+            <!-- ZAKŁADKA 2: ZARZĄDZANIE CENNIKIEM -->
+            <section id="tab-cennik" class="tab-content" style="display: none;">
+                <div class="cennik-toolbar">
+                    <div class="toolbar-actions">
+                        <button class="btn-primary" onclick="openAddServiceModal()">➕ Dodaj nowy zabieg</button>
+                        <button class="btn-secondary" onclick="openCategoryModal()">📂 Zarządzaj kategoriami</button>
                     </div>
-                    <div id="mini-month-days-grid" class="mini-month-days-grid"></div>
-                </div>
-
-                <!-- Правая колонка: Сетка расписания -->
-                <div class="calendar-main-schedule">
-                    <div class="booksy-calendar-wrapper" id="booksy-cal-scroll-node">
-                        <div class="booksy-timeline" id="booksy-timeline"></div>
-                        <div class="booksy-grid-container" id="booksy-grid"></div>
+                    <div class="history-controls">
+                        <button id="undoBtn" onclick="undo()" disabled>↩️ Cofnij (Ctrl+Z)</button>
+                        <button id="redoBtn" onclick="redo()" disabled>↪️ Ponów (Ctrl+Y)</button>
+                    </div>
+                    <div class="cloud-sync-actions">
+                        <button id="saveDraftsBtn" class="btn-warn" onclick="saveDraftsToCloud()">💾 Zapisz jako Szkic</button>
+                        <button id="publishBtn" class="btn-success" onclick="publishDrafts()">🚀 Opublikuj na Stronie</button>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- ВКЛАДКА 1: УПРАВЛЕНИЕ УСЛУГАМИ -->
-        <div id="tab-cennik" class="tab-content" style="display: none;">
-            <div class="admin-actions-bar">
-                <button id="undoBtn" class="btn-secondary" onclick="undo()" disabled>↩️ Cofnij (Ctrl+Z)</button>
-                <button id="redoBtn" class="btn-secondary" onclick="redo()" disabled>↪️ Ponów (Ctrl+Y)</button>
-                <span class="action-divider"></span>
-                <button class="btn-primary" onclick="openAddServiceModal()">➕ Dodaj nowy zabieg</button>
-                <button class="btn-secondary" onclick="openCategoryModal()">🏷️ Zarządzaj kategoriami</button>
-                <button id="saveDraftsBtn" class="btn-save-draft" onclick="saveDraftsToCloud()">💾 Zapisz Szkic</button>
-                <button class="btn-publish-danger" onclick="publishDrafts()">🚀 Opublikuj Cennik</button>
-            </div>
-
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Kategoria</th>
-                        <th style="width: 30%;">Nazwa usługi</th>
-                        <th style="width: 15%;">Cena (zł)</th>
-                        <th style="width: 15%;">Czas (min)</th>
-                        <th style="width: 10%;">Status</th>
-                        <th style="width: 10%;">Akcje</th>
-                    </tr>
-                </thead>
-                <tbody id="adminServicesTableBody"></tbody>
-            </table>
-        </div>
-
-        <!-- ВКЛАДКА 2: НАСТРОЙКИ РАБОЧЕГО ВРЕМЕНИ И ЦВЕТОВ -->
-        <div id="tab-ustawienia" class="tab-content" style="display: none;">
-            <h3>Ustawienia harmonogramu</h3>
-            <p style="color: #666; margin-bottom: 20px;">Konfiguracja godzin pracy oraz parametrów dostępności.</p>
-            
-            <form id="settingsForm" onsubmit="event.preventDefault();">
-                <div class="form-group">
-                    <label for="work_start_hour">Godzina rozpoczęcia pracy:</label>
-                    <input type="text" id="work_start_hour" placeholder="09:00">
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 200px;">Kategoria globalna</th>
+                                <th>Nazwa zabiegu</th>
+                                <th style="width: 100px;">Cena (zł)</th>
+                                <th style="width: 120px;">Czas (min)</th>
+                                <th style="width: 120px;">Status</th>
+                                <th style="width: 150px;">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminServicesTableBody">
+                            <!-- Wiersze generowane dynamicznie przez JS -->
+                        </tbody>
+                    </table>
                 </div>
-                <div class="form-group">
-                    <label for="work_end_hour">Godzina zakończenia pracy:</label>
-                    <input type="text" id="work_end_hour" placeholder="18:00">
-                </div>
-                <div class="form-group">
-                    <label for="buffer_hours">Czas buforowy (w godzinach перед записью):</label>
-                    <input type="number" id="buffer_hours" min="0" max="24">
-                </div>
+            </section>
 
-                <h4 style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">Kolory kategorii w kalendarzu</h4>
-                <div id="categories-colors-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;"></div>
+            <!-- ZAKŁADKA 3: USTAWIENIA OGÓLNE -->
+            <section id="tab-ustawienia" class="tab-content" style="display: none;">
+                <div class="settings-grid">
+                    
+                    <!-- Konfiguracja godzin i buforów -->
+                    <div class="settings-card">
+                        <h3>⏰ Parametry Pracy i Rezerwacji</h3>
+                        <form id="settingsForm" onsubmit="event.preventDefault();">
+                            <div class="form-group">
+                                <label for="work_start_hour">Godzina rozpoczęcia pracy:</label>
+                                <input type="time" id="work_start_hour" value="09:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="work_end_hour">Godzina zakończenia pracy:</label>
+                                <input type="time" id="work_end_hour" value="18:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="buffer_hours">Minimalny czas wyprzedzenia rezerwacji (w godzinach):</label>
+                                <input type="number" id="buffer_hours" min="1" max="48" value="1">
+                            </div>
+                            <!-- SEKCJA INTEGRACJI GRAFIKU CYKLICZNEGO -->
+                            <div class="form-group">
+                                <label for="schedule_cycle">Płynny cykl grafiku Darii (np. 1-1-2 = 1 pracujący, 1 wolny, 2 pracujące):</label>
+                                <input type="text" id="schedule_cycle" placeholder="1-1-2">
+                            </div>
+                            <button type="button" id="saveSettingsBtn" class="btn-primary" onclick="saveSettings()">Zapisz konfigurację</button>
+                        </form>
+                    </div>
 
-                <button id="saveSettingsBtn" class="btn-primary" onclick="saveSettings()">Zapisz ustawienia</button>
-            </form>
-        </div>
+                    <!-- Kolory kategorii w kalendarzu -->
+                    <div class="settings-card">
+                        <h3>🎨 Kolory Kategorii w Kalendarzu</h3>
+                        <p style="font-size: 12px; color:#777; margin-bottom:15px;">Ustaw unikalne kolory dla kategorii, aby Twoja siatka godzinowa Booksy była czytelna na pierwszy rzut oka.</p>
+                        <div id="categories-colors-list" class="colors-editor-grid">
+                            <!-- Dynamiczne inputy kolorów per kategoria -->
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ/РЕДАКТИРОВАНИЕ УСЛУГИ -->
-    <div id="serviceModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 id="modalTitle">Dodaj nowy zabieg</h4>
-                <button class="modal-close" onclick="closeServiceModal()">&times;</button>
-            </div>
-            <input type="hidden" id="editServiceIndex" value="-1">
-            <div class="form-group">
-                <label>Kategoria:</label>
-                <select id="serviceCategorySelect" onchange="toggleNewCategoryInput()"></select>
-            </div>
-            <div id="newCategoryGroup" class="form-group" style="display: none;">
-                <label>Nazwa nowej kategorii:</label>
-                <input type="text" id="serviceCategoryNew" placeholder="Wpisz nazwę...">
-            </div>
-            <div class="form-group">
-                <label>Nazwa usługi:</label>
-                <input type="text" id="serviceName" placeholder="Np. Stylizacja brwi">
-            </div>
-            <div class="form-group">
-                <label>Cena (zł):</label>
-                <input type="number" id="servicePrice" placeholder="0">
-            </div>
-            <div class="form-group">
-                <label>Czas trwania (min):</label>
-                <input type="number" id="serviceDuration" placeholder="45">
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
-                <button class="btn-primary" onclick="saveServiceModalData()">Zapisz</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- МОДАЛЬНОЕ ОКНО: РЕДАКТИРОВАНИЕ КАТЕГОРИЙ -->
-    <div id="categoryModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>Zarządzaj kategoriami</h4>
-                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
-            </div>
-            <div class="form-group">
-                <label>Wybierz kategorię:</label>
-                <select id="renameCategorySelect"></select>
-            </div>
-            <div class="form-group">
-                <label>Nowa nazwa kategorii (dla zmiany):</label>
-                <input type="text" id="renameCategoryNewName" placeholder="Nowa nazwa...">
-            </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn-primary" onclick="renameCategoryGlobal()" style="flex: 1;">Zmień nazwę</button>
-                <button class="btn-danger btn-small" onclick="deleteCategoryGlobal()" style="flex: 1;">Usuń kategorię</button>
-            </div>
-            <hr style="border: 1px dashed #eee; margin: 20px 0;">
-            <div class="form-group">
-                <label>Dodaj nową pustą kategorię:</label>
-                <input type="text" id="createNewCategoryName" placeholder="Nazwa nowej kategorii...">
-            </div>
-            <button class="btn-secondary" onclick="addNewCategoryEmpty()" style="width: 100%;">Utwórz pustą kategorię</button>
-        </div>
-    </div>
-
-    <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: ПРОСМОТР / РЕДАКТИРОВАНИЕ / УДАЛЕНИЕ ВИЗИТА -->
+    <!-- MODAL: SZCZEGÓŁY / EDYCJA WIZYTY -->
     <div id="appointmentDetailsModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>Szczegóły rezerwacji</h4>
-                <button class="modal-close" onclick="closeAppointmentModal()">&times;</button>
-            </div>
-            <div id="appointment-details-view">
-                <input type="hidden" id="details-app-index" value="">
-                <div class="details-row"><strong>Klient:</strong> <span id="details-name"></span></div>
-                <div class="details-row"><strong>Telefon:</strong> <span id="details-phone"></span></div>
-                <div class="details-row"><strong>Zabieg:</strong> <span id="details-service"></span></div>
-                <div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div>
-                <div class="details-row"><strong>Czas trwania:</strong> <span id="details-duration"></span> min</div>
-                
-                <div class="modal-footer" style="margin-top: 25px; justify-content: space-between;">
-                    <button class="btn-danger" onclick="deleteAppointmentFromAdmin()">Usuń wizytę 🗑️</button>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-secondary" onclick="closeAppointmentModal()">Zamknij</button>
-                        <button class="btn-primary" onclick="switchToEditAppointment()">Edytuj ✏️</button>
-                    </div>
-                </div>
-            </div>
+        <div class="modal-window">
             
-            <!-- Форма редактирования визита (переключается внутри модалки) -->
-            <div id="appointment-edit-form" style="display: none;">
-                <div class="form-group">
-                    <label>Imię i Nazwisko:</label>
-                    <input type="text" id="edit-app-name">
+            <!-- PODGLĄD WIZYTY -->
+            <div id="appointment-details-view">
+                <div class="modal-header">
+                    <h2>Szczegóły rezerwacji</h2>
+                    <button class="close-btn" onclick="closeAppointmentModal()">&times;</button>
                 </div>
-                <div class="form-group">
-                    <label>Telefon:</label>
-                    <input type="text" id="edit-app-phone">
-                </div>
-                <div class="form-group">
-                    <label>Usługa / Zabieg:</label>
-                    <input type="text" id="edit-app-service">
-                </div>
-                <div class="form-group">
-                    <label>Data i Godzina rozpoczęcia:</label>
-                    <input type="datetime-local" id="edit-app-datetime">
-                </div>
-                <div class="form-group">
-                    <label>Czas trwania (min):</label>
-                    <input type="number" id="edit-app-duration">
+                <div class="modal-body">
+                    <p>👤 <strong>Klient:</strong> <span id="details-name">-</span></p>
+                    <p>📞 <strong>Telefon:</strong> <span id="details-phone">-</span></p>
+                    <p>💇 <strong>Zabieg:</strong> <span id="details-service">-</span></p>
+                    <p>📅 <strong>Termin:</strong> <span id="details-datetime">-</span></p>
+                    <p>⏱️ <strong>Czas trwania:</strong> <span id="details-duration">-</span> min</p>
+                    
+                    <!-- SEKCJA INTEGRACJI KARTY CRM KLIENTA -->
+                    <div id="crm-client-info-block" class="crm-info-box" style="display: none;">
+                        <h5>📊 Karta CRM Klienta</h5>
+                        <div class="crm-stats-grid">
+                            <div class="crm-stat-item">
+                                <span id="crm-stat-visits" class="crm-stat-num">0</span>
+                                <span class="crm-stat-label">Wizyt</span>
+                            </div>
+                            <div class="crm-stat-item">
+                                <span id="crm-stat-canceled" class="crm-stat-num" style="color: #c53929;">0</span>
+                                <span class="crm-stat-label">Odwołanych</span>
+                            </div>
+                            <div class="crm-stat-item">
+                                <span id="crm-stat-lastdate" class="crm-stat-num" style="font-size:11px; padding-top:4px;">-</span>
+                                <span class="crm-stat-label">Ostatnia</span>
+                            </div>
+                        </div>
+                        <div id="crm-client-status-badge" class="crm-badge-success">⭐ Zaufany klient</div>
+                    </div>
+
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-secondary" onclick="switchToViewAppointment()">Anuluj</button>
-                    <button class="btn-primary" onclick="saveEditedAppointment()">Zapisz zmiany</button>
+                    <button class="btn-secondary" onclick="switchToEditAppointment()">✏️ Przełóż / Edytuj</button>
+                    <button class="btn-danger" onclick="deleteAppointmentFromAdmin()">❌ Odwołaj wizytę</button>
                 </div>
             </div>
+
+            <!-- FORMULARZ SZYBKIEJ EDYCJI (UKRYTY DOMYŚLNIE) -->
+            <div id="appointment-edit-form" style="display: none;">
+                <div class="modal-header">
+                    <h2>Modyfikacja rezerwacji</h2>
+                    <button class="close-btn" onclick="switchToViewAppointment()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-app-index">
+                    <div class="form-group">
+                        <label>Imię i Nazwisko:</label>
+                        <input type="text" id="edit-app-name">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefon:</label>
+                        <input type="text" id="edit-app-phone">
+                    </div>
+                    <div class="form-group">
+                        <label>Zabieg:</label>
+                        <input type="text" id="edit-app-service">
+                    </div>
+                    <div class="form-group">
+                        <label>Data i Godzina:</label>
+                        <input type="datetime-local" id="edit-app-datetime">
+                    </div>
+                    <div class="form-group">
+                        <label>Czas trwania (min):</label>
+                        <input type="number" id="edit-app-duration">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-success" onclick="saveEditedAppointment()">💾 Zapisz zmiany</button>
+                    <button class="btn-secondary" onclick="switchToViewAppointment()">Anuluj</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: БЛОКИРОВКА ВРЕМЕНИ / ВЫХОДНОЙ -->
+    <!-- MODAL: BLOKOWANIE CZASU / URLOP -->
     <div id="blockTimeModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-window">
             <div class="modal-header">
-                <h4>Zablokuj czas / Dodaj wolne</h4>
-                <button class="modal-close" onclick="closeBlockTimeModal()">&times;</button>
+                <h2>Zablokuj czas w kalendarzu</h2>
+                <button class="close-btn" onclick="closeBlockTimeModal()">&times;</button>
             </div>
-            <div class="form-group">
-                <label>Typ blokady:</label>
-                <select id="block-type" onchange="toggleBlockTimeFields()">
-                    <option value="hours">Konkretne godziny w wybranym dniu</option>
-                    <option value="full_day">Cały dzień wolny</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Data:</label>
-                <input type="date" id="block-date">
-            </div>
-            <div id="block-hours-group">
+            <div class="modal-body">
                 <div class="form-group">
-                    <label>Godzina rozpoczęcia:</label>
-                    <input type="time" id="block-start-time" value="09:00">
+                    <label for="block-type">Typ blokady:</label>
+                    <select id="block-type" onchange="toggleBlockTimeFields()">
+                        <option value="hours">Wybrane godziny (Przerwa / Obiad)</option>
+                        <option value="full_day">Cały dzień wolny (Urlop / Święto)</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Godzina zakończenia:</label>
-                    <input type="time" id="block-end-time" value="18:00">
+                    <label for="block-date">Data:</label>
+                    <input type="date" id="block-date">
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Nazwa blokady (np. Urlop, Obiady, Wolne):</label>
-                <input type="text" id="block-title" value="Zablokowane">
+                <div id="block-hours-group">
+                    <div class="form-group">
+                        <label for="block-start-time">Od godziny:</label>
+                        <input type="time" id="block-start-time" value="12:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="block-end-time">Do godziny:</label>
+                        <input type="time" id="block-end-time" value="13:00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="block-title">Notatka / Powód:</label>
+                    <input type="text" id="block-title" placeholder="np. Przerwa obiadowa, Szkolenie">
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeBlockTimeModal()">Anuluj</button>
-                <button class="btn-primary" onclick="submitBlockTime()">Zablokuj czas 🔒</button>
+                <button class="btn-primary" onclick="submitBlockTime()">🔒 Nałóż blokadę</button>
+                <button class="btn-secondary" onclick="closeBlockTimeModal()">Zamknij</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL: DODAWANIE/EDYCJA USŁUGI W CENNIKU -->
+    <div id="serviceModal" class="modal-overlay" style="display: none;">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h2 id="modalTitle">Dodaj nowy zabieg</h2>
+                <button class="close-btn" onclick="closeServiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editServiceIndex" value="-1">
+                <div class="form-group">
+                    <label for="serviceCategorySelect">Wybierz kategorię:</label>
+                    <select id="serviceCategorySelect" onchange="toggleNewCategoryInput()"></select>
+                </div>
+                <div class="form-group" id="newCategoryGroup" style="display: none;">
+                    <label for="serviceCategoryNew">Nazwa nowej kategorii:</label>
+                    <input type="text" id="serviceCategoryNew" placeholder="Wpisz np. Pielęgnacja twarzy">
+                </div>
+                <div class="form-group">
+                    <label for="serviceName">Nazwa zabiegu:</label>
+                    <input type="text" id="serviceName" placeholder="np. Manicure Hybrydowy">
+                </div>
+                <div class="form-group">
+                    <label for="servicePrice">Cena (zł):</label>
+                    <input type="number" id="servicePrice" min="0" placeholder="np. 120">
+                </div>
+                <div class="form-group">
+                    <label for="serviceDuration">Czas trwania (minuty):</label>
+                    <input type="number" id="serviceDuration" min="5" step="5" placeholder="np. 45">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="saveServiceModalData()">Zapisz w szkicach</button>
+                <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GLOBALNE ZARZĄDZANIE KATEGORIAMI -->
+    <div id="categoryModal" class="modal-overlay" style="display: none;">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h2>Zarządzanie kategoriami cennika</h2>
+                <button class="close-btn" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#f9f9f9; padding:15px; border-radius:6px; margin-bottom:20px;">
+                    <h4 style="margin-top:0; margin-bottom:10px;">➕ Utwórz pustą kategorię</h4>
+                    <div style="display: flex; gap:10px;">
+                        <input type="text" id="createNewCategoryName" placeholder="Nowa nazwa kategorii" style="flex:1;">
+                        <button class="btn-primary" onclick="addNewCategoryEmpty()">Dodaj</button>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom:10px;">✏️ Edytuj / Usuń istniejącą kategorię</h4>
+                    <div class="form-group">
+                        <label>Wybierz kategorię docelową:</label>
+                        <select id="renameCategorySelect" style="width: 100%; margin-bottom:10px;"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nowa nazwa (dla zmiany):</label>
+                        <input type="text" id="renameCategoryNewName" placeholder="Wpisz nową nazwę">
+                    </div>
+                    <div style="display: flex; gap:10px; margin-top:15px;">
+                        <button class="btn-secondary" onclick="renameCategoryGlobal()" style="flex:1;">Zmień nazwę globalnie</button>
+                        <button class="btn-danger" onclick="deleteCategoryGlobal()" style="flex:1;">Usuń całą kategorię 🗑️</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeCategoryModal()">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SKRYPTY SYSTEMOWE -->
     <script src="admin.js"></script>
 </body>
 </html>
