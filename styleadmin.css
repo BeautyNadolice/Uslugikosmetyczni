@@ -1,283 +1,444 @@
-/* ==========================================================================
-   КОНСТАНТИ ТА БАЗОВИЙ БЕКАП ВІЗУАЛУ (ЗАШИТО НАМЕРТВО ЯК BASELINE)
-   ========================================================================== */
-:root {
-    /* Базові кольори */
-    --bg-page: #f6f5f7;
-    --bg-card: #ffffff;
-    --text-main: #2b2b2b;
-    --text-muted: #7e8b9b;
-    --color-accent: #b05c75;
-    --color-border: #eeebee;
-    
-    /* Категорії для календаря */
-    --cat-nails: #b05c75;
-    --cat-spa: #6b8e8f;
-    --cat-blocked: #555555;
-    
-    /* Параметри Premium Soft-Business (Змінюються без деформації розмірів) */
-    --border-radius-base: 16px;
-    --shadow-offset-y: 6px;
-    --shadow-blur: 20px;
-    --shadow-opacity: 0.04; /* POPRAWKA: Dodana zmienna, którą steruje Twój skrypt JS */
-    
-    /* Динамічний розрахунок тіні */
-    --premium-box-shadow: 0px var(--shadow-offset-y) var(--shadow-blur) rgba(0, 0, 0, var(--shadow-opacity)),
-                          0px 1px 3px rgba(0, 0, 0, 0.02);
-    
-    /* Шрифтова система */
-    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+// --- [CONFIG ADMINISTRACYJNY] ---
+const SPREADSHEET_ID = "1FVmVjlhSOXKmalhaU0UAwwpNttKH1BBqpej1zChBBzU";
+
+const SHEET_DRAFT = "Szkic";
+const SHEET_PUBLIC = "Cennik";
+const SHEET_SETTINGS = "Ustawienia";
+const SHEET_BOOKINGS = "Wizyty";
+const SHEET_CUSTOMERS = "Klienci";
+
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
-/* ==========================================================================
-   ГЛОБАЛЬНІ СКЛАДОВІ
-   ========================================================================== */
-body {
-    background-color: var(--bg-page);
-    font-family: var(--font-stack);
-    color: var(--text-main);
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    overflow: hidden;
-    box-sizing: border-box;
+// Pobieranie ustawień z bazy - kolory są trwałą listą kategorii
+function getDynamicSettings(ss) {
+  const settings = {
+    work_start_hour: "09:00",
+    work_end_hour: "18:00",
+    buffer_hours: 1,
+    safety_range_hours: 5, 
+    slot_interval_minutes: 45,
+    start_offset_minutes: 0,
+    calendar_id: "primary",
+    colors: {},
+    all_categories: [] // Trwała lista kategorii wyciągnięta z zapisanych kolorów
+  };
+  if (!ss) ss = getSpreadsheet();
+  const settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (settingsSheet && settingsSheet.getLastRow() > 1) {
+    const rows = settingsSheet.getRange(2, 1, settingsSheet.getLastRow() - 1, 3).getValues();
+    rows.forEach(r => {
+      const key = r[0] ? r[0].toString().trim() : "";
+      let val = r[1];
+      if (key && val !== undefined && val !== "") {
+        if (val instanceof Date) {
+          val = Utilities.formatDate(val, ss.getSpreadsheetTimeZone(), "HH:mm");
+        } else {
+          val = val.toString().trim();
+        }
+        if (key.startsWith("color_")) {
+          const catName = key.replace("color_", "");
+          settings.colors[catName] = val;
+          if (!settings.all_categories.includes(catName)) {
+            settings.all_categories.push(catName);
+          }
+        } else if (key === "work_start_hour") {
+          settings.work_start_hour = val.substring(0, 5); 
+        } else if (key === "work_end_hour") {
+          settings.work_end_hour = val.substring(0, 5);
+        } else if (key === "buffer_hours") {
+          settings.buffer_hours = parseInt(val, 10) || 0;
+        } else if (key === "calendar_id") {
+          settings.calendar_id = val; 
+        }
+      }     
+    });
+  }
+  return settings;
 }
 
-*, *:before, *:after {
-    box-sizing: border-box;
+function getAllBusyIntervals(ss, settings) {
+  const intervals = [];
+  let servicesSheet = ss.getSheetByName(SHEET_PUBLIC) || ss.getSheetByName(SHEET_DRAFT);
+  const serviceDuration = {};
+  if (servicesSheet && servicesSheet.getLastRow() > 1) {
+    const sVals = servicesSheet.getRange(2, 1, servicesSheet.getLastRow() - 1, 4).getValues();
+    sVals.forEach(row => {
+      const name = row[1] ? row[1].toString().trim() : "";
+      const dur = row[3] ? parseInt(row[3], 10) : 45;
+      if (name) serviceDuration[name] = dur;
+    });
+  }
+
+  const knownSheetEventIds = new Set();
+  const knownSheetTimes = new Set();
+
+  let bookingsSheet = ss.getSheetByName(SHEET_BOOKINGS);
+  if (bookingsSheet && bookingsSheet.getLastRow() > 1) {
+    const values = bookingsSheet.getRange(2, 1, bookingsSheet.getLastRow() - 1, 7).getValues();
+    values.forEach(row => {
+      let startDate = null;
+      if (row[0] instanceof Date) startDate = row[0];
+      else if (row[0]) startDate = new Date(row[0].toString().trim());
+      
+      if (startDate && !isNaN(startDate.getTime())) {
+        const clientPhone = row[1] ? row[1].toString().trim() : "";
+        const clientName = row[2] ? row[2].toString().trim() : "";
+        const serviceName = row[3] ? row[3].toString().trim() : "";
+        
+        const dur = serviceDuration[serviceName] || settings.slot_interval_minutes || 45;
+        const endDate = new Date(startDate.getTime() + dur * 60000);
+        const eventId = row[6] ? row[6].toString().trim() : "";
+        
+        if (eventId) knownSheetEventIds.add(eventId);
+        knownSheetTimes.add(startDate.getTime() + "_" + clientName);
+
+        intervals.push({ 
+          start: startDate, end: endDate, source: "sheet",
+          name: clientName, phone: clientPhone, service: serviceName, eventId: eventId, duration: dur
+        });
+      }
+    });
+  }
+
+  try {
+    const calendars = CalendarApp.getAllCalendars();
+    const now = new Date();
+    const startRange = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+    const endRange = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
+
+    calendars.forEach(calendar => {
+      try {
+        const events = calendar.getEvents(startRange, endRange);
+        events.forEach(event => {
+          const evId = event.getId();
+          const evStart = event.getStartTime();
+          const evTitle = event.getTitle() || "Zablokowane";
+
+          if (knownSheetEventIds.has(evId)) return;
+          
+          let isDuplicateByTime = false;
+          knownSheetTimes.forEach(sheetTimeKey => {
+            const [timeStr, clientName] = sheetTimeKey.split("_");
+            if (Number(timeStr) === evStart.getTime() && (clientName && evTitle.includes(clientName))) {
+              isDuplicateByTime = true;
+            }
+          });
+          if (isDuplicateByTime) return;
+
+          intervals.push({
+            start: evStart, end: event.getEndTime(), source: "calendar", title: evTitle, eventId: evId
+          });
+        });
+      } catch (calErr) {}
+    });
+  } catch (e) {}
+
+  return intervals;
 }
 
-/* ==========================================================================
-   АДАПТИВНА ТРИКОЛОНОЧНА СІТКА (GRID SYSTEM)
-   ========================================================================== */
-.crm-container {
-    display: grid;
-    grid-template-columns: 280px 1fr 320px;
-    height: 100vh;
-    width: 100vw;
-    gap: 20px;
-    padding: 20px;
+function formatDateToISOString(date) {
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
 }
 
-/* Загальний макет для всіх колонок */
-.crm-column {
-    background-color: var(--bg-card);
-    border-radius: var(--border-radius-base);
-    box-shadow: var(--premium-box-shadow);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: border-radius 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid var(--color-border);
-}
+function doGet(e) {
+  try {
+    const params = e.parameter || {};
+    const ss = getSpreadsheet();
+    let outputData = null;
 
-/* Внутрішній поділ колонок */
-.column-header {
-    padding: 20px;
-    border-bottom: 1px solid var(--color-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
+    if (params.checkBusy) {
+      const settings = getDynamicSettings(ss);
+      const busyIntervals = getAllBusyIntervals(ss, settings);
+      const appointments = [];
 
-.column-header h2, .column-header h1 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-main);
-}
-
-.column-header h1 {
-    font-size: 20px;
-    text-transform: none;
-    letter-spacing: normal;
-}
-
-.column-content {
-    padding: 20px;
-    flex-grow: 1;
-    overflow-y: auto;
-}
-
-/* ==========================================================================
-   СТИЛІЗАЦІЯ КОМПОНЕНТІВ КОЛОНОК
-   ========================================================================== */
-
-/* Колонка 1: Навігація */
-.nav-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.nav-item {
-    background: none;
-    border: none;
-    padding: 12px 16px;
-    border-radius: calc(var(--border-radius-base) - 6px);
-    text-align: left;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.nav-item:hover, .nav-item.active {
-    background-color: var(--bg-page);
-    color: var(--color-accent);
-}
-
-.section-divider {
-    border: 0;
-    height: 1px;
-    background-color: var(--color-border);
-    margin: 20px 0;
-}
-
-/* Колонка 2: Головний розклад */
-.schedule-scroll-node {
-    background-color: var(--bg-page);
-    margin: 15px;
-    border-radius: calc(var(--border-radius-base) - 4px);
-    border: 1px dashed var(--color-border);
-    position: relative;
-}
-
-.schedule-timeline-container {
-    position: relative;
-    height: 600px; /* Приклад висоти робочого дня */
-}
-
-/* Картки преміум-візитів */
-.booking-card {
-    position: absolute;
-    left: 15px;
-    right: 15px;
-    border-radius: calc(var(--border-radius-base) - 6px);
-    padding: 12px 16px;
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-size: 13px;
-    transition: transform 0.2s ease;
-    cursor: pointer;
-}
-
-.booking-card:hover {
-    transform: translateY(-2px);
-}
-
-.category-nails { background-color: var(--cat-nails); }
-.category-spa { background-color: var(--cat-spa); }
-.state-blocked { background-color: var(--cat-blocked); opacity: 0.85; }
-
-.card-time { font-weight: 700; font-size: 11px; margin-bottom: 2px; opacity: 0.9; }
-.card-client { font-weight: 700; font-size: 14px; }
-.card-service { font-style: italic; opacity: 0.95; }
-
-/* Колонка 3: Девелоперський редактор */
-.dev-notice {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    line-height: 1.5;
-}
-
-.editor-section {
-    margin-bottom: 25px;
-    background-color: var(--bg-page);
-    padding: 15px;
-    border-radius: calc(var(--border-radius-base) - 4px);
-}
-
-.editor-section h3 {
-    margin: 0 0 12px 0;
-    font-size: 13px;
-    color: var(--text-main);
-}
-
-.control-group {
-    margin-bottom: 12px;
-}
-
-.control-group label {
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    margin-bottom: 5px;
-}
-
-.control-group input[type="color"] {
-    width: 100%;
-    height: 36px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    cursor: pointer;
-    background: transparent;
-}
-
-.control-group input[type="range"] {
-    width: 100%;
-    accent-color: var(--color-accent);
-}
-
-/* ==========================================================================
-   КНОПКИ ТА ІНТЕРФЕЙСНІ ЕЛЕМЕНТИ
-   ========================================================================== */
-.btn {
-    border: none;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.btn-success { background-color: #28a745; color: white; }
-.btn-secondary { background-color: #e2e8f0; color: #4a5568; margin-left: 8px; }
-.btn-primary { background-color: var(--color-accent); color: white; width: 100%; margin-bottom: 10px; }
-.btn-danger { background-color: #d9534f; color: white; width: 100%; }
-
-.btn:hover { opacity: 0.9; }
-
-/* Утиліти для скелетонів */
-.skeleton-placeholder {
-    background: linear-gradient(90deg, #f0f0f0 25%, #f7f7f7 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* ==========================================================================
-   АДАПТИВНІСТЬ ДЛЯ ЕКРАНІВ (RESPONSIVE)
-   ========================================================================== */
-@media (max-width: 1200px) {
-    .crm-container {
-        grid-template-columns: 240px 1fr; /* Ховаємо дев-панель на планшетах */
+      busyIntervals.forEach(busy => {
+        const dateStr = formatDateToISOString(busy.start);
+        const calcDuration = busy.duration || Math.round((busy.end.getTime() - busy.start.getTime()) / 60000);
+        appointments.push({
+          date: dateStr,
+          endDate: formatDateToISOString(busy.end), 
+          phone: busy.source === "calendar" ? "Google Calendar" : (busy.phone || ""),
+          name: busy.source === "calendar" ? (busy.title || "Rezerwacja") : (busy.name || "Klient"),
+          service: busy.source === "calendar" ? "Rezerwacja zewnętrzna" : (busy.service || "Zabieg"),
+          duration: calcDuration
+        });
+      });
+      outputData = { settings, appointments };
     }
-    .col-dev-editor { display: none; }
+    else if (params.getPrices === "true" || params.getPrices === true) {
+      let sheet = ss.getSheetByName(SHEET_PUBLIC) || ss.getSheetByName(SHEET_DRAFT);
+      if (!sheet) {
+        outputData = [];
+      } else {
+        const lastRow = sheet.getLastRow();
+        if (lastRow < 2) {
+          outputData = [];
+        } else {
+          const values = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+          const services = [];
+          values.forEach(row => {
+            const category = row[0] ? row[0].toString().trim() : "";
+            const name = row[1] ? row[1].toString().trim() : "";
+            if (category && name) {
+              services.push({
+                category: category, name: name,
+                price: row[2] !== "" ? Number(row[2]) : 0,
+                duration: row[3] !== "" ? Number(row[3]) : 45,
+                showPrice: row[4] !== "" ? row[4].toString().trim() : "Tak",
+                showDuration: row[5] !== "" ? row[5].toString().trim() : "Tak",
+                status: row[6] || "Szkic"
+              });
+            }
+          });
+          outputData = services;
+        }
+      }
+    }
+
+    if (outputData === null) outputData = { error: "Nieznane zapytanie" };
+    return ContentService.createTextOutput(JSON.stringify(outputData)).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
-@media (max-width: 768px) {
-    .crm-container {
-        grid-template-columns: 1fr; /* Тільки головний розклад на телефонах */
+function doPost(e) {
+  try {
+    let postData = typeof e.postData.contents === "string" ? JSON.parse(e.postData.contents) : e.postData.contents;
+    const ss = getSpreadsheet();
+    
+    if (postData.action === "createBooking") {
+      const settings = getDynamicSettings(ss);
+      let bookingsSheet = ss.getSheetByName(SHEET_BOOKINGS);
+
+      // --- 1. USUWANIE WIZYTY ---
+      if (postData.deleteFlag === "true" || postData.deleteFlag === true) {
+        const dateToFind = new Date(postData.date);
+        const postName = (postData.name || "").trim();
+        let targetEventId = "";
+
+        if (bookingsSheet && bookingsSheet.getLastRow() > 1) {
+          const range = bookingsSheet.getRange(2, 1, bookingsSheet.getLastRow() - 1, 7);
+          const values = range.getValues();
+          for (let i = values.length - 1; i >= 0; i--) {
+            let rowDate = values[i][0] instanceof Date ? values[i][0] : new Date(values[i][0].toString().trim());
+            if (rowDate && !isNaN(rowDate.getTime())) {
+              if (Math.abs(rowDate.getTime() - dateToFind.getTime()) < 60000 && values[i][2].toString().trim() === postName) {
+                targetEventId = values[i][6] ? values[i][6].toString().trim() : "";
+                bookingsSheet.deleteRow(i + 2);
+              }
+            }
+          }
+        }
+        
+        if (settings.calendar_id) {
+          try {
+            const calendar = CalendarApp.getCalendarById(settings.calendar_id);
+            if (calendar) {
+              if (targetEventId) {
+                const exactEvent = calendar.getEventById(targetEventId);
+                if (exactEvent) exactEvent.deleteEvent();
+              } else {
+                const dayStart = new Date(dateToFind.getTime()); dayStart.setHours(0, 0, 0, 0);
+                const dayEnd = new Date(dateToFind.getTime()); dayEnd.setHours(23, 59, 59, 999);
+                const events = calendar.getEvents(dayStart, dayEnd);
+                events.forEach(ev => {
+                  const evTitle = ev.getTitle() || "";
+                  const timeMatches = ev.getStartTime().getHours() === dateToFind.getHours() && ev.getStartTime().getMinutes() === dateToFind.getMinutes();
+                  if (timeMatches) {
+                    if (postName === "Zablokowane" || postName === "Rezerwacja" || evTitle.includes(postName)) {
+                      ev.deleteEvent();
+                    }
+                  }
+                });
+              }
+            }
+          } catch(err) {}
+        }
+        return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // --- 2. MODYFIKACJA / EDYCJA ISTNIEJĄCEJ WIZYTY ---
+      if (postData.editFlag === "true" || postData.editFlag === true) {
+        const oldDateToFind = new Date(postData.oldDate);
+        const oldName = (postData.oldName || "").trim();
+        let targetEventId = "";
+        let foundRowIndex = -1;
+
+        if (bookingsSheet && bookingsSheet.getLastRow() > 1) {
+          const range = bookingsSheet.getRange(2, 1, bookingsSheet.getLastRow() - 1, 7);
+          const values = range.getValues();
+          for (let i = 0; i < values.length; i++) {
+            let rowDate = values[i][0] instanceof Date ? values[i][0] : new Date(values[i][0].toString().trim());
+            if (rowDate && !isNaN(rowDate.getTime())) {
+              if (Math.abs(rowDate.getTime() - oldDateToFind.getTime()) < 60000 && values[i][2].toString().trim() === oldName) {
+                targetEventId = values[i][6] ? values[i][6].toString().trim() : "";
+                foundRowIndex = i + 2;
+                break;
+              }
+            }
+          }
+        }
+
+        const parsedDate = new Date(postData.date);
+        const duration = parseInt(postData.duration, 10) || 45;
+        const endDate = new Date(parsedDate.getTime() + duration * 60000);
+
+        // Aktualizacja wydarzenia w Kalendarzu Google
+        if (settings.calendar_id && targetEventId) {
+          try {
+            const calendar = CalendarApp.getCalendarById(settings.calendar_id);
+            if (calendar) {
+              const exactEvent = calendar.getEventById(targetEventId);
+              if (exactEvent) {
+                const eventTitle = postData.phone === "Google Calendar" ? postData.name : `${postData.name || "Klient"} - ${postData.service || "Zabieg"}`;
+                const eventDescription = `Telefon: ${postData.phone || "Brak"}\nUsługa: ${postData.service || "Brak"}`;
+                exactEvent.setTitle(eventTitle);
+                exactEvent.setTime(parsedDate, endDate);
+                exactEvent.setDescription(eventDescription);
+              }
+            }
+          } catch(err) {}
+        }
+
+        // Aktualizacja wiersza w arkuszu "Wizyty"
+        if (foundRowIndex !== -1) {
+          bookingsSheet.getRange(foundRowIndex, 1, 1, 4).setValues([[
+            parsedDate, 
+            postData.phone || "", 
+            postData.name || "", 
+            postData.service || ""
+          ]]);
+        }
+        return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // --- 3. TWORZENIE NOWEJ REZERWACJI (DOMYŚLNE) ---
+      const parsedDate = new Date(postData.date);
+      const duration = parseInt(postData.duration, 10) || 45;
+      const endDate = new Date(parsedDate.getTime() + duration * 60000);
+
+      if (!bookingsSheet) {
+        bookingsSheet = ss.insertSheet(SHEET_BOOKINGS);
+        bookingsSheet.appendRow(["Data/Godzina", "Telefon", "Imię", "Zabieg", "RODO", "Data zapisu", "Event ID"]);
+      }
+
+      let generatedEventId = "";
+      if (settings.calendar_id) {
+        try {
+          const calendar = CalendarApp.getCalendarById(settings.calendar_id);
+          if (calendar) {
+            const eventTitle = postData.phone === "Google Calendar" ? postData.name : `${postData.name || "Klient"} - ${postData.service || "Zabieg"}`;
+            const eventDescription = `Telefon: ${postData.phone || "Brak"}\nUsługa: ${postData.service || "Brak"}`;
+            const newEvent = calendar.createEvent(eventTitle, parsedDate, endDate, { description: eventDescription });
+            if (newEvent) generatedEventId = newEvent.getId();
+          }
+        } catch (calErr) {}
+      }
+
+      bookingsSheet.appendRow([parsedDate, postData.phone || "", postData.name || "", postData.service || "", postData.rodo || "Nie", new Date(), generatedEventId]);
+
+      // Statystyki klientów
+      if (postData.phone && postData.phone !== "Google Calendar" && postData.name) {
+        let customerSheet = ss.getSheetByName(SHEET_CUSTOMERS);
+        if (!customerSheet) {
+          customerSheet = ss.insertSheet(SHEET_CUSTOMERS);
+          customerSheet.appendRow(["Telefon", "Imię i Nazwisko", "Wizyty", "Odwołane", "Ostatnia wizyta"]);
+        }
+        const custRange = customerSheet.getRange(2, 1, Math.max(1, customerSheet.getLastRow() - 1), 5);
+        const custValues = customerSheet.getLastRow() > 1 ? custRange.getValues() : [];
+        let customerFoundIndex = -1;
+        const normPhone = postData.phone.toString().trim();
+
+        for (let k = 0; k < custValues.length; k++) {
+          if (custValues[k][0].toString().trim() === normPhone) {
+            customerFoundIndex = k + 2;
+            break;
+          }
+        }
+        if (customerFoundIndex !== -1) {
+          const currentCount = parseInt(customerSheet.getRange(customerFoundIndex, 3).getValue(), 10) || 0;
+          customerSheet.getRange(customerFoundIndex, 3).setValue(currentCount + 1);
+          customerSheet.getRange(customerFoundIndex, 5).setValue(parsedDate);
+        } else {
+          customerSheet.appendRow([normPhone, postData.name.trim(), 1, 0, parsedDate]);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
     }
-    .col-navigation { display: none; }
+    
+    // --- POZOSTAŁE AKCJE (updateSettings, saveDraftPrices, publishDraftToPublic) ---
+    if (postData.action === "updateSettings") {
+      const sheet = ss.getSheetByName(SHEET_SETTINGS);
+      if (!sheet) return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
+      const payload = postData.payload;
+      ["work_start_hour", "work_end_hour", "buffer_hours"].forEach(key => {
+        if (payload[key] !== undefined) updateOrInsertSetting(sheet, key, payload[key]);
+      });
+      if (payload.colors) {
+        Object.keys(payload.colors).forEach(cat => updateOrInsertSetting(sheet, "color_" + cat, payload.colors[cat]));
+      }
+      if (postData.deleteCategoryName) {
+        deleteSettingKey(sheet, "color_" + postData.deleteCategoryName);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (postData.action === "saveDraftPrices") {
+      let sheet = ss.getSheetByName(SHEET_DRAFT);
+      if (!sheet) sheet = ss.insertSheet(SHEET_DRAFT);
+      if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).clearContent();
+      const prices = postData.prices || [];
+      if (prices.length > 0) {
+        const rowsToAppend = prices.map(item => [
+          item.category || "", item.name || "", item.price || 0, item.duration || 45, "Tak", "Tak", "Szkic"
+        ]);
+        sheet.getRange(2, 1, rowsToAppend.length, 7).setValues(rowsToAppend);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (postData.action === "publishDraftToPublic") {
+      const draftSheet = ss.getSheetByName(SHEET_DRAFT);
+      let publicSheet = ss.getSheetByName(SHEET_PUBLIC);
+      if (!draftSheet || draftSheet.getLastRow() < 2) return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
+      if (!publicSheet) publicSheet = ss.insertSheet(SHEET_PUBLIC);
+      const draftValues = draftSheet.getRange(2, 1, draftSheet.getLastRow() - 1, 7).getValues();
+      const publishedValues = draftValues.map(row => { row[6] = "Opublikowany"; return row; });
+      if (publicSheet.getLastRow() > 1) publicSheet.getRange(2, 1, publicSheet.getLastRow() - 1, 7).clearContent();
+      publicSheet.getRange(2, 1, publishedValues.length, 7).setValues(publishedValues);
+      draftSheet.getRange(2, 1, publishedValues.length, 7).setValues(publishedValues);
+      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function updateOrInsertSetting(sheet, key, val) {
+  const lastRow = sheet.getLastRow();
+  let foundIndex = -1;
+  if (lastRow > 1) {
+    const range = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < range.length; i++) {
+      if (range[i][0] && range[i][0].toString().trim() === key) { foundIndex = i + 2; break; }
+    }
+  }
+  if (foundIndex !== -1) sheet.getRange(foundIndex, 2).setValue(val);
+  else sheet.appendRow([key, val, "Zapisane przez system"]);
+}
+
+function deleteSettingKey(sheet, key) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const range = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = range.length - 1; i >= 0; i--) {
+      if (range[i][0] && range[i][0].toString().trim() === key) {
+        sheet.deleteRow(i + 2);
+      }
+    }
+  }
 }
