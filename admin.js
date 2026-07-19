@@ -250,10 +250,10 @@ function switchTab(tabName) {
 
     }
 
-    const activeButton =
-        document.querySelector(
-            `[onclick="switchTab('${tabName}')"]`
-        );
+    const activeBtn =
+    document.querySelector(
+        `.nav-btn[onclick*="${tabName}"]`
+    );
 
     if(activeButton) {
 
