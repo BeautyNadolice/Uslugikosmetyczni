@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Nail-Art CRM DEV</title>
+
+    .css">
+
+</head>
+
+<body>
+
+    <div class="dev-shell">
+
+        <aside class="dev-sidebar">
+
+            <h2>🛠 DEV PANEL</h2>
+
+            <button onclick="showSection('theme')">
+                🎨 Theme
+            </button>
+
+            <button onclick="showSection('shadow')">
+                🌑 Shadow
+            </button>
+
+            <button onclick="showSection('radius')">
+                ⭕ Radius
+            </button>
+
+            <button onclick="showSection('presets')">
+                💾 Presets
+            </button>
+
+            <button onclick="showSection('debug')">
+                🐞 Debug
+            </button>
+
+        </aside>
+
+        <main class="dev-content">
+
+            <section id="theme-section">
+
+                <h1>Theme Builder</h1>
+
+                <label>
+                    Accent Color
+                </label>
+
+                <input
+                    id="accentColor"
+                    type="color"
+                    value="#b05c75">
+
+            </section>
+
+
+            <section id="shadow-section"
+                     style="display:none;">
+
+                <h1>Shadow Settings</h1>
+
+                <input
+                    id="shadowOpacity"
+                    type="range"
+                    min="0"
+                    max="0.5"
+                    step="0.01"
+                    value="0.05">
+
+            </section>
+
+
+            <section id="radius-section"
+                     style="display:none;">
+
+                <h1>Radius Settings</h1>
+
+                <input
+                    id="radiusValue"
+                    type="range"
+                    min="0"
+                    max="40"
+                    value="16">
+
+            </section>
+
+
+            <section id="presets-section"
+                     style="display:none;">
+
+                <h1>Presets</h1>
+
+                <button onclick="loadPreset('premium')">
+
+                    Premium
+
+                </button>
+
+                <button onclick="loadPreset('minimal')">
+
+                    Minimal
+
+                </button>
+
+                <button onclick="loadPreset('glass')">
+
+                    Glass
+
+                </button>
+
+            </section>
+
+
+            <section id="debug-section"
+                     style="display:none;">
+
+                <h1>Debug</h1>
+
+                <pre id="debug-output">
+
+System Ready
+
+                </pre>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <script src="app-dev.js"></script>
+
+</body>
+
+</html>
