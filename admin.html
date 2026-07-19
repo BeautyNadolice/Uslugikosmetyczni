@@ -10,7 +10,7 @@
 </head>
 <body>
 
-    <!-- MODALNE OKNO AUTORYZACJI -->
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
     <div id="login-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content" style="max-width: 400px; text-align: center; position: relative;">
             <span class="close-btn" onclick="closeLoginModal()">&times;</span>
@@ -19,7 +19,7 @@
 
             <div class="google-signin-wrapper" style="display: flex; justify-content: center; margin-bottom: 15px;">
                 <div id="g_id_onload"
-                     data-client_id="strsasa@gmail.com.apps.googleusercontent.com"
+                     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
                      data-auto_prompt="false">
                 </div>
@@ -37,11 +37,12 @@
                 <button class="test-btn" onclick="loginTest()">
                     🔐 Zaloguj się przez TEST (Szybki start)
                 </button>
+                <p style="font-size: 12px; color: #999; margin-top: 8px;">Вход без проверки Google (для разработки)</p>
             </div>
         </div>
     </div>
 
-    <!-- GŁÓWNA OBSZAR ROBOCZY -->
+    <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ АДМИНКИ -->
     <div id="admin-panel-wrapper" class="container" style="display: none;">
         
         <header class="admin-nav">
@@ -55,7 +56,7 @@
             <button class="tab-btn" onclick="switchTab('ustawienia')">⚙️ Ustawienia Pracy</button>
         </div>
 
-        <!-- ZAKŁADKA: INTERAKTYWNY KALENDARZ -->
+        <!-- ВКЛАДКА 0: ИНТЕРАКТИВНЫЙ КАЛЕНДАРЬ -->
         <div id="tab-kalendarz" class="tab-content">
             <div class="calendar-layout-header">
                 <div class="calendar-view-toggle">
@@ -71,7 +72,7 @@
             </div>
             
             <div class="calendar-two-columns">
-                <!-- Lewa kolumna: Mini-kalendarz -->
+                <!-- Левая колонка: Mini-kalendarz na miesiąc -->
                 <div class="calendar-sidebar">
                     <div class="mini-month-header">
                         <button onclick="changeMiniMonth(-1)">◀</button>
@@ -84,7 +85,7 @@
                     <div id="mini-month-days-grid" class="mini-month-days-grid"></div>
                 </div>
 
-                <!-- Prawa kolumna: Siatka godzinowa -->
+                <!-- Правая колонка: Siatka harmonogramu -->
                 <div class="calendar-main-schedule">
                     <div class="booksy-calendar-wrapper" id="booksy-cal-scroll-node">
                         <div class="booksy-timeline" id="booksy-timeline"></div>
@@ -94,7 +95,7 @@
             </div>
         </div>
 
-        <!-- ZAKŁADKA: ZARZĄDZANIE USŁUGAMI -->
+        <!-- ВКЛАДКА 1: ZARZĄDZANIE USŁUGAMI -->
         <div id="tab-cennik" class="tab-content" style="display: none;">
             <div class="admin-actions-bar">
                 <button id="undoBtn" class="btn-secondary" onclick="undo()" disabled>↩️ Cofnij (Ctrl+Z)</button>
@@ -121,7 +122,7 @@
             </table>
         </div>
 
-        <!-- ZAKŁADKA: USTAWIENIA WORKTIME, CYKLU I KOLORÓW -->
+        <!-- ВКЛАДКА 2: USTAWIENIA CZASU PRACY I KOLORÓW -->
         <div id="tab-ustawienia" class="tab-content" style="display: none;">
             <h3>Ustawienia harmonogramu</h3>
             <p style="color: #666; margin-bottom: 20px;">Konfiguracja godzin pracy oraz parametrów dostępności.</p>
@@ -129,19 +130,15 @@
             <form id="settingsForm" onsubmit="event.preventDefault();">
                 <div class="form-group">
                     <label for="work_start_hour">Godzina rozpoczęcia pracy:</label>
-                    <input type="time" id="work_start_hour" value="09:00">
+                    <input type="text" id="work_start_hour" placeholder="09:00">
                 </div>
                 <div class="form-group">
                     <label for="work_end_hour">Godzina zakończenia pracy:</label>
-                    <input type="time" id="work_end_hour" value="18:00">
+                    <input type="text" id="work_end_hour" placeholder="18:00">
                 </div>
                 <div class="form-group">
-                    <label for="buffer_minutes">Czas buforowy (w ninutach przed rezerwacją):</label>
-                    <input type="number" id="buffer_hours" min="0" max="24" value="1">
-                </div>
-                <div class="form-group">
-                    <label for="schedule_cycle">Płynny cykl grafiku Darii (np. 1-1-2):</label>
-                    <input type="text" id="schedule_cycle" placeholder="1-1-2">
+                    <label for="buffer_hours">Czas buforowy (w godzinach przed rezerwacją):</label>
+                    <input type="number" id="buffer_hours" min="0" max="24">
                 </div>
 
                 <h4 style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">Kolory kategorii w kalendarzu</h4>
@@ -187,7 +184,7 @@
         </div>
     </div>
 
-    <!-- MODAL: REDAKTIROWANIE KATEGORII -->
+    <!-- MODAL: ZARZĄDZANIE KATEGORIAMI -->
     <div id="categoryModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -215,35 +212,22 @@
         </div>
     </div>
 
-    <!-- MODAL: PODGLĄD / EDYCJA / CRM / USUWANIE WIZYTY -->
+    <!-- MODAL: SZCZEGÓŁY / REZERWACJA / USUNIĘCIE WIZYTY -->
     <div id="appointmentDetailsModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h4>Szczegóły rezerwacji</h4>
                 <button class="modal-close" onclick="closeAppointmentModal()">&times;</button>
             </div>
-            
-            <!-- Podgląd wizyty -->
             <div id="appointment-details-view">
-                <input type="hidden" id="edit-app-index" value="">
+                <input type="hidden" id="details-app-index" value="">
                 <div class="details-row"><strong>Klient:</strong> <span id="details-name"></span></div>
                 <div class="details-row"><strong>Telefon:</strong> <span id="details-phone"></span></div>
                 <div class="details-row"><strong>Zabieg:</strong> <span id="details-service"></span></div>
                 <div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div>
                 <div class="details-row"><strong>Czas trwania:</strong> <span id="details-duration"></span> min</div>
                 
-                <!-- INTEGRACJA KARTY CRM KLIENTA (PRZYWRÓCONA) -->
-                <div id="crm-client-info-block" class="crm-info-box" style="display: none; background: #fff5f7; border: 1px solid #f2d6dc; padding: 12px; margin: 15px 0; border-radius: 6px;">
-                    <h5 style="margin: 0 0 8px 0; color: #b05c75;">📊 Karta CRM Klienta</h5>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
-                        <div>Wizyt: <strong id="crm-stat-visits">0</strong></div>
-                        <div>Odwołanych: <strong id="crm-stat-canceled" style="color: red;">0</strong></div>
-                    </div>
-                    <div style="font-size: 12px; color: #555; margin-bottom: 8px;">Ostatnia: <span id="crm-stat-lastdate">-</span></div>
-                    <div id="crm-client-status-badge" style="display: inline-block; background: #b05c75; color: white; padding: 2px 8px; font-size: 11px; border-radius: 4px;">⭐ Zaufany klient</div>
-                </div>
-
-                <div class="modal-footer" style="margin-top: 25px; justify-content: space-between; display: flex;">
+                <div class="modal-footer" style="margin-top: 25px; justify-content: space-between;">
                     <button class="btn-danger" onclick="deleteAppointmentFromAdmin()">Usuń wizytę 🗑️</button>
                     <div style="display:flex; gap:10px;">
                         <button class="btn-secondary" onclick="closeAppointmentModal()">Zamknij</button>
