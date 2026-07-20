@@ -894,7 +894,122 @@ function renderAppointmentCard(app,container){
 /* ==========================================================
    CREATE APPOINTMENT
    ========================================================== */
+async function saveAppointment() {
 
+    const name =
+        document.getElementById(
+            "appointmentName"
+        ).value.trim();
+
+    const phone =
+        document.getElementById(
+            "appointmentPhone"
+        ).value.trim();
+
+    const service =
+        document.getElementById(
+            "appointmentService"
+        ).value.trim();
+
+    const duration =
+        Number(
+            document.getElementById(
+                "appointmentDuration"
+            ).value
+        ) || 45;
+
+    const dateValue =
+        document.getElementById(
+            "appointmentDateTime"
+        ).value;
+
+    if (
+        !name ||
+        !phone ||
+        !service ||
+        !dateValue
+    ) {
+        alert(
+            "Uzupełnij wszystkie pola wizyty."
+        );
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                APPS_SCRIPT_URL,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                        "text/plain"
+                    },
+                    body:
+                    JSON.stringify({
+                        action:
+                        "createBooking",
+                        phone:
+                        phone,
+                        name:
+                        name,
+                        service:
+                        service,
+                        date:
+                        dateValue,
+                        duration:
+                        duration,
+                        rodo:
+                        "Dodano z CRM"
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (
+            data.success
+        ) {
+
+            alert(
+                "Wizyta została dodana."
+            );
+
+            closeCreateAppointmentModal();
+
+            await loadSettings();
+
+            renderDashboard();
+
+            calculateFinanceReport();
+
+        } else {
+
+            alert(
+                "Błąd dodawania wizyty: " +
+                (
+                    data.error ||
+                    "Nieznany błąd"
+                )
+            );
+
+        }
+
+    } catch(error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "Błąd połączenia podczas dodawania wizyty."
+        );
+
+    }
+
+}
 function openCreateModal(){
 
     currentEditingAppointment =
