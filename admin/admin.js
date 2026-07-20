@@ -1702,7 +1702,6 @@ function closeCategoryModal() {
 /* ==========================================================
    CENNIK - SAVE DRAFT / PUBLISH
    ========================================================== */
-
 async function saveDraftsToClou*() {
     try {
         if (!curren*Services || currentServices.length*=== 0) {
