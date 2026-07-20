@@ -732,13 +732,41 @@
             <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
         </div>
 
-        <p>
-            Moduł kategorii będzie podłączony w następnym kroku.
-            Na teraz kategorie można wpisywać ręcznie przy dodawaniu lub edycji usługi.
-        </p>
+        <div class="form-group">
+            <label>Wybierz kategorię:</label>
+            <select id="categorySelectForEdit"></select>
+        </div>
+
+        <div class="form-group">
+            <label>Nowa nazwa kategorii:</label>
+            <input type="text" id="categoryNewName" placeholder="Np. Manicure i Pedicure">
+        </div>
 
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeCategoryModal()">Zamknij</button>
+            <button class="btn-primary" onclick="renameCategoryFromModal()">
+                Zmień nazwę
+            </button>
+
+            <button class="btn-danger" onclick="deleteCategoryFromModal()">
+                Usuń kategorię
+            </button>
+        </div>
+
+        <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
+
+        <div class="form-group">
+            <label>Dodaj nową kategorię:</label>
+            <input type="text" id="categoryCreateName" placeholder="Nazwa nowej kategorii">
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="addNewCategoryFromModal()">
+                Dodaj kategorię
+            </button>
+
+            <button class="btn-secondary" onclick="closeCategoryModal()">
+                Zamknij
+            </button>
         </div>
     </div>
 </div>
