@@ -277,10 +277,9 @@ async function loadSettings() {
         allCategories =
             settingsData.all_categories || [];
 
-        renderMiniMonthCalendar();
-
-        renderBooksyCalendar();
-
+       populateSettingsForm();
+renderMiniMonthCalendar();
+renderBooksyCalendar();
     }
 
     catch(err) {
@@ -1490,7 +1489,38 @@ function buildColorsEditor(){
 
 }
 
+/* ==========================================================
+   SETTINGS FORM POPULATE
+   ========================================================== */
 
+function setInputValue(id, value) {
+    const input =
+        document.getElementById(id);
+
+    if (input) {
+        input.value =
+            value !== undefined && value !== null
+                ? value
+                : "";
+    }
+}
+
+function populateSettingsForm() {
+    setInputValue(
+        "work_start_hour",
+        settingsData.work_start_hour || "09:00"
+    );
+
+    setInputValue(
+        "work_end_hour",
+        settingsData.work_end_hour || "18:00"
+    );
+
+    setInputValue(
+        "buffer_hours",
+        settingsData.buffer_hours || 1
+    );
+}
 /* ==========================================================
    SAVE SETTINGS
    ========================================================== */
@@ -1531,20 +1561,30 @@ async function saveSettings(){
                     action:
                     "updateSettings",
 
-                    payload:{
+                   payload: {
+    work_start_hour:
+        document.getElementById(
+            "work_start_hour"
+        ).value,
 
-                        work_start_hour:
-                        document.getElementById(
-                            "work_start_hour"
-                        ).value,
+    work_end_hour:
+        document.getElementById(
+            "work_end_hour"
+        ).value,
 
-                        work_end_hour:
-                        document.getElementById(
-                            "work_end_hour"
-                        ).value,
+    buffer_hours:
+        document.getElementById(
+            "buffer_hours"
+        )
+        ? Number(
+            document.getElementById(
+                "buffer_hours"
+            ).value
+        ) || 1
+        : 1,
 
-                        colors:
-                        categoryColors
+    colors:
+        categoryColors
 
                     }
 
