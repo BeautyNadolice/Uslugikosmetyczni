@@ -1702,70 +1702,77 @@ function closeCategoryModal() {
 /* ==========================================================
    CENNIK - SAVE DRAFT / PUBLISH
    ========================================================== */
-async function saveDraftsToClou*() {
+
+async function saveDraftsToCloud() {
     try {
-        if (!curren*Services || currentServices.length*=== 0) {
-            alert("Brak u*ług do zapisania.");
-            r*turn;
+        if (!currentServices || currentServices.length === 0) {
+            alert("Brak usług do zapisania.");
+            return;
         }
 
-        const res*onse = await fetch(
-            AP*S_SCRIPT_URL,
+        const response = await fetch(
+            APPS_SCRIPT_URL,
             {
-      *         method: "POST",
-         *      headers: {
-                 *  "Content-Type": "text/plain"
-   *            },
-                bod*: JSON.stringify({
-               *    action: "saveDraftPrices",
-   *                prices: currentSer*ices
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain"
+                },
+                body: JSON.stringify({
+                    action: "saveDraftPrices",
+                    prices: currentServices
                 })
-          * }
+            }
         );
 
-        const data * await response.json();
+        const data = await response.json();
 
-        i* (data.success) {
-            aler*("Szkic cennika zapisany.");
-     *      await loadServices();
-      * } else {
-            alert("Błąd *apisu szkicu: " + (data.error || "*ieznany błąd"));
+        if (data.success) {
+            alert("Szkic cennika zapisany.");
+            await loadServices();
+        } else {
+            alert(
+                "Błąd zapisu szkicu: " +
+                (data.error || "Nieznany błąd")
+            );
         }
-    } c*tch (error) {
-        console.erro*(error);
-        alert("Błąd połąc*enia podczas zapisu szkicu.");
-   *}
+    } catch (error) {
+        console.error(error);
+        alert("Błąd połączenia podczas zapisu szkicu.");
+    }
 }
 
-async function publishDrafts(* {
-    if (!confirm("Opublikować a*tualny szkic cennika na stronie kl*enta?")) {
+async function publishDrafts() {
+    if (!confirm("Opublikować aktualny szkic cennika na stronie klienta?")) {
         return;
     }
 
-*   try {
-        const response = *wait fetch(
-            APPS_SCRIP*_URL,
+    try {
+        const response = await fetch(
+            APPS_SCRIPT_URL,
             {
-              * method: "POST",
-                h*aders: {
-                    "Cont*nt-Type": "text/plain"
-           *    },
-                body: JSON.*tringify({
-                    act*on: "publishDraftToPublic"
-       *        })
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain"
+                },
+                body: JSON.stringify({
+                    action: "publishDraftToPublic"
+                })
             }
-        )*
+        );
 
-        const data = await respo*se.json();
+        const data = await response.json();
 
-        if (data.succe*s) {
-            alert("Cennik opu*likowany.");
-            await loa*Services();
+        if (data.success) {
+            alert("Cennik opublikowany.");
+            await loadServices();
         } else {
-     *      alert("Błąd publikacji: " + *data.error || "Nieznany błąd"));
- *      }
+            alert(
+                "Błąd publikacji: " +
+                (data.error || "Nieznany błąd")
+            );
+        }
     } catch (error) {
-    *   console.error(error);
+        console.error(error);
         alert("Błąd połączenia podczas publikacji.");
     }
 }
