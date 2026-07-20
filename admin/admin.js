@@ -1694,15 +1694,201 @@ function saveServiceModalData() {
 }
 
 /* ==========================================================
-   CENNIK - CATEGORY MODAL TEMP
+   CENNIK - CATEGORY MANAGEMENT
    ========================================================== */
 
+function getUniqueServiceCategories() {
+    const categories = [];
+
+    currentServices.forEach(service => {
+        const category =
+            service.category
+                ? service.category.trim()
+                : "";
+
+        if (
+            category &&
+            !categories.includes(category)
+        ) {
+            categories.push(category);
+        }
+    });
+
+    return categories.sort();
+}
+
 function openCategoryModal() {
+    renderCategoryModalList();
     document.getElementById("categoryModal").style.display = "flex";
 }
 
 function closeCategoryModal() {
     document.getElementById("categoryModal").style.display = "none";
+}
+
+function renderCategoryModalList() {
+    const select =
+        document.getElementById("categorySelectForEdit");
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML = "";
+
+    const categories =
+        getUniqueServiceCategories();
+
+    if (categories.length === 0) {
+        const option =
+            document.createElement("option");
+
+        option.value = "";
+        option.textContent = "Brak kategorii";
+
+        select.appendChild(option);
+        return;
+    }
+
+    categories.forEach(category => {
+        const option =
+            document.createElement("option");
+
+        option.value = category;
+        option.textContent = category;
+
+        select.appendChild(option);
+    });
+}
+
+function addNewCategoryFromModal() {
+    const input =
+        document.getElementById("categoryCreateName");
+
+    const newCategory =
+        input.value.trim();
+
+    if (!newCategory) {
+        alert("Wpisz nazwę nowej kategorii.");
+        return;
+    }
+
+    const categories =
+        getUniqueServiceCategories();
+
+    if (categories.includes(newCategory)) {
+        alert("Taka kategoria już istnieje.");
+        return;
+    }
+
+    currentServices.push({
+        category: newCategory,
+        name: "Nowa usługa",
+        price: 0,
+        duration: 60,
+        showPrice: "Tak",
+        showDuration: "Tak",
+        status: "Szkic"
+    });
+
+    input.value = "";
+
+    renderServicesTable();
+    renderCategoryModalList();
+    buildColorsEditor();
+
+    alert(
+        "Kategoria została dodana lokalnie.\n\n" +
+        "Kliknij „Zapisz szkic”, a potem „Publikuj”, żeby zapisać zmiany."
+    );
+}
+
+function renameCategoryFromModal() {
+    const select =
+        document.getElementById("categorySelectForEdit");
+
+    const input =
+        document.getElementById("categoryNewName");
+
+    const oldCategory =
+        select.value;
+
+    const newCategory =
+        input.value.trim();
+
+    if (!oldCategory) {
+        alert("Wybierz kategorię.");
+        return;
+    }
+
+    if (!newCategory) {
+        alert("Wpisz nową nazwę kategorii.");
+        return;
+    }
+
+    currentServices.forEach(service => {
+        if (service.category === oldCategory) {
+            service.category = newCategory;
+        }
+    });
+
+    input.value = "";
+
+    renderServicesTable();
+    renderCategoryModalList();
+    buildColorsEditor();
+
+    alert(
+        "Nazwa kategorii została zmieniona lokalnie.\n\n" +
+        "Kliknij „Zapisz szkic”, a potem „Publikuj”, żeby zapisać zmiany."
+    );
+}
+
+function deleteCategoryFromModal() {
+    const select =
+        document.getElementById("categorySelectForEdit");
+
+    const category =
+        select.value;
+
+    if (!category) {
+        alert("Wybierz kategorię.");
+        return;
+    }
+
+    const servicesInCategory =
+        currentServices.filter(service => {
+            return service.category === category;
+        });
+
+    if (servicesInCategory.length > 0) {
+        const confirmDelete =
+            confirm(
+                "Ta kategoria zawiera " +
+                servicesInCategory.length +
+                " usług.\n\n" +
+                "Usunięcie kategorii usunie też wszystkie usługi w tej kategorii.\n\n" +
+                "Kontynuować?"
+            );
+
+        if (!confirmDelete) {
+            return;
+        }
+    }
+
+    currentServices =
+        currentServices.filter(service => {
+            return service.category !== category;
+        });
+
+    renderServicesTable();
+    renderCategoryModalList();
+    buildColorsEditor();
+
+    alert(
+        "Kategoria została usunięta lokalnie.\n\n" +
+        "Kliknij „Zapisz szkic”, a potem „Publikuj”, żeby zapisać zmiany."
+    );
 }
 /* ==========================================================
    CENNIK - SAVE DRAFT / PUBLISH
