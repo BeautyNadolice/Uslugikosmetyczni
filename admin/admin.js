@@ -1003,25 +1003,26 @@ async function deleteAppointmentFromAdmin(){
                         "text/plain"
                     },
 
-                    body:
-                    JSON.stringify({
+                   body:
+JSON.stringify({
+    action:
+    "createBooking",
 
-                        action:
-                        "createBooking",
+    deleteFlag:
+    true,
 
-                        deleteFlag:
-                        true,
+    eventId:
+    currentEditingAppointment.eventId || "",
 
-                        date:
-                        new Date(
-                            currentEditingAppointment.date
-                        )
-                        .toISOString(),
+    date:
+    new Date(
+        currentEditingAppointment.date
+    )
+    .toISOString(),
 
-                        name:
-                        currentEditingAppointment.name
-
-                    })
+    name:
+    currentEditingAppointment.name
+})
 
                 }
             );
