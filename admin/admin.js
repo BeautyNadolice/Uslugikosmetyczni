@@ -1781,6 +1781,33 @@ async function publishDrafts() {
         alert("Błąd połączenia podczas publikacji.");
     }
 }
+function deleteService(index) {
+    const service = currentServices[index];
+
+    if (!service) {
+        alert("Nie znaleziono usługi do usunięcia.");
+        return;
+    }
+
+    const confirmDelete = confirm(
+        "Usunąć usługę?\n\n" +
+        (service.name || "Bez nazwy")
+    );
+
+    if (!confirmDelete) {
+        return;
+    }
+
+    currentServices.splice(index, 1);
+
+    renderServicesTable();
+    buildColorsEditor();
+
+    alert(
+        "Usługa usunięta lokalnie.\n\n" +
+        "Kliknij teraz „Zapisz szkic”, a potem „Publikuj”, żeby usunąć ją z arkusza i strony klienta."
+    );
+}
 /* ==========================================================
    END OF PART 5
    ========================================================== */
