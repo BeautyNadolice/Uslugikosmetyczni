@@ -1700,5 +1700,76 @@ function closeCategoryModal() {
     document.getElementById("categoryModal").style.display = "none";
 }
 /* ==========================================================
+   CENNIK - SAVE DRAFT / PUBLISH
+   ========================================================== */
+
+async function saveDraftsToClou*() {
+    try {
+        if (!curren*Services || currentServices.length*=== 0) {
+            alert("Brak u*ług do zapisania.");
+            r*turn;
+        }
+
+        const res*onse = await fetch(
+            AP*S_SCRIPT_URL,
+            {
+      *         method: "POST",
+         *      headers: {
+                 *  "Content-Type": "text/plain"
+   *            },
+                bod*: JSON.stringify({
+               *    action: "saveDraftPrices",
+   *                prices: currentSer*ices
+                })
+          * }
+        );
+
+        const data * await response.json();
+
+        i* (data.success) {
+            aler*("Szkic cennika zapisany.");
+     *      await loadServices();
+      * } else {
+            alert("Błąd *apisu szkicu: " + (data.error || "*ieznany błąd"));
+        }
+    } c*tch (error) {
+        console.erro*(error);
+        alert("Błąd połąc*enia podczas zapisu szkicu.");
+   *}
+}
+
+async function publishDrafts(* {
+    if (!confirm("Opublikować a*tualny szkic cennika na stronie kl*enta?")) {
+        return;
+    }
+
+*   try {
+        const response = *wait fetch(
+            APPS_SCRIP*_URL,
+            {
+              * method: "POST",
+                h*aders: {
+                    "Cont*nt-Type": "text/plain"
+           *    },
+                body: JSON.*tringify({
+                    act*on: "publishDraftToPublic"
+       *        })
+            }
+        )*
+
+        const data = await respo*se.json();
+
+        if (data.succe*s) {
+            alert("Cennik opu*likowany.");
+            await loa*Services();
+        } else {
+     *      alert("Błąd publikacji: " + *data.error || "Nieznany błąd"));
+ *      }
+    } catch (error) {
+    *   console.error(error);
+        alert("Błąd połączenia podczas publikacji.");
+    }
+}
+/* ==========================================================
    END OF PART 5
    ========================================================== */
