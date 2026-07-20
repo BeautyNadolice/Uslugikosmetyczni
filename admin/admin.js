@@ -193,7 +193,7 @@ function renderServicesTable() {
 
     }
 
-    currentServices.forEach(service => {
+    currentServices.forEach((service, index) => {
 
         const tr =
             document.createElement("tr");
@@ -221,12 +221,11 @@ function renderServicesTable() {
             </td>
 
             <td>
-                <button
-                    class="btn-secondary">
-
-                    Edytuj
-
-                </button>
+               <button
+    class="btn-secondary"
+    onclick="editService(${index})">
+    Edytuj
+</button>
             </td>
 
         `;
@@ -1614,7 +1613,92 @@ function handleCredentialResponse(response){
 
 }
 
+/* ==========================================================
+   CENNIK - ADD / EDIT SERVICE
+   ========================================================== */
 
+function openAddServiceModal() {
+    document.getElementById("editServiceIndex").value = "-1";
+    document.getElementById("serviceModalTitle").innerText = "Dodaj usługę";
+
+    document.getElementById("serviceCategory").value = "";
+    document.getElementById("serviceName").value = "";
+    document.getElementById("servicePrice").value = "";
+    document.getElementById("serviceDuration").value = "60";
+    document.getElementById("serviceStatus").value = "Szkic";
+
+    document.getElementById("serviceModal").style.display = "flex";
+}
+
+function closeServiceModal() {
+    document.getElementById("serviceModal").style.display = "none";
+}
+
+function editService(index) {
+    const service = currentServices[index];
+
+    if (!service) {
+        alert("Nie znaleziono usługi do edycji.");
+        return;
+    }
+
+    document.getElementById("editServiceIndex").value = index;
+    document.getElementById("serviceModalTitle").innerText = "Edytuj usługę";
+
+    document.getElementById("serviceCategory").value = service.category || "";
+    document.getElementById("serviceName").value = service.name || "";
+    document.getElementById("servicePrice").value = service.price || "";
+    document.getElementById("serviceDuration").value = service.duration || 60;
+    document.getElementById("serviceStatus").value = service.status || "Szkic";
+
+    document.getElementById("serviceModal").style.display = "flex";
+}
+
+function saveServiceModalData() {
+    const index = parseInt(
+        document.getElementById("editServiceIndex").value,
+        10
+    );
+
+    const serviceData = {
+        category: document.getElementById("serviceCategory").value.trim(),
+        name: document.getElementById("serviceName").value.trim(),
+        price: Number(document.getElementById("servicePrice").value) || 0,
+        duration: Number(document.getElementById("serviceDuration").value) || 60,
+        showPrice: "Tak",
+        showDuration: "Tak",
+        status: document.getElementById("serviceStatus").value || "Szkic"
+    };
+
+    if (!serviceData.category || !serviceData.name) {
+        alert("Wpisz kategorię i nazwę usługi.");
+        return;
+    }
+
+    if (index >= 0) {
+        currentServices[index] = serviceData;
+    } else {
+        currentServices.push(serviceData);
+    }
+
+    renderServicesTable();
+    buildColorsEditor();
+    closeServiceModal();
+
+    alert("Usługa zapisana lokalnie. Następny krok: zapis szkicu do arkusza.");
+}
+
+/* ==========================================================
+   CENNIK - CATEGORY MODAL TEMP
+   ========================================================== */
+
+function openCategoryModal() {
+    document.getElementById("categoryModal").style.display = "flex";
+}
+
+function closeCategoryModal() {
+    document.getElementById("categoryModal").style.display = "none";
+}
 /* ==========================================================
    END OF PART 5
    ========================================================== */
