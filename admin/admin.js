@@ -221,13 +221,18 @@ function renderServicesTable() {
             </td>
 
             <td>
-               <button
-    class="btn-secondary"
-    onclick="editService(${index})">
-    Edytuj
-</button>
-            </td>
+    <button
+        class="btn-secondary"
+        onclick="editService(${index})">
+        Edytuj
+    </button>
 
+    <button
+        class="btn-danger"
+        onclick="deleteService(${index})">
+        Usuń
+    </button>
+</td>
         `;
 
         tbody.appendChild(tr);
