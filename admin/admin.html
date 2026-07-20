@@ -420,18 +420,13 @@
 
                     <div>
 
-                        <button class="btn-primary">
+                        <button class="btn-primary" onclick="openAddServiceModal()">
+    ➕ Usługa
+</button>
 
-                            ➕ Usługa
-
-                        </button>
-
-                        <button class="btn-secondary">
-
-                            🏷️ Kategorie
-
-                        </button>
-
+<button class="btn-secondary" onclick="openCategoryModal()">
+    🏷️ Kategorie
+</button>
                     </div>
 
                 </div>
@@ -678,7 +673,68 @@
         </div>
     </div>
 </div>
+<!-- MODAL: DODAJ / EDYTUJ USŁUGĘ -->
+<div id="serviceModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 id="serviceModalTitle">Dodaj usługę</h4>
+            <button class="modal-close" onclick="closeServiceModal()">&times;</button>
+        </div>
 
+        <input type="hidden" id="editServiceIndex" value="-1">
+
+        <div class="form-group">
+            <label>Kategoria:</label>
+            <input type="text" id="serviceCategory" placeholder="Np. Manicure i Pedicure">
+        </div>
+
+        <div class="form-group">
+            <label>Nazwa usługi:</label>
+            <input type="text" id="serviceName" placeholder="Np. Manicure z kolorem">
+        </div>
+
+        <div class="form-group">
+            <label>Cena (zł):</label>
+            <input type="number" id="servicePrice" placeholder="0">
+        </div>
+
+        <div class="form-group">
+            <label>Czas trwania (min):</label>
+            <input type="number" id="serviceDuration" placeholder="60">
+        </div>
+
+        <div class="form-group">
+            <label>Status:</label>
+            <select id="serviceStatus">
+                <option value="Szkic">Szkic</option>
+                <option value="Opublikowany">Opublikowany</option>
+            </select>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeServiceModal()">Anuluj</button>
+            <button class="btn-primary" onclick="saveServiceModalData()">Zapisz</button>
+        </div>
+    </div>
+</div>
+    <!-- MODAL: KATEGORIE -->
+<div id="categoryModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Zarządzaj kategoriami</h4>
+            <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+        </div>
+
+        <p>
+            Moduł kategorii będzie podłączony w następnym kroku.
+            Na teraz kategorie można wpisywać ręcznie przy dodawaniu lub edycji usługi.
+        </p>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeCategoryModal()">Zamknij</button>
+        </div>
+    </div>
+</div>
 <script src="admin.js"></script>
 
 </body>
