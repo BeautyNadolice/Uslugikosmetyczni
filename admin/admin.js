@@ -1160,9 +1160,6 @@ function openEditAppointmentModal() {
     ).innerText =
         "Edytuj wizytę";
 
-    
-}
-
     document.getElementById(
         "appointmentName"
     ).value =
@@ -1196,6 +1193,7 @@ function openEditAppointmentModal() {
         "appointmentModal"
     ).style.display =
         "flex";
+
 }
 function openCreateModal() {
     currentEditingAppointment =
