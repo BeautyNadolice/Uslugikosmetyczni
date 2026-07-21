@@ -1176,6 +1176,10 @@ function populateAppointmentDropdowns() {
         populateAppointmentClientSelect();
     }
 
+    if (typeof populateAppointmentPhoneSelect === "function") {
+        populateAppointmentPhoneSelect();
+    }
+
     if (typeof populateAppointmentServiceSelect === "function") {
         populateAppointmentServiceSelect();
     }
@@ -1184,6 +1188,116 @@ function populateAppointmentDropdowns() {
         populateAppointmentDatalists();
     }
 
+}
+function populateAppointmentPhoneSelect() {
+
+    const select =
+        document.getElementById(
+            "appointmentPhoneSelect"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML =
+        `
+        <option value="">Wybierz telefon</option>
+        <option value="__manual__">Wpisz ręcznie</option>
+        `;
+
+    if (
+        !customersData ||
+        customersData.length === 0
+    ) {
+        return;
+    }
+
+    customersData.forEach(client => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            client.phone || "";
+
+        option.textContent =
+            (client.phone || "") +
+            " - " +
+            (client.name || "Klient");
+
+        option.dataset.name =
+            client.name || "";
+
+        option.dataset.phone =
+            client.phone || "";
+
+        select.appendChild(
+            option
+        );
+
+    });
+
+}
+
+function handleAppointmentPhoneSelect() {
+
+    const select =
+        document.getElementById(
+            "appointmentPhoneSelect"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    const selectedOption =
+        select.options[
+            select.selectedIndex
+        ];
+
+    const nameInput =
+        document.getElementById(
+            "appointmentName"
+        );
+
+    const phoneInput =
+        document.getElementById(
+            "appointmentPhone"
+        );
+
+    if (
+        select.value === "__manual__"
+    ) {
+
+        if (phoneInput) {
+            phoneInput.value = "";
+        }
+
+        return;
+
+    }
+
+    if (
+        selectedOption &&
+        selectedOption.dataset
+    ) {
+
+        if (phoneInput) {
+            phoneInput.value =
+                selectedOption.dataset.phone || "";
+        }
+
+        if (nameInput) {
+            nameInput.value =
+                selectedOption.dataset.name || "";
+        }
+
+    }
+
+}
 }
 function populateAppointmentClientSelect() {
 
@@ -1729,7 +1843,14 @@ populateAppointmentDropdowns();
         "modalTitleAppointment"
     ).innerText =
         "Utwórz nową wizytę";
+const phoneSelect =
+    document.getElementById(
+        "appointmentPhoneSelect"
+    );
 
+if (phoneSelect) {
+    phoneSelect.value = "";
+}
     document.getElementById(
         "appointmentName"
     ).value = "";
