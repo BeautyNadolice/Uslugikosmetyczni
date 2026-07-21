@@ -2829,7 +2829,35 @@ function populateSettingsForm() {
 
     setInputValue(
         "buffer_hours",
-        settingsData.buffer_hours || 1
+        settingsData.buffer_hours !== undefined
+            ? settingsData.buffer_hours
+            : 1
+    );
+
+    setInputValue(
+        "slot_interval_minutes",
+        settingsData.slot_interval_minutes !== undefined
+            ? settingsData.slot_interval_minutes
+            : 45
+    );
+
+    setInputValue(
+        "start_offset_minutes",
+        settingsData.start_offset_minutes !== undefined
+            ? settingsData.start_offset_minutes
+            : 0
+    );
+
+    setInputValue(
+        "cleanup_buffer_minutes",
+        settingsData.cleanup_buffer_minutes !== undefined
+            ? settingsData.cleanup_buffer_minutes
+            : 0
+    );
+
+    setInputValue(
+        "schedule_cycle",
+        settingsData.schedule_cycle || "4x4"
     );
 }
 /* ==========================================================
@@ -2884,15 +2912,21 @@ async function saveSettings(){
         ).value,
 
     buffer_hours:
-        document.getElementById(
-            "buffer_hours"
-        )
-        ? Number(
-            document.getElementById(
-                "buffer_hours"
-            ).value
-        ) || 1
-        : 1,
+        document.getElementById("buffer_hours")
+            ? Math.max(0, Number(document.getElementById("buffer_hours").value) || 0)
+            : 1,
+
+    slot_interval_minutes:
+        Math.max(5, Number(document.getElementById("slot_interval_minutes").value) || 45),
+
+    start_offset_minutes:
+        Math.max(0, Number(document.getElementById("start_offset_minutes").value) || 0),
+
+    cleanup_buffer_minutes:
+        Math.max(0, Number(document.getElementById("cleanup_buffer_minutes").value) || 0),
+
+    schedule_cycle:
+        document.getElementById("schedule_cycle").value.trim() || "4x4",
 
     colors:
         categoryColors
@@ -3505,7 +3539,8 @@ function crmTestFrontendChecks(report) {
         "admin-panel-wrapper", "tab-dashboard", "tab-kalendarz", "tab-klienci",
         "tab-cennik", "tab-finanse", "tab-ustawienia", "booksy-grid",
         "clientsTableBody", "adminServicesTableBody", "settingsForm",
-        "work_start_hour", "work_end_hour", "buffer_hours", "appointmentModal",
+        "work_start_hour", "work_end_hour", "buffer_hours", "slot_interval_minutes",
+        "start_offset_minutes", "cleanup_buffer_minutes", "schedule_cycle", "appointmentModal",
         "appointmentDetailsModal", "blockTimeModal", "clientModal", "serviceModal",
         "categoryModal", "crm-diagnostics-panel"
     ].forEach(id => {
@@ -3537,18 +3572,13 @@ async function crmTestApiChecks(report) {
 
     [
         "work_start_hour", "work_end_hour", "buffer_hours", "slot_interval_minutes",
-        "start_offset_minutes", "calendar_id", "colors", "all_categories"
+        "start_offset_minutes", "cleanup_buffer_minutes", "schedule_cycle",
+        "calendar_id", "colors", "all_categories"
     ].forEach(key => {
         const exists = Object.prototype.hasOwnProperty.call(busy.settings, key);
         crmTestAdd(report, exists ? "OK" : "OSTRZEZENIE", "Ustawienie " + key,
             exists ? busy.settings[key] : "Brak ustawienia");
     });
-    ["cleanup_buffer_minutes", "schedule_cycle"].forEach(key => {
-        const exists = Object.prototype.hasOwnProperty.call(busy.settings, key);
-        crmTestAdd(report, exists ? "OK" : "OSTRZEZENIE", "Planowane ustawienie " + key,
-            exists ? busy.settings[key] : "Jeszcze nie wdrozone");
-    });
-
     const services = await crmTestGet({ getPrices: "true", testTimestamp: Date.now() });
     crmTestAdd(report, Array.isArray(services) ? "OK" : "BLAD", "Odczyt cennika",
         Array.isArray(services) ? "Liczba uslug: " + services.length : services);
@@ -3787,3 +3817,4 @@ async function loadCRMTestHistory() {
    KONIEC DIAGNOSTYKI SYSTEMU CRM
    TEN KOMENTARZ MUSI POZOSTAC NA SAMYM KONCU ADMIN.JS.
    ========================================================== */
+
