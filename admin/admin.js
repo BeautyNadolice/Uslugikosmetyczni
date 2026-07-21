@@ -1850,198 +1850,108 @@ function toggleBlockTimeFields(){
 
 }
 
-
 /* ==========================================================
-   BLOCK TIME - CREATE GOOGLE CALENDAR BLOCK
+   BLOCK TIME
    ========================================================== */
-if (postData.action === "blockTime") {
 
-  const settings =
-    getDynamicSettings(
-      ss
-    );
+function openBlockTimeModal() {
 
-  const calendar =
-    CalendarApp.getCalendarById(
-      settings.calendar_id || "primary"
-    );
+    const blockDateInput =
+        document.getElementById(
+            "block-date"
+        );
 
-  if (!calendar) {
-    return createJsonResponse({
-      success: false,
-      error: "Nie znaleziono kalendarza"
-    });
-  }
+    const blockTypeInput =
+        document.getElementById(
+            "block-type"
+        );
 
-  const blockType =
-    postData.blockType || "hours";
+    const blockStartInput =
+        document.getElementById(
+            "block-start-time"
+        );
 
-  const dateString =
-    postData.date || "";
+    const blockEndInput =
+        document.getElementById(
+            "block-end-time"
+        );
 
-  const startTime =
-    postData.startTime || "09:00";
+    const blockTitleInput =
+        document.getElementById(
+            "block-title"
+        );
 
-  const endTime =
-    postData.endTime || "18:00";
-
-  const title =
-    postData.title || "Zablokowane";
-
-  if (!dateString) {
-    return createJsonResponse({
-      success: false,
-      error: "Brak daty blokady"
-    });
-  }
-
-  const parts =
-    dateString.split("-");
-
-  if (parts.length !== 3) {
-    return createJsonResponse({
-      success: false,
-      error: "Nieprawidłowa data blokady"
-    });
-  }
-
-  const year =
-    parseInt(
-      parts[0],
-      10
-    );
-
-  const month =
-    parseInt(
-      parts[1],
-      10
-    ) - 1;
-
-  const day =
-    parseInt(
-      parts[2],
-      10
-    );
-
-  let startDate;
-  let endDate;
-
-  if (
-    blockType === "full_day"
-  ) {
-
-    startDate =
-      new Date(
-        year,
-        month,
-        day,
-        0,
-        0,
-        0
-      );
-
-    endDate =
-      new Date(
-        year,
-        month,
-        day + 1,
-        0,
-        0,
-        0
-      );
-
-  } else {
-
-    const startParts =
-      startTime.split(":");
-
-    const endParts =
-      endTime.split(":");
-
-    if (
-      startParts.length !== 2 ||
-      endParts.length !== 2
-    ) {
-      return createJsonResponse({
-        success: false,
-        error: "Nieprawidłowe godziny blokady"
-      });
+    if (blockDateInput) {
+        blockDateInput.value =
+            getFormattedISOBlockDate(
+                selectedCalendarDate
+            );
     }
 
-    startDate =
-      new Date(
-        year,
-        month,
-        day,
-        parseInt(
-          startParts[0],
-          10
-        ),
-        parseInt(
-          startParts[1],
-          10
-        ),
-        0
-      );
-
-    endDate =
-      new Date(
-        year,
-        month,
-        day,
-        parseInt(
-          endParts[0],
-          10
-        ),
-        parseInt(
-          endParts[1],
-          10
-        ),
-        0
-      );
-
-    if (
-      !startDate ||
-      !endDate ||
-      isNaN(
-        startDate.getTime()
-      ) ||
-      isNaN(
-        endDate.getTime()
-      ) ||
-      endDate.getTime() <= startDate.getTime()
-    ) {
-      return createJsonResponse({
-        success: false,
-        error: "Godzina zakończenia musi być późniejsza niż rozpoczęcia"
-      });
+    if (blockTypeInput) {
+        blockTypeInput.value =
+            "hours";
     }
 
-  }
+    if (blockStartInput) {
+        blockStartInput.value =
+            "09:00";
+    }
 
-  const description =
-    "Blokada czasu dodana z CRM";
+    if (blockEndInput) {
+        blockEndInput.value =
+            "18:00";
+    }
 
-  const event =
-    calendar.createEvent(
-      title,
-      startDate,
-      endDate,
-      {
-        description:
-        description
-      }
-    );
+    if (blockTitleInput) {
+        blockTitleInput.value =
+            "Zablokowane";
+    }
 
-  return createJsonResponse({
-    success: true,
-    eventId:
-    event
-      ? event.getId()
-      : ""
-  });
+    toggleBlockTimeFields();
+
+    document.getElementById(
+        "blockTimeModal"
+    ).style.display =
+        "flex";
 
 }
+
+
+function closeBlockTimeModal() {
+
+    document.getElementById(
+        "blockTimeModal"
+    ).style.display =
+        "none";
+
+}
+
+
+function toggleBlockTimeFields() {
+
+    const blockType =
+        document.getElementById(
+            "block-type"
+        ).value;
+
+    const group =
+        document.getElementById(
+            "block-hours-group"
+        );
+
+    if (!group) {
+        return;
+    }
+
+    group.style.display =
+        blockType === "hours"
+            ? "block"
+            : "none";
+
+}
+
+
 async function submitBlockTime() {
 
     const blockTypeInput =
