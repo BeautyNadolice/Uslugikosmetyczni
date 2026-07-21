@@ -591,17 +591,35 @@
 
         <div class="form-group">
             <label>Imię i nazwisko klienta:</label>
-            <input type="text" id="appointmentName" placeholder="Wpisz imię klienta">
+            <input type="text"
+       id="appointmentName"
+       list="appointmentClientNameList"
+       oninput="handleAppointmentNameInput()"
+       placeholder="Wpisz imię klienta">
+
+<datalist id="appointmentClientNameList"></datalist>
         </div>
 
         <div class="form-group">
             <label>Telefon:</label>
-            <input type="text" id="appointmentPhone" placeholder="Wpisz numer telefonu">
+            <input type="text"
+       id="appointmentPhone"
+       list="appointmentClientPhoneList"
+       oninput="handleAppointmentPhoneInput()"
+       placeholder="Wpisz numer telefonu">
+
+<datalist id="appointmentClientPhoneList"></datalist>
         </div>
 
         <div class="form-group">
             <label>Nazwa usługi / Zabieg:</label>
-            <input type="text" id="appointmentService" placeholder="Wpisz nazwę zabiegu">
+            <input type="text"
+       id="appointmentService"
+       list="appointmentServiceNameList"
+       oninput="handleAppointmentServiceInput()"
+       placeholder="Wpisz nazwę zabiegu">
+
+<datalist id="appointmentServiceNameList"></datalist>
         </div>
 
         <div class="form-group">
