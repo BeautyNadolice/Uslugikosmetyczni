@@ -1180,9 +1180,9 @@ function populateAppointmentDro*downs() {
         populateA*pointmentServiceSelect();
     }
 
- *  if (typeof populateAppointmentDa*alists === "function") {
+  if (typeof populateAppointmentDa*alists === "function") {
         p*pulateAppointmentDatalists();
-    *
+    
 
 }
 /* ==========================================================
