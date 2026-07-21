@@ -891,165 +891,173 @@ function renderAppointmentCard(app,container){
 
 }
 
-/* ==========*==================================*============
-   APPOINTMENT AUTOCO*PLETE / DATALISTS
-   =============*==================================*========= */
+/* ==========================================================
+   APPOINTMENT AUTOCOMPLETE / DATALISTS
+   ========================================================== */
 
-function populateApp*intmentDropdowns() {
+function populateAppointmentDropdowns() {
 
-    populate*ppointmentDatalists();
-
-}
-
-functio* populateAppointmentDatalists() {
-*    populateClientNameDatalist();
-*    populateClientPhoneDatalist();*
-    populateServiceNameDatalist()*
+    populateAppointmentDatalists();
 
 }
 
-function populateClientNameDa*alist() {
+function populateAppointmentDatalists() {
+
+    populateClientNameDatalist();
+
+    populateClientPhoneDatalist();
+
+    populateServiceNameDatalist();
+
+}
+
+function populateClientNameDatalist() {
 
     const list =
-      * document.getElementById(
-        *   "appointmentClientNameList"
-   *    );
+        document.getElementById(
+            "appointmentClientNameList"
+        );
 
     if (!list) {
-        r*turn;
-    }
-
-    list.innerHTML = *";
-
-    if (
-        !customersDat* ||
-        customersData.length =*= 0
-    ) {
         return;
     }
-*    customersData.forEach(client =* {
-
-        if (!client.name) {
-  *         return;
-        }
-
-      * const option =
-            docume*t.createElement(
-                "*ption"
-            );
-
-        opt*on.value =
-            client.name*|| "";
-
-        option.label =
-   *        client.phone || "";
-
-     *  list.appendChild(
-            op*ion
-        );
-
-    });
-
-}
-
-functi*n populateClientPhoneDatalist() {
-*    const list =
-        document.*etElementById(
-            "appoin*mentClientPhoneList"
-        );
-
- *  if (!list) {
-        return;
-   *}
 
     list.innerHTML = "";
 
-    i* (
+    if (
         !customersData ||
-     *  customersData.length === 0
-    )*{
+        customersData.length === 0
+    ) {
         return;
     }
 
-    custo*ersData.forEach(client => {
+    customersData.forEach(client => {
 
-     *  if (!client.phone) {
-           *return;
+        if (!client.name) {
+            return;
         }
 
-        const o*tion =
-            document.create*lement(
+        const option =
+            document.createElement(
                 "option"
- *          );
+            );
 
-        option.value*=
+        option.value =
+            client.name || "";
+
+        option.label =
             client.phone || "";
-*        option.label =
-           *client.name || "";
 
-        list.a*pendChild(
+        list.appendChild(
             option
-    *   );
+        );
 
     });
 
 }
 
-function popula*eServiceNameDatalist() {
+function populateClientPhoneDatalist() {
 
-    cons* list =
-        document.getElemen*ById(
-            "appointmentServ*ceNameList"
+    const list =
+        document.getElementById(
+            "appointmentClientPhoneList"
         );
 
-    if (!l*st) {
+    if (!list) {
         return;
     }
 
-    l*st.innerHTML = "";
+    list.innerHTML = "";
 
     if (
-     *  !currentServices ||
-        curr*ntServices.length === 0
+        !customersData ||
+        customersData.length === 0
     ) {
-  *     return;
+        return;
     }
 
-    currentSer*ices.forEach(service => {
+    customersData.forEach(client => {
 
-       *if (!service.name) {
-            r*turn;
+        if (!client.phone) {
+            return;
         }
 
-        const opt*on =
-            document.createEl*ment(
+        const option =
+            document.createElement(
                 "option"
-   *        );
+            );
 
-        option.value =*            service.name || "";
+        option.value =
+            client.phone || "";
 
- *      option.label =
-            (*                service.category |* "Inne"
-            ) +
-          * " / " +
-            (
-           *    service.duration || 45
-       *    ) +
-            " min / " +
-  *         (
-                service*price || 0
-            ) +
-       *    " zł";
+        option.label =
+            client.name || "";
 
-        list.appendChi*d(
+        list.appendChild(
             option
         );
 
-*   });
+    });
 
 }
 
-function handleAppointm*ntNameInput() {
+function populateServiceNameDatalist() {
+
+    const list =
+        document.getElementById(
+            "appointmentServiceNameList"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = "";
+
+    if (
+        !currentServices ||
+        currentServices.length === 0
+    ) {
+        return;
+    }
+
+    currentServices.forEach(service => {
+
+        if (!service.name) {
+            return;
+        }
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            service.name || "";
+
+        option.label =
+            (
+                service.category || "Inne"
+            ) +
+            " / " +
+            (
+                service.duration || 45
+            ) +
+            " min / " +
+            (
+                service.price || 0
+            ) +
+            " zł";
+
+        list.appendChild(
+            option
+        );
+
+    });
+
+}
+
+function handleAppointmentNameInput() {
 
     const nameInput =
         document.getElementById(
