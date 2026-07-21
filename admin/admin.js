@@ -10,7 +10,7 @@
    ========================================================== */
 
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbx-SNxiVbCG5ATh4LO4HyOpvEZWUS3VKdGvE3h7p1w-oBiAB3rK245ChXH8M_83-7lp-g/exec";
+"https://script.google.com/macros/s/AKfycbxmEdBy2D3C4IIdnq3-Op5QQw3SNYWjnM62V4oMxuQqtj2vzqeADbDOSBVFLiu_JD3VMg/exec";
 
 const ALLOWED_EMAIL =
 "strsasa@gmail.com";
@@ -1950,13 +1950,80 @@ function saveClientModalData() {
 
     closeClientModal();
 
-    alert(
-        "Klient zapisany lokalnie. Następny krok: zapis do arkusza Klienci."
-    );
+   saveClientToCloud(clientData, oldPhone);
 
 }
+async function saveClientToCloud(clientData, oldPhone) {
 
-function deleteClient(phone) {
+    try {
+
+        const response =
+            await fetch(
+                APPS_SCRIPT_URL,
+                {
+                    method:
+                    "POST",
+
+                    headers: {
+                        "Content-Type":
+                        "text/plain"
+                    },
+
+                    body:
+                    JSON.stringify({
+                        action:
+                        "saveClient",
+
+                        oldPhone:
+                        oldPhone || "",
+
+                        client:
+                        clientData
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (data.success) {
+
+            alert(
+                "Klient zapisany."
+            );
+
+            closeClientModal();
+
+            await loadClients();
+
+            renderDashboard();
+
+        } else {
+
+            alert(
+                "Błąd zapisu klienta: " +
+                (
+                    data.error ||
+                    "Nieznany błąd"
+                )
+            );
+
+        }
+
+    } catch(error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "Błąd połączenia podczas zapisu klienta."
+        );
+
+    }
+
+}
+async function deleteClient(phone) {
 
     if (
         !confirm(
@@ -1966,20 +2033,67 @@ function deleteClient(phone) {
         return;
     }
 
-    customersData =
-        customersData.filter(client => {
-            return (
-                !client.phone ||
-                client.phone.toString().trim() !==
-                phone.toString().trim()
+    try {
+
+        const response =
+            await fetch(
+                APPS_SCRIPT_URL,
+                {
+                    method:
+                    "POST",
+
+                    headers: {
+                        "Content-Type":
+                        "text/plain"
+                    },
+
+                    body:
+                    JSON.stringify({
+                        action:
+                        "deleteClient",
+
+                        phone:
+                        phone
+                    })
+                }
             );
-        });
 
-    renderClients();
+        const data =
+            await response.json();
 
-    alert(
-        "Klient usunięty lokalnie. Następny krok: usuwanie z arkusza Klienci."
-    );
+        if (data.success) {
+
+            alert(
+                "Klient usunięty."
+            );
+
+            await loadClients();
+
+            renderDashboard();
+
+        } else {
+
+            alert(
+                "Błąd usuwania klienta: " +
+                (
+                    data.error ||
+                    "Nieznany błąd"
+                )
+            );
+
+        }
+
+    } catch(error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "Błąd połączenia podczas usuwania klienta."
+        );
+
+    }
 
 }
 
