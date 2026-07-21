@@ -813,15 +813,18 @@ function renderAppointmentCard(app,container){
     let color =
         "#b05c75";
 
+    const isBlock = app.eventType === "block";
+
     const isExternal =
-        app.phone ===
-        "Google Calendar";
+        app.eventType === "external" ||
+        (app.phone === "Google Calendar" && !isBlock);
 
-    if(isExternal){
-
-        color =
-            "#555555";
-
+    if (isBlock) {
+        color = "#8c6b4f";
+        card.classList.add("booksy-block-card");
+    }
+    else if(isExternal){
+        color = "#555555";
     }
     else{
 
@@ -1543,43 +1546,28 @@ function closeCreateAppointmentModal(){
    ========================================================== */
 
 function openAppointmentDetailsModal(app){
-
-    currentEditingAppointment =
-        app;
-
-    setText(
-        "details-name",
-        app.name
-    );
-
-    setText(
-        "details-phone",
-        app.phone
-    );
-
-    setText(
-        "details-service",
-        app.service
-    );
-
-    setText(
-        "details-datetime",
-        app.date
-    );
-
-    setText(
-        "details-duration",
-        app.duration || 45
-    );
-
-    document.getElementById(
-        "appointmentDetailsModal"
-    ).style.display =
-        "flex";
-
+    currentEditingAppointment = app;
+    const isBlock = app.eventType === "block";
+    const isExternal = app.eventType === "external";
+    setText("appointmentDetailsTitle", isBlock ? "Szczegóły blokady czasu" : (isExternal ? "Szczegóły wydarzenia zewnętrznego" : "Szczegóły rezerwacji"));
+    setText("details-name-label", isBlock ? "Nazwa blokady:" : "Klient:");
+    setText("details-service-label", isBlock ? "Typ:" : "Zabieg:");
+    setText("details-name", app.name || "");
+    setText("details-phone", app.phone || "");
+    setText("details-service", app.service || "");
+    setText("details-datetime", app.date || "");
+    setText("details-duration", app.duration || 45);
+    const phoneRow = document.getElementById("details-phone-row");
+    if (phoneRow) phoneRow.style.display = isBlock ? "none" : "block";
+    const deleteBtn = document.getElementById("deleteAppointmentBtn");
+    const editBtn = document.getElementById("editAppointmentBtn");
+    if (deleteBtn) {
+        deleteBtn.style.display = isExternal ? "none" : "inline-block";
+        deleteBtn.innerText = isBlock ? "Usuń blokadę 🗑️" : "Usuń wizytę 🗑️";
+    }
+    if (editBtn) editBtn.style.display = (isBlock || isExternal) ? "none" : "inline-block";
+    document.getElementById("appointmentDetailsModal").style.display = "flex";
 }
-
-
 function closeAppointmentModal(){
 
     document.getElementById(
@@ -1589,6 +1577,37 @@ function closeAppointmentModal(){
 
 }
 
+
+/* ==========================================================
+   USUWANIE BLOKADY CZASU
+   ========================================================== */
+function deleteSelectedCalendarItemFromAdmin() {
+    if (!currentEditingAppointment) return;
+    if (currentEditingAppointment.eventType === "block") return deleteBlockTimeFromAdmin();
+    deleteAppointmentFromAdmin();
+}
+async function deleteBlockTimeFromAdmin() {
+    if (!currentEditingAppointment || currentEditingAppointment.eventType !== "block") return alert("Nie wybrano blokady czasu.");
+    if (isDeletingAppointment || !confirm("Usunąć wybraną blokadę czasu?")) return;
+    const block = currentEditingAppointment;
+    const btn = document.getElementById("deleteAppointmentBtn");
+    isDeletingAppointment = true;
+    if (btn) { btn.disabled = true; btn.innerText = "Usuwanie blokady..."; }
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST", headers: {"Content-Type":"text/plain"},
+            body: JSON.stringify({action:"deleteBlockTime", eventId:block.eventId||"", start:block.date||"", end:block.endDate||"", title:block.name||""})
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || "Nieznany błąd");
+        appointmentsData = appointmentsData.filter(x => !(block.eventId && x.eventId === block.eventId));
+        currentEditingAppointment = null;
+        closeAppointmentModal();
+        await loadSettings();
+        alert("Blokada czasu została usunięta.");
+    } catch(error) { console.error(error); alert("Błąd usuwania blokady czasu: " + (error.message || error)); }
+    finally { isDeletingAppointment = false; if (btn) {btn.disabled=false;btn.innerText="Usuń blokadę 🗑️";} }
+}
 
 /* ==========================================================
    DELETE FIX
@@ -3553,6 +3572,7 @@ function crmTestFrontendChecks(report) {
         "renderDashboard", "renderBooksyCalendar", "renderMiniMonthCalendar",
         "renderClients", "renderServicesTable", "calculateFinanceReport",
         "saveSettings", "saveAppointment", "deleteAppointmentFromAdmin",
+        "deleteBlockTimeFromAdmin", "deleteSelectedCalendarItemFromAdmin",
         "submitBlockTime", "saveClientModalData", "deleteClient",
         "saveDraftsToCloud", "publishDrafts"
     ].forEach(name => {
@@ -3729,10 +3749,10 @@ async function runCRMFullTest() {
         }
         if (blockEventId) {
             const result = await crmTestPost({
-                action: "createBooking", deleteFlag: true, eventId: blockEventId,
-                date: new Date().toISOString(), name: blockTitle
+                action: "deleteBlockTime", eventId: blockEventId,
+                start: crmTestLocalDay(21) + "T14:10", end: crmTestLocalDay(21) + "T15:20", title: blockTitle
             });
-            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie blokady testowej", result);
+            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie blokady przez deleteBlockTime", result);
         }
         const clientDelete = await crmTestPost({ action: "deleteClient", phone });
         crmTestAdd(report, clientDelete.success ? "OK" : "BLAD", "Usuwanie klienta testowego", clientDelete);
