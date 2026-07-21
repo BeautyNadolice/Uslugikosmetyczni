@@ -1167,6 +1167,25 @@ function handleAppointmentServiceInput() {
 
 }
 /* ==========================================================
+   APPOINTMENT DROPDOWNS / AUTOCOMPLETE INIT
+   ========================================================== */
+
+function populateAppointmentDro*downs() {
+
+    if (typeof populate*ppointmentClientSelect === "functi*n") {
+        populateAppointmentC*ientSelect();
+    }
+
+    if (typeo* populateAppointmentServiceSelect *== "function") {
+        populateA*pointmentServiceSelect();
+    }
+
+ *  if (typeof populateAppointmentDa*alists === "function") {
+        p*pulateAppointmentDatalists();
+    *
+
+}
+/* ==========================================================
    CREATE APPOINTMENT
    ========================================================== */
 async function saveAppointment() {
