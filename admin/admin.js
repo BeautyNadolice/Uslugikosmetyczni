@@ -1145,6 +1145,11 @@ function formatDateTimeLocalValue(dateString) {
 }
 
 function openEditAppointmentModal() {
+
+    if (isDeletingAppointment) {
+        return;
+    }
+
     if (!currentEditingAppointment) {
         alert("Nie wybrano wizyty do edycji.");
         return;
@@ -1154,6 +1159,9 @@ function openEditAppointmentModal() {
         "modalTitleAppointment"
     ).innerText =
         "Edytuj wizytę";
+
+    
+}
 
     document.getElementById(
         "appointmentName"
