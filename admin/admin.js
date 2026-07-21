@@ -935,34 +935,66 @@ async function saveAppointment() {
         return;
     }
 
+    const payload = {
+        action:
+        "createBooking",
+
+        phone:
+        phone,
+
+        name:
+        name,
+
+        service:
+        service,
+
+        date:
+        dateValue,
+
+        duration:
+        duration,
+
+        rodo:
+        currentEditingAppointment
+            ? "Edytowano z CRM"
+            : "Dodano z CRM"
+    };
+
+    if (
+        currentEditingAppointment &&
+        currentEditingAppointment.eventId
+    ) {
+        payload.editFlag =
+            true;
+
+        payload.oldEventId =
+            currentEditingAppointment.eventId;
+
+        payload.oldDate =
+            currentEditingAppointment.date;
+
+        payload.oldName =
+            currentEditingAppointment.name;
+    }
+
     try {
 
         const response =
             await fetch(
                 APPS_SCRIPT_URL,
                 {
-                    method: "POST",
+                    method:
+                    "POST",
+
                     headers: {
                         "Content-Type":
                         "text/plain"
                     },
+
                     body:
-                    JSON.stringify({
-                        action:
-                        "createBooking",
-                        phone:
-                        phone,
-                        name:
-                        name,
-                        service:
-                        service,
-                        date:
-                        dateValue,
-                        duration:
-                        duration,
-                        rodo:
-                        "Dodano z CRM"
-                    })
+                    JSON.stringify(
+                        payload
+                    )
                 }
             );
 
@@ -974,8 +1006,13 @@ async function saveAppointment() {
         ) {
 
             alert(
-                "Wizyta została dodana."
+                currentEditingAppointment
+                    ? "Wizyta została zaktualizowana."
+                    : "Wizyta została dodana."
             );
+
+            currentEditingAppointment =
+                null;
 
             closeCreateAppointmentModal();
 
@@ -988,7 +1025,7 @@ async function saveAppointment() {
         } else {
 
             alert(
-                "Błąd dodawania wizyty: " +
+                "Błąd zapisu wizyty: " +
                 (
                     data.error ||
                     "Nieznany błąd"
@@ -1004,22 +1041,137 @@ async function saveAppointment() {
         );
 
         alert(
-            "Błąd połączenia podczas dodawania wizyty."
+            "Błąd połączenia podczas zapisu wizyty."
         );
 
     }
 
 }
-function openCreateModal(){
+function formatDateTimeLocalValue(dateString) {
+    const date =
+        new Date(dateString);
 
-    currentEditingAppointment =
-        null;
+    if (
+        !date ||
+        isNaN(date.getTime())
+    ) {
+        return "";
+    }
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    const hours =
+        String(
+            date.getHours()
+        ).padStart(2, "0");
+
+    const minutes =
+        String(
+            date.getMinutes()
+        ).padStart(2, "0");
+
+    return (
+        year +
+        "-" +
+        month +
+        "-" +
+        day +
+        "T" +
+        hours +
+        ":" +
+        minutes
+    );
+}
+
+function openEditAppointmentModal() {
+    if (!currentEditingAppointment) {
+        alert("Nie wybrano wizyty do edycji.");
+        return;
+    }
+
+    document.getElementById(
+        "modalTitleAppointment"
+    ).innerText =
+        "Edytuj wizytę";
+
+    document.getElementById(
+        "appointmentName"
+    ).value =
+        currentEditingAppointment.name || "";
+
+    document.getElementById(
+        "appointmentPhone"
+    ).value =
+        currentEditingAppointment.phone || "";
+
+    document.getElementById(
+        "appointmentService"
+    ).value =
+        currentEditingAppointment.service || "";
+
+    document.getElementById(
+        "appointmentDuration"
+    ).value =
+        currentEditingAppointment.duration || 45;
+
+    document.getElementById(
+        "appointmentDateTime"
+    ).value =
+        formatDateTimeLocalValue(
+            currentEditingAppointment.date
+        );
+
+    closeAppointmentModal();
 
     document.getElementById(
         "appointmentModal"
     ).style.display =
         "flex";
+}
+function openCreateModal() {
+    currentEditingAppointment =
+        null;
 
+    document.getElementById(
+        "modalTitleAppointment"
+    ).innerText =
+        "Utwórz nową wizytę";
+
+    document.getElementById(
+        "appointmentName"
+    ).value = "";
+
+    document.getElementById(
+        "appointmentPhone"
+    ).value = "";
+
+    document.getElementById(
+        "appointmentService"
+    ).value = "";
+
+    document.getElementById(
+        "appointmentDuration"
+    ).value = "45";
+
+    document.getElementById(
+        "appointmentDateTime"
+    ).value = "";
+
+    document.getElementById(
+        "appointmentModal"
+    ).style.display =
+        "flex";
 }
 
 
