@@ -1325,7 +1325,10 @@ async function deleteAppointmentFromAdmin() {
         document.getElementById(
             "deleteAppointmentBtn"
         );
-
+const editBtn =
+    document.getElementById(
+        "editAppointmentBtn"
+    );
     isDeletingAppointment =
         true;
 
@@ -1338,7 +1341,15 @@ async function deleteAppointmentFromAdmin() {
         deleteBtn.innerText =
             "Usuwanie...";
     }
+if (
+    editBtn
+) {
+    editBtn.disabled =
+        true;
 
+    editBtn.innerText =
+        "Edycja zablokowana";
+}
     const appointmentToDelete =
         currentEditingAppointment;
 
@@ -1478,7 +1489,15 @@ async function deleteAppointmentFromAdmin() {
             deleteBtn.innerText =
                 "Usuń wizytę 🗑️";
         }
+if (
+    editBtn
+) {
+    editBtn.disabled =
+        false;
 
+    editBtn.innerText =
+        "Edytuj wizytę";
+}
     }
 
 }
