@@ -1905,7 +1905,6 @@ async function submitBlockTime() {
         return;
     }
 
-    isBlockingTime = true;
     const blockTypeInput =
         document.getElementById(
             "block-type"
@@ -1962,7 +1961,8 @@ async function submitBlockTime() {
         );
         return;
     }
-        if (
+
+    if (
         blockType === "hours" &&
         (
             !blockStart ||
@@ -1985,50 +1985,41 @@ async function submitBlockTime() {
         return;
     }
 
-   const submitBtn =
-    document.getElementById(
-        "blockTimeSubmitBtn"
-    );
+    const submitBtn =
+        document.getElementById(
+            "blockTimeSubmitBtn"
+        );
+
+    isBlockingTime = true;
 
     if (submitBtn) {
-        submitBtn.disabled =
-            true;
-
-        submitBtn.innerText =
-            "Blokowanie...";
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Blokowanie...";
     }
 
     try {
-
         const response =
             await fetch(
                 APPS_SCRIPT_URL,
                 {
                     method:
                     "POST",
-
                     headers: {
                         "Content-Type":
                         "text/plain"
                     },
-
                     body:
                     JSON.stringify({
                         action:
                         "blockTime",
-
                         blockType:
                         blockType,
-
                         date:
                         blockDate,
-
                         startTime:
                         blockStart,
-
                         endTime:
                         blockEnd,
-
                         title:
                         blockTitle || "Zablokowane"
                     })
@@ -2039,7 +2030,6 @@ async function submitBlockTime() {
             await response.json();
 
         if (data.success) {
-
             alert(
                 "Czas został zablokowany."
             );
@@ -2049,13 +2039,9 @@ async function submitBlockTime() {
             await loadSettings();
 
             renderBooksyCalendar();
-
             renderDashboard();
-
             calculateFinanceReport();
-
         } else {
-
             alert(
                 "Błąd blokowania czasu: " +
                 (
@@ -2063,11 +2049,8 @@ async function submitBlockTime() {
                     "Nieznany błąd"
                 )
             );
-
         }
-
     } catch(error) {
-
         console.error(
             error
         );
@@ -2075,8 +2058,7 @@ async function submitBlockTime() {
         alert(
             "Błąd połączenia podczas blokowania czasu."
         );
-
-       } finally {
+    } finally {
         isBlockingTime = false;
 
         if (submitBtn) {
@@ -2084,7 +2066,6 @@ async function submitBlockTime() {
             submitBtn.innerText = "Zablokuj czas 🔒";
         }
     }
-
 }
 /* ==========================================================
    CLIENTS
