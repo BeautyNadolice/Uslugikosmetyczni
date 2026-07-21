@@ -895,179 +895,180 @@ function renderAppointmentCard(app,container){
    APPOINTMENT AUTOCOMPLETE / DATALISTS
    ========================================================== */
 
-function populateAppointmentDatalists() {
+function populateAppointmentDro*downs() {
 
-    populateClientNameDatalist();
-
-    populateClientPhoneDatalist();
-
-    populateServiceNameDatalist();
+    populateAppointment*atalists();
 
 }
 
-function populateClientNameDatalist() {
+function populateA*pointmentDatalists() {
 
-    const list =
-        document.getElementById(
-            "appointmentClientNameList"
+    popula*eClientNameDatalist();
+
+    popula*eClientPhoneDatalist();
+
+    popul*teServiceNameDatalist();
+
+}
+
+funct*on populateClientNameDatalist() {
+*    const list =
+        document.*etElementById(
+            "appoin*mentClientNameList"
         );
 
-    if (!list) {
+  * if (!list) {
         return;
-    }
+    *
 
     list.innerHTML = "";
 
-    if (
+    if*(
         !customersData ||
-        customersData.length === 0
-    ) {
+      * customersData.length === 0
+    ) *
         return;
     }
 
-    customersData.forEach(client => {
+    custom*rsData.forEach(client => {
 
-        if (!client.name) {
-            return;
+      * if (!client.name) {
+            r*turn;
         }
 
-        const option =
-            document.createElement(
+        const opt*on =
+            document.createEl*ment(
                 "option"
-            );
+   *        );
 
-        option.value =
-            client.name || "";
+        option.value =*            client.name || "";
 
-        option.label =
-            client.phone || "";
+  *     option.label =
+            cl*ent.phone || "";
 
-        list.appendChild(
+        list.app*ndChild(
             option
-        );
+      * );
 
     });
 
 }
 
-function populateClientPhoneDatalist() {
+function populate*lientPhoneDatalist() {
 
-    const list =
-        document.getElementById(
-            "appointmentClientPhoneList"
+    const *ist =
+        document.getElementB*Id(
+            "appointmentClient*honeList"
         );
 
-    if (!list) {
+    if (!lis*) {
         return;
     }
 
-    list.innerHTML = "";
+    lis*.innerHTML = "";
 
     if (
-        !customersData ||
-        customersData.length === 0
+       *!customersData ||
+        customer*Data.length === 0
     ) {
-        return;
+        *eturn;
     }
 
-    customersData.forEach(client => {
+    customersData.fo*Each(client => {
 
-        if (!client.phone) {
+        if (!cli*nt.phone) {
             return;
-        }
+  *     }
 
         const option =
-            document.createElement(
-                "option"
-            );
+   *        document.createElement(
+  *             "option"
+            *;
 
         option.value =
-            client.phone || "";
+        *   client.phone || "";
 
-        option.label =
-            client.name || "";
+        op*ion.label =
+            client.nam* || "";
 
-        list.appendChild(
-            option
+        list.appendChild(*            option
         );
 
-    });
+   *});
 
 }
 
-function populateServiceNameDatalist() {
+function populateServiceNa*eDatalist() {
 
     const list =
-        document.getElementById(
-            "appointmentServiceNameList"
+  *     document.getElementById(
+    *       "appointmentServiceNameList*
         );
 
     if (!list) {
-        return;
+    *   return;
     }
 
-    list.innerHTML = "";
+    list.innerHT*L = "";
 
     if (
-        !currentServices ||
-        currentServices.length === 0
+        !current*ervices ||
+        currentServices*length === 0
     ) {
-        return;
+        retur*;
     }
 
-    currentServices.forEach(service => {
+    currentServices.forEa*h(service => {
 
-        if (!service.name) {
+        if (!servi*e.name) {
             return;
-        }
+    *   }
 
         const option =
-            document.createElement(
-                "option"
-            );
-
+     *      document.createElement(
+    *           "option"
+            );*
         option.value =
-            service.name || "";
+          * service.name || "";
 
-        option.label =
+        opti*n.label =
             (
-                service.category || "Inne"
-            ) +
+          *     service.category || "Inne"
+  *         ) +
             " / " +
-            (
-                service.duration || 45
+ *          (
+                servic*.duration || 45
             ) +
-            " min / " +
-            (
-                service.price || 0
-            ) +
-            " zł";
-
+  *         " min / " +
+            (*                service.price || 0*            ) +
+            " zł";*
         list.appendChild(
-            option
+       *    option
         );
 
     });
 
 }
-function handleAppointmentNameInput() {
+*function handleAppointmentNameInpu*() {
 
     const nameInput =
-        document.getElementById(
-            "appointmentName"
+      * document.getElementById(
+        *   "appointmentName"
         );
 
-    const phoneInput =
-        document.getElementById(
-            "appointmentPhone"
+ *  const phoneInput =
+        docum*nt.getElementById(
+            "ap*ointmentPhone"
         );
 
-    if (!nameInput || !phoneInput) {
-        return;
+    if *!nameInput || !phoneInput) {
+     *  return;
     }
 
-    const typedName =
-        nameInput.value.trim().toLowerCase();
+    const typedNa*e =
+        nameInput.value
+            .trim()
+            .toLowerCase();
 
     if (!typedName) {
         return;
@@ -1077,8 +1078,10 @@ function handleAppointmentNameInput() {
         customersData.find(item => {
             return (
                 item.name &&
-                item.name.toString().trim().toLowerCase() ===
-                typedName
+                item.name
+                    .toString()
+                    .trim()
+                    .toLowerCase() === typedName
             );
         });
 
@@ -1116,8 +1119,9 @@ function handleAppointmentPhoneInput() {
         customersData.find(item => {
             return (
                 item.phone &&
-                item.phone.toString().trim() ===
-                typedPhone
+                item.phone
+                    .toString()
+                    .trim() === typedPhone
             );
         });
 
@@ -1145,7 +1149,9 @@ function handleAppointmentServiceInput() {
     }
 
     const typedService =
-        serviceInput.value.trim().toLowerCase();
+        serviceInput.value
+            .trim()
+            .toLowerCase();
 
     if (!typedService) {
         return;
@@ -1155,379 +1161,16 @@ function handleAppointmentServiceInput() {
         currentServices.find(item => {
             return (
                 item.name &&
-                item.name.toString().trim().toLowerCase() ===
-                typedService
+                item.name
+                    .toString()
+                    .trim()
+                    .toLowerCase() === typedService
             );
         });
 
     if (service) {
         durationInput.value =
             service.duration || 45;
-    }
-
-}
-/* ==========================================================
-   APPOINTMENT DROPDOWNS / AUTOCOMPLETE INIT
-   ========================================================== */
-
-function populateAppointmentDropdowns() {
-
-    if (typeof populateAppointmentClientSelect === "function") {
-        populateAppointmentClientSelect();
-    }
-
-    if (typeof populateAppointmentPhoneSelect === "function") {
-        populateAppointmentPhoneSelect();
-    }
-
-    if (typeof populateAppointmentServiceSelect === "function") {
-        populateAppointmentServiceSelect();
-    }
-
-    if (typeof populateAppointmentDatalists === "function") {
-        populateAppointmentDatalists();
-    }
-
-}
-function populateAppointmentPhoneSelect() {
-
-    const select =
-        document.getElementById(
-            "appointmentPhoneSelect"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    select.innerHTML =
-        `
-        <option value="">Wybierz telefon</option>
-        <option value="__manual__">Wpisz ręcznie</option>
-        `;
-
-    if (
-        !customersData ||
-        customersData.length === 0
-    ) {
-        return;
-    }
-
-    customersData.forEach(client => {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value =
-            client.phone || "";
-
-        option.textContent =
-            (client.phone || "") +
-            " - " +
-            (client.name || "Klient");
-
-        option.dataset.name =
-            client.name || "";
-
-        option.dataset.phone =
-            client.phone || "";
-
-        select.appendChild(
-            option
-        );
-
-    });
-
-}
-
-function handleAppointmentPhoneSelect() {
-
-    const select =
-        document.getElementById(
-            "appointmentPhoneSelect"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    const selectedOption =
-        select.options[
-            select.selectedIndex
-        ];
-
-    const nameInput =
-        document.getElementById(
-            "appointmentName"
-        );
-
-    const phoneInput =
-        document.getElementById(
-            "appointmentPhone"
-        );
-
-    if (
-        select.value === "__manual__"
-    ) {
-
-        if (phoneInput) {
-            phoneInput.value = "";
-        }
-
-        return;
-
-    }
-
-    if (
-        selectedOption &&
-        selectedOption.dataset
-    ) {
-
-        if (phoneInput) {
-            phoneInput.value =
-                selectedOption.dataset.phone || "";
-        }
-
-        if (nameInput) {
-            nameInput.value =
-                selectedOption.dataset.name || "";
-        }
-
-    }
-
-}
-
-function populateAppointmentClientSelect() {
-
-    const select =
-        document.getElementById(
-            "appointmentClientSelect"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    select.innerHTML =
-        `
-        <option value="">Wybierz klienta</option>
-        <option value="__manual__">Wpisz ręcznie</option>
-        `;
-
-    if (
-        !customersData ||
-        customersData.length === 0
-    ) {
-        return;
-    }
-
-    customersData.forEach(client => {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value =
-            client.phone || "";
-
-        option.textContent =
-            (client.name || "Klient") +
-            " - " +
-            (client.phone || "");
-
-        option.dataset.name =
-            client.name || "";
-
-        option.dataset.phone =
-            client.phone || "";
-
-        select.appendChild(
-            option
-        );
-
-    });
-
-}
-
-function handleAppointmentClientSelect() {
-
-    const select =
-        document.getElementById(
-            "appointmentClientSelect"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    const selectedOption =
-        select.options[
-            select.selectedIndex
-        ];
-
-    const nameInput =
-        document.getElementById(
-            "appointmentName"
-        );
-
-    const phoneInput =
-        document.getElementById(
-            "appointmentPhone"
-        );
-
-    if (
-        select.value === "__manual__"
-    ) {
-
-        if (nameInput) {
-            nameInput.value = "";
-        }
-
-        if (phoneInput) {
-            phoneInput.value = "";
-        }
-
-        return;
-
-    }
-
-    if (
-        selectedOption &&
-        selectedOption.dataset
-    ) {
-
-        if (nameInput) {
-            nameInput.value =
-                selectedOption.dataset.name || "";
-        }
-
-        if (phoneInput) {
-            phoneInput.value =
-                selectedOption.dataset.phone || "";
-        }
-
-    }
-
-}
-
-function populateAppointmentServiceSelect() {
-
-    const select =
-        document.getElementById(
-            "appointmentServiceSelect"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    select.innerHTML =
-        `
-        <option value="">Wybierz usługę</option>
-        <option value="__manual__">Wpisz ręcznie</option>
-        `;
-
-    if (
-        !currentServices ||
-        currentServices.length === 0
-    ) {
-        return;
-    }
-
-    currentServices.forEach(service => {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value =
-            service.name || "";
-
-        option.textContent =
-            (service.category || "Inne") +
-            " - " +
-            (service.name || "Usługa") +
-            " / " +
-            (service.price || 0) +
-            " zł / " +
-            (service.duration || 45) +
-            " min";
-
-        option.dataset.name =
-            service.name || "";
-
-        option.dataset.duration =
-            service.duration || 45;
-
-        select.appendChild(
-            option
-        );
-
-    });
-
-}
-
-function handleAppointmentServiceSelect() {
-
-    const select =
-        document.getElementById(
-            "appointmentServiceSelect"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    const selectedOption =
-        select.options[
-            select.selectedIndex
-        ];
-
-    const serviceInput =
-        document.getElementById(
-            "appointmentService"
-        );
-
-    const durationInput =
-        document.getElementById(
-            "appointmentDuration"
-        );
-
-    if (
-        select.value === "__manual__"
-    ) {
-
-        if (serviceInput) {
-            serviceInput.value = "";
-        }
-
-        if (durationInput) {
-            durationInput.value = "45";
-        }
-
-        return;
-
-    }
-
-    if (
-        selectedOption &&
-        selectedOption.dataset
-    ) {
-
-        if (serviceInput) {
-            serviceInput.value =
-                selectedOption.dataset.name || "";
-        }
-
-        if (durationInput) {
-            durationInput.value =
-                selectedOption.dataset.duration || 45;
-        }
-
     }
 
 }
@@ -1790,10 +1433,14 @@ function openEditAppointmentModal() {
     }
 
     if (!currentEditingAppointment) {
-        alert("Nie wybrano wizyty do edycji.");
+        alert(
+            "Nie wybrano wizyty do edycji."
+        );
         return;
     }
-populateAppointmentDropdowns();
+
+    populateAppointmentDropdowns();
+
     document.getElementById(
         "modalTitleAppointment"
     ).innerText =
@@ -1835,46 +1482,47 @@ populateAppointmentDropdowns();
 
 }
 function openCreateModal() {
+
     currentEditingAppointment =
         null;
-   populateAppointmentDropdowns();
-populateAppointmentDropdowns();
+
+    populateAppointmentDropdowns();
+
     document.getElementById(
         "modalTitleAppointment"
     ).innerText =
         "Utwórz nową wizytę";
-const phoneSelect =
-    document.getElementById(
-        "appointmentPhoneSelect"
-    );
 
-if (phoneSelect) {
-    phoneSelect.value = "";
-}
     document.getElementById(
         "appointmentName"
-    ).value = "";
+    ).value =
+        "";
 
     document.getElementById(
         "appointmentPhone"
-    ).value = "";
+    ).value =
+        "";
 
     document.getElementById(
         "appointmentService"
-    ).value = "";
+    ).value =
+        "";
 
     document.getElementById(
         "appointmentDuration"
-    ).value = "45";
+    ).value =
+        "45";
 
     document.getElementById(
         "appointmentDateTime"
-    ).value = "";
+    ).value =
+        "";
 
     document.getElementById(
         "appointmentModal"
     ).style.display =
         "flex";
+
 }
 
 
@@ -1885,23 +1533,6 @@ function closeCreateAppointmentModal(){
     ).style.display =
         "none";
 
-}
-const clientSelect =
-    document.getElementById(
-        "appointmentClientSelect"
-    );
-
-if (clientSelect) {
-    clientSelect.value = "";
-}
-
-const serviceSelect =
-    document.getElementById(
-        "appointmentServiceSelect"
-    );
-
-if (serviceSelect) {
-    serviceSelect.value = "";
 }
 
 /* ==========================================================
