@@ -39,7 +39,7 @@ let selectedCalendarDate = new Date();
 let miniMonthDate = new Date();
 
 let calendarViewMode = "day";
-
+let isSavingAppointment = false;
 
 /* ==========================================================
    START APP
@@ -896,6 +896,10 @@ function renderAppointmentCard(app,container){
    ========================================================== */
 async function saveAppointment() {
 
+    if (isSavingAppointment) {
+        return;
+    }
+
     const name =
         document.getElementById(
             "appointmentName"
@@ -935,6 +939,21 @@ async function saveAppointment() {
         return;
     }
 
+    const saveBtn =
+        document.getElementById(
+            "saveAppointmentBtn"
+        );
+
+    isSavingAppointment = true;
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerText =
+            currentEditingAppointment
+                ? "Aktualizowanie..."
+                : "Zapisywanie...";
+    }
+
     const payload = {
         action:
         "createBooking",
@@ -961,20 +980,41 @@ async function saveAppointment() {
     };
 
     if (
-        currentEditingAppointment &&
-        currentEditingAppointment.eventId
+        currentEditingAppointment
     ) {
+
+        const oldEventId =
+            currentEditingAppointment.eventId || "";
+
+        if (
+            !oldEventId
+        ) {
+            alert(
+                "Nie można edytować wizyty, bo brakuje Event ID. Odśwież kalendarz i spróbuj ponownie."
+            );
+
+            isSavingAppointment = false;
+
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Zapisz wizytę";
+            }
+
+            return;
+        }
+
         payload.editFlag =
             true;
 
         payload.oldEventId =
-            currentEditingAppointment.eventId;
+            oldEventId;
 
         payload.oldDate =
             currentEditingAppointment.date;
 
         payload.oldName =
             currentEditingAppointment.name;
+
     }
 
     try {
@@ -1043,6 +1083,15 @@ async function saveAppointment() {
         alert(
             "Błąd połączenia podczas zapisu wizyty."
         );
+
+    } finally {
+
+        isSavingAppointment = false;
+
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerText = "Zapisz wizytę";
+        }
 
     }
 
