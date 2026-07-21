@@ -39,6 +39,7 @@ let selectedCalendarDate = new Date();
 let miniMonthDate = new Date();
 
 let calendarViewMode = "day";
+let isDeletingAppointment = false;
 let isSavingAppointment = false;
 
 /* ==========================================================
@@ -1290,80 +1291,185 @@ function closeAppointmentModal(){
    DELETE FIX
    ========================================================== */
 
-async function deleteAppointmentFromAdmin(){
+async function deleteAppointmentFromAdmin() {
 
-    if(
+    if (
         !currentEditingAppointment
-    ){
+    ) {
         return;
     }
 
-    if(
+    if (
+        isDeletingAppointment
+    ) {
+        return;
+    }
+
+    if (
         !confirm(
             "Usunąć wizytę?"
         )
-    ){
+    ) {
         return;
     }
 
-    try{
+    const deleteBtn =
+        document.getElementById(
+            "deleteAppointmentBtn"
+        );
+
+    isDeletingAppointment =
+        true;
+
+    if (
+        deleteBtn
+    ) {
+        deleteBtn.disabled =
+            true;
+
+        deleteBtn.innerText =
+            "Usuwanie...";
+    }
+
+    const appointmentToDelete =
+        currentEditingAppointment;
+
+    try {
 
         const response =
             await fetch(
                 APPS_SCRIPT_URL,
                 {
-                    method:"POST",
+                    method:
+                    "POST",
 
-                    headers:{
+                    headers: {
                         "Content-Type":
                         "text/plain"
                     },
 
-                   body:
-JSON.stringify({
-    action:
-    "createBooking",
+                    body:
+                    JSON.stringify({
+                        action:
+                        "createBooking",
 
-    deleteFlag:
-    true,
+                        deleteFlag:
+                        true,
 
-    eventId:
-    currentEditingAppointment.eventId || "",
+                        eventId:
+                        appointmentToDelete.eventId || "",
 
-    date:
-    new Date(
-        currentEditingAppointment.date
-    )
-    .toISOString(),
+                        date:
+                        new Date(
+                            appointmentToDelete.date
+                        )
+                        .toISOString(),
 
-    name:
-    currentEditingAppointment.name
-})
-
+                        name:
+                        appointmentToDelete.name
+                    })
                 }
             );
 
         const data =
             await response.json();
 
-        if(data.success){
+        if (
+            data.success
+        ) {
 
-            alert(
-                "Wizyta usunięta"
-            );
+            const deletedEventId =
+                appointmentToDelete.eventId || "";
+
+            const deletedDate =
+                appointmentToDelete.date || "";
+
+            const deletedName =
+                appointmentToDelete.name || "";
+
+            appointmentsData =
+                appointmentsData.filter(app => {
+
+                    if (
+                        deletedEventId &&
+                        app.eventId === deletedEventId
+                    ) {
+                        return false;
+                    }
+
+                    if (
+                        !deletedEventId &&
+                        app.date === deletedDate &&
+                        app.name === deletedName
+                    ) {
+                        return false;
+                    }
+
+                    return true;
+
+                });
+
+            currentEditingAppointment =
+                null;
 
             closeAppointmentModal();
 
+            closeCreateAppointmentModal();
+
+            renderBooksyCalendar();
+
+            renderDashboard();
+
+            calculateFinanceReport();
+
+            alert(
+                "Wizyta usunięta."
+            );
+
             await loadSettings();
+
+            renderBooksyCalendar();
+
+            renderDashboard();
+
+            calculateFinanceReport();
+
+        } else {
+
+            alert(
+                "Błąd usuwania wizyty: " +
+                (
+                    data.error ||
+                    "Nieznany błąd"
+                )
+            );
 
         }
 
-    }
-    catch(error){
+    } catch(error) {
+
+        console.error(
+            error
+        );
 
         alert(
-            "Błąd usuwania"
+            "Błąd połączenia podczas usuwania wizyty."
         );
+
+    } finally {
+
+        isDeletingAppointment =
+            false;
+
+        if (
+            deleteBtn
+        ) {
+            deleteBtn.disabled =
+                false;
+
+            deleteBtn.innerText =
+                "Usuń wizytę 🗑️";
+        }
 
     }
 
