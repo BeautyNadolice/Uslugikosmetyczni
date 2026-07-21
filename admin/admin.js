@@ -1684,170 +1684,163 @@ function renderClients(){
 
 }
 
+/* ============================*=============================
+   C*IENT CRUD - MODAL
+   =============*==================================*========= */
 
-/* ==========================================================
-   CLIENT CRUD - MODAL
-   ========================================================== */
+function openAddClie*tModal() {
 
-function openAddClientModal() {
-
-    document.getElementById(
+    document.getElemen*ById(
         "clientModalTitle"
-    ).innerText =
-        "Dodaj klienta";
+ *  ).innerText =
+        "Dodaj kli*nta";
 
-    document.getElementById(
+    document.getElementById*
         "editClientPhone"
+    ).v*lue =
+        "";
+
+    document.ge*ElementById(
+        "clientModalN*me"
     ).value =
         "";
 
-    document.getElementById(
-        "clientModalName"
+   *document.getElementById(
+        "*lientModalPhone"
     ).value =
-        "";
+   *    "";
 
-    document.getElementById(
-        "clientModalPhone"
-    ).value =
-        "";
-
-    document.getElementById(
+    document.getElementBy*d(
         "clientModalVisits"
-    ).value =
+   *).value =
         "0";
 
-    document.getElementById(
-        "clientModalCancelled"
+    docume*t.getElementById(
+        "clientM*dalCancelled"
     ).value =
-        "0";
+      * "0";
 
-    document.getElementById(
+    document.getElementById*
         "clientModalLastVisit"
-    ).value =
+  * ).value =
         "";
 
-    document.getElementById(
-        "clientModal"
+    docume*t.getElementById(
+        "clientM*dal"
     ).style.display =
-        "flex";
+       *"flex";
 
 }
 
-function closeClientModal() {
+function closeClientMo*al() {
 
-    document.getElementById(
+    document.getElementByI*(
         "clientModal"
-    ).style.display =
+    ).styl*.display =
         "none";
 
 }
 
-function formatClientDateForInput(value) {
+fun*tion formatClientDateForInput(valu*) {
 
     if (!value) {
-        return "";
+        ret*rn "";
     }
 
     const date =
-        new Date(value);
+   *    new Date(value);
 
     if (
-        !date ||
-        isNaN(date.getTime())
+   *    !date ||
+        isNaN(date.ge*Time())
     ) {
-        return "";
-    }
+        return "";*    }
 
     const year =
-        date.getFullYear();
+        da*e.getFullYear();
 
-    const month =
+    const month *
         String(
-            date.getMonth() + 1
-        ).padStart(2, "0");
+            date.*etMonth() + 1
+        ).padStart(2* "0");
 
     const day =
-        String(
+        St*ing(
             date.getDate()
-        ).padStart(2, "0");
+  *     ).padStart(2, "0");
 
-    return (
+    retu*n (
         year +
         "-" +
-        month +
+ *      month +
         "-" +
-        day
+      * day
     );
 
 }
 
-function editClient(phone) {
+function editClien*(phone) {
 
     const client =
-        customersData.find(item => {
-            return (
-                item.phone &&
-                item.phone.toString().trim() ===
-                phone.toString().trim()
-            );
+    *   customersData.find(item => {
+  *         return (
+                *tem.phone &&
+                item.*hone.toString().trim() ===
+       *        phone.toString().trim()
+  *         );
         });
 
-    if (!client) {
+    if (!*lient) {
         alert(
-            "Nie znaleziono klienta."
-        );
+          * "Nie znaleziono klienta."
+       *);
         return;
     }
 
-    document.getElementById(
-        "clientModalTitle"
+    docu*ent.getElementById(
+        "clien*ModalTitle"
     ).innerText =
-        "Edytuj klienta";
+    *   "Edytuj klienta";
 
-    document.getElementById(
-        "editClientPhone"
+    document*getElementById(
+        "editClien*Phone"
     ).value =
-        client.phone || "";
+        clien*.phone || "";
 
-    document.getElementById(
-        "clientModalName"
-    ).value =
-        client.name || "";
+    document.getEle*entById(
+        "clientModalName"*    ).value =
+        client.name *| "";
 
-    document.getElementById(
+    document.getElementById*
         "clientModalPhone"
-    ).value =
-        client.phone || "";
-
+    ).*alue =
+        client.phone || "";*
     document.getElementById(
-        "clientModalVisits"
-    ).value =
+    *   "clientModalVisits"
+    ).value*=
         client.visits || 0;
 
-    document.getElementById(
-        "clientModalCancelled"
-    ).value =
-        client.cancelled || 0;
+   *document.getElementById(
+        "*lientModalCancelled"
+    ).value =*        client.cancelled || 0;
 
-    document.getElementById(
-        "clientModalLastVisit"
-    ).value =
-        formatClientDateForInput(
-            client.lastVisit
-        );
+  * document.getElementById(
+        *clientModalLastVisit"
+    ).value *
+        formatClientDateForInput(*            client.lastVisit
+     *  );
 
-    document.getElementById(
-        "clientModal"
-    ).style.display =
+    document.getElementById(*        "clientModal"
+    ).style.*isplay =
         "flex";
 
 }
 
-function saveClientModalData() {
+funct*on saveClientModalData() {
 
-    const oldPhone =
-        document.getElementById(
-            "editClientPhone"
+    co*st oldPhone =
+        document.get*lementById(
+            "editClien*Phone"
         ).value.trim();
 
     const name =
@@ -1956,16 +1949,31 @@ function saveClientModalData() {
     );
 
 }
-/* ==========================================================
-        await loadClients();
- ========================================================== */
-    
 
-    catch(error){
+function deleteClient(phone) {
 
-        console.error(error);
-
+    if (
+        !confirm(
+            "Usunąć klienta?"
+        )
+    ) {
+        return;
     }
+
+    customersData =
+        customersData.filter(client => {
+            return (
+                !client.phone ||
+                client.phone.toString().trim() !==
+                phone.toString().trim()
+            );
+        });
+
+    renderClients();
+
+    alert(
+        "Klient usunięty lokalnie. Następny krok: usuwanie z arkusza Klienci."
+    );
 
 }
 
