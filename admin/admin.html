@@ -619,6 +619,13 @@
            placeholder="Wpisz numer telefonu">
 
     <datalist id="appointmentClientPhoneList"></datalist>
+    <div class="form-group">
+    <label>Wybierz telefon:</label>
+    <select id="appointmentPhoneSelect" onchange="handleAppointmentPhoneSelect()">
+        <option value="">Wybierz telefon</option>
+        <option value="__manual__">Wpisz ręcznie</option>
+    </select>
+</div>
 </div>
 
 <div class="form-group">
