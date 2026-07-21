@@ -590,33 +590,53 @@
         </div>
 
         <div class="form-group">
-            <label>Imię i nazwisko klienta:</label>
-            <input type="text"
-       id="appointmentName"
-       list="appointmentClientNameList"
-       oninput="handleAppointmentNameInput()"
-       placeholder="Wpisz imię klienta">
+    <label>Wybierz klienta:</label>
+    <select id="appointmentClientSelect" onchange="handleAppointmentClientSelect()">
+        <option value="">Wybierz klienta</option>
+        <option value="__manual__">Wpisz ręcznie</option>
+    </select>
+</div>
 
-<datalist id="appointmentClientNameList"></datalist>
-        </div>
+<div class="form-group">
+    <label>Imię i nazwisko klienta:</label>
+    <input type="text"
+           id="appointmentName"
+           list="appointmentClientNameList"
+           oninput="handleAppointmentNameInput()"
+           placeholder="Wpisz imię klienta">
 
-        <div class="form-group">
-            <label>Telefon:</label>
-            <input type="text"
-       id="appointmentPhone"
-       list="appointmentClientPhoneList"
-       oninput="handleAppointmentPhoneInput()"
-       placeholder="Wpisz numer telefonu">
+    <datalist id="appointmentClientNameList"></datalist>
+</div>
 
-<datalist id="appointmentClientPhoneList"></datalist>
-        </div>
+<div class="form-group">
+    <label>Telefon:</label>
+    <input type="text"
+           id="appointmentPhone"
+           list="appointmentClientPhoneList"
+           oninput="handleAppointmentPhoneInput()"
+           placeholder="Wpisz numer telefonu">
 
-        <div class="form-group">
-            <label>Nazwa usługi / Zabieg:</label>
-            <input type="text"
-       id="appointmentService"
-       list="appointmentServiceNameList"
-       oninput="handleAppointmentServiceInput()"
+    <datalist id="appointmentClientPhoneList"></datalist>
+</div>
+
+<div class="form-group">
+    <label>Wybierz usługę:</label>
+    <select id="appointmentServiceSelect" onchange="handleAppointmentServiceSelect()">
+        <option value="">Wybierz usługę</option>
+        <option value="__manual__">Wpisz ręcznie</option>
+    </select>
+</div>
+
+<div class="form-group">
+    <label>Nazwa usługi / Zabieg:</label>
+    <input type="text"
+           id="appointmentService"
+           list="appointmentServiceNameList"
+           oninput="handleAppointmentServiceInput()"
+           placeholder="Wpisz nazwę zabiegu">
+
+    <datalist id="appointmentServiceNameList"></datalist>
+</div>
        placeholder="Wpisz nazwę zabiegu">
 
 <datalist id="appointmentServiceNameList"></datalist>
