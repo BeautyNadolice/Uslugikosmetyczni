@@ -733,70 +733,244 @@ function renderMiniMonthCalendar(){
    ========================================================== */
 
 function renderBooksyCalendar(){
+    const grid = document.getElementById("booksy-grid");
+    if (!grid) return;
 
-    const grid =
-    document.getElementById("booksy-grid");
+    updateCalendarRangeTitle();
 
-if (!grid) return;
-
-    if(!grid) return;
-
-    grid.innerHTML = "";
-
-    const currentDate =
-        getFormattedISOBlockDate(
-            selectedCalendarDate
-        );
-
-    const dailyAppointments =
-        appointmentsData.filter(app=>{
-
-            return (
-                app.date &&
-                app.date.startsWith(
-                    currentDate
-                )
-            );
-
-        });
-
-    if(
-        dailyAppointments.length===0
-    ){
-
-        grid.innerHTML = `
-            <div
-                style="
-                padding:40px;
-                text-align:center;
-                color:#777;
-                ">
-                Brak wizyt
-            </div>
-        `;
-
+    if (calendarViewMode === "week") {
+        renderWeekCalendar(grid);
         return;
-
     }
 
-    dailyAppointments
-        .sort(
-            (a,b)=>
-            a.date.localeCompare(
-                b.date
-            )
-        )
-        .forEach(app=>{
+    if (calendarViewMode === "month") {
+        renderMonthCalendar(grid);
+        return;
+    }
 
-            renderAppointmentCard(
-                app,
-                grid
-            );
-
-        });
-
+    renderDayCalendar(grid);
 }
 
+function getCalendarEventsForDate(date) {
+    const dateKey = getFormattedISOBlockDate(date);
+    return appointmentsData
+        .filter(item => item.date && item.date.startsWith(dateKey))
+        .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function formatCalendarTime(dateValue) {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return "";
+    return String(date.getHours()).padStart(2, "0") + ":" +
+        String(date.getMinutes()).padStart(2, "0");
+}
+
+function getMondayOfWeek(date) {
+    const monday = new Date(date);
+    const day = monday.getDay();
+    const distance = day === 0 ? -6 : 1 - day;
+    monday.setDate(monday.getDate() + distance);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+}
+
+function formatPolishShortDate(date) {
+    return date.toLocaleDateString("pl-PL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+}
+
+function updateCalendarRangeTitle() {
+    const title = document.getElementById("calendar-current-date-title");
+    if (!title) return;
+
+    if (calendarViewMode === "week") {
+        const monday = getMondayOfWeek(selectedCalendarDate);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        title.innerText = formatPolishShortDate(monday) + " – " + formatPolishShortDate(sunday);
+        return;
+    }
+
+    if (calendarViewMode === "month") {
+        title.innerText = selectedCalendarDate.toLocaleDateString("pl-PL", {
+            month: "long",
+            year: "numeric"
+        });
+        return;
+    }
+
+    title.innerText = selectedCalendarDate.toLocaleDateString("pl-PL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
+
+function renderDayCalendar(grid) {
+    grid.innerHTML = "";
+    grid.style.display = "block";
+    grid.style.gridTemplateColumns = "";
+    grid.style.gap = "";
+    grid.style.overflowX = "";
+    grid.dataset.calendarView = "day";
+    const events = getCalendarEventsForDate(selectedCalendarDate);
+
+    if (events.length === 0) {
+        grid.innerHTML = '<div style="padding:40px;text-align:center;color:#777;">Brak wizyt i blokad</div>';
+        return;
+    }
+
+    events.forEach(item => renderAppointmentCard(item, grid));
+}
+
+function renderCompactCalendarEvent(item, container, mode) {
+    const event = document.createElement("button");
+    event.type = "button";
+    event.className = "calendar-compact-event";
+    event.style.cssText = [
+        "display:block",
+        "width:100%",
+        "margin:4px 0",
+        "padding:6px 7px",
+        "border:0",
+        "border-radius:6px",
+        "text-align:left",
+        "color:#fff",
+        "cursor:pointer",
+        "font-size:" + (mode === "month" ? "11px" : "12px"),
+        "line-height:1.25",
+        "overflow:hidden"
+    ].join(";");
+
+    let color = "#b05c75";
+    if (item.eventType === "block") color = "#8c6b4f";
+    else if (item.eventType === "external") color = "#555555";
+    else {
+        const service = currentServices.find(value =>
+            value.name && item.service &&
+            value.name.trim().toLowerCase() === item.service.trim().toLowerCase()
+        );
+        if (service && globalColors[service.category]) color = globalColors[service.category];
+    }
+
+    event.style.background = color;
+    const time = formatCalendarTime(item.date);
+    event.innerHTML = "<strong>" + time + "</strong> " + (item.name || item.service || "Wpis");
+    event.title = time + " " + (item.name || "") + " " + (item.service || "");
+    event.onclick = () => openAppointmentDetailsModal(item);
+    container.appendChild(event);
+}
+
+function renderWeekCalendar(grid) {
+    grid.innerHTML = "";
+    grid.dataset.calendarView = "week";
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(7, minmax(130px, 1fr))";
+    grid.style.gap = "8px";
+    grid.style.alignItems = "stretch";
+    grid.style.overflowX = "auto";
+
+    const monday = getMondayOfWeek(selectedCalendarDate);
+    const dayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
+
+    for (let index = 0; index < 7; index++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + index);
+        const column = document.createElement("section");
+        column.className = "calendar-week-day";
+        column.dataset.date = getFormattedISOBlockDate(date);
+        column.style.cssText = "min-height:260px;padding:9px;border:1px solid #e3d8cf;border-radius:9px;background:#fff;box-sizing:border-box;";
+
+        if (date.toDateString() === new Date().toDateString()) {
+            column.style.borderColor = "#b05c75";
+            column.style.boxShadow = "0 0 0 2px rgba(176,92,117,.12)";
+        }
+
+        const header = document.createElement("button");
+        header.type = "button";
+        header.style.cssText = "width:100%;padding:5px;border:0;background:transparent;font-weight:700;cursor:pointer;color:#3d3330;";
+        header.innerText = dayNames[index] + " " + date.getDate() + "." + (date.getMonth() + 1);
+        header.onclick = () => {
+            selectedCalendarDate = new Date(date);
+            setCalendarView("day");
+        };
+        column.appendChild(header);
+
+        const events = getCalendarEventsForDate(date);
+        if (events.length === 0) {
+            const empty = document.createElement("div");
+            empty.style.cssText = "padding:20px 4px;text-align:center;color:#aaa;font-size:12px;";
+            empty.innerText = "Brak wpisów";
+            column.appendChild(empty);
+        } else {
+            events.forEach(item => renderCompactCalendarEvent(item, column, "week"));
+        }
+        grid.appendChild(column);
+    }
+}
+
+function renderMonthCalendar(grid) {
+    grid.innerHTML = "";
+    grid.dataset.calendarView = "month";
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(7, minmax(115px, 1fr))";
+    grid.style.gap = "6px";
+    grid.style.overflowX = "auto";
+
+    const year = selectedCalendarDate.getFullYear();
+    const month = selectedCalendarDate.getMonth();
+    const weekdayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
+
+    weekdayNames.forEach(name => {
+        const header = document.createElement("div");
+        header.style.cssText = "padding:8px;text-align:center;font-weight:700;color:#5c504a;";
+        header.innerText = name;
+        grid.appendChild(header);
+    });
+
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const leading = first.getDay() === 0 ? 6 : first.getDay() - 1;
+    const totalCells = Math.ceil((leading + last.getDate()) / 7) * 7;
+
+    for (let cellIndex = 0; cellIndex < totalCells; cellIndex++) {
+        const dayNumber = cellIndex - leading + 1;
+        const date = new Date(year, month, dayNumber);
+        const inCurrentMonth = date.getMonth() === month;
+        const cell = document.createElement("section");
+        cell.className = "calendar-month-day";
+        cell.dataset.date = getFormattedISOBlockDate(date);
+        cell.style.cssText = "min-height:120px;padding:7px;border:1px solid #e3d8cf;border-radius:8px;background:" +
+            (inCurrentMonth ? "#fff" : "#f7f3f0") + ";opacity:" + (inCurrentMonth ? "1" : ".58") + ";box-sizing:border-box;";
+
+        if (date.toDateString() === new Date().toDateString()) {
+            cell.style.borderColor = "#b05c75";
+            cell.style.boxShadow = "0 0 0 2px rgba(176,92,117,.12)";
+        }
+        if (date.toDateString() === selectedCalendarDate.toDateString()) {
+            cell.style.background = "#fff4f7";
+        }
+
+        const dayButton = document.createElement("button");
+        dayButton.type = "button";
+        dayButton.style.cssText = "min-width:30px;padding:3px 6px;border:0;border-radius:15px;background:transparent;font-weight:700;cursor:pointer;";
+        dayButton.innerText = date.getDate();
+        dayButton.onclick = () => {
+            selectedCalendarDate = new Date(date);
+            miniMonthDate = new Date(date);
+            setCalendarView("day");
+            renderMiniMonthCalendar();
+        };
+        cell.appendChild(dayButton);
+
+        getCalendarEventsForDate(date).forEach(item => renderCompactCalendarEvent(item, cell, "month"));
+        grid.appendChild(cell);
+    }
+}
 
 /* ==========================================================
    EVENT CARD
@@ -3570,6 +3744,7 @@ function crmTestFrontendChecks(report) {
     [
         "loadSystem", "loadServices", "loadSettings", "loadClients",
         "renderDashboard", "renderBooksyCalendar", "renderMiniMonthCalendar",
+        "renderDayCalendar", "renderWeekCalendar", "renderMonthCalendar",
         "renderClients", "renderServicesTable", "calculateFinanceReport",
         "saveSettings", "saveAppointment", "deleteAppointmentFromAdmin",
         "deleteBlockTimeFromAdmin", "deleteSelectedCalendarItemFromAdmin",
@@ -3682,6 +3857,22 @@ async function runCRMFullTest() {
     try {
         crmTestSetProgress(5, "Sprawdzanie HTML i JavaScript...");
         crmTestFrontendChecks(report);
+
+        const savedViewMode = calendarViewMode;
+        const savedSelectedDate = new Date(selectedCalendarDate);
+        ["day", "week", "month"].forEach(mode => {
+            setCalendarView(mode);
+            const calendarGrid = document.getElementById("booksy-grid");
+            crmTestAdd(
+                report,
+                calendarGrid && calendarGrid.dataset.calendarView === mode ? "OK" : "BLAD",
+                "Renderowanie widoku " + mode,
+                calendarGrid ? calendarGrid.dataset.calendarView : "Brak siatki kalendarza"
+            );
+        });
+        selectedCalendarDate = savedSelectedDate;
+        setCalendarView(savedViewMode);
+
         crmTestSetProgress(15, "Sprawdzanie API i ustawien...");
         await crmTestApiChecks(report);
 
