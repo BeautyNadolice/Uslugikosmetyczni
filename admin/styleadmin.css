@@ -322,7 +322,14 @@ body {
     border-radius:10px;
 
 }
-
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+}
 .modal-overlay{
 
     position:fixed;
