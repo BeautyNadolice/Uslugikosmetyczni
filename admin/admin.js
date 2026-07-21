@@ -3711,6 +3711,8 @@ async function runCRMFullTest() {
         if (appointment) appointmentEventId = appointment.eventId || "";
         crmTestAdd(report, appointment ? "OK" : "BLAD", "Odczyt utworzonej wizyty", appointment || "Nie znaleziono");
         crmTestAdd(report, appointmentEventId ? "OK" : "OSTRZEZENIE", "Event ID wizyty", appointmentEventId || "Brak Event ID");
+        crmTestAdd(report, appointment && Number(appointment.duration) === 45 ? "OK" : "BLAD",
+            "Czas trwania utworzonej wizyty", appointment ? appointment.duration + " min" : "Brak wizyty");
 
         crmTestSetProgress(52, "Edytowanie wizyty testowej...");
         if (appointmentEventId) {
@@ -3728,6 +3730,8 @@ async function runCRMFullTest() {
             );
             if (appointment) appointmentEventId = appointment.eventId || appointmentEventId;
             crmTestAdd(report, appointment ? "OK" : "BLAD", "Weryfikacja wizyty po edycji", appointment || "Nie znaleziono");
+            crmTestAdd(report, appointment && Number(appointment.duration) === 60 ? "OK" : "BLAD",
+                "Czas trwania wizyty po edycji", appointment ? appointment.duration + " min" : "Brak wizyty");
         }
 
         crmTestSetProgress(65, "Tworzenie blokady testowej...");
