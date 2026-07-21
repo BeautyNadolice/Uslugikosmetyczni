@@ -542,15 +542,28 @@
                                type="text">
 
                     </div>
-<div class="form-group">
-    <label>
-        Bufor rezerwacji (godziny)
-    </label>
-    <input id="buffer_hours"
-           type="number"
-           min="0"
-           step="1">
-</div>
+                    <!-- ROZSZERZONE USTAWIENIA REZERWACJI -->
+                    <div class="form-group">
+                        <label>Bufor rezerwacji (godziny)</label>
+                        <input id="buffer_hours" type="number" min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="slot_interval_minutes">Interwał slotów (minuty)</label>
+                        <input id="slot_interval_minutes" type="number" min="5" max="240" step="5" value="45">
+                    </div>
+                    <div class="form-group">
+                        <label for="start_offset_minutes">Przesunięcie początku slotów (minuty)</label>
+                        <input id="start_offset_minutes" type="number" min="0" max="240" step="5" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="cleanup_buffer_minutes">Bufor na sprzątanie po wizycie (minuty)</label>
+                        <input id="cleanup_buffer_minutes" type="number" min="0" max="240" step="5" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule_cycle">Cykl grafiku</label>
+                        <input id="schedule_cycle" type="text" maxlength="50" value="4x4" placeholder="Np. 4x4">
+                    </div>
+                    <!-- KONIEC ROZSZERZONYCH USTAWIEŃ REZERWACJI -->
                     
                     <h3>
                         Kolory kategorii
@@ -570,142 +583,27 @@
                     </button>
 
                 </form>
-<!-- ===================================================== -->
-<!-- DIAGNOSTYKA CRM                                       -->
-<!-- TEN BLOK NALEŻY ZAWSZE TRZYMAĆ NA KOŃCU ADMIN.HTML    -->
-<!-- POD NIM POWINIEN BYĆ TYLKO ADMIN.JS, BODY I HTML       -->
-<!-- ===================================================== -->
 
-<section id="crm-diagnostics-panel"
-         style="
-            margin: 30px;
-            padding: 24px;
-            border: 2px solid #c2a383;
-            border-radius: 12px;
-            background: #fffaf6;
-         ">
+                <!-- DIAGNOSTYKA SYSTEMU CRM -->
+                <section id="crm-diagnostics-panel" style="width:100%;box-sizing:border-box;margin-top:35px;padding:24px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6;">
+                    <h2 style="margin-top:0;">🧪 Diagnostyka systemu CRM</h2>
+                    <p>Test sprawdza frontend, Google Apps Script, Google Sheets, klientów, wizyty, blokady czasu i automatyczne sprzątanie danych testowych.</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;">
+                        <button id="runQuickCRMTestBtn" type="button" class="btn-secondary" onclick="runCRMQuickTest()">⚡ Szybki test</button>
+                        <button id="runFullCRMTestBtn" type="button" class="btn-primary" onclick="runCRMFullTest()">🧪 Pełny test CRM</button>
+                        <button id="copyCRMTestReportBtn" type="button" class="btn-secondary" onclick="copyCRMTestReport()">📋 Kopiuj raport</button>
+                        <button id="loadCRMTestHistoryBtn" type="button" class="btn-secondary" onclick="loadCRMTestHistory()">🕘 Historia testów</button>
+                    </div>
+                    <div id="crm-test-progress-wrapper" style="display:none;margin:20px 0;">
+                        <div id="crm-test-progress-text" style="margin-bottom:8px;">Przygotowanie testu...</div>
+                        <div style="width:100%;height:18px;border-radius:10px;background:#eadfd5;overflow:hidden;"><div id="crm-test-progress-bar" style="width:0%;height:100%;background:#b05c75;transition:width 0.25s ease;"></div></div>
+                    </div>
+                    <div id="crm-test-summary" style="display:none;margin-top:20px;padding:16px;border-radius:8px;background:white;border:1px solid #ddd;"></div>
+                    <details style="margin-top:15px;"><summary style="cursor:pointer;font-weight:bold;">Szczegółowy raport</summary><pre id="crm-test-report-output" style="margin-top:12px;padding:15px;max-height:450px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#202124;color:#f1f3f4;border-radius:8px;font-size:12px;">Nie uruchomiono jeszcze testu.</pre></details>
+                    <div id="crm-test-history" style="display:none;margin-top:20px;overflow-x:auto;"></div>
+                </section>
+                <!-- KONIEC PANELU DIAGNOSTYKI CRM -->
 
-    <h2 style="margin-top: 0;">
-        🧪 Diagnostyka systemu CRM
-    </h2>
-
-    <p>
-        Test sprawdza frontend, Google Apps Script, Google Sheets,
-        klientów, wizyty, blokady czasu i automatyczne sprzątanie
-        danych testowych.
-    </p>
-
-    <div style="
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin: 20px 0;
-    ">
-
-        <button id="runQuickCRMTestBtn"
-                type="button"
-                class="btn-secondary"
-                onclick="runCRMQuickTest()">
-            ⚡ Szybki test
-        </button>
-
-        <button id="runFullCRMTestBtn"
-                type="button"
-                class="btn-primary"
-                onclick="runCRMFullTest()">
-            🧪 Pełny test CRM
-        </button>
-
-        <button id="copyCRMTestReportBtn"
-                type="button"
-                class="btn-secondary"
-                onclick="copyCRMTestReport()">
-            📋 Kopiuj raport
-        </button>
-
-        <button id="loadCRMTestHistoryBtn"
-                type="button"
-                class="btn-secondary"
-                onclick="loadCRMTestHistory()">
-            🕘 Historia testów
-        </button>
-
-    </div>
-
-    <div id="crm-test-progress-wrapper"
-         style="
-            display: none;
-            margin: 20px 0;
-         ">
-
-        <div id="crm-test-progress-text"
-             style="margin-bottom: 8px;">
-            Przygotowanie testu...
-        </div>
-
-        <div style="
-            width: 100%;
-            height: 18px;
-            border-radius: 10px;
-            background: #eadfd5;
-            overflow: hidden;
-        ">
-
-            <div id="crm-test-progress-bar"
-                 style="
-                    width: 0%;
-                    height: 100%;
-                    background: #b05c75;
-                    transition: width 0.25s ease;
-                 ">
-            </div>
-
-        </div>
-
-    </div>
-
-    <div id="crm-test-summary"
-         style="
-            display: none;
-            margin-top: 20px;
-            padding: 16px;
-            border-radius: 8px;
-            background: white;
-            border: 1px solid #ddd;
-         ">
-    </div>
-
-    <details style="margin-top: 15px;">
-        <summary style="cursor: pointer; font-weight: bold;">
-            Szczegółowy raport
-        </summary>
-
-        <pre id="crm-test-report-output"
-             style="
-                margin-top: 12px;
-                padding: 15px;
-                max-height: 450px;
-                overflow: auto;
-                white-space: pre-wrap;
-                background: #202124;
-                color: #f1f3f4;
-                border-radius: 8px;
-                font-size: 12px;
-             ">Nie uruchomiono jeszcze testu.</pre>
-    </details>
-
-    <div id="crm-test-history"
-         style="
-            display: none;
-            margin-top: 20px;
-         ">
-    </div>
-
-</section>
-
-<!-- ===================================================== -->
-<!-- KONIEC DIAGNOSTYKI CRM W ADMIN.HTML                    -->
-<!-- ===================================================== -->
             </section>
 
        </main>
@@ -1051,7 +949,7 @@
         </div>
     </div>
 </div>
-
 <script src="admin.js"></script>
+
 </body>
 </html>
