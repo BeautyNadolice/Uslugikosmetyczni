@@ -1723,6 +1723,7 @@ populateAppointmentDropdowns();
 function openCreateModal() {
     currentEditingAppointment =
         null;
+   populateAppointmentDropdowns();
 populateAppointmentDropdowns();
     document.getElementById(
         "modalTitleAppointment"
