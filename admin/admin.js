@@ -3714,6 +3714,22 @@ async function runCRMFullTest() {
         crmTestAdd(report, appointment && Number(appointment.duration) === 45 ? "OK" : "BLAD",
             "Czas trwania utworzonej wizyty", appointment ? appointment.duration + " min" : "Brak wizyty");
 
+        const conflictAttempt = await crmTestPost({
+            action: "createBooking",
+            phone: phone + "-KONFLIKT",
+            name: "CRM_TEST_KONFLIKT_" + marker,
+            service: serviceName + "_KONFLIKT",
+            date: crmTestLocalDate(20, 11, 0),
+            duration: 45,
+            rodo: "Test konfliktu CRM"
+        });
+        const conflictRejected =
+            conflictAttempt &&
+            conflictAttempt.success === false &&
+            conflictAttempt.code === "TIME_CONFLICT";
+        crmTestAdd(report, conflictRejected ? "OK" : "BLAD",
+            "Odrzucenie nakładającej się wizyty", conflictAttempt);
+
         crmTestSetProgress(52, "Edytowanie wizyty testowej...");
         if (appointmentEventId) {
             const appointmentEdit = await crmTestPost({
