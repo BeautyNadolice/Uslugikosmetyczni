@@ -1298,7 +1298,7 @@ function handleAppointmentPhoneSelect() {
     }
 
 }
-}
+
 function populateAppointmentClientSelect() {
 
     const select =
