@@ -1170,19 +1170,19 @@ function handleAppointmentServiceInput() {
    APPOINTMENT DROPDOWNS / AUTOCOMPLETE INIT
    ========================================================== */
 
-function populateAppointmentDro*downs() {
+function populateAppointmentDropdowns() {
 
-    if (typeof populate*ppointmentClientSelect === "functi*n") {
-        populateAppointmentC*ientSelect();
+    if (typeof populateAppointmentClientSelect === "function") {
+        populateAppointmentClientSelect();
     }
 
-    if (typeo* populateAppointmentServiceSelect *== "function") {
-        populateA*pointmentServiceSelect();
+    if (typeof populateAppointmentServiceSelect === "function") {
+        populateAppointmentServiceSelect();
     }
 
-  if (typeof populateAppointmentDa*alists === "function") {
-        p*pulateAppointmentDatalists();
-    
+    if (typeof populateAppointmentDatalists === "function") {
+        populateAppointmentDatalists();
+    }
 
 }
 /* ==========================================================
