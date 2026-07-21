@@ -10,7 +10,7 @@
    ========================================================== */
 
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbyNE_SVdBFw4Q24cpryHzF4Ls9oh7x67R8Fhqw92OB0co3nroBDBTIGA31-t2iyo54Upg/exec";
+"https://script.google.com/macros/s/AKfycbyVbiIGiWnSgjXIwOHTISpbhc4oNRZXY_NnIIcbIBtFwFfsAKn8pv-0YWF16Ri5hdZuYQ/exec";
 
 const ALLOWED_EMAIL =
 "strsasa@gmail.com";
