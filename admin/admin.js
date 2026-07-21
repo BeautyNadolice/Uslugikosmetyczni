@@ -891,48 +891,133 @@ function renderAppointmentCard(app,container){
 
 }
 
-/* ==========================================================
-   APPOINTMENT AUTOCOMPLETE / DATALISTS
-   ========================================================== */
+/* ==========*==================================*============
+   APPOINTMENT AUTOCO*PLETE / DATALISTS
+   =============*==================================*========= */
 
-function populateAppointmentDro*downs() {
+function populateApp*intmentDropdowns() {
 
-    populateAppointment*atalists();
-
-}
-
-function populateA*pointmentDatalists() {
-
-    popula*eClientNameDatalist();
-
-    popula*eClientPhoneDatalist();
-
-    popul*teServiceNameDatalist();
+    populate*ppointmentDatalists();
 
 }
 
-funct*on populateClientNameDatalist() {
-*    const list =
-        document.*etElementById(
-            "appoin*mentClientNameList"
+functio* populateAppointmentDatalists() {
+*    populateClientNameDatalist();
+*    populateClientPhoneDatalist();*
+    populateServiceNameDatalist()*
+
+}
+
+function populateClientNameDa*alist() {
+
+    const list =
+      * document.getElementById(
+        *   "appointmentClientNameList"
+   *    );
+
+    if (!list) {
+        r*turn;
+    }
+
+    list.innerHTML = *";
+
+    if (
+        !customersDat* ||
+        customersData.length =*= 0
+    ) {
+        return;
+    }
+*    customersData.forEach(client =* {
+
+        if (!client.name) {
+  *         return;
+        }
+
+      * const option =
+            docume*t.createElement(
+                "*ption"
+            );
+
+        opt*on.value =
+            client.name*|| "";
+
+        option.label =
+   *        client.phone || "";
+
+     *  list.appendChild(
+            op*ion
         );
 
-  * if (!list) {
+    });
+
+}
+
+functi*n populateClientPhoneDatalist() {
+*    const list =
+        document.*etElementById(
+            "appoin*mentClientPhoneList"
+        );
+
+ *  if (!list) {
         return;
-    *
+   *}
 
     list.innerHTML = "";
 
-    if*(
+    i* (
         !customersData ||
-      * customersData.length === 0
-    ) *
+     *  customersData.length === 0
+    )*{
         return;
     }
 
-    custom*rsData.forEach(client => {
+    custo*ersData.forEach(client => {
 
-      * if (!client.name) {
+     *  if (!client.phone) {
+           *return;
+        }
+
+        const o*tion =
+            document.create*lement(
+                "option"
+ *          );
+
+        option.value*=
+            client.phone || "";
+*        option.label =
+           *client.name || "";
+
+        list.a*pendChild(
+            option
+    *   );
+
+    });
+
+}
+
+function popula*eServiceNameDatalist() {
+
+    cons* list =
+        document.getElemen*ById(
+            "appointmentServ*ceNameList"
+        );
+
+    if (!l*st) {
+        return;
+    }
+
+    l*st.innerHTML = "";
+
+    if (
+     *  !currentServices ||
+        curr*ntServices.length === 0
+    ) {
+  *     return;
+    }
+
+    currentSer*ices.forEach(service => {
+
+       *if (!service.name) {
             r*turn;
         }
 
@@ -941,131 +1026,46 @@ funct*on populateClientNameDatalist() {
                 "option"
    *        );
 
-        option.value =*            client.name || "";
+        option.value =*            service.name || "";
 
-  *     option.label =
-            cl*ent.phone || "";
+ *      option.label =
+            (*                service.category |* "Inne"
+            ) +
+          * " / " +
+            (
+           *    service.duration || 45
+       *    ) +
+            " min / " +
+  *         (
+                service*price || 0
+            ) +
+       *    " zł";
 
-        list.app*ndChild(
+        list.appendChi*d(
             option
-      * );
+        );
 
-    });
+*   });
 
 }
 
-function populate*lientPhoneDatalist() {
+function handleAppointm*ntNameInput() {
 
-    const *ist =
-        document.getElementB*Id(
-            "appointmentClient*honeList"
+    const nameInput =
+        document.getElementById(
+            "appointmentName"
         );
 
-    if (!lis*) {
+    const phoneInput =
+        document.getElementById(
+            "appointmentPhone"
+        );
+
+    if (!nameInput || !phoneInput) {
         return;
     }
 
-    lis*.innerHTML = "";
-
-    if (
-       *!customersData ||
-        customer*Data.length === 0
-    ) {
-        *eturn;
-    }
-
-    customersData.fo*Each(client => {
-
-        if (!cli*nt.phone) {
-            return;
-  *     }
-
-        const option =
-   *        document.createElement(
-  *             "option"
-            *;
-
-        option.value =
-        *   client.phone || "";
-
-        op*ion.label =
-            client.nam* || "";
-
-        list.appendChild(*            option
-        );
-
-   *});
-
-}
-
-function populateServiceNa*eDatalist() {
-
-    const list =
-  *     document.getElementById(
-    *       "appointmentServiceNameList*
-        );
-
-    if (!list) {
-    *   return;
-    }
-
-    list.innerHT*L = "";
-
-    if (
-        !current*ervices ||
-        currentServices*length === 0
-    ) {
-        retur*;
-    }
-
-    currentServices.forEa*h(service => {
-
-        if (!servi*e.name) {
-            return;
-    *   }
-
-        const option =
-     *      document.createElement(
-    *           "option"
-            );*
-        option.value =
-          * service.name || "";
-
-        opti*n.label =
-            (
-          *     service.category || "Inne"
-  *         ) +
-            " / " +
- *          (
-                servic*.duration || 45
-            ) +
-  *         " min / " +
-            (*                service.price || 0*            ) +
-            " zł";*
-        list.appendChild(
-       *    option
-        );
-
-    });
-
-}
-*function handleAppointmentNameInpu*() {
-
-    const nameInput =
-      * document.getElementById(
-        *   "appointmentName"
-        );
-
- *  const phoneInput =
-        docum*nt.getElementById(
-            "ap*ointmentPhone"
-        );
-
-    if *!nameInput || !phoneInput) {
-     *  return;
-    }
-
-    const typedNa*e =
+    const typedName =
         nameInput.value
             .trim()
             .toLowerCase();
