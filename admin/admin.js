@@ -37,7 +37,9 @@ let currentEditingAppointment = null;
 let selectedCalendarDate = new Date();
 
 let miniMonthDate = new Date();
-
+let isDeletingAppointment = false;
+let isSavingAppointment = false;
+let isBlockingTime = false;
 let calendarViewMode = "day";
 let isDeletingAppointment = false;
 let isSavingAppointment = false;
@@ -1963,7 +1965,11 @@ async function submitBlockTime() {
         );
         return;
     }
+    if (isBlockingTime) {
+        return;
+    }
 
+    isBlockingTime = true;
     if (
         blockType === "hours" &&
         (
@@ -1987,10 +1993,10 @@ async function submitBlockTime() {
         return;
     }
 
-    const submitBtn =
-        document.getElementById(
-            "submitBlockTimeBtn"
-        );
+   const submitBtn =
+    document.getElementById(
+        "blockTimeSubmitBtn"
+    );
 
     if (submitBtn) {
         submitBtn.disabled =
@@ -2078,16 +2084,13 @@ async function submitBlockTime() {
             "Błąd połączenia podczas blokowania czasu."
         );
 
-    } finally {
+       } finally {
+        isBlockingTime = false;
 
         if (submitBtn) {
-            submitBtn.disabled =
-                false;
-
-            submitBtn.innerText =
-                "Zablokuj czas 🔒";
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Zablokuj czas 🔒";
         }
-
     }
 
 }
