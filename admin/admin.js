@@ -1185,6 +1185,238 @@ function populateAppointmentDropdowns() {
     }
 
 }
+function populateAppointmentClientSelect() {
+
+    const select =
+        document.getElementById(
+            "appointmentClientSelect"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML =
+        `
+        <option value="">Wybierz klienta</option>
+        <option value="__manual__">Wpisz ręcznie</option>
+        `;
+
+    if (
+        !customersData ||
+        customersData.length === 0
+    ) {
+        return;
+    }
+
+    customersData.forEach(client => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            client.phone || "";
+
+        option.textContent =
+            (client.name || "Klient") +
+            " - " +
+            (client.phone || "");
+
+        option.dataset.name =
+            client.name || "";
+
+        option.dataset.phone =
+            client.phone || "";
+
+        select.appendChild(
+            option
+        );
+
+    });
+
+}
+
+function handleAppointmentClientSelect() {
+
+    const select =
+        document.getElementById(
+            "appointmentClientSelect"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    const selectedOption =
+        select.options[
+            select.selectedIndex
+        ];
+
+    const nameInput =
+        document.getElementById(
+            "appointmentName"
+        );
+
+    const phoneInput =
+        document.getElementById(
+            "appointmentPhone"
+        );
+
+    if (
+        select.value === "__manual__"
+    ) {
+
+        if (nameInput) {
+            nameInput.value = "";
+        }
+
+        if (phoneInput) {
+            phoneInput.value = "";
+        }
+
+        return;
+
+    }
+
+    if (
+        selectedOption &&
+        selectedOption.dataset
+    ) {
+
+        if (nameInput) {
+            nameInput.value =
+                selectedOption.dataset.name || "";
+        }
+
+        if (phoneInput) {
+            phoneInput.value =
+                selectedOption.dataset.phone || "";
+        }
+
+    }
+
+}
+
+function populateAppointmentServiceSelect() {
+
+    const select =
+        document.getElementById(
+            "appointmentServiceSelect"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML =
+        `
+        <option value="">Wybierz usługę</option>
+        <option value="__manual__">Wpisz ręcznie</option>
+        `;
+
+    if (
+        !currentServices ||
+        currentServices.length === 0
+    ) {
+        return;
+    }
+
+    currentServices.forEach(service => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            service.name || "";
+
+        option.textContent =
+            (service.category || "Inne") +
+            " - " +
+            (service.name || "Usługa") +
+            " / " +
+            (service.price || 0) +
+            " zł / " +
+            (service.duration || 45) +
+            " min";
+
+        option.dataset.name =
+            service.name || "";
+
+        option.dataset.duration =
+            service.duration || 45;
+
+        select.appendChild(
+            option
+        );
+
+    });
+
+}
+
+function handleAppointmentServiceSelect() {
+
+    const select =
+        document.getElementById(
+            "appointmentServiceSelect"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    const selectedOption =
+        select.options[
+            select.selectedIndex
+        ];
+
+    const serviceInput =
+        document.getElementById(
+            "appointmentService"
+        );
+
+    const durationInput =
+        document.getElementById(
+            "appointmentDuration"
+        );
+
+    if (
+        select.value === "__manual__"
+    ) {
+
+        if (serviceInput) {
+            serviceInput.value = "";
+        }
+
+        if (durationInput) {
+            durationInput.value = "45";
+        }
+
+        return;
+
+    }
+
+    if (
+        selectedOption &&
+        selectedOption.dataset
+    ) {
+
+        if (serviceInput) {
+            serviceInput.value =
+                selectedOption.dataset.name || "";
+        }
+
+        if (durationInput) {
+            durationInput.value =
+                selectedOption.dataset.duration || 45;
+        }
+
+    }
+
+}
 /* ==========================================================
    CREATE APPOINTMENT
    ========================================================== */
@@ -1447,7 +1679,7 @@ function openEditAppointmentModal() {
         alert("Nie wybrano wizyty do edycji.");
         return;
     }
-
+populateAppointmentDropdowns();
     document.getElementById(
         "modalTitleAppointment"
     ).innerText =
@@ -1491,7 +1723,7 @@ function openEditAppointmentModal() {
 function openCreateModal() {
     currentEditingAppointment =
         null;
-
+populateAppointmentDropdowns();
     document.getElementById(
         "modalTitleAppointment"
     ).innerText =
@@ -1532,7 +1764,23 @@ function closeCreateAppointmentModal(){
         "none";
 
 }
+const clientSelect =
+    document.getElementById(
+        "appointmentClientSelect"
+    );
 
+if (clientSelect) {
+    clientSelect.value = "";
+}
+
+const serviceSelect =
+    document.getElementById(
+        "appointmentServiceSelect"
+    );
+
+if (serviceSelect) {
+    serviceSelect.value = "";
+}
 
 /* ==========================================================
    DETAILS MODAL
