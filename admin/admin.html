@@ -581,92 +581,96 @@
 
 <!-- TUTAJ WSTAWIAMY MODALE -->
 
-<!-- MODAL: DODAJ WIZYTĘ -->
+<!-- MODAL: DODAJ / EDYTUJ WIZYTĘ -->
 <div id="appointmentModal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h4 id="modalTitleAppointment">Utwórz nową wizytę</h4>
-            <button class="modal-close" onclick="closeCreateAppointmentModal()">&times;</button>
+            <h4 id="modalTitleAppointment">
+                Utwórz nową wizytę
+            </h4>
+
+            <button class="modal-close" onclick="closeCreateAppointmentModal()">
+                &times;
+            </button>
         </div>
 
         <div class="form-group">
-    <label>Wybierz klienta:</label>
-    <select id="appointmentClientSelect" onchange="handleAppointmentClientSelect()">
-        <option value="">Wybierz klienta</option>
-        <option value="__manual__">Wpisz ręcznie</option>
-    </select>
-</div>
+            <label>
+                Imię i nazwisko klienta:
+            </label>
 
-<div class="form-group">
-    <label>Imię i nazwisko klienta:</label>
-    <input type="text"
-           id="appointmentName"
-           list="appointmentClientNameList"
-           oninput="handleAppointmentNameInput()"
-        autocomplete="off"
-           placeholder="Wpisz imię klienta">
+            <input type="text"
+                   id="appointmentName"
+                   list="appointmentClientNameList"
+                   oninput="handleAppointmentNameInput()"
+                   autocomplete="new-password"
+                   placeholder="Wpisz imię klienta">
 
-    <datalist id="appointmentClientNameList"></datalist>
-</div>
-
-<div class="form-group">
-    <label>Telefon:</label>
-    <input type="text"
-           id="appointmentPhone"
-           list="appointmentClientPhoneList"
-           oninput="handleAppointmentPhoneInput()"
-        autocomplete="off"
-           placeholder="Wpisz numer telefonu">
-
-    <datalist id="appointmentClientPhoneList"></datalist>
-    <div class="form-group">
-    <label>Wybierz telefon:</label>
-    <select id="appointmentPhoneSelect" onchange="handleAppointmentPhoneSelect()">
-        <option value="">Wybierz telefon</option>
-        <option value="__manual__">Wpisz ręcznie</option>
-    </select>
-</div>
-</div>
-
-<div class="form-group">
-    <label>Wybierz usługę:</label>
-    <select id="appointmentServiceSelect" onchange="handleAppointmentServiceSelect()">
-        <option value="">Wybierz usługę</option>
-        <option value="__manual__">Wpisz ręcznie</option>
-    </select>
-</div>
-
-<div class="form-group">
-    <label>Nazwa usługi / Zabieg:</label>
-    <input type="text"
-           id="appointmentService"
-           list="appointmentServiceNameList"
-           oninput="handleAppointmentServiceInput()"
-        autocomplete="off"
-           placeholder="Wpisz nazwę zabiegu">
-
-    <datalist id="appointmentServiceNameList"></datalist>
-</div>
-      
-        <div class="form-group">
-            <label>Czas trwania (min):</label>
-            <input type="number" id="appointmentDuration" value="45">
+            <datalist id="appointmentClientNameList"></datalist>
         </div>
 
         <div class="form-group">
-            <label>Data i godzina rozpoczęcia:</label>
-            <input type="datetime-local" id="appointmentDateTime">
+            <label>
+                Telefon:
+            </label>
+
+            <input type="text"
+                   id="appointmentPhone"
+                   list="appointmentClientPhoneList"
+                   oninput="handleAppointmentPhoneInput()"
+                   autocomplete="new-password"
+                   placeholder="Wpisz numer telefonu">
+
+            <datalist id="appointmentClientPhoneList"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>
+                Nazwa usługi / Zabieg:
+            </label>
+
+            <input type="text"
+                   id="appointmentService"
+                   list="appointmentServiceNameList"
+                   oninput="handleAppointmentServiceInput()"
+                   autocomplete="new-password"
+                   placeholder="Wpisz nazwę zabiegu">
+
+            <datalist id="appointmentServiceNameList"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>
+                Czas trwania (min):
+            </label>
+
+            <input type="number"
+                   id="appointmentDuration"
+                   value="45">
+        </div>
+
+        <div class="form-group">
+            <label>
+                Data i godzina rozpoczęcia:
+            </label>
+
+            <input type="datetime-local"
+                   id="appointmentDateTime">
         </div>
 
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeCreateAppointmentModal()">Anuluj</button>
-            <button id="saveAppointmentBtn" class="btn-primary" onclick="saveAppointment()">
-    Zapisz wizytę
-</button>
+            <button class="btn-secondary" onclick="closeCreateAppointmentModal()">
+                Anuluj
+            </button>
+
+            <button id="saveAppointmentBtn"
+                    class="btn-primary"
+                    onclick="saveAppointment()">
+                Zapisz wizytę
+            </button>
         </div>
     </div>
 </div>
-
 <!-- MODAL: SZCZEGÓŁY WIZYTY -->
 <div id="appointmentDetailsModal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
