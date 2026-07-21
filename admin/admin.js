@@ -1684,163 +1684,169 @@ function renderClients(){
 
 }
 
-/* ============================*=============================
-   C*IENT CRUD - MODAL
-   =============*==================================*========= */
+/* ==========================================================
+   CLIENT CRUD - MODAL
+   ========================================================== */
 
-function openAddClie*tModal() {
+function openAddClientModal() {
 
-    document.getElemen*ById(
+    document.getElementById(
         "clientModalTitle"
- *  ).innerText =
-        "Dodaj kli*nta";
+    ).innerText =
+        "Dodaj klienta";
 
-    document.getElementById*
+    document.getElementById(
         "editClientPhone"
-    ).v*lue =
-        "";
-
-    document.ge*ElementById(
-        "clientModalN*me"
     ).value =
         "";
 
-   *document.getElementById(
-        "*lientModalPhone"
+    document.getElementById(
+        "clientModalName"
     ).value =
-   *    "";
+        "";
 
-    document.getElementBy*d(
+    document.getElementById(
+        "clientModalPhone"
+    ).value =
+        "";
+
+    document.getElementById(
         "clientModalVisits"
-   *).value =
+    ).value =
         "0";
 
-    docume*t.getElementById(
-        "clientM*dalCancelled"
+    document.getElementById(
+        "clientModalCancelled"
     ).value =
-      * "0";
+        "0";
 
-    document.getElementById*
+    document.getElementById(
         "clientModalLastVisit"
-  * ).value =
+    ).value =
         "";
 
-    docume*t.getElementById(
-        "clientM*dal"
-    ).style.display =
-       *"flex";
-
-}
-
-function closeClientMo*al() {
-
-    document.getElementByI*(
-        "clientModal"
-    ).styl*.display =
-        "none";
-
-}
-
-fun*tion formatClientDateForInput(valu*) {
-
-    if (!value) {
-        ret*rn "";
-    }
-
-    const date =
-   *    new Date(value);
-
-    if (
-   *    !date ||
-        isNaN(date.ge*Time())
-    ) {
-        return "";*    }
-
-    const year =
-        da*e.getFullYear();
-
-    const month *
-        String(
-            date.*etMonth() + 1
-        ).padStart(2* "0");
-
-    const day =
-        St*ing(
-            date.getDate()
-  *     ).padStart(2, "0");
-
-    retu*n (
-        year +
-        "-" +
- *      month +
-        "-" +
-      * day
-    );
-
-}
-
-function editClien*(phone) {
-
-    const client =
-    *   customersData.find(item => {
-  *         return (
-                *tem.phone &&
-                item.*hone.toString().trim() ===
-       *        phone.toString().trim()
-  *         );
-        });
-
-    if (!*lient) {
-        alert(
-          * "Nie znaleziono klienta."
-       *);
-        return;
-    }
-
-    docu*ent.getElementById(
-        "clien*ModalTitle"
-    ).innerText =
-    *   "Edytuj klienta";
-
-    document*getElementById(
-        "editClien*Phone"
-    ).value =
-        clien*.phone || "";
-
-    document.getEle*entById(
-        "clientModalName"*    ).value =
-        client.name *| "";
-
-    document.getElementById*
-        "clientModalPhone"
-    ).*alue =
-        client.phone || "";*
     document.getElementById(
-    *   "clientModalVisits"
-    ).value*=
-        client.visits || 0;
-
-   *document.getElementById(
-        "*lientModalCancelled"
-    ).value =*        client.cancelled || 0;
-
-  * document.getElementById(
-        *clientModalLastVisit"
-    ).value *
-        formatClientDateForInput(*            client.lastVisit
-     *  );
-
-    document.getElementById(*        "clientModal"
-    ).style.*isplay =
+        "clientModal"
+    ).style.display =
         "flex";
 
 }
 
-funct*on saveClientModalData() {
+function closeClientModal() {
 
-    co*st oldPhone =
-        document.get*lementById(
-            "editClien*Phone"
+    document.getElementById(
+        "clientModal"
+    ).style.display =
+        "none";
+
+}
+
+function formatClientDateForInput(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    const date =
+        new Date(value);
+
+    if (
+        !date ||
+        isNaN(date.getTime())
+    ) {
+        return "";
+    }
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    return (
+        year +
+        "-" +
+        month +
+        "-" +
+        day
+    );
+
+}
+
+function editClient(phone) {
+
+    const client =
+        customersData.find(item => {
+            return (
+                item.phone &&
+                item.phone.toString().trim() ===
+                phone.toString().trim()
+            );
+        });
+
+    if (!client) {
+        alert(
+            "Nie znaleziono klienta."
+        );
+        return;
+    }
+
+    document.getElementById(
+        "clientModalTitle"
+    ).innerText =
+        "Edytuj klienta";
+
+    document.getElementById(
+        "editClientPhone"
+    ).value =
+        client.phone || "";
+
+    document.getElementById(
+        "clientModalName"
+    ).value =
+        client.name || "";
+
+    document.getElementById(
+        "clientModalPhone"
+    ).value =
+        client.phone || "";
+
+    document.getElementById(
+        "clientModalVisits"
+    ).value =
+        client.visits || 0;
+
+    document.getElementById(
+        "clientModalCancelled"
+    ).value =
+        client.cancelled || 0;
+
+    document.getElementById(
+        "clientModalLastVisit"
+    ).value =
+        formatClientDateForInput(
+            client.lastVisit
+        );
+
+    document.getElementById(
+        "clientModal"
+    ).style.display =
+        "flex";
+
+}
+
+function saveClientModalData() {
+
+    const oldPhone =
+        document.getElementById(
+            "editClientPhone"
         ).value.trim();
 
     const name =
