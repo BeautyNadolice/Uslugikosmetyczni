@@ -1851,11 +1851,381 @@ function toggleBlockTimeFields(){
 }
 
 
-function submitBlockTime(){
+/* ==========================================================
+   BLOCK TIME - CREATE GOOGLE CALENDAR BLOCK
+   ========================================================== */
+if (postData.action === "blockTime") {
 
-    alert(
-        "Wersja V2 - backend blockTime do podłączenia"
+  const settings =
+    getDynamicSettings(
+      ss
     );
+
+  const calendar =
+    CalendarApp.getCalendarById(
+      settings.calendar_id || "primary"
+    );
+
+  if (!calendar) {
+    return createJsonResponse({
+      success: false,
+      error: "Nie znaleziono kalendarza"
+    });
+  }
+
+  const blockType =
+    postData.blockType || "hours";
+
+  const dateString =
+    postData.date || "";
+
+  const startTime =
+    postData.startTime || "09:00";
+
+  const endTime =
+    postData.endTime || "18:00";
+
+  const title =
+    postData.title || "Zablokowane";
+
+  if (!dateString) {
+    return createJsonResponse({
+      success: false,
+      error: "Brak daty blokady"
+    });
+  }
+
+  const parts =
+    dateString.split("-");
+
+  if (parts.length !== 3) {
+    return createJsonResponse({
+      success: false,
+      error: "Nieprawidłowa data blokady"
+    });
+  }
+
+  const year =
+    parseInt(
+      parts[0],
+      10
+    );
+
+  const month =
+    parseInt(
+      parts[1],
+      10
+    ) - 1;
+
+  const day =
+    parseInt(
+      parts[2],
+      10
+    );
+
+  let startDate;
+  let endDate;
+
+  if (
+    blockType === "full_day"
+  ) {
+
+    startDate =
+      new Date(
+        year,
+        month,
+        day,
+        0,
+        0,
+        0
+      );
+
+    endDate =
+      new Date(
+        year,
+        month,
+        day + 1,
+        0,
+        0,
+        0
+      );
+
+  } else {
+
+    const startParts =
+      startTime.split(":");
+
+    const endParts =
+      endTime.split(":");
+
+    if (
+      startParts.length !== 2 ||
+      endParts.length !== 2
+    ) {
+      return createJsonResponse({
+        success: false,
+        error: "Nieprawidłowe godziny blokady"
+      });
+    }
+
+    startDate =
+      new Date(
+        year,
+        month,
+        day,
+        parseInt(
+          startParts[0],
+          10
+        ),
+        parseInt(
+          startParts[1],
+          10
+        ),
+        0
+      );
+
+    endDate =
+      new Date(
+        year,
+        month,
+        day,
+        parseInt(
+          endParts[0],
+          10
+        ),
+        parseInt(
+          endParts[1],
+          10
+        ),
+        0
+      );
+
+    if (
+      !startDate ||
+      !endDate ||
+      isNaN(
+        startDate.getTime()
+      ) ||
+      isNaN(
+        endDate.getTime()
+      ) ||
+      endDate.getTime() <= startDate.getTime()
+    ) {
+      return createJsonResponse({
+        success: false,
+        error: "Godzina zakończenia musi być późniejsza niż rozpoczęcia"
+      });
+    }
+
+  }
+
+  const description =
+    "Blokada czasu dodana z CRM";
+
+  const event =
+    calendar.createEvent(
+      title,
+      startDate,
+      endDate,
+      {
+        description:
+        description
+      }
+    );
+
+  return createJsonResponse({
+    success: true,
+    eventId:
+    event
+      ? event.getId()
+      : ""
+  });
+
+}
+async function submitBlockTime() {
+
+    const blockTypeInput =
+        document.getElementById(
+            "block-type"
+        );
+
+    const blockDateInput =
+        document.getElementById(
+            "block-date"
+        );
+
+    const blockStartInput =
+        document.getElementById(
+            "block-start-time"
+        );
+
+    const blockEndInput =
+        document.getElementById(
+            "block-end-time"
+        );
+
+    const blockTitleInput =
+        document.getElementById(
+            "block-title"
+        );
+
+    const blockType =
+        blockTypeInput
+            ? blockTypeInput.value
+            : "hours";
+
+    const blockDate =
+        blockDateInput
+            ? blockDateInput.value
+            : "";
+
+    const blockStart =
+        blockStartInput
+            ? blockStartInput.value
+            : "09:00";
+
+    const blockEnd =
+        blockEndInput
+            ? blockEndInput.value
+            : "18:00";
+
+    const blockTitle =
+        blockTitleInput
+            ? blockTitleInput.value.trim()
+            : "Zablokowane";
+
+    if (!blockDate) {
+        alert(
+            "Wybierz datę blokady."
+        );
+        return;
+    }
+
+    if (
+        blockType === "hours" &&
+        (
+            !blockStart ||
+            !blockEnd
+        )
+    ) {
+        alert(
+            "Wybierz godzinę rozpoczęcia i zakończenia."
+        );
+        return;
+    }
+
+    if (
+        blockType === "hours" &&
+        blockStart >= blockEnd
+    ) {
+        alert(
+            "Godzina zakończenia musi być późniejsza niż godzina rozpoczęcia."
+        );
+        return;
+    }
+
+    const submitBtn =
+        document.getElementById(
+            "submitBlockTimeBtn"
+        );
+
+    if (submitBtn) {
+        submitBtn.disabled =
+            true;
+
+        submitBtn.innerText =
+            "Blokowanie...";
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                APPS_SCRIPT_URL,
+                {
+                    method:
+                    "POST",
+
+                    headers: {
+                        "Content-Type":
+                        "text/plain"
+                    },
+
+                    body:
+                    JSON.stringify({
+                        action:
+                        "blockTime",
+
+                        blockType:
+                        blockType,
+
+                        date:
+                        blockDate,
+
+                        startTime:
+                        blockStart,
+
+                        endTime:
+                        blockEnd,
+
+                        title:
+                        blockTitle || "Zablokowane"
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (data.success) {
+
+            alert(
+                "Czas został zablokowany."
+            );
+
+            closeBlockTimeModal();
+
+            await loadSettings();
+
+            renderBooksyCalendar();
+
+            renderDashboard();
+
+            calculateFinanceReport();
+
+        } else {
+
+            alert(
+                "Błąd blokowania czasu: " +
+                (
+                    data.error ||
+                    "Nieznany błąd"
+                )
+            );
+
+        }
+
+    } catch(error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "Błąd połączenia podczas blokowania czasu."
+        );
+
+    } finally {
+
+        if (submitBtn) {
+            submitBtn.disabled =
+                false;
+
+            submitBtn.innerText =
+                "Zablokuj czas 🔒";
+        }
+
+    }
 
 }
 /* ==========================================================
