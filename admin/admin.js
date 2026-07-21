@@ -21,28 +21,21 @@ const ALLOWED_EMAIL =
    ========================================================== */
 
 let currentServices = [];
-
 let appointmentsData = [];
-
 let customersData = [];
-
 let settingsData = {};
-
 let globalColors = {};
-
 let allCategories = [];
 
 let currentEditingAppointment = null;
 
 let selectedCalendarDate = new Date();
-
 let miniMonthDate = new Date();
+let calendarViewMode = "day";
+
 let isDeletingAppointment = false;
 let isSavingAppointment = false;
 let isBlockingTime = false;
-let calendarViewMode = "day";
-let isDeletingAppointment = false;
-let isSavingAppointment = false;
 
 /* ==========================================================
    START APP
@@ -1908,7 +1901,11 @@ function toggleBlockTimeFields() {
 
 
 async function submitBlockTime() {
+    if (isBlockingTime) {
+        return;
+    }
 
+    isBlockingTime = true;
     const blockTypeInput =
         document.getElementById(
             "block-type"
@@ -1965,12 +1962,7 @@ async function submitBlockTime() {
         );
         return;
     }
-    if (isBlockingTime) {
-        return;
-    }
-
-    isBlockingTime = true;
-    if (
+        if (
         blockType === "hours" &&
         (
             !blockStart ||
