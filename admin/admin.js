@@ -891,7 +891,281 @@ function renderAppointmentCard(app,container){
 
 }
 
+/* ==========================================================
+   APPOINTMENT AUTOCOMPLETE / DATALISTS
+   ========================================================== */
 
+function populateAppointmentDatalists() {
+
+    populateClientNameDatalist();
+
+    populateClientPhoneDatalist();
+
+    populateServiceNameDatalist();
+
+}
+
+function populateClientNameDatalist() {
+
+    const list =
+        document.getElementById(
+            "appointmentClientNameList"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = "";
+
+    if (
+        !customersData ||
+        customersData.length === 0
+    ) {
+        return;
+    }
+
+    customersData.forEach(client => {
+
+        if (!client.name) {
+            return;
+        }
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            client.name || "";
+
+        option.label =
+            client.phone || "";
+
+        list.appendChild(
+            option
+        );
+
+    });
+
+}
+
+function populateClientPhoneDatalist() {
+
+    const list =
+        document.getElementById(
+            "appointmentClientPhoneList"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = "";
+
+    if (
+        !customersData ||
+        customersData.length === 0
+    ) {
+        return;
+    }
+
+    customersData.forEach(client => {
+
+        if (!client.phone) {
+            return;
+        }
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            client.phone || "";
+
+        option.label =
+            client.name || "";
+
+        list.appendChild(
+            option
+        );
+
+    });
+
+}
+
+function populateServiceNameDatalist() {
+
+    const list =
+        document.getElementById(
+            "appointmentServiceNameList"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = "";
+
+    if (
+        !currentServices ||
+        currentServices.length === 0
+    ) {
+        return;
+    }
+
+    currentServices.forEach(service => {
+
+        if (!service.name) {
+            return;
+        }
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            service.name || "";
+
+        option.label =
+            (
+                service.category || "Inne"
+            ) +
+            " / " +
+            (
+                service.duration || 45
+            ) +
+            " min / " +
+            (
+                service.price || 0
+            ) +
+            " zł";
+
+        list.appendChild(
+            option
+        );
+
+    });
+
+}
+function handleAppointmentNameInput() {
+
+    const nameInput =
+        document.getElementById(
+            "appointmentName"
+        );
+
+    const phoneInput =
+        document.getElementById(
+            "appointmentPhone"
+        );
+
+    if (!nameInput || !phoneInput) {
+        return;
+    }
+
+    const typedName =
+        nameInput.value.trim().toLowerCase();
+
+    if (!typedName) {
+        return;
+    }
+
+    const client =
+        customersData.find(item => {
+            return (
+                item.name &&
+                item.name.toString().trim().toLowerCase() ===
+                typedName
+            );
+        });
+
+    if (client) {
+        phoneInput.value =
+            client.phone || "";
+    }
+
+}
+
+function handleAppointmentPhoneInput() {
+
+    const nameInput =
+        document.getElementById(
+            "appointmentName"
+        );
+
+    const phoneInput =
+        document.getElementById(
+            "appointmentPhone"
+        );
+
+    if (!nameInput || !phoneInput) {
+        return;
+    }
+
+    const typedPhone =
+        phoneInput.value.trim();
+
+    if (!typedPhone) {
+        return;
+    }
+
+    const client =
+        customersData.find(item => {
+            return (
+                item.phone &&
+                item.phone.toString().trim() ===
+                typedPhone
+            );
+        });
+
+    if (client) {
+        nameInput.value =
+            client.name || "";
+    }
+
+}
+
+function handleAppointmentServiceInput() {
+
+    const serviceInput =
+        document.getElementById(
+            "appointmentService"
+        );
+
+    const durationInput =
+        document.getElementById(
+            "appointmentDuration"
+        );
+
+    if (!serviceInput || !durationInput) {
+        return;
+    }
+
+    const typedService =
+        serviceInput.value.trim().toLowerCase();
+
+    if (!typedService) {
+        return;
+    }
+
+    const service =
+        currentServices.find(item => {
+            return (
+                item.name &&
+                item.name.toString().trim().toLowerCase() ===
+                typedService
+            );
+        });
+
+    if (service) {
+        durationInput.value =
+            service.duration || 45;
+    }
+
+}
 /* ==========================================================
    CREATE APPOINTMENT
    ========================================================== */
