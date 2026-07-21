@@ -1807,53 +1807,6 @@ if (
    BLOCK TIME
    ========================================================== */
 
-function openBlockTimeModal(){
-
-    document.getElementById(
-        "blockTimeModal"
-    ).style.display =
-        "flex";
-
-}
-
-
-function closeBlockTimeModal(){
-
-    document.getElementById(
-        "blockTimeModal"
-    ).style.display =
-        "none";
-
-}
-
-
-function toggleBlockTimeFields(){
-
-    const blockType =
-        document.getElementById(
-            "block-type"
-        ).value;
-
-    const group =
-        document.getElementById(
-            "block-hours-group"
-        );
-
-    if(!group) return;
-
-    group.style.display =
-        blockType === "hours"
-        ?
-        "block"
-        :
-        "none";
-
-}
-
-/* ==========================================================
-   BLOCK TIME
-   ========================================================== */
-
 function openBlockTimeModal() {
 
     const blockDateInput =
