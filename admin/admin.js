@@ -4348,7 +4348,19 @@ async function runCRMFullTest() {
                 action: "createBooking", deleteFlag: true, eventId: appointmentEventId,
                 date: editedDate, name: editedName
             });
-            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie wizyty testowej", result);
+            let deletionSucceeded = Boolean(result && result.success);
+            if (!deletionSucceeded) {
+                await crmTestWait(700);
+                const verificationBusy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
+                const stillExists = verificationBusy && Array.isArray(verificationBusy.appointments)
+                    ? verificationBusy.appointments.some(item => item.eventId === appointmentEventId)
+                    : true;
+                deletionSucceeded = !stillExists;
+            }
+            crmTestAdd(report, deletionSucceeded ? "OK" : "BLAD", "Usuwanie wizyty testowej",
+                deletionSucceeded && (!result || !result.success)
+                    ? "Wizyta usunięta; odpowiedź API została utracona, stan potwierdzony odczytem"
+                    : result);
             await crmTestWait(500);
             const clientsAfterAppointmentDelete = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
             testClientStats = clientsAfterAppointmentDelete.find(item => String(item.phone) === phone);
