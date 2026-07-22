@@ -734,6 +734,7 @@ function renderMiniMonthCalendar(){
 
 function renderBooksyCalendar(){
     const grid = document.getElementById("booksy-grid");
+    if (document.getElementById("work-schedule-calendar")) renderWorkScheduleCalendar().catch(console.error);
     if (!grid) return;
 
     updateCalendarRangeTitle();
@@ -3805,68 +3806,144 @@ async function saveScheduleCorrectionFromPanel() {
         husbandShift: document.getElementById("sch-shift").value,
         availableFrom: document.getElementById("sch-from").value,
         availableTo: document.getElementById("sch-to").value,
-        fullDayBlocked: document.getElementById("sch-blocked").checked,
+        fullDayBlocked: false,
         reason: document.getElementById("sch-reason").value,
         source: "RECZNA_KOREKTA"
     };
     const response = await crmExtendedPost("saveScheduleCorrection", { entry });
     if (!response.success) throw new Error(response.error || "Błąd korekty");
-    alert("Korekta zapisana.");
+    alert("Ręczna korekta została zapisana. Nie zostanie nadpisana przez oficjalny grafik.");
     await refreshSchedulePanel();
+    await renderWorkScheduleCalendar();
 }
+
 async function generateSchedule4x4FromPanel() {
     const response = await crmExtendedPost("generateSchedule4x4", {
         year: Number(document.getElementById("sch-year").value),
-        startDate: document.getElementById("sch-start").value,
-        firstShift: document.getElementById("sch-first-shift").value
+        startDate: document.getElementById("sch-start").value
     });
     if (!response.success) throw new Error(response.error || "Błąd generowania");
-    alert("Prognoza 4×4 utworzona: " + response.days + " dni.");
+    alert("Prognoza 4×4 utworzona: 1, 1, 2, 2, W, W, W, W.");
     await refreshSchedulePanel();
+    await renderWorkScheduleCalendar();
 }
+
 async function refreshSchedulePanel() {
     const output = document.getElementById("sch-output");
     const month = document.getElementById("sch-month");
     if (!output || !month) return;
     const response = await crmExtendedPost("getEffectiveSchedule", { month: month.value });
     if (!response.success) throw new Error(response.error || "Błąd odczytu grafiku");
-    output.innerHTML = response.entries.map(x => `<div style="padding:6px;border-bottom:1px solid #ddd"><strong>${x.date}</strong> | ${x.dayType} | ${x.husbandShift} | źródło: ${x.source} | ${x.reason || ""}</div>`).join("") || "Brak wpisów";
+    output.innerHTML = response.entries.map(item =>
+        `<div style="padding:6px;border-bottom:1px solid #ddd"><strong>${item.date}</strong> | ${item.code || item.dayType} | źródło: ${item.source} | ${item.reason || ""}</div>`
+    ).join("") || "Brak wpisów";
 }
-function toBase64(file) {
-    return new Promise((resolve, reject) => { const r = new FileReader(); r.onload=()=>resolve(String(r.result).split(",")[1]); r.onerror=reject; r.readAsDataURL(file); });
+
+async function checkScheduleDriveFolderNow() {
+    const button = document.getElementById("sch-check-folder-btn");
+    const status = document.getElementById("sch-folder-status");
+    if (button) button.disabled = true;
+    if (status) status.textContent = "Sprawdzanie folderu...";
+    try {
+        const response = await crmExtendedPost("checkScheduleDriveFolder", { manual: true });
+        if (!response.success) throw new Error(response.error || "Błąd sprawdzania folderu");
+        if (status) status.textContent = `Ostatnie sprawdzenie: ${response.checkedAt}. Nowe: ${response.newFiles}, zmienione: ${response.changedFiles}, bez zmian: ${response.unchangedFiles}.`;
+        await refreshSchedulePanel();
+        await renderWorkScheduleCalendar();
+    } finally {
+        if (button) button.disabled = false;
+    }
 }
-async function recognizeScheduleImage() {
-    const input = document.getElementById("sch-file");
-    const employeeName = document.getElementById("sch-employee").value.trim();
-    if (!input.files[0] || !employeeName) return alert("Wybierz obraz i wpisz imię z grafiku.");
-    const file = input.files[0];
-    const response = await crmExtendedPost("recognizeScheduleImage", { fileName:file.name, mimeType:file.type, employeeName, base64Data:await toBase64(file) });
-    document.getElementById("sch-ocr").textContent = JSON.stringify(response, null, 2);
-    if (response.success) window.lastScheduleImportId = response.importId;
+
+async function installScheduleFolderTriggers() {
+    const response = await crmExtendedPost("installScheduleFolderTriggers");
+    if (!response.success) throw new Error(response.error || "Błąd instalacji harmonogramu");
+    alert("Kontrola folderu została ustawiona: poniedziałek, czwartek i ostatni dzień miesiąca.");
 }
-async function confirmScheduleImageImport() {
-    if (!window.lastScheduleImportId) return alert("Najpierw rozpoznaj obraz.");
-    const response = await crmExtendedPost("confirmScheduleImport", { importId:window.lastScheduleImportId });
-    if (!response.success) throw new Error(response.error || "Błąd zatwierdzenia");
-    alert("Oficjalny grafik zatwierdzony."); await refreshSchedulePanel();
+
+async function synchronizeWorkScheduleWithGoogleCalendar() {
+    const month = document.getElementById("sch-month").value;
+    const response = await crmExtendedPost("syncWorkScheduleToGoogleCalendar", { month });
+    if (!response.success) throw new Error(response.error || "Błąd synchronizacji Google Calendar");
+    alert(`Zaktualizowano oznaczenia Google Calendar: ${response.created} utworzono, ${response.removed} usunięto.`);
 }
+
+function scheduleCodeColor(code) {
+    const value = String(code || "W").toUpperCase();
+    if (value === "1") return { bg: "#fff200", fg: "#111" };
+    if (value === "2") return { bg: "#8bc34a", fg: "#111" };
+    if (["UW", "OP", "BHP"].includes(value)) return { bg: "#82b1d8", fg: "#111" };
+    if (["SW", "ŚW"].includes(value)) return { bg: "#ef5350", fg: "#fff" };
+    return { bg: "#fff", fg: "#111" };
+}
+
+async function renderWorkScheduleCalendar() {
+    const host = document.getElementById("work-schedule-calendar");
+    if (!host) return;
+    const year = selectedCalendarDate.getFullYear();
+    const monthIndex = selectedCalendarDate.getMonth();
+    const monthKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+    const response = await crmExtendedPost("getEffectiveSchedule", { month: monthKey });
+    if (!response.success) {
+        host.textContent = response.error || "Nie udało się pobrać grafiku.";
+        return;
+    }
+    const byDate = {};
+    response.entries.forEach(item => { byDate[item.date] = item; });
+    const names = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"];
+    const monthName = new Date(year, monthIndex, 1).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+    let html = `<h3 style="margin:0 0 12px">Grafik pracy: ${monthName}</h3><div class="work-schedule-grid" style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:5px">`;
+    names.forEach(name => { html += `<div style="font-weight:700;text-align:center;padding:5px">${name}</div>`; });
+    const first = new Date(year, monthIndex, 1);
+    const leading = first.getDay() === 0 ? 6 : first.getDay() - 1;
+    for (let i = 0; i < leading; i++) html += "<div></div>";
+    const days = new Date(year, monthIndex + 1, 0).getDate();
+    for (let day = 1; day <= days; day++) {
+        const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const entry = byDate[dateKey] || {};
+        const code = entry.code || "";
+        const color = scheduleCodeColor(code);
+        const title = entry.source ? `Kod: ${code}; źródło: ${entry.source}; ${entry.reason || ""}` : "Brak danych";
+        html += `<button type="button" title="${title.replace(/"/g, "&quot;")}" style="min-height:58px;border:1px solid #d8cec6;border-radius:7px;background:${color.bg};color:${color.fg};cursor:pointer"><span style="display:block;font-size:12px">${day}</span><strong style="font-size:17px">${code}</strong></button>`;
+    }
+    host.innerHTML = html + "</div><p style=\"font-size:12px;color:#666\">1 = zmiana dzienna, 2 = zmiana nocna. Grafik ma charakter informacyjny i sam nie blokuje wizyt.</p>";
+}
+
+function ensureScheduleCalendarUnderMainCalendar() {
+    if (document.getElementById("work-schedule-calendar")) return;
+    const grid = document.getElementById("booksy-grid");
+    if (!grid || !grid.parentNode) return;
+    const host = document.createElement("section");
+    host.id = "work-schedule-calendar";
+    host.style.cssText = "margin-top:22px;padding:18px;border:1px solid #e3d8cf;border-radius:12px;background:#fff";
+    grid.parentNode.insertBefore(host, grid.nextSibling);
+}
+
 function ensureSchedulePanel() {
     const tab = document.getElementById("tab-ustawienia");
     if (!tab || document.getElementById("schedule-full-panel")) return;
     const now = new Date();
-    const panel = document.createElement("section"); panel.id="schedule-full-panel";
-    panel.style.cssText="margin-top:30px;padding:22px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6";
-    panel.innerHTML=`<h2>Grafik 4×4, korekty i import obrazu</h2>
-    <h3>Prognoza bazowa</h3><input id="sch-year" type="number" value="${now.getFullYear()}"><input id="sch-start" type="date"><select id="sch-first-shift"><option value="DZIENNA">Dzienna</option><option value="NOCNA">Nocna</option></select><button type="button" class="btn-primary" onclick="generateSchedule4x4FromPanel()">Generuj 4×4</button>
-    <h3>Ręczna korekta dnia</h3><input id="sch-date" type="date"><select id="sch-type"><option>DODATKOWY_DZIEN_WOLNY</option><option>DODATKOWY_DZIEN_PRACY</option><option>WOLNE</option><option>PRACA</option><option>URLOP</option><option>INNY_WYJATEK</option></select><select id="sch-shift"><option>WOLNE</option><option>DZIENNA</option><option>NOCNA</option></select><input id="sch-from" type="time" step="300"><input id="sch-to" type="time" step="300"><label><input id="sch-blocked" type="checkbox"> cały dzień zablokowany</label><input id="sch-reason" placeholder="Powód korekty"><button type="button" class="btn-primary" onclick="saveScheduleCorrectionFromPanel()">Zapisz korektę</button>
-    <h3>Oficjalny grafik z obrazu</h3><p>Włącz usługę zaawansowaną Google Drive API w Apps Script. Import wykrywa ponowną wersję pliku, wykonuje OCR, szuka imienia, porównuje z prognozą i czeka na zatwierdzenie.</p><input id="sch-employee" placeholder="Imię / identyfikator"><input id="sch-file" type="file" accept="image/*"><button type="button" class="btn-secondary" onclick="recognizeScheduleImage()">Rozpoznaj</button><button type="button" class="btn-primary" onclick="confirmScheduleImageImport()">Zatwierdź</button><pre id="sch-ocr" style="max-height:220px;overflow:auto;white-space:pre-wrap"></pre>
-    <h3>Efektywny grafik</h3><input id="sch-month" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}" onchange="refreshSchedulePanel()"><button class="btn-secondary" type="button" onclick="refreshSchedulePanel()">Odśwież</button><div id="sch-output"></div>`;
+    const panel = document.createElement("section");
+    panel.id = "schedule-full-panel";
+    panel.style.cssText = "margin-top:30px;padding:18px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6";
+    panel.innerHTML = `<h2 style="margin-top:0">Grafik pracy</h2>
+      <details><summary style="cursor:pointer;font-weight:700">Prognoza 4×4</summary><p>Schemat stały: 1, 1, 2, 2, W, W, W, W. Wskaż pierwszy dzień zmiany dziennej.</p><input id="sch-year" type="number" value="${now.getFullYear()}"><input id="sch-start" type="date"><button type="button" class="btn-primary" onclick="generateSchedule4x4FromPanel()">Generuj prognozę</button></details>
+      <details><summary style="cursor:pointer;font-weight:700">Ręczna korekta dnia</summary><input id="sch-date" type="date"><select id="sch-type"><option value="WOLNE">Dzień wolny</option><option value="PRACA">Dzień pracy</option><option value="UW">Urlop wypoczynkowy</option><option value="OP">Opieka nad dzieckiem</option><option value="BHP">BHP</option><option value="SW">Dzień świąteczny</option></select><select id="sch-shift"><option value="WOLNE">Wolne</option><option value="1">1</option><option value="2">2</option><option value="BHP">BHP</option></select><input id="sch-from" type="time" step="300"><input id="sch-to" type="time" step="300"><input id="sch-reason" placeholder="Powód korekty"><button type="button" class="btn-primary" onclick="saveScheduleCorrectionFromPanel()">Zapisz korektę</button></details>
+      <details open><summary style="cursor:pointer;font-weight:700">Oficjalny grafik z Google Drive</summary><p>Folder: Grafik. Nazwa pliku: RRRR-MM. Pracownik: Oleksandr Strelnkov.</p><button id="sch-check-folder-btn" type="button" class="btn-primary" onclick="checkScheduleDriveFolderNow()">Sprawdź folder teraz</button><button type="button" class="btn-secondary" onclick="installScheduleFolderTriggers()">Ustaw kontrolę automatyczną</button><button type="button" class="btn-secondary" onclick="synchronizeWorkScheduleWithGoogleCalendar()">Synchronizuj z Google Calendar</button><p id="sch-folder-status">Automatycznie: poniedziałek, czwartek i ostatni dzień miesiąca. OCR tylko dla nowego lub zmienionego pliku.</p></details>
+      <details><summary style="cursor:pointer;font-weight:700">Podgląd danych i historii</summary><input id="sch-month" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}" onchange="refreshSchedulePanel()"><button type="button" class="btn-secondary" onclick="refreshSchedulePanel()">Odśwież</button><div id="sch-output"></div></details>`;
     tab.insertBefore(panel, document.getElementById("crm-diagnostics-panel") || null);
 }
-document.addEventListener("DOMContentLoaded", ()=>{
-    const dt=document.getElementById("appointmentDateTime"); if(dt) dt.step="300";
-    ensureSchedulePanel(); syncCategoryColorsAndRefresh().catch(console.error); refreshSchedulePanel().catch(console.error);
+
+document.addEventListener("DOMContentLoaded", () => {
+    const dt = document.getElementById("appointmentDateTime");
+    if (dt) dt.step = "300";
+    ensureSchedulePanel();
+    ensureScheduleCalendarUnderMainCalendar();
+    syncCategoryColorsAndRefresh().catch(console.error);
+    refreshSchedulePanel().catch(console.error);
+    renderWorkScheduleCalendar().catch(console.error);
 });
+
 /* KONIEC ROZSZERZENIA GRAFIKU I KATEGORII */
 
 /* ==========================================================
