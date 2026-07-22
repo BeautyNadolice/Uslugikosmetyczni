@@ -4134,7 +4134,7 @@ document.addEventListener("click", () => setTimeout(crmSyncFiveMinuteControlsFro
 const crmOldGenerateSchedule4x4 = generateSchedule4x4FromPanel;
 generateSchedule4x4FromPanel = async function() {
     if (crmUiOperationLock) return;
-    const button = document.activeElement;
+    const button = document.querySelector('#schedule-full-panel button[onclick="generateSchedule4x4FromPanel()"]') || document.activeElement;
     crmUiOperationLock=true;
     if(button){button.disabled=true;button.dataset.oldText=button.textContent;button.textContent="Generowanie...";}
     try {
@@ -4154,8 +4154,10 @@ checkScheduleDriveFolderNow = async function() {
     if(crmUiOperationLock)return; const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");
     crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
     try{const r=await crmExtendedPost("checkScheduleDriveFolder",{manual:true});if(!r.success)throw new Error(r.error||"Błąd folderu");
-      status.textContent=`Folder ${r.folderName||"Grafik"} (${r.folderId||""}). Pliki: ${r.totalFiles||0}, pasujące: ${r.matchingFiles||0}, nowe: ${r.newFiles||0}, zmienione: ${r.changedFiles||0}, bez zmian: ${r.unchangedFiles||0}.`;
-      crmToast(r.matchingFiles?"Folder został sprawdzony.":"Folder dostępny, ale brak pasujących plików.",r.matchingFiles?"success":"error");
+      const names=(r.candidates||[]).map(x=>x.name).join(", ");
+      const rejected=(r.rejected||[]).map(x=>x.name||"bez nazwy").join(", ");
+      status.textContent=`Folder ${r.folderName||"Grafik"} (${r.folderId||""}). Pliki: ${r.totalFiles||0}, pasujące: ${r.matchingFiles||0}, nowe: ${r.newFiles||0}, zmienione: ${r.changedFiles||0}, bez zmian: ${r.unchangedFiles||0}.${names?" Rozpoznane: "+names+".":""}${rejected?" Pominięte: "+rejected+".":""}`;
+      crmToast(r.matchingFiles?`Znaleziono ${r.matchingFiles} pasujący plik.`:"Folder dostępny, ale brak pasujących plików.",r.matchingFiles?"success":"error");
     }catch(e){crmToast(e.message||String(e),"error");}finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Sprawdź folder teraz";}}
 };
 
