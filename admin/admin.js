@@ -2294,6 +2294,18 @@ async function loadClients(){
 }
 
 
+function normalizeClientCounter(value) {
+    if (typeof value === "number" && isFinite(value)) {
+        return Math.max(0, Math.trunc(value));
+    }
+
+    if (typeof value === "string" && /^\d+$/.test(value.trim())) {
+        return Math.max(0, parseInt(value.trim(), 10));
+    }
+
+    return 0;
+}
+
 function renderClients(){
 
     const tbody =
@@ -2347,11 +2359,11 @@ function renderClients(){
             </td>
 
             <td>
-                ${client.visits || 0}
+                ${normalizeClientCounter(client.visits)}
             </td>
 
             <td>
-                ${client.cancelled || 0}
+                ${normalizeClientCounter(client.cancelled)}
             </td>
 
             <td>
@@ -3745,7 +3757,7 @@ function crmTestFrontendChecks(report) {
         "loadSystem", "loadServices", "loadSettings", "loadClients",
         "renderDashboard", "renderBooksyCalendar", "renderMiniMonthCalendar",
         "renderDayCalendar", "renderWeekCalendar", "renderMonthCalendar",
-        "renderClients", "renderServicesTable", "calculateFinanceReport",
+        "normalizeClientCounter", "renderClients", "renderServicesTable", "calculateFinanceReport",
         "saveSettings", "saveAppointment", "deleteAppointmentFromAdmin",
         "deleteBlockTimeFromAdmin", "deleteSelectedCalendarItemFromAdmin",
         "submitBlockTime", "saveClientModalData", "deleteClient",
@@ -3905,6 +3917,13 @@ async function runCRMFullTest() {
         crmTestAdd(report, appointment && Number(appointment.duration) === 45 ? "OK" : "BLAD",
             "Czas trwania utworzonej wizyty", appointment ? appointment.duration + " min" : "Brak wizyty");
 
+        let clientsAfterCreate = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
+        let testClientStats = clientsAfterCreate.find(item => String(item.phone) === phone);
+        crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 1 ? "OK" : "BLAD",
+            "Statystyka klienta po utworzeniu wizyty", testClientStats || "Nie znaleziono klienta");
+        crmTestAdd(report, testClientStats && typeof testClientStats.visits === "number" ? "OK" : "BLAD",
+            "Licznik wizyt klienta jest liczbą", testClientStats || "Nie znaleziono klienta");
+
         const conflictAttempt = await crmTestPost({
             action: "createBooking",
             phone: phone + "-KONFLIKT",
@@ -3939,6 +3958,11 @@ async function runCRMFullTest() {
             crmTestAdd(report, appointment ? "OK" : "BLAD", "Weryfikacja wizyty po edycji", appointment || "Nie znaleziono");
             crmTestAdd(report, appointment && Number(appointment.duration) === 60 ? "OK" : "BLAD",
                 "Czas trwania wizyty po edycji", appointment ? appointment.duration + " min" : "Brak wizyty");
+
+            const clientsAfterEdit = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
+            testClientStats = clientsAfterEdit.find(item => String(item.phone) === phone);
+            crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 1 ? "OK" : "BLAD",
+                "Edycja nie zwiększa licznika wizyt", testClientStats || "Nie znaleziono klienta");
         }
 
         crmTestSetProgress(65, "Tworzenie blokady testowej...");
@@ -3957,6 +3981,11 @@ async function runCRMFullTest() {
                 date: editedDate, name: editedName
             });
             crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie wizyty testowej", result);
+            await crmTestWait(500);
+            const clientsAfterAppointmentDelete = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
+            testClientStats = clientsAfterAppointmentDelete.find(item => String(item.phone) === phone);
+            crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 0 ? "OK" : "BLAD",
+                "Licznik klienta po usunięciu wizyty", testClientStats || "Nie znaleziono klienta");
         }
         if (blockEventId) {
             const result = await crmTestPost({
