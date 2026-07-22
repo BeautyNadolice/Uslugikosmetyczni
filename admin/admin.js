@@ -3968,6 +3968,200 @@ async function createFinalAdminBackup() {
 }
 /* KONIEC ETAPU 3.4 I 3.5 */
 
+
+/* ==========================================================
+   PAKIET POPRAWEK PO ZYWYM TESCIE ADMIN
+   ========================================================== */
+let crmUiOperationLock = false;
+
+function crmEnsureUiLayer() {
+    if (!document.getElementById("crm-toast-container")) {
+        const host = document.createElement("div");
+        host.id = "crm-toast-container";
+        host.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:99999;display:flex;flex-direction:column;gap:8px;max-width:380px";
+        document.body.appendChild(host);
+    }
+}
+function crmToast(message, type) {
+    crmEnsureUiLayer();
+    const item = document.createElement("div");
+    const ok = type !== "error";
+    item.style.cssText = `padding:13px 16px;border-radius:10px;color:#fff;background:${ok ? "#2e7d32" : "#b3261e"};box-shadow:0 6px 22px rgba(0,0,0,.2);font-weight:600`;
+    item.textContent = (ok ? "✓ " : "⚠ ") + message;
+    document.getElementById("crm-toast-container").appendChild(item);
+    setTimeout(() => item.remove(), ok ? 3500 : 6500);
+}
+function crmConfirm(message, confirmText) {
+    return new Promise(resolve => {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px";
+        overlay.innerHTML = `<div style="background:#fff;border-radius:14px;padding:22px;max-width:430px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.28)"><h3 style="margin:0 0 12px">Potwierdzenie</h3><p style="margin:0 0 20px;line-height:1.45"></p><div style="display:flex;justify-content:flex-end;gap:10px"><button type="button" data-no>Wróć</button><button type="button" class="btn-primary" data-yes></button></div></div>`;
+        overlay.querySelector("p").textContent = message;
+        overlay.querySelector("[data-yes]").textContent = confirmText || "Potwierdź";
+        overlay.querySelector("[data-no]").onclick = () => { overlay.remove(); resolve(false); };
+        overlay.querySelector("[data-yes]").onclick = () => { overlay.remove(); resolve(true); };
+        document.body.appendChild(overlay);
+    });
+}
+function crmSetActionGroupBusy(busy, activeButton, busyText) {
+    const box = document.getElementById("crm-lifecycle-actions");
+    if (!box) return;
+    box.querySelectorAll("button").forEach(btn => {
+        if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+        btn.disabled = busy;
+        if (btn === activeButton && busy) btn.textContent = busyText || "Zapisywanie...";
+        if (!busy) btn.textContent = btn.dataset.originalText;
+    });
+}
+async function crmRefreshAllViews() {
+    await loadSystem();
+    await loadClients();
+    renderDashboard();
+    renderBooksyCalendar();
+    await renderWorkScheduleCalendar();
+}
+function crmFormatDateTime(value) {
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? String(value || "") : date.toLocaleString("pl-PL", {dateStyle:"short",timeStyle:"short"});
+}
+function crmUpdateLifecycleVisibility(app) {
+    const box = document.getElementById("crm-lifecycle-actions");
+    if (!box) return;
+    const external = app && app.eventType === "external";
+    const block = app && app.eventType === "block";
+    box.style.display = (external || block) ? "none" : "flex";
+    let externalBox = document.getElementById("crm-external-actions");
+    if (!externalBox) {
+        externalBox = document.createElement("div");
+        externalBox.id = "crm-external-actions";
+        externalBox.style.cssText = "display:none;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #eadfd5";
+        externalBox.innerHTML = `<button type="button" class="btn-primary" onclick="window.open('https://calendar.google.com/calendar/u/0/r','_blank','noopener')">Otwórz Google Calendar</button><button type="button" class="btn-secondary" onclick="convertExternalToCRMAppointment()">Przekształć w wizytę CRM</button>`;
+        box.parentNode.appendChild(externalBox);
+    }
+    externalBox.style.display = external ? "flex" : "none";
+}
+function convertExternalToCRMAppointment() {
+    const app = currentEditingAppointment;
+    if (!app || app.eventType !== "external") return;
+    closeAppointmentModal();
+    openCreateAppointmentModal();
+    setTimeout(() => {
+        const name = document.getElementById("appointmentName");
+        const date = document.getElementById("appointmentDateTime");
+        const duration = document.getElementById("appointmentDuration");
+        if (name) name.value = app.name || "";
+        if (date) date.value = String(app.date || "").slice(0,16);
+        if (duration) duration.value = app.duration || 60;
+        crmSyncFiveMinuteControlsFromHidden();
+        crmToast("Uzupełnij klienta, telefon i usługę, a następnie zapisz wizytę.");
+    }, 0);
+}
+
+const crmOriginalOpenAppointmentDetailsModal = openAppointmentDetailsModal;
+openAppointmentDetailsModal = function(app) {
+    crmOriginalOpenAppointmentDetailsModal(app);
+    setText("details-datetime", crmFormatDateTime(app.date));
+    crmUpdateLifecycleVisibility(app);
+};
+
+async function crmRunLifecycleOperation(operation, initiator, deleteCalendarEvent, successText, button) {
+    if (crmUiOperationLock || !currentEditingAppointment || currentEditingAppointment.eventType !== "appointment") return;
+    crmUiOperationLock = true;
+    crmSetActionGroupBusy(true, button, "Zapisywanie...");
+    try {
+        await recordAppointmentLifecycle({operation, eventId:currentEditingAppointment.eventId||"", phone:currentEditingAppointment.phone||"", clientName:currentEditingAppointment.name||"", service:currentEditingAppointment.service||"", oldDate:currentEditingAppointment.date||"", initiator:initiator||"MISTRZYNI", deleteCalendarEvent:Boolean(deleteCalendarEvent)});
+        closeAppointmentModal();
+        await crmRefreshAllViews();
+        crmToast(successText);
+    } catch (error) {
+        crmToast(error.message || String(error), "error");
+    } finally {
+        crmUiOperationLock = false;
+        crmSetActionGroupBusy(false);
+    }
+}
+completeCurrentAppointment = async function() {
+    return crmRunLifecycleOperation("ZREALIZOWANA", "MISTRZYNI", false, "Wizyta została oznaczona jako zrealizowana.", document.activeElement);
+};
+markCurrentAppointmentNoShow = async function() {
+    const ok = await crmConfirm("Czy zapisać nieobecność klienta?", "Zapisz nieobecność");
+    if (!ok) return;
+    return crmRunLifecycleOperation("NIEOBECNOSC", "KLIENT", false, "Nieobecność została zapisana.", document.activeElement);
+};
+cancelAppointmentWithHistory = async function(initiator) {
+    const ok = await crmConfirm("Czy na pewno anulować tę wizytę?", initiator === "KLIENT" ? "Anuluj przez klienta" : "Anuluj przez salon");
+    if (!ok) return;
+    return crmRunLifecycleOperation("ANULOWANIE", initiator || "MISTRZYNI", true, "Wizyta została anulowana.", document.activeElement);
+};
+planNextVisitFromCurrentAppointment = async function() {
+    if (crmUiOperationLock || !currentEditingAppointment || currentEditingAppointment.eventType !== "appointment") return;
+    crmUiOperationLock = true;
+    crmSetActionGroupBusy(true, document.activeElement, "Wyszukiwanie...");
+    try {
+        const suggestion = await getSmartNextVisitSuggestion(currentEditingAppointment.phone,currentEditingAppointment.service,currentEditingAppointment.date,"REKOMENDOWANY");
+        crmToast(`Rekomendowana data: ${suggestion.recommendedDate}. Godziny: ${(suggestion.availableSlots||[]).slice(0,6).join(", ") || "brak propozycji"}`);
+    } catch (error) { crmToast(error.message || String(error), "error"); }
+    finally { crmUiOperationLock=false; crmSetActionGroupBusy(false); }
+};
+
+function crmInstallFiveMinuteDateTimePicker() {
+    const input = document.getElementById("appointmentDateTime");
+    if (!input || document.getElementById("appointmentDateTimeFiveMinute")) return;
+    input.type = "hidden";
+    const box = document.createElement("div");
+    box.id = "appointmentDateTimeFiveMinute";
+    box.style.cssText = "display:grid;grid-template-columns:minmax(145px,1fr) 86px 86px;gap:8px";
+    box.innerHTML = `<input type="date" data-date><select data-hour>${Array.from({length:24},(_,i)=>`<option value="${String(i).padStart(2,"0")}">${String(i).padStart(2,"0")}</option>`).join("")}</select><select data-minute>${Array.from({length:12},(_,i)=>`<option value="${String(i*5).padStart(2,"0")}">${String(i*5).padStart(2,"0")}</option>`).join("")}</select>`;
+    input.parentNode.insertBefore(box,input.nextSibling);
+    box.addEventListener("change", crmSyncHiddenDateTimeFromFiveMinuteControls);
+    crmSyncFiveMinuteControlsFromHidden();
+}
+function crmSyncHiddenDateTimeFromFiveMinuteControls() {
+    const input=document.getElementById("appointmentDateTime"),box=document.getElementById("appointmentDateTimeFiveMinute");
+    if(!input||!box)return;
+    const d=box.querySelector("[data-date]").value,h=box.querySelector("[data-hour]").value,m=box.querySelector("[data-minute]").value;
+    input.value=d?`${d}T${h}:${m}`:"";
+}
+function crmSyncFiveMinuteControlsFromHidden() {
+    const input=document.getElementById("appointmentDateTime"),box=document.getElementById("appointmentDateTimeFiveMinute");
+    if(!input||!box)return;
+    const value=String(input.value||"");
+    box.querySelector("[data-date]").value=value.slice(0,10);
+    if(value.length>=16){box.querySelector("[data-hour]").value=value.slice(11,13);const minute=Math.round(Number(value.slice(14,16))/5)*5%60;box.querySelector("[data-minute]").value=String(minute).padStart(2,"0");}
+}
+document.addEventListener("click", () => setTimeout(crmSyncFiveMinuteControlsFromHidden,0), true);
+
+const crmOldGenerateSchedule4x4 = generateSchedule4x4FromPanel;
+generateSchedule4x4FromPanel = async function() {
+    if (crmUiOperationLock) return;
+    const button = document.activeElement;
+    crmUiOperationLock=true;
+    if(button){button.disabled=true;button.dataset.oldText=button.textContent;button.textContent="Generowanie...";}
+    try {
+        const year=Number(document.getElementById("sch-year").value),startDate=document.getElementById("sch-start").value;
+        if(!startDate) throw new Error("Wskaż pierwszy dzień zmiany 1.");
+        const response=await crmExtendedPost("generateSchedule4x4",{year,startDate});
+        if(!response.success)throw new Error(response.error||"Błąd generowania");
+        selectedCalendarDate=new Date(year,Number(document.getElementById("sch-month").value.slice(5,7))-1,1);
+        await refreshSchedulePanel(); await renderWorkScheduleCalendar();
+        const verify=await crmExtendedPost("getEffectiveSchedule",{month:document.getElementById("sch-month").value});
+        if(!verify.success||!verify.entries||!verify.entries.length)throw new Error("Prognoza została zapisana, ale nie udało się odświeżyć kalendarza.");
+        crmToast(`Prognoza wygenerowana. Zapisano ${response.days || 365} dni.`);
+    } catch(error){crmToast(error.message||String(error),"error");}
+    finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent=button.dataset.oldText||"Generuj prognozę";}}
+};
+checkScheduleDriveFolderNow = async function() {
+    if(crmUiOperationLock)return; const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");
+    crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
+    try{const r=await crmExtendedPost("checkScheduleDriveFolder",{manual:true});if(!r.success)throw new Error(r.error||"Błąd folderu");
+      status.textContent=`Folder ${r.folderName||"Grafik"} (${r.folderId||""}). Pliki: ${r.totalFiles||0}, pasujące: ${r.matchingFiles||0}, nowe: ${r.newFiles||0}, zmienione: ${r.changedFiles||0}, bez zmian: ${r.unchangedFiles||0}.`;
+      crmToast(r.matchingFiles?"Folder został sprawdzony.":"Folder dostępny, ale brak pasujących plików.",r.matchingFiles?"success":"error");
+    }catch(e){crmToast(e.message||String(e),"error");}finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Sprawdź folder teraz";}}
+};
+
+document.addEventListener("DOMContentLoaded",()=>{crmEnsureUiLayer();crmInstallFiveMinuteDateTimePicker();});
+/* KONIEC PAKIETU POPRAWEK PO ZYWYM TESCIE */
+
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
