@@ -4285,7 +4285,7 @@ async function runCRMFullTest() {
         crmTestAdd(report, point35 && point35.privateCalendarProtection ? "OK" : "BLAD", "Ochrona prywatnych wydarzeń Google Calendar", point35);
         crmTestAdd(report, point35 && point35.smartVisitEngine ? "OK" : "BLAD", "Silnik inteligentnego kolejnego wizytu", point35);
 
-        const backupResult = await crmExtendedPost("createFinalAdminBackup", { description: "Automatyczny backup testu " + testId });
+        const backupResult = await crmExtendedPost("createFinalAdminBackup", { description: "Automatyczny backup testu " + report.testId });
         crmTestAdd(report, backupResult && backupResult.success ? "OK" : "BLAD", "Finalny backup ADMIN", backupResult);
 
         crmTestSetProgress(25, "Tworzenie klienta testowego...");
