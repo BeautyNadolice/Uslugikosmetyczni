@@ -1421,6 +1421,9 @@ async function saveAppointment() {
         action:
         "createBooking",
 
+        bookingSource:
+        "ADMIN",
+
         phone:
         phone,
 
@@ -3277,6 +3280,7 @@ function saveServiceModalData() {
     }
 
     renderServicesTable();
+    syncCategoryColorsAndRefresh().catch(console.error);
     buildColorsEditor();
     closeServiceModal();
 
@@ -3781,6 +3785,89 @@ document.addEventListener("DOMContentLoaded", function () {
 /* ==========================================================
    KONIEC DUZEGO PAKIETU CRM 3.3E-3.3H
    ========================================================== */
+
+
+/* ==========================================================
+   ROZSZERZENIE: KATEGORIE, GRAFIK 4X4, KOREKTY I IMPORT
+   ========================================================== */
+async function syncCategoryColorsAndRefresh() {
+    const response = await crmExtendedPost("syncCategoryColors", { categories: getUniqueServiceCategories() });
+    if (!response.success) throw new Error(response.error || "Błąd synchronizacji kategorii");
+    globalColors = Object.assign({}, globalColors, response.colors || {});
+    buildColorsEditor();
+    renderBooksyCalendar();
+    return response;
+}
+async function saveScheduleCorrectionFromPanel() {
+    const entry = {
+        date: document.getElementById("sch-date").value,
+        dayType: document.getElementById("sch-type").value,
+        husbandShift: document.getElementById("sch-shift").value,
+        availableFrom: document.getElementById("sch-from").value,
+        availableTo: document.getElementById("sch-to").value,
+        fullDayBlocked: document.getElementById("sch-blocked").checked,
+        reason: document.getElementById("sch-reason").value,
+        source: "RECZNA_KOREKTA"
+    };
+    const response = await crmExtendedPost("saveScheduleCorrection", { entry });
+    if (!response.success) throw new Error(response.error || "Błąd korekty");
+    alert("Korekta zapisana.");
+    await refreshSchedulePanel();
+}
+async function generateSchedule4x4FromPanel() {
+    const response = await crmExtendedPost("generateSchedule4x4", {
+        year: Number(document.getElementById("sch-year").value),
+        startDate: document.getElementById("sch-start").value,
+        firstShift: document.getElementById("sch-first-shift").value
+    });
+    if (!response.success) throw new Error(response.error || "Błąd generowania");
+    alert("Prognoza 4×4 utworzona: " + response.days + " dni.");
+    await refreshSchedulePanel();
+}
+async function refreshSchedulePanel() {
+    const output = document.getElementById("sch-output");
+    const month = document.getElementById("sch-month");
+    if (!output || !month) return;
+    const response = await crmExtendedPost("getEffectiveSchedule", { month: month.value });
+    if (!response.success) throw new Error(response.error || "Błąd odczytu grafiku");
+    output.innerHTML = response.entries.map(x => `<div style="padding:6px;border-bottom:1px solid #ddd"><strong>${x.date}</strong> | ${x.dayType} | ${x.husbandShift} | źródło: ${x.source} | ${x.reason || ""}</div>`).join("") || "Brak wpisów";
+}
+function toBase64(file) {
+    return new Promise((resolve, reject) => { const r = new FileReader(); r.onload=()=>resolve(String(r.result).split(",")[1]); r.onerror=reject; r.readAsDataURL(file); });
+}
+async function recognizeScheduleImage() {
+    const input = document.getElementById("sch-file");
+    const employeeName = document.getElementById("sch-employee").value.trim();
+    if (!input.files[0] || !employeeName) return alert("Wybierz obraz i wpisz imię z grafiku.");
+    const file = input.files[0];
+    const response = await crmExtendedPost("recognizeScheduleImage", { fileName:file.name, mimeType:file.type, employeeName, base64Data:await toBase64(file) });
+    document.getElementById("sch-ocr").textContent = JSON.stringify(response, null, 2);
+    if (response.success) window.lastScheduleImportId = response.importId;
+}
+async function confirmScheduleImageImport() {
+    if (!window.lastScheduleImportId) return alert("Najpierw rozpoznaj obraz.");
+    const response = await crmExtendedPost("confirmScheduleImport", { importId:window.lastScheduleImportId });
+    if (!response.success) throw new Error(response.error || "Błąd zatwierdzenia");
+    alert("Oficjalny grafik zatwierdzony."); await refreshSchedulePanel();
+}
+function ensureSchedulePanel() {
+    const tab = document.getElementById("tab-ustawienia");
+    if (!tab || document.getElementById("schedule-full-panel")) return;
+    const now = new Date();
+    const panel = document.createElement("section"); panel.id="schedule-full-panel";
+    panel.style.cssText="margin-top:30px;padding:22px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6";
+    panel.innerHTML=`<h2>Grafik 4×4, korekty i import obrazu</h2>
+    <h3>Prognoza bazowa</h3><input id="sch-year" type="number" value="${now.getFullYear()}"><input id="sch-start" type="date"><select id="sch-first-shift"><option value="DZIENNA">Dzienna</option><option value="NOCNA">Nocna</option></select><button type="button" class="btn-primary" onclick="generateSchedule4x4FromPanel()">Generuj 4×4</button>
+    <h3>Ręczna korekta dnia</h3><input id="sch-date" type="date"><select id="sch-type"><option>DODATKOWY_DZIEN_WOLNY</option><option>DODATKOWY_DZIEN_PRACY</option><option>WOLNE</option><option>PRACA</option><option>URLOP</option><option>INNY_WYJATEK</option></select><select id="sch-shift"><option>WOLNE</option><option>DZIENNA</option><option>NOCNA</option></select><input id="sch-from" type="time" step="300"><input id="sch-to" type="time" step="300"><label><input id="sch-blocked" type="checkbox"> cały dzień zablokowany</label><input id="sch-reason" placeholder="Powód korekty"><button type="button" class="btn-primary" onclick="saveScheduleCorrectionFromPanel()">Zapisz korektę</button>
+    <h3>Oficjalny grafik z obrazu</h3><p>Włącz usługę zaawansowaną Google Drive API w Apps Script. Import wykrywa ponowną wersję pliku, wykonuje OCR, szuka imienia, porównuje z prognozą i czeka na zatwierdzenie.</p><input id="sch-employee" placeholder="Imię / identyfikator"><input id="sch-file" type="file" accept="image/*"><button type="button" class="btn-secondary" onclick="recognizeScheduleImage()">Rozpoznaj</button><button type="button" class="btn-primary" onclick="confirmScheduleImageImport()">Zatwierdź</button><pre id="sch-ocr" style="max-height:220px;overflow:auto;white-space:pre-wrap"></pre>
+    <h3>Efektywny grafik</h3><input id="sch-month" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}" onchange="refreshSchedulePanel()"><button class="btn-secondary" type="button" onclick="refreshSchedulePanel()">Odśwież</button><div id="sch-output"></div>`;
+    tab.insertBefore(panel, document.getElementById("crm-diagnostics-panel") || null);
+}
+document.addEventListener("DOMContentLoaded", ()=>{
+    const dt=document.getElementById("appointmentDateTime"); if(dt) dt.step="300";
+    ensureSchedulePanel(); syncCategoryColorsAndRefresh().catch(console.error); refreshSchedulePanel().catch(console.error);
+});
+/* KONIEC ROZSZERZENIA GRAFIKU I KATEGORII */
 
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
