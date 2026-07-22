@@ -3588,6 +3588,200 @@ function deleteService(index) {
    END OF PART 5
    ========================================================== */
 
+
+/* ==========================================================
+   DUZY PAKIET CRM 3.3E-3.3H
+   HISTORIA, RYZYKO, KOLEJNY WIZYT I GRAFIK RODZINNY
+   ========================================================== */
+
+const CRM_BOOKING_MODES = {
+    STANDARD: "STANDARDOWY",
+    CONFIRMATION: "WYMAGA_POTWIERDZENIA",
+    RESTRICTED: "REZERWACJA_OGRANICZONA",
+    CONTACT_ONLY: "TYLKO_KONTAKT"
+};
+
+async function crmExtendedPost(action, payload) {
+    return crmTestPost(Object.assign({ action: action }, payload || {}));
+}
+
+async function initializeExtendedCRM() {
+    const response = await crmExtendedPost("initializeCRMExtensions");
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się przygotować modułów CRM");
+    }
+    return response;
+}
+
+async function loadClientCRMProfile(phone) {
+    const response = await crmExtendedPost("getClientCRMProfile", { phone: phone });
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się pobrać profilu klienta");
+    }
+    return response.profile;
+}
+
+async function saveClientBookingMode(phone, mode, reason) {
+    const response = await crmExtendedPost("setClientBookingMode", {
+        phone: phone,
+        mode: mode,
+        reason: reason || "",
+        changedBy: "MISTRZYNI"
+    });
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się zmienić trybu rezerwacji");
+    }
+    await loadClients();
+    return response;
+}
+
+async function recordAppointmentLifecycle(options) {
+    const response = await crmExtendedPost("recordAppointmentLifecycle", options || {});
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się zapisać historii wizyty");
+    }
+    await loadSystem();
+    return response;
+}
+
+async function cancelAppointmentWithHistory(initiator, reason) {
+    if (!currentEditingAppointment) return;
+    if (!confirm("Anulować wizytę i zapisać zdarzenie w historii?")) return;
+    try {
+        await recordAppointmentLifecycle({
+            operation: "ANULOWANIE",
+            eventId: currentEditingAppointment.eventId || "",
+            phone: currentEditingAppointment.phone || "",
+            clientName: currentEditingAppointment.name || "",
+            service: currentEditingAppointment.service || "",
+            oldDate: currentEditingAppointment.date || "",
+            initiator: initiator || "MISTRZYNI",
+            reason: reason || "",
+            deleteCalendarEvent: true
+        });
+        closeAppointmentModal();
+        alert("Wizyta została anulowana, a zdarzenie zapisane w historii.");
+    } catch (error) {
+        alert("Błąd anulowania wizyty: " + (error.message || error));
+    }
+}
+
+async function completeCurrentAppointment() {
+    if (!currentEditingAppointment) return;
+    try {
+        await recordAppointmentLifecycle({
+            operation: "ZREALIZOWANA",
+            eventId: currentEditingAppointment.eventId || "",
+            phone: currentEditingAppointment.phone || "",
+            clientName: currentEditingAppointment.name || "",
+            service: currentEditingAppointment.service || "",
+            oldDate: currentEditingAppointment.date || "",
+            initiator: "MISTRZYNI"
+        });
+        closeAppointmentModal();
+        alert("Wizyta została oznaczona jako zrealizowana.");
+    } catch (error) {
+        alert("Błąd zmiany statusu: " + (error.message || error));
+    }
+}
+
+async function markCurrentAppointmentNoShow() {
+    if (!currentEditingAppointment) return;
+    try {
+        await recordAppointmentLifecycle({
+            operation: "NIEOBECNOSC",
+            eventId: currentEditingAppointment.eventId || "",
+            phone: currentEditingAppointment.phone || "",
+            clientName: currentEditingAppointment.name || "",
+            service: currentEditingAppointment.service || "",
+            oldDate: currentEditingAppointment.date || "",
+            initiator: "KLIENT"
+        });
+        closeAppointmentModal();
+        alert("Nieobecność została zapisana.");
+    } catch (error) {
+        alert("Błąd zapisu nieobecności: " + (error.message || error));
+    }
+}
+
+async function getSmartNextVisitSuggestion(phone, service, baseDate, preference) {
+    const response = await crmExtendedPost("getSmartNextVisit", {
+        phone: phone,
+        service: service,
+        baseDate: baseDate || new Date().toISOString(),
+        preference: preference || "REKOMENDOWANY"
+    });
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się wyznaczyć kolejnej wizyty");
+    }
+    return response;
+}
+
+async function planNextVisitFromCurrentAppointment() {
+    if (!currentEditingAppointment) return;
+    try {
+        const suggestion = await getSmartNextVisitSuggestion(
+            currentEditingAppointment.phone,
+            currentEditingAppointment.service,
+            currentEditingAppointment.date,
+            "REKOMENDOWANY"
+        );
+        const hours = (suggestion.availableSlots || []).slice(0, 6).join(", ");
+        alert(
+            "Rekomendowana data: " + suggestion.recommendedDate + "\n" +
+            "Dostępne godziny: " + (hours || "brak automatycznych propozycji") + "\n\n" +
+            "Termin można zmienić ręcznie w formularzu wizyty."
+        );
+    } catch (error) {
+        alert("Błąd planowania kolejnej wizyty: " + (error.message || error));
+    }
+}
+
+async function saveFamilyScheduleEntry(entry) {
+    const response = await crmExtendedPost("saveFamilySchedule", { entry: entry || {} });
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się zapisać grafiku rodzinnego");
+    }
+    return response;
+}
+
+async function loadFamilySchedule(fromDate, toDate) {
+    const response = await crmExtendedPost("getFamilySchedule", {
+        fromDate: fromDate || "",
+        toDate: toDate || ""
+    });
+    if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : "Nie udało się pobrać grafiku rodzinnego");
+    }
+    return response.entries || [];
+}
+
+function ensureAppointmentLifecycleButtons() {
+    const modal = document.getElementById("appointmentDetailsModal");
+    if (!modal || document.getElementById("crm-lifecycle-actions")) return;
+    const content = modal.querySelector(".modal-content") || modal;
+    const box = document.createElement("div");
+    box.id = "crm-lifecycle-actions";
+    box.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #eadfd5;";
+    box.innerHTML = `
+        <button type="button" class="btn-secondary" onclick="completeCurrentAppointment()">Oznacz jako zrealizowaną</button>
+        <button type="button" class="btn-secondary" onclick="markCurrentAppointmentNoShow()">Nieobecność</button>
+        <button type="button" class="btn-secondary" onclick="cancelAppointmentWithHistory('KLIENT', '')">Anuluj przez klienta</button>
+        <button type="button" class="btn-secondary" onclick="cancelAppointmentWithHistory('MISTRZYNI', '')">Anuluj przez salon</button>
+        <button type="button" class="btn-primary" onclick="planNextVisitFromCurrentAppointment()">Zaplanuj następny wizyt</button>
+    `;
+    content.appendChild(box);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    ensureAppointmentLifecycleButtons();
+    initializeExtendedCRM().catch(error => console.error("Inicjalizacja rozszerzonego CRM:", error));
+});
+
+/* ==========================================================
+   KONIEC DUZEGO PAKIETU CRM 3.3E-3.3H
+   ========================================================== */
+
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
@@ -3760,6 +3954,8 @@ function crmTestFrontendChecks(report) {
         "normalizeClientCounter", "renderClients", "renderServicesTable", "calculateFinanceReport",
         "saveSettings", "saveAppointment", "deleteAppointmentFromAdmin",
         "deleteBlockTimeFromAdmin", "deleteSelectedCalendarItemFromAdmin",
+        "recordAppointmentLifecycle", "loadClientCRMProfile", "saveClientBookingMode",
+        "getSmartNextVisitSuggestion", "saveFamilyScheduleEntry",
         "submitBlockTime", "saveClientModalData", "deleteClient",
         "saveDraftsToCloud", "publishDrafts"
     ].forEach(name => {
@@ -3887,6 +4083,14 @@ async function runCRMFullTest() {
 
         crmTestSetProgress(15, "Sprawdzanie API i ustawien...");
         await crmTestApiChecks(report);
+
+        const extensionInit = await crmExtendedPost("initializeCRMExtensions");
+        crmTestAdd(report, extensionInit && extensionInit.success ? "OK" : "BLAD",
+            "Inicjalizacja modułów 3.3E-3.3H", extensionInit);
+
+        const familyRead = await crmExtendedPost("getFamilySchedule", { fromDate: "", toDate: "" });
+        crmTestAdd(report, familyRead && familyRead.success && Array.isArray(familyRead.entries) ? "OK" : "BLAD",
+            "Odczyt grafiku rodzinnego", familyRead);
 
         crmTestSetProgress(25, "Tworzenie klienta testowego...");
         const clientCreate = await crmTestPost({
