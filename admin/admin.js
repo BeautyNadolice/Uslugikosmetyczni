@@ -3946,6 +3946,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* KONIEC ROZSZERZENIA GRAFIKU I KATEGORII */
 
+
+/* ==========================================================
+   ETAP 3.4 I 3.5: SYNCHRONIZACJA, TESTY I BACKUP ADMIN
+   ========================================================== */
+async function loadCalendarSyncHistory() {
+    const response=await crmExtendedPost("getCalendarSyncHistory",{limit:30});
+    if(!response.success)throw new Error(response.error||"Błąd historii synchronizacji");
+    return response.entries||[];
+}
+async function runPoint35Diagnostics() {
+    const response=await crmExtendedPost("runPoint35Diagnostics");
+    if(!response.success)throw new Error(response.error||"Diagnostyka 3.5 zakończona błędem");
+    return response;
+}
+async function createFinalAdminBackup() {
+    const response=await crmExtendedPost("createFinalAdminBackup",{description:"Finalny backup po etapach 3.4 i 3.5"});
+    if(!response.success)throw new Error(response.error||"Nie udało się utworzyć backupu");
+    alert("Backup ADMIN zapisany: "+response.version);
+    return response;
+}
+/* KONIEC ETAPU 3.4 I 3.5 */
+
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
@@ -4255,6 +4277,16 @@ async function runCRMFullTest() {
         const familyRead = await crmExtendedPost("getFamilySchedule", { fromDate: "", toDate: "" });
         crmTestAdd(report, familyRead && familyRead.success && Array.isArray(familyRead.entries) ? "OK" : "BLAD",
             "Odczyt grafiku rodzinnego", familyRead);
+
+        const point35 = await crmExtendedPost("runPoint35Diagnostics");
+        crmTestAdd(report, point35 && point35.success ? "OK" : "BLAD", "Diagnostyka końcowa 3.4 i 3.5", point35);
+        crmTestAdd(report, point35 && point35.drive && point35.drive.folderAccessible ? "OK" : "BLAD", "Dostęp do folderu prawdziwego grafiku", point35 && point35.drive);
+        crmTestAdd(report, point35 && point35.manualCorrectionHighestPriority ? "OK" : "BLAD", "Ręczna korekta ma najwyższy priorytet", point35);
+        crmTestAdd(report, point35 && point35.privateCalendarProtection ? "OK" : "BLAD", "Ochrona prywatnych wydarzeń Google Calendar", point35);
+        crmTestAdd(report, point35 && point35.smartVisitEngine ? "OK" : "BLAD", "Silnik inteligentnego kolejnego wizytu", point35);
+
+        const backupResult = await crmExtendedPost("createFinalAdminBackup", { description: "Automatyczny backup testu " + testId });
+        crmTestAdd(report, backupResult && backupResult.success ? "OK" : "BLAD", "Finalny backup ADMIN", backupResult);
 
         crmTestSetProgress(25, "Tworzenie klienta testowego...");
         const clientCreate = await crmTestPost({
