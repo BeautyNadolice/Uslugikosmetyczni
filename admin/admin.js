@@ -3984,8 +3984,13 @@ async function runCRMFullTest() {
             await crmTestWait(500);
             const clientsAfterAppointmentDelete = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
             testClientStats = clientsAfterAppointmentDelete.find(item => String(item.phone) === phone);
-            crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 0 ? "OK" : "BLAD",
-                "Licznik klienta po usunięciu wizyty", testClientStats || "Nie znaleziono klienta");
+            const customerRemovedAfterCleanup = !testClientStats;
+            const customerCounterReset = testClientStats && Number(testClientStats.visits) === 0;
+            crmTestAdd(report, customerRemovedAfterCleanup || customerCounterReset ? "OK" : "BLAD",
+                "Licznik klienta po usunięciu wizyty",
+                customerRemovedAfterCleanup
+                    ? "Klient testowy bez wizyt został automatycznie usunięty"
+                    : testClientStats);
         }
         if (blockEventId) {
             const result = await crmTestPost({
