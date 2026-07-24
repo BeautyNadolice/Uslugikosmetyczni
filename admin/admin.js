@@ -4198,6 +4198,38 @@ checkScheduleDriveFolderNow=async function(){
 };
 /* KONIEC IMPORTU OFICJALNEGO GRAFIKU */
 
+
+/* ==========================================================
+   KADROWANIE WIERSZA GRAFIKU PRZED OCR
+   ========================================================== */
+let crmScheduleImageSource=null;
+function crmCanvasToBase64(canvas){return canvas.toDataURL("image/jpeg",0.96).split(",")[1];}
+function crmDrawScheduleCrop(){
+    if(!crmScheduleImageSource)return;const canvas=document.getElementById("sch-crop-canvas"),top=Number(document.getElementById("sch-crop-top").value),height=Number(document.getElementById("sch-crop-height").value),ctx=canvas.getContext("2d"),img=crmScheduleImageSource;
+    const sy=Math.max(0,Math.round(img.naturalHeight*top/100)),sh=Math.max(12,Math.min(img.naturalHeight-sy,Math.round(img.naturalHeight*height/100)));
+    canvas.width=img.naturalWidth;canvas.height=sh;ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,sy,img.naturalWidth,sh,0,0,img.naturalWidth,sh);
+    document.getElementById("sch-crop-info").textContent=`Kadrowanie: od ${top}% wysokości, wysokość ${height}% (${sy}-${sy+sh}px).`;
+}
+function crmRenderScheduleCropPanel(file){
+    let panel=document.getElementById("sch-crop-panel");if(!panel){panel=document.createElement("div");panel.id="sch-crop-panel";panel.style.cssText="margin-top:14px;padding:14px;border:1px solid #d7baa0;border-radius:10px;background:#fff";document.getElementById("sch-folder-status").after(panel);}
+    panel.innerHTML=`<h3 style="margin:0 0 8px">Kadrowanie wiersza pracownika</h3><p>Ramka pokazuje fragment wysyłany do OCR. Jeśli wiersz pracownika nie jest widoczny, przesuń zakres.</p><label>Położenie od góry: <input id="sch-crop-top" type="range" min="0" max="94" value="60" step="1"></label><label style="margin-left:16px">Wysokość wycinka: <input id="sch-crop-height" type="range" min="5" max="25" value="12" step="1"></label><div id="sch-crop-info" style="margin:8px 0"></div><div style="overflow:auto;max-height:240px;border:1px solid #ddd"><canvas id="sch-crop-canvas" style="max-width:100%;display:block"></canvas></div><div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn-primary" onclick="crmRunCroppedScheduleOCR()">Odczytaj ten wiersz</button><button type="button" class="btn-secondary" onclick="crmAutoFindScheduleRow()">Ustaw typowe położenie</button></div>`;
+    document.getElementById("sch-crop-top").oninput=crmDrawScheduleCrop;document.getElementById("sch-crop-height").oninput=crmDrawScheduleCrop;
+    const img=new Image();img.onload=()=>{crmScheduleImageSource=img;crmDrawScheduleCrop();};img.src=`data:${file.mimeType};base64,${file.base64Data}`;
+}
+function crmAutoFindScheduleRow(){document.getElementById("sch-crop-top").value="60";document.getElementById("sch-crop-height").value="12";crmDrawScheduleCrop();}
+async function crmPrepareScheduleCrop(fileId){
+    try{crmToast("Pobieranie obrazu grafiku...");const r=await crmExtendedPost("getScheduleImageData",{fileId:fileId});if(!r.success)throw new Error(r.error||"Błąd pobierania obrazu");crmRenderScheduleCropPanel(r);crmToast("Sprawdź, czy wycinek zawiera cały wiersz pracownika.");}catch(e){crmToast(e.message||String(e),"error");}
+}
+async function crmRunCroppedScheduleOCR(){
+    const canvas=document.getElementById("sch-crop-canvas"),button=document.activeElement;if(!canvas||!canvas.width)return;
+    if(button){button.disabled=true;button.textContent="Odczytywanie...";}
+    try{const top=Number(document.getElementById("sch-crop-top").value),height=Number(document.getElementById("sch-crop-height").value),r=await crmExtendedPost("processCroppedScheduleImage",{fileName:"2026-07.jpg",mimeType:"image/jpeg",base64Data:crmCanvasToBase64(canvas),crop:{topPercent:top,heightPercent:height}});if(!r.success)throw new Error(r.error||"Błąd OCR wycinka");r.fileId=crmLastScheduleImport&&crmLastScheduleImport.fileId||"";crmRenderScheduleImportReview(r);crmToast(`OCR wycinka rozpoznał ${r.recognized||0} z ${r.days||0} dni.`);}catch(e){crmToast(e.message||String(e),"error");}finally{if(button){button.disabled=false;button.textContent="Odczytaj ten wiersz";}}
+}
+// Po nieudanym pełnym OCR pokaż narzędzie kadrowania zamiast 31 pustych pól bez wyjaśnienia.
+const crmOldRenderScheduleImportReview=crmRenderScheduleImportReview;
+crmRenderScheduleImportReview=function(data){crmOldRenderScheduleImportReview(data);if((data.recognized||0)===0&&data.fileId)crmPrepareScheduleCrop(data.fileId);};
+/* KONIEC KADROWANIA WIERSZA GRAFIKU */
+
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
