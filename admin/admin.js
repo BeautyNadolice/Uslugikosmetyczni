@@ -4164,6 +4164,40 @@ checkScheduleDriveFolderNow = async function() {
 document.addEventListener("DOMContentLoaded",()=>{crmEnsureUiLayer();crmInstallFiveMinuteDateTimePicker();});
 /* KONIEC PAKIETU POPRAWEK PO ZYWYM TESCIE */
 
+
+/* ==========================================================
+   IMPORT OFICJALNEGO GRAFIKU Z OCR I WERYFIKACJA
+   ========================================================== */
+let crmLastScheduleImport = null;
+function crmScheduleCodeOptions(selected){
+    return ["?","1","2","W","WH","WN","UW","OP","SW","BHP"].map(code=>`<option value="${code}" ${code===selected?"selected":""}>${code}</option>`).join("");
+}
+function crmRenderScheduleImportReview(data){
+    const panel=document.getElementById("sch-import-review")||document.createElement("div");
+    if(!panel.id){panel.id="sch-import-review";panel.style.cssText="margin-top:14px;padding:14px;border:1px solid #d7baa0;border-radius:10px;background:#fff";document.getElementById("sch-folder-status").after(panel);}
+    if(data.alreadyApplied){panel.innerHTML=`<strong>${data.message}</strong>`;return;}
+    crmLastScheduleImport=data;
+    panel.innerHTML=`<h3 style="margin:0 0 8px">Sprawdź grafik: ${data.month}</h3><p>Pracownik: ${data.employeeFound?"znaleziony":"nie znaleziony"}. Rozpoznano automatycznie ${data.recognized||0} z ${data.days||0} dni. Popraw znaki „?” przed zatwierdzeniem.</p><div style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:6px">${(data.codes||[]).map((code,i)=>`<label style="display:flex;flex-direction:column;gap:3px;font-size:12px">Dzień ${i+1}<select data-official-day="${i+1}">${crmScheduleCodeOptions(code)}</select></label>`).join("")}</div><div style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn-primary" onclick="crmApplyOfficialSchedule()">Zatwierdź oficjalny grafik</button><button type="button" class="btn-secondary" onclick="crmProcessOfficialScheduleFile('${data.fileId||""}',true)">Przetwórz ponownie OCR</button></div><details style="margin-top:10px"><summary>Tekst rozpoznanego wiersza</summary><pre style="white-space:pre-wrap">${String(data.ocrLine||"").replace(/</g,"&lt;")}</pre></details>`;
+}
+async function crmProcessOfficialScheduleFile(fileId,force){
+    if(!fileId)return crmToast("Brak identyfikatora pliku do przetworzenia.","error");
+    crmToast("Odczytywanie oficjalnego grafiku...");
+    try{const r=await crmExtendedPost("processOfficialScheduleFile",{fileId:fileId,force:Boolean(force)});if(!r.success)throw new Error(r.error||"Błąd OCR");r.fileId=fileId;crmRenderScheduleImportReview(r);crmToast(r.alreadyApplied?"Plik był już zatwierdzony.":"OCR zakończony. Sprawdź rozpoznane dni.");}catch(e){crmToast(e.message||String(e),"error");}
+}
+async function crmApplyOfficialSchedule(){
+    if(!crmLastScheduleImport)return;
+    const codes=Array.from(document.querySelectorAll("[data-official-day]")).map(x=>x.value);
+    const unknown=codes.map((x,i)=>x==="?"?i+1:null).filter(Boolean);if(unknown.length)return crmToast("Popraw nierozpoznane dni: "+unknown.join(", "),"error");
+    const btn=document.activeElement;if(btn){btn.disabled=true;btn.textContent="Zapisywanie...";}
+    try{const r=await crmExtendedPost("applyOfficialSchedule",{importId:crmLastScheduleImport.importId,month:crmLastScheduleImport.month,codes:codes});if(!r.success)throw new Error(r.error||"Błąd zapisu");await refreshSchedulePanel();await renderWorkScheduleCalendar();crmToast("Oficjalny grafik został zastosowany.");}catch(e){crmToast(e.message||String(e),"error");}finally{if(btn){btn.disabled=false;btn.textContent="Zatwierdź oficjalny grafik";}}
+}
+const crmPreviousFolderCheck=checkScheduleDriveFolderNow;
+checkScheduleDriveFolderNow=async function(){
+    if(crmUiOperationLock)return;const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
+    try{const r=await crmExtendedPost("checkScheduleDriveFolder",{manual:true});if(!r.success)throw new Error(r.error||"Błąd folderu");const names=(r.candidates||[]).map(x=>x.name).join(", ");status.textContent=`Folder ${r.folderName||"Grafik"} (${r.folderId||""}). Pliki: ${r.totalFiles||0}, pasujące: ${r.matchingFiles||0}.${names?" Rozpoznane: "+names+".":""}`;if(r.candidates&&r.candidates.length){crmToast(`Znaleziono ${r.candidates.length} plik. Rozpoczynam OCR.`);await crmProcessOfficialScheduleFile(r.candidates[0].id,false);}else crmToast("Folder dostępny, ale brak pasujących plików.","error");}catch(e){crmToast(e.message||String(e),"error");}finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Sprawdź folder teraz";}}
+};
+/* KONIEC IMPORTU OFICJALNEGO GRAFIKU */
+
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
