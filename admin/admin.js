@@ -4230,6 +4230,65 @@ const crmOldRenderScheduleImportReview=crmRenderScheduleImportReview;
 crmRenderScheduleImportReview=function(data){crmOldRenderScheduleImportReview(data);if((data.recognized||0)===0&&data.fileId)crmPrepareScheduleCrop(data.fileId);};
 /* KONIEC KADROWANIA WIERSZA GRAFIKU */
 
+
+/* ==========================================================
+   SEGMENTACJA 31 KOMOREK GRAFIKU I ANALIZA KOLORU
+   ========================================================== */
+let crmSegmentedScheduleCells=[];
+function crmAverageCellColor(ctx,x,y,w,h){
+    const sx=Math.round(x+w*0.22),sy=Math.round(y+h*0.22),sw=Math.max(2,Math.round(w*0.56)),sh=Math.max(2,Math.round(h*0.56));
+    const data=ctx.getImageData(sx,sy,sw,sh).data;let r=0,g=0,b=0,n=0;
+    for(let i=0;i<data.length;i+=4){if(data[i+3]<100)continue;r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
+    return n?{r:Math.round(r/n),g:Math.round(g/n),b:Math.round(b/n)}:{r:255,g:255,b:255};
+}
+function crmGuessCodeFromColor(c){
+    // Kolor daje bezpieczną podpowiedź kategorii. Użytkownik nadal zatwierdza kod tekstowy.
+    if(c.r>190&&c.g>185&&c.b<105)return{code:"1",confidence:"wysoka",kind:"żółta"};
+    if(c.g>135&&c.r<190&&c.b<150)return{code:"2",confidence:"wysoka",kind:"zielona"};
+    if(c.b>145&&c.r<190&&c.g>125)return{code:"UW",confidence:"średnia",kind:"niebieska"};
+    if(c.r>205&&c.g>205&&c.b>205)return{code:"W",confidence:"średnia",kind:"biała"};
+    return{code:"?",confidence:"niska",kind:"nieznana"};
+}
+function crmFindNameColumnBoundary(ctx,width,height){
+    // W oficjalnym arkuszu kolumna z nazwiskiem zajmuje około 12% szerokości.
+    // Szukamy silnej pionowej linii w zakresie 8-20%, a jeśli jej nie ma, używamy 12%.
+    let bestX=Math.round(width*0.12),bestScore=-1;
+    for(let x=Math.round(width*0.08);x<=Math.round(width*0.20);x++){
+        let dark=0;for(let y=0;y<height;y++){const p=ctx.getImageData(x,y,1,1).data;if(p[0]<110&&p[1]<110&&p[2]<110)dark++;}
+        if(dark>bestScore){bestScore=dark;bestX=x;}
+    }
+    return bestX;
+}
+function crmCellThumbnail(sourceCanvas,x,y,w,h){
+    const c=document.createElement("canvas");c.width=120;c.height=54;const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(sourceCanvas,x,y,w,h,4,4,c.width-8,c.height-8);return c.toDataURL("image/png");
+}
+function crmSegmentCurrentScheduleRow(){
+    const canvas=document.getElementById("sch-crop-canvas");if(!canvas||!canvas.width)return crmToast("Najpierw ustaw widoczny wiersz grafiku.","error");
+    const ctx=canvas.getContext("2d"),nameEnd=crmFindNameColumnBoundary(ctx,canvas.width,canvas.height),gridWidth=canvas.width-nameEnd,cellWidth=gridWidth/31;
+    crmSegmentedScheduleCells=[];
+    for(let i=0;i<31;i++){
+        const x=Math.round(nameEnd+i*cellWidth),next=Math.round(nameEnd+(i+1)*cellWidth),w=Math.max(2,next-x),color=crmAverageCellColor(ctx,x,0,w,canvas.height),guess=crmGuessCodeFromColor(color);
+        crmSegmentedScheduleCells.push({day:i+1,x:x,width:w,color:color,guess:guess,thumbnail:crmCellThumbnail(canvas,x,0,w,canvas.height)});
+    }
+    crmRenderSegmentedScheduleReview(nameEnd);
+}
+function crmRenderSegmentedScheduleReview(nameEnd){
+    let panel=document.getElementById("sch-cell-review");if(!panel){panel=document.createElement("div");panel.id="sch-cell-review";panel.style.cssText="margin-top:14px;padding:14px;border:1px solid #d7baa0;border-radius:10px;background:#fff";document.getElementById("sch-crop-panel").after(panel);}
+    const high=crmSegmentedScheduleCells.filter(x=>x.guess.confidence==="wysoka").length,medium=crmSegmentedScheduleCells.filter(x=>x.guess.confidence==="średnia").length;
+    panel.innerHTML=`<h3 style="margin:0 0 8px">Analiza 31 komórek</h3><p>Granica nazwiska: ${nameEnd}px. Pewne kolory: ${high}. Wymagające kontroli tekstu: ${medium}. Każda miniatura pochodzi bezpośrednio z oficjalnego pliku.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px">${crmSegmentedScheduleCells.map(cell=>`<label style="border:1px solid #ddd;border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:4px"><strong>Dzień ${cell.day}</strong><img src="${cell.thumbnail}" alt="Komórka dnia ${cell.day}" style="width:100%;height:54px;object-fit:contain;image-rendering:auto;background:#fff"><select data-segment-day="${cell.day}">${crmScheduleCodeOptions(cell.guess.code)}</select><small>${cell.guess.kind}, RGB ${cell.color.r}/${cell.color.g}/${cell.color.b}, pewność ${cell.guess.confidence}</small></label>`).join("")}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn-primary" onclick="crmUseSegmentedCodes()">Przenieś kody do formularza</button><button type="button" class="btn-secondary" onclick="crmSegmentCurrentScheduleRow()">Analizuj ponownie</button></div><p style="margin-bottom:0"><strong>Uwaga:</strong> żółte i zielone komórki są rozpoznawane jako 1 i 2. Białe oraz niebieskie wymagają wzrokowej kontroli, ponieważ kolor nie odróżnia W od WH/WN ani UW od OP/BHP.</p>`;
+}
+function crmUseSegmentedCodes(){
+    const source=Array.from(document.querySelectorAll("[data-segment-day]"));if(source.length!==31)return crmToast("Brak kompletu 31 komórek.","error");
+    source.forEach(select=>{const day=select.dataset.segmentDay,target=document.querySelector(`[data-official-day="${day}"]`);if(target)target.value=select.value;});
+    const unknown=source.filter(x=>x.value==="?").length;crmToast(unknown?`Przeniesiono podpowiedzi. Pozostało ${unknown} nierozpoznanych dni.`:"Przeniesiono wszystkie 31 kodów. Sprawdź je przed zatwierdzeniem.");
+    document.getElementById("sch-import-review")?.scrollIntoView({behavior:"smooth",block:"start"});
+}
+// Zmieniamy domyślne ustawienie kadrowania na wartość potwierdzoną w żywym teście.
+crmAutoFindScheduleRow=function(){document.getElementById("sch-crop-top").value="62";document.getElementById("sch-crop-height").value="5";crmDrawScheduleCrop();};
+const crmOldRenderCropPanel=crmRenderScheduleCropPanel;
+crmRenderScheduleCropPanel=function(file){crmOldRenderCropPanel(file);setTimeout(()=>{crmAutoFindScheduleRow();const actions=document.querySelector("#sch-crop-panel div:last-child");if(actions&&!document.getElementById("sch-segment-btn")){const btn=document.createElement("button");btn.id="sch-segment-btn";btn.type="button";btn.className="btn-primary";btn.textContent="Podziel na 31 komórek";btn.onclick=crmSegmentCurrentScheduleRow;actions.appendChild(btn);}},100);};
+/* KONIEC SEGMENTACJI 31 KOMOREK */
+
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
