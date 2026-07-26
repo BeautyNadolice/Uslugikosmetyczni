@@ -4349,7 +4349,7 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallCalendarCl
    POPRAWKA ADMIN: GOTOWY PLIK Grafik_Oleksandr.xlsx
    ========================================================== */
 let crmScheduleXlsxCandidate=null;
-async function checkScheduleDriveFolderNow(){
+checkScheduleDriveFolderNow=async function(){
     if(crmUiOperationLock)return;const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");
     crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
     try{
@@ -4375,9 +4375,9 @@ async function importScheduleXlsxFromPanel(){
 }
 function crmUpdateSchedulePanelForXlsx(){
     const panel=document.getElementById("schedule-full-panel");if(!panel)return;
-    panel.dataset.scheduleVersion="XLSX-V3";
+    panel.dataset.scheduleVersion="XLSX-V4-BEZ-OCR";
     let badge=document.getElementById("sch-xlsx-version-badge");
-    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Wersja grafiku: XLSX-V3";panel.querySelector("h2").after(badge);}
+    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Wersja grafiku: XLSX-V4 bez OCR";panel.querySelector("h2").after(badge);}else{badge.textContent="Wersja grafiku: XLSX-V4 bez OCR";}
     const details=Array.from(panel.querySelectorAll("details")).find(d=>d.querySelector("summary")&&d.querySelector("summary").textContent.includes("Oficjalny grafik"));
     if(!details)return;const p=details.querySelector("p");if(p)p.textContent="Folder: Grafik. Plik: Grafik_Oleksandr.xlsx. Źródło danych: arkusz Dane CRM, kolumny Data i Kod końcowy.";
     const triggerBtn=details.querySelector('button[onclick="installScheduleFolderTriggers()"]');if(triggerBtn)triggerBtn.style.display="none";
