@@ -4290,62 +4290,6 @@ crmRenderScheduleCropPanel=function(file){crmOldRenderCropPanel(file);setTimeout
 /* KONIEC SEGMENTACJI 31 KOMOREK */
 
 /* ==========================================================
-   POPRAWKA ADMIN: CZYSZCZENIE I NOWA SYNCHRONIZACJA GRAFIKU
-   ========================================================== */
-let crmWorkCalendarCleanupToken = "";
-let crmWorkCalendarOperationBusy = false;
-async function scanOldWorkScheduleEventsFromAdmin() {
-    if (crmWorkCalendarOperationBusy) return;
-    crmWorkCalendarOperationBusy = true;
-    const status=document.getElementById("sch-calendar-cleanup-status"),button=document.getElementById("sch-scan-calendar-btn");
-    if(button){button.disabled=true;button.textContent="Wyszukiwanie...";}
-    try{
-        const r=await crmExtendedPost("scanOldWorkScheduleEvents");
-        if(!r.success)throw new Error(r.error||"Błąd wyszukiwania");
-        crmWorkCalendarCleanupToken=r.token||"";
-        if(status)status.textContent=`Znaleziono ${r.count||0} starych wpisów grafiku w zakresie ${r.from} - ${r.to}.`;
-        const del=document.getElementById("sch-delete-calendar-btn");if(del)del.disabled=!(r.count>0&&crmWorkCalendarCleanupToken);
-        crmToast(`Znaleziono ${r.count||0} wpisów grafiku.`);
-    }catch(e){crmToast(e.message||String(e),"error");}
-    finally{crmWorkCalendarOperationBusy=false;if(button){button.disabled=false;button.textContent="Znajdź stare wpisy grafiku";}}
-}
-async function deleteOldWorkScheduleEventsFromAdmin() {
-    if(crmWorkCalendarOperationBusy||!crmWorkCalendarCleanupToken)return;
-    const ok=await crmConfirm("Usunąć znalezione automatyczne wpisy Wyjazd/Powrót ze zmiany z okresu 01.01.2026-31.01.2027? Wizyty klientów, blokady i prywatne wydarzenia nie będą usuwane.","Usuń wpisy grafiku");
-    if(!ok)return;
-    crmWorkCalendarOperationBusy=true;const button=document.getElementById("sch-delete-calendar-btn"),status=document.getElementById("sch-calendar-cleanup-status");
-    if(button){button.disabled=true;button.textContent="Usuwanie...";}
-    try{
-        const r=await crmExtendedPost("deleteOldWorkScheduleEvents",{token:crmWorkCalendarCleanupToken});
-        if(!r.success)throw new Error(r.error||"Błąd usuwania");
-        crmWorkCalendarCleanupToken="";if(status)status.textContent=`Usunięto ${r.removed||0} starych wpisów grafiku.`;
-        await loadSettings();crmToast(`Usunięto ${r.removed||0} wpisów. Teraz wygeneruj nową prognozę i uruchom synchronizację.`);
-    }catch(e){crmToast(e.message||String(e),"error");}
-    finally{crmWorkCalendarOperationBusy=false;if(button){button.textContent="Usuń stare wpisy grafiku";button.disabled=true;}}
-}
-function crmInstallCalendarCleanupControls(){
-    const syncButton=document.querySelector('#schedule-full-panel button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
-    if(!syncButton||document.getElementById("sch-calendar-cleanup-box"))return;
-    const box=document.createElement("div");box.id="sch-calendar-cleanup-box";box.style.cssText="margin-top:12px;padding:12px;border:1px solid #d8b38c;border-radius:9px;background:#fff";
-    box.innerHTML='<strong>Jednorazowe czyszczenie starego grafiku</strong><p id="sch-calendar-cleanup-status">Najpierw wyszukaj stare wpisy. Usuwane są tylko automatyczne wpisy grafiku.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="sch-scan-calendar-btn" type="button" class="btn-secondary" onclick="scanOldWorkScheduleEventsFromAdmin()">Znajdź stare wpisy grafiku</button><button id="sch-delete-calendar-btn" type="button" class="btn-danger" onclick="deleteOldWorkScheduleEventsFromAdmin()" disabled>Usuń stare wpisy grafiku</button></div>';
-    syncButton.parentNode.insertBefore(box,syncButton.nextSibling);
-}
-const crmOldSynchronizeWorkScheduleWithGoogleCalendar=synchronizeWorkScheduleWithGoogleCalendar;
-synchronizeWorkScheduleWithGoogleCalendar=async function(){
-    if(crmWorkCalendarOperationBusy)return;crmWorkCalendarOperationBusy=true;
-    const button=document.querySelector('#schedule-full-panel button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
-    if(button){button.disabled=true;button.dataset.oldText=button.textContent;button.textContent="Synchronizacja...";}
-    try{
-        const month=document.getElementById("sch-month").value,r=await crmExtendedPost("syncWorkScheduleToGoogleCalendar",{month});
-        if(!r.success)throw new Error(r.error||"Błąd synchronizacji");
-        await loadSettings();crmToast(`Synchronizacja zakończona. Utworzono ${r.created||0}, usunięto ${r.removed||0}, duplikaty ${r.duplicates||0}.`);
-    }catch(e){crmToast(e.message||String(e),"error");}
-    finally{crmWorkCalendarOperationBusy=false;if(button){button.disabled=false;button.textContent=button.dataset.oldText||"Synchronizuj z Google Calendar";}}
-};
-document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallCalendarCleanupControls,100));
-/* KONIEC POPRAWKI ADMIN KALENDARZA */
-
-/* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
 
