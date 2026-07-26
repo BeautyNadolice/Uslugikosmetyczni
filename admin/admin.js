@@ -4290,6 +4290,103 @@ crmRenderScheduleCropPanel=function(file){crmOldRenderCropPanel(file);setTimeout
 /* KONIEC SEGMENTACJI 31 KOMOREK */
 
 /* ==========================================================
+   POPRAWKA ADMIN: CZYSZCZENIE I NOWA SYNCHRONIZACJA GRAFIKU
+   ========================================================== */
+let crmWorkCalendarCleanupToken = "";
+let crmWorkCalendarOperationBusy = false;
+async function scanOldWorkScheduleEventsFromAdmin() {
+    if (crmWorkCalendarOperationBusy) return;
+    crmWorkCalendarOperationBusy = true;
+    const status=document.getElementById("sch-calendar-cleanup-status"),button=document.getElementById("sch-scan-calendar-btn");
+    if(button){button.disabled=true;button.textContent="Wyszukiwanie...";}
+    try{
+        const r=await crmExtendedPost("scanOldWorkScheduleEvents");
+        if(!r.success)throw new Error(r.error||"Błąd wyszukiwania");
+        crmWorkCalendarCleanupToken=r.token||"";
+        if(status)status.textContent=`Znaleziono ${r.count||0} starych wpisów grafiku w zakresie ${r.from} - ${r.to}.`;
+        const del=document.getElementById("sch-delete-calendar-btn");if(del)del.disabled=!(r.count>0&&crmWorkCalendarCleanupToken);
+        crmToast(`Znaleziono ${r.count||0} wpisów grafiku.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmWorkCalendarOperationBusy=false;if(button){button.disabled=false;button.textContent="Znajdź stare wpisy grafiku";}}
+}
+async function deleteOldWorkScheduleEventsFromAdmin() {
+    if(crmWorkCalendarOperationBusy||!crmWorkCalendarCleanupToken)return;
+    const ok=await crmConfirm("Usunąć znalezione automatyczne wpisy Wyjazd/Powrót ze zmiany z okresu 01.01.2026-31.01.2027? Wizyty klientów, blokady i prywatne wydarzenia nie będą usuwane.","Usuń wpisy grafiku");
+    if(!ok)return;
+    crmWorkCalendarOperationBusy=true;const button=document.getElementById("sch-delete-calendar-btn"),status=document.getElementById("sch-calendar-cleanup-status");
+    if(button){button.disabled=true;button.textContent="Usuwanie...";}
+    try{
+        const r=await crmExtendedPost("deleteOldWorkScheduleEvents",{token:crmWorkCalendarCleanupToken});
+        if(!r.success)throw new Error(r.error||"Błąd usuwania");
+        crmWorkCalendarCleanupToken="";if(status)status.textContent=`Usunięto ${r.removed||0} starych wpisów grafiku.`;
+        await loadSettings();crmToast(`Usunięto ${r.removed||0} wpisów. Teraz wygeneruj nową prognozę i uruchom synchronizację.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmWorkCalendarOperationBusy=false;if(button){button.textContent="Usuń stare wpisy grafiku";button.disabled=true;}}
+}
+function crmInstallCalendarCleanupControls(){
+    const syncButton=document.querySelector('#schedule-full-panel button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
+    if(!syncButton||document.getElementById("sch-calendar-cleanup-box"))return;
+    const box=document.createElement("div");box.id="sch-calendar-cleanup-box";box.style.cssText="margin-top:12px;padding:12px;border:1px solid #d8b38c;border-radius:9px;background:#fff";
+    box.innerHTML='<strong>Jednorazowe czyszczenie starego grafiku</strong><p id="sch-calendar-cleanup-status">Najpierw wyszukaj stare wpisy. Usuwane są tylko automatyczne wpisy grafiku.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="sch-scan-calendar-btn" type="button" class="btn-secondary" onclick="scanOldWorkScheduleEventsFromAdmin()">Znajdź stare wpisy grafiku</button><button id="sch-delete-calendar-btn" type="button" class="btn-danger" onclick="deleteOldWorkScheduleEventsFromAdmin()" disabled>Usuń stare wpisy grafiku</button></div>';
+    syncButton.parentNode.insertBefore(box,syncButton.nextSibling);
+}
+const crmOldSynchronizeWorkScheduleWithGoogleCalendar=synchronizeWorkScheduleWithGoogleCalendar;
+synchronizeWorkScheduleWithGoogleCalendar=async function(){
+    if(crmWorkCalendarOperationBusy)return;crmWorkCalendarOperationBusy=true;
+    const button=document.querySelector('#schedule-full-panel button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
+    if(button){button.disabled=true;button.dataset.oldText=button.textContent;button.textContent="Synchronizacja...";}
+    try{
+        const month=document.getElementById("sch-month").value,r=await crmExtendedPost("syncWorkScheduleToGoogleCalendar",{month});
+        if(!r.success)throw new Error(r.error||"Błąd synchronizacji");
+        await loadSettings();crmToast(`Synchronizacja zakończona. Utworzono ${r.created||0}, usunięto ${r.removed||0}, duplikaty ${r.duplicates||0}.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmWorkCalendarOperationBusy=false;if(button){button.disabled=false;button.textContent=button.dataset.oldText||"Synchronizuj z Google Calendar";}}
+};
+document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallCalendarCleanupControls,100));
+/* KONIEC POPRAWKI ADMIN KALENDARZA */
+
+/* ==========================================================
+   POPRAWKA ADMIN: GOTOWY PLIK Grafik_Oleksandr.xlsx
+   ========================================================== */
+let crmScheduleXlsxCandidate=null;
+async function checkScheduleDriveFolderNow(){
+    if(crmUiOperationLock)return;const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");
+    crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
+    try{
+        const r=await crmExtendedPost("checkScheduleDriveFolder",{manual:true});if(!r.success)throw new Error(r.error||"Błąd folderu");
+        crmScheduleXlsxCandidate=r.candidates&&r.candidates.length?r.candidates[0]:null;
+        if(status)status.textContent=`Folder ${r.folderName||"Grafik"}. Pliki: ${r.totalFiles||0}, pasujące XLSX: ${r.matchingFiles||0}. Oczekiwany plik: ${r.expectedFile||"Grafik_Oleksandr.xlsx"}.`;
+        let importBtn=document.getElementById("sch-import-xlsx-btn");
+        if(!importBtn&&button){importBtn=document.createElement("button");importBtn.id="sch-import-xlsx-btn";importBtn.type="button";importBtn.className="btn-primary";importBtn.textContent="Importuj Grafik_Oleksandr.xlsx";importBtn.onclick=importScheduleXlsxFromPanel;button.after(importBtn);}
+        if(importBtn)importBtn.disabled=!crmScheduleXlsxCandidate;
+        crmToast(crmScheduleXlsxCandidate?"Znaleziono Grafik_Oleksandr.xlsx. Można rozpocząć import.":"Folder dostępny, ale nie znaleziono Grafik_Oleksandr.xlsx.",crmScheduleXlsxCandidate?"success":"error");
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Sprawdź folder teraz";}}
+}
+async function importScheduleXlsxFromPanel(){
+    if(crmUiOperationLock||!crmScheduleXlsxCandidate)return;
+    const button=document.getElementById("sch-import-xlsx-btn");crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Importowanie XLSX...";}
+    try{
+        const r=await crmExtendedPost("importScheduleXlsx",{fileId:crmScheduleXlsxCandidate.id});if(!r.success)throw new Error(r.error||"Błąd importu XLSX");
+        await refreshSchedulePanel();await renderWorkScheduleCalendar();
+        crmToast(`Zaimportowano ${r.rows} dni z ${r.fileName}. Zakres ${r.from} - ${r.to}.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Importuj Grafik_Oleksandr.xlsx";}}
+}
+function crmUpdateSchedulePanelForXlsx(){
+    const panel=document.getElementById("schedule-full-panel");if(!panel)return;
+    panel.dataset.scheduleVersion="XLSX-V3";
+    let badge=document.getElementById("sch-xlsx-version-badge");
+    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Wersja grafiku: XLSX-V3";panel.querySelector("h2").after(badge);}
+    const details=Array.from(panel.querySelectorAll("details")).find(d=>d.querySelector("summary")&&d.querySelector("summary").textContent.includes("Oficjalny grafik"));
+    if(!details)return;const p=details.querySelector("p");if(p)p.textContent="Folder: Grafik. Plik: Grafik_Oleksandr.xlsx. Źródło danych: arkusz Dane CRM, kolumny Data i Kod końcowy.";
+    const triggerBtn=details.querySelector('button[onclick="installScheduleFolderTriggers()"]');if(triggerBtn)triggerBtn.style.display="none";
+    const status=document.getElementById("sch-folder-status");if(status)status.textContent="Sprawdź folder, a następnie zaimportuj gotowy plik XLSX. OCR zdjęć nie jest używany.";
+}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(crmUpdateSchedulePanelForXlsx,150));
+/* KONIEC POPRAWKI ADMIN XLSX */
+
+/* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
    WERSJA TESTERA: 1.0.1
 
