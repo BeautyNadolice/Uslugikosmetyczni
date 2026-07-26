@@ -850,6 +850,7 @@ function renderCompactCalendarEvent(item, container, mode) {
     let color = "#b05c75";
     if (item.eventType === "block") color = "#8c6b4f";
     else if (item.eventType === "external") color = "#555555";
+    else if (item.eventType === "work_shift") color = "#3f6fae";
     else {
         const service = currentServices.find(value =>
             value.name && item.service &&
@@ -860,7 +861,8 @@ function renderCompactCalendarEvent(item, container, mode) {
 
     event.style.background = color;
     const time = formatCalendarTime(item.date);
-    event.innerHTML = "<strong>" + time + "</strong> " + (item.name || item.service || "Wpis");
+    const prefix = item.eventType === "work_shift" ? "🕒 " : "";
+    event.innerHTML = prefix + "<strong>" + time + "</strong> " + (item.name || item.service || "Wpis");
     event.title = time + " " + (item.name || "") + " " + (item.service || "");
     event.onclick = () => openAppointmentDetailsModal(item);
     container.appendChild(event);
@@ -989,10 +991,11 @@ function renderAppointmentCard(app,container){
         "#b05c75";
 
     const isBlock = app.eventType === "block";
+    const isWorkShift = app.eventType === "work_shift";
 
     const isExternal =
         app.eventType === "external" ||
-        (app.phone === "Google Calendar" && !isBlock);
+        (app.phone === "Google Calendar" && !isBlock && !isWorkShift);
 
     if (isBlock) {
         color = "#8c6b4f";
@@ -1000,6 +1003,10 @@ function renderAppointmentCard(app,container){
     }
     else if(isExternal){
         color = "#555555";
+    }
+    else if(isWorkShift){
+        color = "#3f6fae";
+        card.classList.add("booksy-work-shift-card");
     }
     else{
 
@@ -1727,23 +1734,24 @@ function openAppointmentDetailsModal(app){
     currentEditingAppointment = app;
     const isBlock = app.eventType === "block";
     const isExternal = app.eventType === "external";
-    setText("appointmentDetailsTitle", isBlock ? "Szczegóły blokady czasu" : (isExternal ? "Szczegóły wydarzenia zewnętrznego" : "Szczegóły rezerwacji"));
-    setText("details-name-label", isBlock ? "Nazwa blokady:" : "Klient:");
-    setText("details-service-label", isBlock ? "Typ:" : "Zabieg:");
+    const isWorkShift = app.eventType === "work_shift";
+    setText("appointmentDetailsTitle", isWorkShift ? "Szczegóły grafiku pracy" : (isBlock ? "Szczegóły blokady czasu" : (isExternal ? "Szczegóły wydarzenia zewnętrznego" : "Szczegóły rezerwacji")));
+    setText("details-name-label", isWorkShift ? "Wpis grafiku:" : (isBlock ? "Nazwa blokady:" : "Klient:"));
+    setText("details-service-label", isWorkShift ? "Rodzaj:" : (isBlock ? "Typ:" : "Zabieg:"));
     setText("details-name", app.name || "");
     setText("details-phone", app.phone || "");
     setText("details-service", app.service || "");
     setText("details-datetime", app.date || "");
     setText("details-duration", app.duration || 45);
     const phoneRow = document.getElementById("details-phone-row");
-    if (phoneRow) phoneRow.style.display = isBlock ? "none" : "block";
+    if (phoneRow) phoneRow.style.display = (isBlock || isWorkShift) ? "none" : "block";
     const deleteBtn = document.getElementById("deleteAppointmentBtn");
     const editBtn = document.getElementById("editAppointmentBtn");
     if (deleteBtn) {
-        deleteBtn.style.display = isExternal ? "none" : "inline-block";
+        deleteBtn.style.display = (isExternal || isWorkShift) ? "none" : "inline-block";
         deleteBtn.innerText = isBlock ? "Usuń blokadę 🗑️" : "Usuń wizytę 🗑️";
     }
-    if (editBtn) editBtn.style.display = (isBlock || isExternal) ? "none" : "inline-block";
+    if (editBtn) editBtn.style.display = (isBlock || isExternal || isWorkShift) ? "none" : "inline-block";
     document.getElementById("appointmentDetailsModal").style.display = "flex";
 }
 function closeAppointmentModal(){
@@ -4029,7 +4037,8 @@ function crmUpdateLifecycleVisibility(app) {
     if (!box) return;
     const external = app && app.eventType === "external";
     const block = app && app.eventType === "block";
-    box.style.display = (external || block) ? "none" : "flex";
+    const workShift = app && app.eventType === "work_shift";
+    box.style.display = (external || block || workShift) ? "none" : "flex";
     let externalBox = document.getElementById("crm-external-actions");
     if (!externalBox) {
         externalBox = document.createElement("div");
@@ -4377,7 +4386,7 @@ function crmUpdateSchedulePanelForXlsx(){
     const panel=document.getElementById("schedule-full-panel");if(!panel)return;
     panel.dataset.scheduleVersion="XLSX-V4-BEZ-OCR";
     let badge=document.getElementById("sch-xlsx-version-badge");
-    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Wersja grafiku: XLSX-V4 bez OCR";panel.querySelector("h2").after(badge);}else{badge.textContent="Wersja grafiku: XLSX-V4 bez OCR";}
+    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Wersja grafiku: XLSX-V5 + grafik w kalendarzu";panel.querySelector("h2").after(badge);}else{badge.textContent="Wersja grafiku: XLSX-V5 + grafik w kalendarzu";}
     const details=Array.from(panel.querySelectorAll("details")).find(d=>d.querySelector("summary")&&d.querySelector("summary").textContent.includes("Oficjalny grafik"));
     if(!details)return;const p=details.querySelector("p");if(p)p.textContent="Folder: Grafik. Plik: Grafik_Oleksandr.xlsx. Źródło danych: arkusz Dane CRM, kolumny Data i Kod końcowy.";
     const triggerBtn=details.querySelector('button[onclick="installScheduleFolderTriggers()"]');if(triggerBtn)triggerBtn.style.display="none";
