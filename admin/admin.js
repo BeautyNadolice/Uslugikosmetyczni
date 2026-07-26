@@ -733,245 +733,70 @@ function renderMiniMonthCalendar(){
    ========================================================== */
 
 function renderBooksyCalendar(){
-    const grid = document.getElementById("booksy-grid");
-    if (document.getElementById("work-schedule-calendar")) renderWorkScheduleCalendar().catch(console.error);
-    if (!grid) return;
 
-    updateCalendarRangeTitle();
+    const grid =
+    document.getElementById("booksy-grid");
 
-    if (calendarViewMode === "week") {
-        renderWeekCalendar(grid);
-        return;
-    }
+if (!grid) return;
 
-    if (calendarViewMode === "month") {
-        renderMonthCalendar(grid);
-        return;
-    }
+    if(!grid) return;
 
-    renderDayCalendar(grid);
-}
-
-function getCalendarEventsForDate(date) {
-    const dateKey = getFormattedISOBlockDate(date);
-    return appointmentsData
-        .filter(item => item.date && item.date.startsWith(dateKey))
-        .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function formatCalendarTime(dateValue) {
-    const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return "";
-    return String(date.getHours()).padStart(2, "0") + ":" +
-        String(date.getMinutes()).padStart(2, "0");
-}
-
-function getMondayOfWeek(date) {
-    const monday = new Date(date);
-    const day = monday.getDay();
-    const distance = day === 0 ? -6 : 1 - day;
-    monday.setDate(monday.getDate() + distance);
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-}
-
-function formatPolishShortDate(date) {
-    return date.toLocaleDateString("pl-PL", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
-}
-
-function updateCalendarRangeTitle() {
-    const title = document.getElementById("calendar-current-date-title");
-    if (!title) return;
-
-    if (calendarViewMode === "week") {
-        const monday = getMondayOfWeek(selectedCalendarDate);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        title.innerText = formatPolishShortDate(monday) + " – " + formatPolishShortDate(sunday);
-        return;
-    }
-
-    if (calendarViewMode === "month") {
-        title.innerText = selectedCalendarDate.toLocaleDateString("pl-PL", {
-            month: "long",
-            year: "numeric"
-        });
-        return;
-    }
-
-    title.innerText = selectedCalendarDate.toLocaleDateString("pl-PL", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-    });
-}
-
-function renderDayCalendar(grid) {
     grid.innerHTML = "";
-    grid.style.display = "block";
-    grid.style.gridTemplateColumns = "";
-    grid.style.gap = "";
-    grid.style.overflowX = "";
-    grid.dataset.calendarView = "day";
-    const events = getCalendarEventsForDate(selectedCalendarDate);
 
-    if (events.length === 0) {
-        grid.innerHTML = '<div style="padding:40px;text-align:center;color:#777;">Brak wizyt i blokad</div>';
-        return;
-    }
-
-    events.forEach(item => renderAppointmentCard(item, grid));
-}
-
-function renderCompactCalendarEvent(item, container, mode) {
-    const event = document.createElement("button");
-    event.type = "button";
-    event.className = "calendar-compact-event";
-    event.style.cssText = [
-        "display:block",
-        "width:100%",
-        "margin:4px 0",
-        "padding:6px 7px",
-        "border:0",
-        "border-radius:6px",
-        "text-align:left",
-        "color:#fff",
-        "cursor:pointer",
-        "font-size:" + (mode === "month" ? "11px" : "12px"),
-        "line-height:1.25",
-        "overflow:hidden"
-    ].join(";");
-
-    let color = "#b05c75";
-    if (item.eventType === "block") color = "#8c6b4f";
-    else if (item.eventType === "external") color = "#555555";
-    else {
-        const service = currentServices.find(value =>
-            value.name && item.service &&
-            value.name.trim().toLowerCase() === item.service.trim().toLowerCase()
+    const currentDate =
+        getFormattedISOBlockDate(
+            selectedCalendarDate
         );
-        if (service && globalColors[service.category]) color = globalColors[service.category];
+
+    const dailyAppointments =
+        appointmentsData.filter(app=>{
+
+            return (
+                app.date &&
+                app.date.startsWith(
+                    currentDate
+                )
+            );
+
+        });
+
+    if(
+        dailyAppointments.length===0
+    ){
+
+        grid.innerHTML = `
+            <div
+                style="
+                padding:40px;
+                text-align:center;
+                color:#777;
+                ">
+                Brak wizyt
+            </div>
+        `;
+
+        return;
+
     }
 
-    event.style.background = color;
-    const time = formatCalendarTime(item.date);
-    event.innerHTML = "<strong>" + time + "</strong> " + (item.name || item.service || "Wpis");
-    event.title = time + " " + (item.name || "") + " " + (item.service || "");
-    event.onclick = () => openAppointmentDetailsModal(item);
-    container.appendChild(event);
+    dailyAppointments
+        .sort(
+            (a,b)=>
+            a.date.localeCompare(
+                b.date
+            )
+        )
+        .forEach(app=>{
+
+            renderAppointmentCard(
+                app,
+                grid
+            );
+
+        });
+
 }
 
-function renderWeekCalendar(grid) {
-    grid.innerHTML = "";
-    grid.dataset.calendarView = "week";
-    grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(7, minmax(130px, 1fr))";
-    grid.style.gap = "8px";
-    grid.style.alignItems = "stretch";
-    grid.style.overflowX = "auto";
-
-    const monday = getMondayOfWeek(selectedCalendarDate);
-    const dayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
-
-    for (let index = 0; index < 7; index++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + index);
-        const column = document.createElement("section");
-        column.className = "calendar-week-day";
-        column.dataset.date = getFormattedISOBlockDate(date);
-        column.style.cssText = "min-height:260px;padding:9px;border:1px solid #e3d8cf;border-radius:9px;background:#fff;box-sizing:border-box;";
-
-        if (date.toDateString() === new Date().toDateString()) {
-            column.style.borderColor = "#b05c75";
-            column.style.boxShadow = "0 0 0 2px rgba(176,92,117,.12)";
-        }
-
-        const header = document.createElement("button");
-        header.type = "button";
-        header.style.cssText = "width:100%;padding:5px;border:0;background:transparent;font-weight:700;cursor:pointer;color:#3d3330;";
-        header.innerText = dayNames[index] + " " + date.getDate() + "." + (date.getMonth() + 1);
-        header.onclick = () => {
-            selectedCalendarDate = new Date(date);
-            setCalendarView("day");
-        };
-        column.appendChild(header);
-
-        const events = getCalendarEventsForDate(date);
-        if (events.length === 0) {
-            const empty = document.createElement("div");
-            empty.style.cssText = "padding:20px 4px;text-align:center;color:#aaa;font-size:12px;";
-            empty.innerText = "Brak wpisów";
-            column.appendChild(empty);
-        } else {
-            events.forEach(item => renderCompactCalendarEvent(item, column, "week"));
-        }
-        grid.appendChild(column);
-    }
-}
-
-function renderMonthCalendar(grid) {
-    grid.innerHTML = "";
-    grid.dataset.calendarView = "month";
-    grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(7, minmax(115px, 1fr))";
-    grid.style.gap = "6px";
-    grid.style.overflowX = "auto";
-
-    const year = selectedCalendarDate.getFullYear();
-    const month = selectedCalendarDate.getMonth();
-    const weekdayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
-
-    weekdayNames.forEach(name => {
-        const header = document.createElement("div");
-        header.style.cssText = "padding:8px;text-align:center;font-weight:700;color:#5c504a;";
-        header.innerText = name;
-        grid.appendChild(header);
-    });
-
-    const first = new Date(year, month, 1);
-    const last = new Date(year, month + 1, 0);
-    const leading = first.getDay() === 0 ? 6 : first.getDay() - 1;
-    const totalCells = Math.ceil((leading + last.getDate()) / 7) * 7;
-
-    for (let cellIndex = 0; cellIndex < totalCells; cellIndex++) {
-        const dayNumber = cellIndex - leading + 1;
-        const date = new Date(year, month, dayNumber);
-        const inCurrentMonth = date.getMonth() === month;
-        const cell = document.createElement("section");
-        cell.className = "calendar-month-day";
-        cell.dataset.date = getFormattedISOBlockDate(date);
-        cell.style.cssText = "min-height:120px;padding:7px;border:1px solid #e3d8cf;border-radius:8px;background:" +
-            (inCurrentMonth ? "#fff" : "#f7f3f0") + ";opacity:" + (inCurrentMonth ? "1" : ".58") + ";box-sizing:border-box;";
-
-        if (date.toDateString() === new Date().toDateString()) {
-            cell.style.borderColor = "#b05c75";
-            cell.style.boxShadow = "0 0 0 2px rgba(176,92,117,.12)";
-        }
-        if (date.toDateString() === selectedCalendarDate.toDateString()) {
-            cell.style.background = "#fff4f7";
-        }
-
-        const dayButton = document.createElement("button");
-        dayButton.type = "button";
-        dayButton.style.cssText = "min-width:30px;padding:3px 6px;border:0;border-radius:15px;background:transparent;font-weight:700;cursor:pointer;";
-        dayButton.innerText = date.getDate();
-        dayButton.onclick = () => {
-            selectedCalendarDate = new Date(date);
-            miniMonthDate = new Date(date);
-            setCalendarView("day");
-            renderMiniMonthCalendar();
-        };
-        cell.appendChild(dayButton);
-
-        getCalendarEventsForDate(date).forEach(item => renderCompactCalendarEvent(item, cell, "month"));
-        grid.appendChild(cell);
-    }
-}
 
 /* ==========================================================
    EVENT CARD
@@ -988,18 +813,15 @@ function renderAppointmentCard(app,container){
     let color =
         "#b05c75";
 
-    const isBlock = app.eventType === "block";
-
     const isExternal =
-        app.eventType === "external" ||
-        (app.phone === "Google Calendar" && !isBlock);
+        app.phone ===
+        "Google Calendar";
 
-    if (isBlock) {
-        color = "#8c6b4f";
-        card.classList.add("booksy-block-card");
-    }
-    else if(isExternal){
-        color = "#555555";
+    if(isExternal){
+
+        color =
+            "#555555";
+
     }
     else{
 
@@ -1422,9 +1244,6 @@ async function saveAppointment() {
         action:
         "createBooking",
 
-        bookingSource:
-        "ADMIN",
-
         phone:
         phone,
 
@@ -1724,28 +1543,43 @@ function closeCreateAppointmentModal(){
    ========================================================== */
 
 function openAppointmentDetailsModal(app){
-    currentEditingAppointment = app;
-    const isBlock = app.eventType === "block";
-    const isExternal = app.eventType === "external";
-    setText("appointmentDetailsTitle", isBlock ? "Szczegóły blokady czasu" : (isExternal ? "Szczegóły wydarzenia zewnętrznego" : "Szczegóły rezerwacji"));
-    setText("details-name-label", isBlock ? "Nazwa blokady:" : "Klient:");
-    setText("details-service-label", isBlock ? "Typ:" : "Zabieg:");
-    setText("details-name", app.name || "");
-    setText("details-phone", app.phone || "");
-    setText("details-service", app.service || "");
-    setText("details-datetime", app.date || "");
-    setText("details-duration", app.duration || 45);
-    const phoneRow = document.getElementById("details-phone-row");
-    if (phoneRow) phoneRow.style.display = isBlock ? "none" : "block";
-    const deleteBtn = document.getElementById("deleteAppointmentBtn");
-    const editBtn = document.getElementById("editAppointmentBtn");
-    if (deleteBtn) {
-        deleteBtn.style.display = isExternal ? "none" : "inline-block";
-        deleteBtn.innerText = isBlock ? "Usuń blokadę 🗑️" : "Usuń wizytę 🗑️";
-    }
-    if (editBtn) editBtn.style.display = (isBlock || isExternal) ? "none" : "inline-block";
-    document.getElementById("appointmentDetailsModal").style.display = "flex";
+
+    currentEditingAppointment =
+        app;
+
+    setText(
+        "details-name",
+        app.name
+    );
+
+    setText(
+        "details-phone",
+        app.phone
+    );
+
+    setText(
+        "details-service",
+        app.service
+    );
+
+    setText(
+        "details-datetime",
+        app.date
+    );
+
+    setText(
+        "details-duration",
+        app.duration || 45
+    );
+
+    document.getElementById(
+        "appointmentDetailsModal"
+    ).style.display =
+        "flex";
+
 }
+
+
 function closeAppointmentModal(){
 
     document.getElementById(
@@ -1755,37 +1589,6 @@ function closeAppointmentModal(){
 
 }
 
-
-/* ==========================================================
-   USUWANIE BLOKADY CZASU
-   ========================================================== */
-function deleteSelectedCalendarItemFromAdmin() {
-    if (!currentEditingAppointment) return;
-    if (currentEditingAppointment.eventType === "block") return deleteBlockTimeFromAdmin();
-    deleteAppointmentFromAdmin();
-}
-async function deleteBlockTimeFromAdmin() {
-    if (!currentEditingAppointment || currentEditingAppointment.eventType !== "block") return alert("Nie wybrano blokady czasu.");
-    if (isDeletingAppointment || !confirm("Usunąć wybraną blokadę czasu?")) return;
-    const block = currentEditingAppointment;
-    const btn = document.getElementById("deleteAppointmentBtn");
-    isDeletingAppointment = true;
-    if (btn) { btn.disabled = true; btn.innerText = "Usuwanie blokady..."; }
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: "POST", headers: {"Content-Type":"text/plain"},
-            body: JSON.stringify({action:"deleteBlockTime", eventId:block.eventId||"", start:block.date||"", end:block.endDate||"", title:block.name||""})
-        });
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || "Nieznany błąd");
-        appointmentsData = appointmentsData.filter(x => !(block.eventId && x.eventId === block.eventId));
-        currentEditingAppointment = null;
-        closeAppointmentModal();
-        await loadSettings();
-        alert("Blokada czasu została usunięta.");
-    } catch(error) { console.error(error); alert("Błąd usuwania blokady czasu: " + (error.message || error)); }
-    finally { isDeletingAppointment = false; if (btn) {btn.disabled=false;btn.innerText="Usuń blokadę 🗑️";} }
-}
 
 /* ==========================================================
    DELETE FIX
@@ -2298,18 +2101,6 @@ async function loadClients(){
 }
 
 
-function normalizeClientCounter(value) {
-    if (typeof value === "number" && isFinite(value)) {
-        return Math.max(0, Math.trunc(value));
-    }
-
-    if (typeof value === "string" && /^\d+$/.test(value.trim())) {
-        return Math.max(0, parseInt(value.trim(), 10));
-    }
-
-    return 0;
-}
-
 function renderClients(){
 
     const tbody =
@@ -2363,11 +2154,11 @@ function renderClients(){
             </td>
 
             <td>
-                ${normalizeClientCounter(client.visits)}
+                ${client.visits || 0}
             </td>
 
             <td>
-                ${normalizeClientCounter(client.cancelled)}
+                ${client.cancelled || 0}
             </td>
 
             <td>
@@ -3281,7 +3072,6 @@ function saveServiceModalData() {
     }
 
     renderServicesTable();
-    syncCategoryColorsAndRefresh().catch(console.error);
     buildColorsEditor();
     closeServiceModal();
 
@@ -3593,701 +3383,61 @@ function deleteService(index) {
    END OF PART 5
    ========================================================== */
 
-
 /* ==========================================================
-   DUZY PAKIET CRM 3.3E-3.3H
-   HISTORIA, RYZYKO, KOLEJNY WIZYT I GRAFIK RODZINNY
+   POPRAWKA ADMIN: CZYSZCZENIE I NOWA SYNCHRONIZACJA GRAFIKU
    ========================================================== */
-
-const CRM_BOOKING_MODES = {
-    STANDARD: "STANDARDOWY",
-    CONFIRMATION: "WYMAGA_POTWIERDZENIA",
-    RESTRICTED: "REZERWACJA_OGRANICZONA",
-    CONTACT_ONLY: "TYLKO_KONTAKT"
+let crmWorkCalendarCleanupToken = "";
+let crmWorkCalendarOperationBusy = false;
+async function scanOldWorkScheduleEventsFromAdmin() {
+    if (crmWorkCalendarOperationBusy) return;
+    crmWorkCalendarOperationBusy = true;
+    const status=document.getElementById("sch-calendar-cleanup-status"),button=document.getElementById("sch-scan-calendar-btn");
+    if(button){button.disabled=true;button.textContent="Wyszukiwanie...";}
+    try{
+        const r=await crmExtendedPost("scanOldWorkScheduleEvents");
+        if(!r.success)throw new Error(r.error||"Błąd wyszukiwania");
+        crmWorkCalendarCleanupToken=r.token||"";
+        if(status)status.textContent=`Znaleziono ${r.count||0} starych wpisów grafiku w zakresie ${r.from} - ${r.to}.`;
+        const del=document.getElementById("sch-delete-calendar-btn");if(del)del.disabled=!(r.count>0&&crmWorkCalendarCleanupToken);
+        crmToast(`Znaleziono ${r.count||0} wpisów grafiku.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmWorkCalendarOperationBusy=false;if(button){button.disabled=false;button.textContent="Znajdź stare wpisy grafiku";}}
+}
+async function deleteOldWorkScheduleEventsFromAdmin() {
+    if(crmWorkCalendarOperationBusy||!crmWorkCalendarCleanupToken)return;
+    const ok=await crmConfirm("Usunąć znalezione automatyczne wpisy Wyjazd/Powrót ze zmiany z okresu 01.01.2026-31.01.2027? Wizyty klientów, blokady i prywatne wydarzenia nie będą usuwane.","Usuń wpisy grafiku");
+    if(!ok)return;
+    crmWorkCalendarOperationBusy=true;const button=document.getElementById("sch-delete-calendar-btn"),status=document.getElementById("sch-calendar-cleanup-status");
+    if(button){button.disabled=true;button.textContent="Usuwanie...";}
+    try{
+        const r=await crmExtendedPost("deleteOldWorkScheduleEvents",{token:crmWorkCalendarCleanupToken});
+        if(!r.success)throw new Error(r.error||"Błąd usuwania");
+        crmWorkCalendarCleanupToken="";if(status)status.textContent=`Usunięto ${r.removed||0} starych wpisów grafiku.`;
+        await loadSettings();crmToast(`Usunięto ${r.removed||0} wpisów. Teraz wygeneruj nową prognozę i uruchom synchronizację.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmWorkCalendarOperationBusy=false;if(button){button.textContent="Usuń stare wpisy grafiku";button.disabled=true;}}
+}
+function crmInstallCalendarCleanupControls(){
+    const syncButton=document.querySelector('#schedule-full-panel button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
+    if(!syncButton||document.getElementById("sch-calendar-cleanup-box"))return;
+    const box=document.createElement("div");box.id="sch-calendar-cleanup-box";box.style.cssText="margin-top:12px;padding:12px;border:1px solid #d8b38c;border-radius:9px;background:#fff";
+    box.innerHTML='<strong>Jednorazowe czyszczenie starego grafiku</strong><p id="sch-calendar-cleanup-status">Najpierw wyszukaj stare wpisy. Usuwane są tylko automatyczne wpisy grafiku.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="sch-scan-calendar-btn" type="button" class="btn-secondary" onclick="scanOldWorkScheduleEventsFromAdmin()">Znajdź stare wpisy grafiku</button><button id="sch-delete-calendar-btn" type="button" class="btn-danger" onclick="deleteOldWorkScheduleEventsFromAdmin()" disabled>Usuń stare wpisy grafiku</button></div>';
+    syncButton.parentNode.insertBefore(box,syncButton.nextSibling);
+}
+const crmOldSynchronizeWorkScheduleWithGoogleCalendar=synchronizeWorkScheduleWithGoogleCalendar;
+synchronizeWorkScheduleWithGoogleCalendar=async function(){
+    if(crmWorkCalendarOperationBusy)return;crmWorkCalendarOperationBusy=true;
+    const button=document.querySelector('#schedule-full-panel button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
+    if(button){button.disabled=true;button.dataset.oldText=button.textContent;button.textContent="Synchronizacja...";}
+    try{
+        const month=document.getElementById("sch-month").value,r=await crmExtendedPost("syncWorkScheduleToGoogleCalendar",{month});
+        if(!r.success)throw new Error(r.error||"Błąd synchronizacji");
+        await loadSettings();crmToast(`Synchronizacja zakończona. Utworzono ${r.created||0}, usunięto ${r.removed||0}, duplikaty ${r.duplicates||0}.`);
+    }catch(e){crmToast(e.message||String(e),"error");}
+    finally{crmWorkCalendarOperationBusy=false;if(button){button.disabled=false;button.textContent=button.dataset.oldText||"Synchronizuj z Google Calendar";}}
 };
-
-async function crmExtendedPost(action, payload) {
-    return crmTestPost(Object.assign({ action: action }, payload || {}));
-}
-
-async function initializeExtendedCRM() {
-    const response = await crmExtendedPost("initializeCRMExtensions");
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się przygotować modułów CRM");
-    }
-    return response;
-}
-
-async function loadClientCRMProfile(phone) {
-    const response = await crmExtendedPost("getClientCRMProfile", { phone: phone });
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się pobrać profilu klienta");
-    }
-    return response.profile;
-}
-
-async function saveClientBookingMode(phone, mode, reason) {
-    const response = await crmExtendedPost("setClientBookingMode", {
-        phone: phone,
-        mode: mode,
-        reason: reason || "",
-        changedBy: "MISTRZYNI"
-    });
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się zmienić trybu rezerwacji");
-    }
-    await loadClients();
-    return response;
-}
-
-async function recordAppointmentLifecycle(options) {
-    const response = await crmExtendedPost("recordAppointmentLifecycle", options || {});
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się zapisać historii wizyty");
-    }
-    await loadSystem();
-    return response;
-}
-
-async function cancelAppointmentWithHistory(initiator, reason) {
-    if (!currentEditingAppointment) return;
-    if (!confirm("Anulować wizytę i zapisać zdarzenie w historii?")) return;
-    try {
-        await recordAppointmentLifecycle({
-            operation: "ANULOWANIE",
-            eventId: currentEditingAppointment.eventId || "",
-            phone: currentEditingAppointment.phone || "",
-            clientName: currentEditingAppointment.name || "",
-            service: currentEditingAppointment.service || "",
-            oldDate: currentEditingAppointment.date || "",
-            initiator: initiator || "MISTRZYNI",
-            reason: reason || "",
-            deleteCalendarEvent: true
-        });
-        closeAppointmentModal();
-        alert("Wizyta została anulowana, a zdarzenie zapisane w historii.");
-    } catch (error) {
-        alert("Błąd anulowania wizyty: " + (error.message || error));
-    }
-}
-
-async function completeCurrentAppointment() {
-    if (!currentEditingAppointment) return;
-    try {
-        await recordAppointmentLifecycle({
-            operation: "ZREALIZOWANA",
-            eventId: currentEditingAppointment.eventId || "",
-            phone: currentEditingAppointment.phone || "",
-            clientName: currentEditingAppointment.name || "",
-            service: currentEditingAppointment.service || "",
-            oldDate: currentEditingAppointment.date || "",
-            initiator: "MISTRZYNI"
-        });
-        closeAppointmentModal();
-        alert("Wizyta została oznaczona jako zrealizowana.");
-    } catch (error) {
-        alert("Błąd zmiany statusu: " + (error.message || error));
-    }
-}
-
-async function markCurrentAppointmentNoShow() {
-    if (!currentEditingAppointment) return;
-    try {
-        await recordAppointmentLifecycle({
-            operation: "NIEOBECNOSC",
-            eventId: currentEditingAppointment.eventId || "",
-            phone: currentEditingAppointment.phone || "",
-            clientName: currentEditingAppointment.name || "",
-            service: currentEditingAppointment.service || "",
-            oldDate: currentEditingAppointment.date || "",
-            initiator: "KLIENT"
-        });
-        closeAppointmentModal();
-        alert("Nieobecność została zapisana.");
-    } catch (error) {
-        alert("Błąd zapisu nieobecności: " + (error.message || error));
-    }
-}
-
-async function getSmartNextVisitSuggestion(phone, service, baseDate, preference) {
-    const response = await crmExtendedPost("getSmartNextVisit", {
-        phone: phone,
-        service: service,
-        baseDate: baseDate || new Date().toISOString(),
-        preference: preference || "REKOMENDOWANY"
-    });
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się wyznaczyć kolejnej wizyty");
-    }
-    return response;
-}
-
-async function planNextVisitFromCurrentAppointment() {
-    if (!currentEditingAppointment) return;
-    try {
-        const suggestion = await getSmartNextVisitSuggestion(
-            currentEditingAppointment.phone,
-            currentEditingAppointment.service,
-            currentEditingAppointment.date,
-            "REKOMENDOWANY"
-        );
-        const hours = (suggestion.availableSlots || []).slice(0, 6).join(", ");
-        alert(
-            "Rekomendowana data: " + suggestion.recommendedDate + "\n" +
-            "Dostępne godziny: " + (hours || "brak automatycznych propozycji") + "\n\n" +
-            "Termin można zmienić ręcznie w formularzu wizyty."
-        );
-    } catch (error) {
-        alert("Błąd planowania kolejnej wizyty: " + (error.message || error));
-    }
-}
-
-async function saveFamilyScheduleEntry(entry) {
-    const response = await crmExtendedPost("saveFamilySchedule", { entry: entry || {} });
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się zapisać grafiku rodzinnego");
-    }
-    return response;
-}
-
-async function loadFamilySchedule(fromDate, toDate) {
-    const response = await crmExtendedPost("getFamilySchedule", {
-        fromDate: fromDate || "",
-        toDate: toDate || ""
-    });
-    if (!response || !response.success) {
-        throw new Error(response && response.error ? response.error : "Nie udało się pobrać grafiku rodzinnego");
-    }
-    return response.entries || [];
-}
-
-function ensureAppointmentLifecycleButtons() {
-    const modal = document.getElementById("appointmentDetailsModal");
-    if (!modal || document.getElementById("crm-lifecycle-actions")) return;
-    const content = modal.querySelector(".modal-content") || modal;
-    const box = document.createElement("div");
-    box.id = "crm-lifecycle-actions";
-    box.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #eadfd5;";
-    box.innerHTML = `
-        <button type="button" class="btn-secondary" onclick="completeCurrentAppointment()">Oznacz jako zrealizowaną</button>
-        <button type="button" class="btn-secondary" onclick="markCurrentAppointmentNoShow()">Nieobecność</button>
-        <button type="button" class="btn-secondary" onclick="cancelAppointmentWithHistory('KLIENT', '')">Anuluj przez klienta</button>
-        <button type="button" class="btn-secondary" onclick="cancelAppointmentWithHistory('MISTRZYNI', '')">Anuluj przez salon</button>
-        <button type="button" class="btn-primary" onclick="planNextVisitFromCurrentAppointment()">Zaplanuj następny wizyt</button>
-    `;
-    content.appendChild(box);
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    ensureAppointmentLifecycleButtons();
-    initializeExtendedCRM().catch(error => console.error("Inicjalizacja rozszerzonego CRM:", error));
-});
-
-/* ==========================================================
-   KONIEC DUZEGO PAKIETU CRM 3.3E-3.3H
-   ========================================================== */
-
-
-/* ==========================================================
-   ROZSZERZENIE: KATEGORIE, GRAFIK 4X4, KOREKTY I IMPORT
-   ========================================================== */
-async function syncCategoryColorsAndRefresh() {
-    const response = await crmExtendedPost("syncCategoryColors", { categories: getUniqueServiceCategories() });
-    if (!response.success) throw new Error(response.error || "Błąd synchronizacji kategorii");
-    globalColors = Object.assign({}, globalColors, response.colors || {});
-    buildColorsEditor();
-    renderBooksyCalendar();
-    return response;
-}
-async function saveScheduleCorrectionFromPanel() {
-    const entry = {
-        date: document.getElementById("sch-date").value,
-        dayType: document.getElementById("sch-type").value,
-        husbandShift: document.getElementById("sch-shift").value,
-        availableFrom: document.getElementById("sch-from").value,
-        availableTo: document.getElementById("sch-to").value,
-        fullDayBlocked: false,
-        reason: document.getElementById("sch-reason").value,
-        source: "RECZNA_KOREKTA"
-    };
-    const response = await crmExtendedPost("saveScheduleCorrection", { entry });
-    if (!response.success) throw new Error(response.error || "Błąd korekty");
-    alert("Ręczna korekta została zapisana. Nie zostanie nadpisana przez oficjalny grafik.");
-    await refreshSchedulePanel();
-    await renderWorkScheduleCalendar();
-}
-
-async function generateSchedule4x4FromPanel() {
-    const response = await crmExtendedPost("generateSchedule4x4", {
-        year: Number(document.getElementById("sch-year").value),
-        startDate: document.getElementById("sch-start").value
-    });
-    if (!response.success) throw new Error(response.error || "Błąd generowania");
-    alert("Prognoza 4×4 utworzona: 1, 1, 2, 2, W, W, W, W.");
-    await refreshSchedulePanel();
-    await renderWorkScheduleCalendar();
-}
-
-async function refreshSchedulePanel() {
-    const output = document.getElementById("sch-output");
-    const month = document.getElementById("sch-month");
-    if (!output || !month) return;
-    const response = await crmExtendedPost("getEffectiveSchedule", { month: month.value });
-    if (!response.success) throw new Error(response.error || "Błąd odczytu grafiku");
-    output.innerHTML = response.entries.map(item =>
-        `<div style="padding:6px;border-bottom:1px solid #ddd"><strong>${item.date}</strong> | ${item.code || item.dayType} | źródło: ${item.source} | ${item.reason || ""}</div>`
-    ).join("") || "Brak wpisów";
-}
-
-async function checkScheduleDriveFolderNow() {
-    const button = document.getElementById("sch-check-folder-btn");
-    const status = document.getElementById("sch-folder-status");
-    if (button) button.disabled = true;
-    if (status) status.textContent = "Sprawdzanie folderu...";
-    try {
-        const response = await crmExtendedPost("checkScheduleDriveFolder", { manual: true });
-        if (!response.success) throw new Error(response.error || "Błąd sprawdzania folderu");
-        if (status) status.textContent = `Ostatnie sprawdzenie: ${response.checkedAt}. Nowe: ${response.newFiles}, zmienione: ${response.changedFiles}, bez zmian: ${response.unchangedFiles}.`;
-        await refreshSchedulePanel();
-        await renderWorkScheduleCalendar();
-    } finally {
-        if (button) button.disabled = false;
-    }
-}
-
-async function installScheduleFolderTriggers() {
-    const response = await crmExtendedPost("installScheduleFolderTriggers");
-    if (!response.success) throw new Error(response.error || "Błąd instalacji harmonogramu");
-    alert("Kontrola folderu została ustawiona: poniedziałek, czwartek i ostatni dzień miesiąca.");
-}
-
-async function synchronizeWorkScheduleWithGoogleCalendar() {
-    const month = document.getElementById("sch-month").value;
-    const response = await crmExtendedPost("syncWorkScheduleToGoogleCalendar", { month });
-    if (!response.success) throw new Error(response.error || "Błąd synchronizacji Google Calendar");
-    alert(`Zaktualizowano oznaczenia Google Calendar: ${response.created} utworzono, ${response.removed} usunięto.`);
-}
-
-function scheduleCodeColor(code) {
-    const value = String(code || "W").toUpperCase();
-    if (value === "1") return { bg: "#fff200", fg: "#111" };
-    if (value === "2") return { bg: "#8bc34a", fg: "#111" };
-    if (["UW", "OP", "BHP"].includes(value)) return { bg: "#82b1d8", fg: "#111" };
-    if (["SW", "ŚW"].includes(value)) return { bg: "#ef5350", fg: "#fff" };
-    return { bg: "#fff", fg: "#111" };
-}
-
-async function renderWorkScheduleCalendar() {
-    const host = document.getElementById("work-schedule-calendar");
-    if (!host) return;
-    const year = selectedCalendarDate.getFullYear();
-    const monthIndex = selectedCalendarDate.getMonth();
-    const monthKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-    const response = await crmExtendedPost("getEffectiveSchedule", { month: monthKey });
-    if (!response.success) {
-        host.textContent = response.error || "Nie udało się pobrać grafiku.";
-        return;
-    }
-    const byDate = {};
-    response.entries.forEach(item => { byDate[item.date] = item; });
-    const names = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"];
-    const monthName = new Date(year, monthIndex, 1).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
-    let html = `<h3 style="margin:0 0 12px">Grafik pracy: ${monthName}</h3><div class="work-schedule-grid" style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:5px">`;
-    names.forEach(name => { html += `<div style="font-weight:700;text-align:center;padding:5px">${name}</div>`; });
-    const first = new Date(year, monthIndex, 1);
-    const leading = first.getDay() === 0 ? 6 : first.getDay() - 1;
-    for (let i = 0; i < leading; i++) html += "<div></div>";
-    const days = new Date(year, monthIndex + 1, 0).getDate();
-    for (let day = 1; day <= days; day++) {
-        const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-        const entry = byDate[dateKey] || {};
-        const code = entry.code || "";
-        const color = scheduleCodeColor(code);
-        const title = entry.source ? `Kod: ${code}; źródło: ${entry.source}; ${entry.reason || ""}` : "Brak danych";
-        html += `<button type="button" title="${title.replace(/"/g, "&quot;")}" style="min-height:58px;border:1px solid #d8cec6;border-radius:7px;background:${color.bg};color:${color.fg};cursor:pointer"><span style="display:block;font-size:12px">${day}</span><strong style="font-size:17px">${code}</strong></button>`;
-    }
-    host.innerHTML = html + "</div><p style=\"font-size:12px;color:#666\">1 = zmiana dzienna, 2 = zmiana nocna. Grafik ma charakter informacyjny i sam nie blokuje wizyt.</p>";
-}
-
-function ensureScheduleCalendarUnderMainCalendar() {
-    if (document.getElementById("work-schedule-calendar")) return;
-    const grid = document.getElementById("booksy-grid");
-    if (!grid || !grid.parentNode) return;
-    const host = document.createElement("section");
-    host.id = "work-schedule-calendar";
-    host.style.cssText = "margin-top:22px;padding:18px;border:1px solid #e3d8cf;border-radius:12px;background:#fff";
-    grid.parentNode.insertBefore(host, grid.nextSibling);
-}
-
-function ensureSchedulePanel() {
-    const tab = document.getElementById("tab-ustawienia");
-    if (!tab || document.getElementById("schedule-full-panel")) return;
-    const now = new Date();
-    const panel = document.createElement("section");
-    panel.id = "schedule-full-panel";
-    panel.style.cssText = "margin-top:30px;padding:18px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6";
-    panel.innerHTML = `<h2 style="margin-top:0">Grafik pracy</h2>
-      <details><summary style="cursor:pointer;font-weight:700">Prognoza 4×4</summary><p>Schemat stały: 1, 1, 2, 2, W, W, W, W. Wskaż pierwszy dzień zmiany dziennej.</p><input id="sch-year" type="number" value="${now.getFullYear()}"><input id="sch-start" type="date"><button type="button" class="btn-primary" onclick="generateSchedule4x4FromPanel()">Generuj prognozę</button></details>
-      <details><summary style="cursor:pointer;font-weight:700">Ręczna korekta dnia</summary><input id="sch-date" type="date"><select id="sch-type"><option value="WOLNE">Dzień wolny</option><option value="PRACA">Dzień pracy</option><option value="UW">Urlop wypoczynkowy</option><option value="OP">Opieka nad dzieckiem</option><option value="BHP">BHP</option><option value="SW">Dzień świąteczny</option></select><select id="sch-shift"><option value="WOLNE">Wolne</option><option value="1">1</option><option value="2">2</option><option value="BHP">BHP</option></select><input id="sch-from" type="time" step="300"><input id="sch-to" type="time" step="300"><input id="sch-reason" placeholder="Powód korekty"><button type="button" class="btn-primary" onclick="saveScheduleCorrectionFromPanel()">Zapisz korektę</button></details>
-      <details open><summary style="cursor:pointer;font-weight:700">Oficjalny grafik z Google Drive</summary><p>Folder: Grafik. Nazwa pliku: RRRR-MM. Pracownik: Oleksandr Strelnkov.</p><button id="sch-check-folder-btn" type="button" class="btn-primary" onclick="checkScheduleDriveFolderNow()">Sprawdź folder teraz</button><button type="button" class="btn-secondary" onclick="installScheduleFolderTriggers()">Ustaw kontrolę automatyczną</button><button type="button" class="btn-secondary" onclick="synchronizeWorkScheduleWithGoogleCalendar()">Synchronizuj z Google Calendar</button><p id="sch-folder-status">Automatycznie: poniedziałek, czwartek i ostatni dzień miesiąca. OCR tylko dla nowego lub zmienionego pliku.</p></details>
-      <details><summary style="cursor:pointer;font-weight:700">Podgląd danych i historii</summary><input id="sch-month" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}" onchange="refreshSchedulePanel()"><button type="button" class="btn-secondary" onclick="refreshSchedulePanel()">Odśwież</button><div id="sch-output"></div></details>`;
-    tab.insertBefore(panel, document.getElementById("crm-diagnostics-panel") || null);
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    const dt = document.getElementById("appointmentDateTime");
-    if (dt) dt.step = "300";
-    ensureSchedulePanel();
-    ensureScheduleCalendarUnderMainCalendar();
-    syncCategoryColorsAndRefresh().catch(console.error);
-    refreshSchedulePanel().catch(console.error);
-    renderWorkScheduleCalendar().catch(console.error);
-});
-
-/* KONIEC ROZSZERZENIA GRAFIKU I KATEGORII */
-
-
-/* ==========================================================
-   ETAP 3.4 I 3.5: SYNCHRONIZACJA, TESTY I BACKUP ADMIN
-   ========================================================== */
-async function loadCalendarSyncHistory() {
-    const response=await crmExtendedPost("getCalendarSyncHistory",{limit:30});
-    if(!response.success)throw new Error(response.error||"Błąd historii synchronizacji");
-    return response.entries||[];
-}
-async function runPoint35Diagnostics() {
-    const response=await crmExtendedPost("runPoint35Diagnostics");
-    if(!response.success)throw new Error(response.error||"Diagnostyka 3.5 zakończona błędem");
-    return response;
-}
-async function createFinalAdminBackup() {
-    const response=await crmExtendedPost("createFinalAdminBackup",{description:"Finalny backup po etapach 3.4 i 3.5"});
-    if(!response.success)throw new Error(response.error||"Nie udało się utworzyć backupu");
-    alert("Backup ADMIN zapisany: "+response.version);
-    return response;
-}
-/* KONIEC ETAPU 3.4 I 3.5 */
-
-
-/* ==========================================================
-   PAKIET POPRAWEK PO ZYWYM TESCIE ADMIN
-   ========================================================== */
-let crmUiOperationLock = false;
-
-function crmEnsureUiLayer() {
-    if (!document.getElementById("crm-toast-container")) {
-        const host = document.createElement("div");
-        host.id = "crm-toast-container";
-        host.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:99999;display:flex;flex-direction:column;gap:8px;max-width:380px";
-        document.body.appendChild(host);
-    }
-}
-function crmToast(message, type) {
-    crmEnsureUiLayer();
-    const item = document.createElement("div");
-    const ok = type !== "error";
-    item.style.cssText = `padding:13px 16px;border-radius:10px;color:#fff;background:${ok ? "#2e7d32" : "#b3261e"};box-shadow:0 6px 22px rgba(0,0,0,.2);font-weight:600`;
-    item.textContent = (ok ? "✓ " : "⚠ ") + message;
-    document.getElementById("crm-toast-container").appendChild(item);
-    setTimeout(() => item.remove(), ok ? 3500 : 6500);
-}
-function crmConfirm(message, confirmText) {
-    return new Promise(resolve => {
-        const overlay = document.createElement("div");
-        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px";
-        overlay.innerHTML = `<div style="background:#fff;border-radius:14px;padding:22px;max-width:430px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.28)"><h3 style="margin:0 0 12px">Potwierdzenie</h3><p style="margin:0 0 20px;line-height:1.45"></p><div style="display:flex;justify-content:flex-end;gap:10px"><button type="button" data-no>Wróć</button><button type="button" class="btn-primary" data-yes></button></div></div>`;
-        overlay.querySelector("p").textContent = message;
-        overlay.querySelector("[data-yes]").textContent = confirmText || "Potwierdź";
-        overlay.querySelector("[data-no]").onclick = () => { overlay.remove(); resolve(false); };
-        overlay.querySelector("[data-yes]").onclick = () => { overlay.remove(); resolve(true); };
-        document.body.appendChild(overlay);
-    });
-}
-function crmSetActionGroupBusy(busy, activeButton, busyText) {
-    const box = document.getElementById("crm-lifecycle-actions");
-    if (!box) return;
-    box.querySelectorAll("button").forEach(btn => {
-        if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
-        btn.disabled = busy;
-        if (btn === activeButton && busy) btn.textContent = busyText || "Zapisywanie...";
-        if (!busy) btn.textContent = btn.dataset.originalText;
-    });
-}
-async function crmRefreshAllViews() {
-    await loadSystem();
-    await loadClients();
-    renderDashboard();
-    renderBooksyCalendar();
-    await renderWorkScheduleCalendar();
-}
-function crmFormatDateTime(value) {
-    const date = new Date(value);
-    return isNaN(date.getTime()) ? String(value || "") : date.toLocaleString("pl-PL", {dateStyle:"short",timeStyle:"short"});
-}
-function crmUpdateLifecycleVisibility(app) {
-    const box = document.getElementById("crm-lifecycle-actions");
-    if (!box) return;
-    const external = app && app.eventType === "external";
-    const block = app && app.eventType === "block";
-    box.style.display = (external || block) ? "none" : "flex";
-    let externalBox = document.getElementById("crm-external-actions");
-    if (!externalBox) {
-        externalBox = document.createElement("div");
-        externalBox.id = "crm-external-actions";
-        externalBox.style.cssText = "display:none;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #eadfd5";
-        externalBox.innerHTML = `<button type="button" class="btn-primary" onclick="window.open('https://calendar.google.com/calendar/u/0/r','_blank','noopener')">Otwórz Google Calendar</button><button type="button" class="btn-secondary" onclick="convertExternalToCRMAppointment()">Przekształć w wizytę CRM</button>`;
-        box.parentNode.appendChild(externalBox);
-    }
-    externalBox.style.display = external ? "flex" : "none";
-}
-function convertExternalToCRMAppointment() {
-    const app = currentEditingAppointment;
-    if (!app || app.eventType !== "external") return;
-    closeAppointmentModal();
-    openCreateAppointmentModal();
-    setTimeout(() => {
-        const name = document.getElementById("appointmentName");
-        const date = document.getElementById("appointmentDateTime");
-        const duration = document.getElementById("appointmentDuration");
-        if (name) name.value = app.name || "";
-        if (date) date.value = String(app.date || "").slice(0,16);
-        if (duration) duration.value = app.duration || 60;
-        crmSyncFiveMinuteControlsFromHidden();
-        crmToast("Uzupełnij klienta, telefon i usługę, a następnie zapisz wizytę.");
-    }, 0);
-}
-
-const crmOriginalOpenAppointmentDetailsModal = openAppointmentDetailsModal;
-openAppointmentDetailsModal = function(app) {
-    crmOriginalOpenAppointmentDetailsModal(app);
-    setText("details-datetime", crmFormatDateTime(app.date));
-    crmUpdateLifecycleVisibility(app);
-};
-
-async function crmRunLifecycleOperation(operation, initiator, deleteCalendarEvent, successText, button) {
-    if (crmUiOperationLock || !currentEditingAppointment || currentEditingAppointment.eventType !== "appointment") return;
-    crmUiOperationLock = true;
-    crmSetActionGroupBusy(true, button, "Zapisywanie...");
-    try {
-        await recordAppointmentLifecycle({operation, eventId:currentEditingAppointment.eventId||"", phone:currentEditingAppointment.phone||"", clientName:currentEditingAppointment.name||"", service:currentEditingAppointment.service||"", oldDate:currentEditingAppointment.date||"", initiator:initiator||"MISTRZYNI", deleteCalendarEvent:Boolean(deleteCalendarEvent)});
-        closeAppointmentModal();
-        await crmRefreshAllViews();
-        crmToast(successText);
-    } catch (error) {
-        crmToast(error.message || String(error), "error");
-    } finally {
-        crmUiOperationLock = false;
-        crmSetActionGroupBusy(false);
-    }
-}
-completeCurrentAppointment = async function() {
-    return crmRunLifecycleOperation("ZREALIZOWANA", "MISTRZYNI", false, "Wizyta została oznaczona jako zrealizowana.", document.activeElement);
-};
-markCurrentAppointmentNoShow = async function() {
-    const ok = await crmConfirm("Czy zapisać nieobecność klienta?", "Zapisz nieobecność");
-    if (!ok) return;
-    return crmRunLifecycleOperation("NIEOBECNOSC", "KLIENT", false, "Nieobecność została zapisana.", document.activeElement);
-};
-cancelAppointmentWithHistory = async function(initiator) {
-    const ok = await crmConfirm("Czy na pewno anulować tę wizytę?", initiator === "KLIENT" ? "Anuluj przez klienta" : "Anuluj przez salon");
-    if (!ok) return;
-    return crmRunLifecycleOperation("ANULOWANIE", initiator || "MISTRZYNI", true, "Wizyta została anulowana.", document.activeElement);
-};
-planNextVisitFromCurrentAppointment = async function() {
-    if (crmUiOperationLock || !currentEditingAppointment || currentEditingAppointment.eventType !== "appointment") return;
-    crmUiOperationLock = true;
-    crmSetActionGroupBusy(true, document.activeElement, "Wyszukiwanie...");
-    try {
-        const suggestion = await getSmartNextVisitSuggestion(currentEditingAppointment.phone,currentEditingAppointment.service,currentEditingAppointment.date,"REKOMENDOWANY");
-        crmToast(`Rekomendowana data: ${suggestion.recommendedDate}. Godziny: ${(suggestion.availableSlots||[]).slice(0,6).join(", ") || "brak propozycji"}`);
-    } catch (error) { crmToast(error.message || String(error), "error"); }
-    finally { crmUiOperationLock=false; crmSetActionGroupBusy(false); }
-};
-
-function crmInstallFiveMinuteDateTimePicker() {
-    const input = document.getElementById("appointmentDateTime");
-    if (!input || document.getElementById("appointmentDateTimeFiveMinute")) return;
-    input.type = "hidden";
-    const box = document.createElement("div");
-    box.id = "appointmentDateTimeFiveMinute";
-    box.style.cssText = "display:grid;grid-template-columns:minmax(145px,1fr) 86px 86px;gap:8px";
-    box.innerHTML = `<input type="date" data-date><select data-hour>${Array.from({length:24},(_,i)=>`<option value="${String(i).padStart(2,"0")}">${String(i).padStart(2,"0")}</option>`).join("")}</select><select data-minute>${Array.from({length:12},(_,i)=>`<option value="${String(i*5).padStart(2,"0")}">${String(i*5).padStart(2,"0")}</option>`).join("")}</select>`;
-    input.parentNode.insertBefore(box,input.nextSibling);
-    box.addEventListener("change", crmSyncHiddenDateTimeFromFiveMinuteControls);
-    crmSyncFiveMinuteControlsFromHidden();
-}
-function crmSyncHiddenDateTimeFromFiveMinuteControls() {
-    const input=document.getElementById("appointmentDateTime"),box=document.getElementById("appointmentDateTimeFiveMinute");
-    if(!input||!box)return;
-    const d=box.querySelector("[data-date]").value,h=box.querySelector("[data-hour]").value,m=box.querySelector("[data-minute]").value;
-    input.value=d?`${d}T${h}:${m}`:"";
-}
-function crmSyncFiveMinuteControlsFromHidden() {
-    const input=document.getElementById("appointmentDateTime"),box=document.getElementById("appointmentDateTimeFiveMinute");
-    if(!input||!box)return;
-    const value=String(input.value||"");
-    box.querySelector("[data-date]").value=value.slice(0,10);
-    if(value.length>=16){box.querySelector("[data-hour]").value=value.slice(11,13);const minute=Math.round(Number(value.slice(14,16))/5)*5%60;box.querySelector("[data-minute]").value=String(minute).padStart(2,"0");}
-}
-document.addEventListener("click", () => setTimeout(crmSyncFiveMinuteControlsFromHidden,0), true);
-
-const crmOldGenerateSchedule4x4 = generateSchedule4x4FromPanel;
-generateSchedule4x4FromPanel = async function() {
-    if (crmUiOperationLock) return;
-    const button = document.querySelector('#schedule-full-panel button[onclick="generateSchedule4x4FromPanel()"]') || document.activeElement;
-    crmUiOperationLock=true;
-    if(button){button.disabled=true;button.dataset.oldText=button.textContent;button.textContent="Generowanie...";}
-    try {
-        const year=Number(document.getElementById("sch-year").value),startDate=document.getElementById("sch-start").value;
-        if(!startDate) throw new Error("Wskaż pierwszy dzień zmiany 1.");
-        const response=await crmExtendedPost("generateSchedule4x4",{year,startDate});
-        if(!response.success)throw new Error(response.error||"Błąd generowania");
-        selectedCalendarDate=new Date(year,Number(document.getElementById("sch-month").value.slice(5,7))-1,1);
-        await refreshSchedulePanel(); await renderWorkScheduleCalendar();
-        const verify=await crmExtendedPost("getEffectiveSchedule",{month:document.getElementById("sch-month").value});
-        if(!verify.success||!verify.entries||!verify.entries.length)throw new Error("Prognoza została zapisana, ale nie udało się odświeżyć kalendarza.");
-        crmToast(`Prognoza wygenerowana. Zapisano ${response.days || 365} dni.`);
-    } catch(error){crmToast(error.message||String(error),"error");}
-    finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent=button.dataset.oldText||"Generuj prognozę";}}
-};
-checkScheduleDriveFolderNow = async function() {
-    if(crmUiOperationLock)return; const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");
-    crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
-    try{const r=await crmExtendedPost("checkScheduleDriveFolder",{manual:true});if(!r.success)throw new Error(r.error||"Błąd folderu");
-      const names=(r.candidates||[]).map(x=>x.name).join(", ");
-      const rejected=(r.rejected||[]).map(x=>x.name||"bez nazwy").join(", ");
-      status.textContent=`Folder ${r.folderName||"Grafik"} (${r.folderId||""}). Pliki: ${r.totalFiles||0}, pasujące: ${r.matchingFiles||0}, nowe: ${r.newFiles||0}, zmienione: ${r.changedFiles||0}, bez zmian: ${r.unchangedFiles||0}.${names?" Rozpoznane: "+names+".":""}${rejected?" Pominięte: "+rejected+".":""}`;
-      crmToast(r.matchingFiles?`Znaleziono ${r.matchingFiles} pasujący plik.`:"Folder dostępny, ale brak pasujących plików.",r.matchingFiles?"success":"error");
-    }catch(e){crmToast(e.message||String(e),"error");}finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Sprawdź folder teraz";}}
-};
-
-document.addEventListener("DOMContentLoaded",()=>{crmEnsureUiLayer();crmInstallFiveMinuteDateTimePicker();});
-/* KONIEC PAKIETU POPRAWEK PO ZYWYM TESCIE */
-
-
-/* ==========================================================
-   IMPORT OFICJALNEGO GRAFIKU Z OCR I WERYFIKACJA
-   ========================================================== */
-let crmLastScheduleImport = null;
-function crmScheduleCodeOptions(selected){
-    return ["?","1","2","W","WH","WN","UW","OP","SW","BHP"].map(code=>`<option value="${code}" ${code===selected?"selected":""}>${code}</option>`).join("");
-}
-function crmRenderScheduleImportReview(data){
-    const panel=document.getElementById("sch-import-review")||document.createElement("div");
-    if(!panel.id){panel.id="sch-import-review";panel.style.cssText="margin-top:14px;padding:14px;border:1px solid #d7baa0;border-radius:10px;background:#fff";document.getElementById("sch-folder-status").after(panel);}
-    if(data.alreadyApplied){panel.innerHTML=`<strong>${data.message}</strong>`;return;}
-    crmLastScheduleImport=data;
-    panel.innerHTML=`<h3 style="margin:0 0 8px">Sprawdź grafik: ${data.month}</h3><p>Pracownik: ${data.employeeFound?"znaleziony elastycznie":"nie znaleziony"}. Rozpoznano automatycznie ${data.recognized||0} z ${data.days||0} dni. Popraw znaki „?” przed zatwierdzeniem.</p><div style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:6px">${(data.codes||[]).map((code,i)=>`<label style="display:flex;flex-direction:column;gap:3px;font-size:12px">Dzień ${i+1}<select data-official-day="${i+1}">${crmScheduleCodeOptions(code)}</select></label>`).join("")}</div><div style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn-primary" onclick="crmApplyOfficialSchedule()">Zatwierdź oficjalny grafik</button><button type="button" class="btn-secondary" onclick="crmProcessOfficialScheduleFile('${data.fileId||""}',true)">Przetwórz ponownie OCR</button></div><details style="margin-top:10px"><summary>Tekst rozpoznanego wiersza</summary><pre style="white-space:pre-wrap">${String(data.ocrLine||"").replace(/</g,"&lt;")}</pre></details>`;
-}
-async function crmProcessOfficialScheduleFile(fileId,force){
-    if(!fileId)return crmToast("Brak identyfikatora pliku do przetworzenia.","error");
-    crmToast("Odczytywanie oficjalnego grafiku...");
-    try{const r=await crmExtendedPost("processOfficialScheduleFile",{fileId:fileId,force:Boolean(force)});if(!r.success)throw new Error(r.error||"Błąd OCR");r.fileId=fileId;crmRenderScheduleImportReview(r);crmToast(r.alreadyApplied?"Plik był już zatwierdzony.":"OCR zakończony. Sprawdź rozpoznane dni.");}catch(e){crmToast(e.message||String(e),"error");}
-}
-async function crmApplyOfficialSchedule(){
-    if(!crmLastScheduleImport)return;
-    const codes=Array.from(document.querySelectorAll("[data-official-day]")).map(x=>x.value);
-    const unknown=codes.map((x,i)=>x==="?"?i+1:null).filter(Boolean);if(unknown.length)return crmToast("Popraw nierozpoznane dni: "+unknown.join(", "),"error");
-    const btn=document.activeElement;if(btn){btn.disabled=true;btn.textContent="Zapisywanie...";}
-    try{const r=await crmExtendedPost("applyOfficialSchedule",{importId:crmLastScheduleImport.importId,month:crmLastScheduleImport.month,codes:codes});if(!r.success)throw new Error(r.error||"Błąd zapisu");await refreshSchedulePanel();await renderWorkScheduleCalendar();crmToast("Oficjalny grafik został zastosowany.");}catch(e){crmToast(e.message||String(e),"error");}finally{if(btn){btn.disabled=false;btn.textContent="Zatwierdź oficjalny grafik";}}
-}
-const crmPreviousFolderCheck=checkScheduleDriveFolderNow;
-checkScheduleDriveFolderNow=async function(){
-    if(crmUiOperationLock)return;const button=document.getElementById("sch-check-folder-btn"),status=document.getElementById("sch-folder-status");crmUiOperationLock=true;if(button){button.disabled=true;button.textContent="Sprawdzanie...";}
-    try{const r=await crmExtendedPost("checkScheduleDriveFolder",{manual:true});if(!r.success)throw new Error(r.error||"Błąd folderu");const names=(r.candidates||[]).map(x=>x.name).join(", ");status.textContent=`Folder ${r.folderName||"Grafik"} (${r.folderId||""}). Pliki: ${r.totalFiles||0}, pasujące: ${r.matchingFiles||0}.${names?" Rozpoznane: "+names+".":""}`;if(r.candidates&&r.candidates.length){crmToast(`Znaleziono ${r.candidates.length} plik. Rozpoczynam OCR.`);await crmProcessOfficialScheduleFile(r.candidates[0].id,false);}else crmToast("Folder dostępny, ale brak pasujących plików.","error");}catch(e){crmToast(e.message||String(e),"error");}finally{crmUiOperationLock=false;if(button){button.disabled=false;button.textContent="Sprawdź folder teraz";}}
-};
-/* KONIEC IMPORTU OFICJALNEGO GRAFIKU */
-
-
-/* ==========================================================
-   KADROWANIE WIERSZA GRAFIKU PRZED OCR
-   ========================================================== */
-let crmScheduleImageSource=null;
-function crmCanvasToBase64(canvas){return canvas.toDataURL("image/jpeg",0.96).split(",")[1];}
-function crmDrawScheduleCrop(){
-    if(!crmScheduleImageSource)return;const canvas=document.getElementById("sch-crop-canvas"),top=Number(document.getElementById("sch-crop-top").value),height=Number(document.getElementById("sch-crop-height").value),ctx=canvas.getContext("2d"),img=crmScheduleImageSource;
-    const sy=Math.max(0,Math.round(img.naturalHeight*top/100)),sh=Math.max(12,Math.min(img.naturalHeight-sy,Math.round(img.naturalHeight*height/100)));
-    canvas.width=img.naturalWidth;canvas.height=sh;ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,sy,img.naturalWidth,sh,0,0,img.naturalWidth,sh);
-    document.getElementById("sch-crop-info").textContent=`Kadrowanie: od ${top}% wysokości, wysokość ${height}% (${sy}-${sy+sh}px).`;
-}
-function crmRenderScheduleCropPanel(file){
-    let panel=document.getElementById("sch-crop-panel");if(!panel){panel=document.createElement("div");panel.id="sch-crop-panel";panel.style.cssText="margin-top:14px;padding:14px;border:1px solid #d7baa0;border-radius:10px;background:#fff";document.getElementById("sch-folder-status").after(panel);}
-    panel.innerHTML=`<h3 style="margin:0 0 8px">Kadrowanie wiersza pracownika</h3><p>Ramka pokazuje fragment wysyłany do OCR. Jeśli wiersz pracownika nie jest widoczny, przesuń zakres.</p><label>Położenie od góry: <input id="sch-crop-top" type="range" min="0" max="94" value="60" step="1"></label><label style="margin-left:16px">Wysokość wycinka: <input id="sch-crop-height" type="range" min="5" max="25" value="12" step="1"></label><div id="sch-crop-info" style="margin:8px 0"></div><div style="overflow:auto;max-height:240px;border:1px solid #ddd"><canvas id="sch-crop-canvas" style="max-width:100%;display:block"></canvas></div><div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn-primary" onclick="crmRunCroppedScheduleOCR()">Odczytaj ten wiersz</button><button type="button" class="btn-secondary" onclick="crmAutoFindScheduleRow()">Ustaw typowe położenie</button></div>`;
-    document.getElementById("sch-crop-top").oninput=crmDrawScheduleCrop;document.getElementById("sch-crop-height").oninput=crmDrawScheduleCrop;
-    const img=new Image();img.onload=()=>{crmScheduleImageSource=img;crmDrawScheduleCrop();};img.src=`data:${file.mimeType};base64,${file.base64Data}`;
-}
-function crmAutoFindScheduleRow(){document.getElementById("sch-crop-top").value="60";document.getElementById("sch-crop-height").value="12";crmDrawScheduleCrop();}
-async function crmPrepareScheduleCrop(fileId){
-    try{crmToast("Pobieranie obrazu grafiku...");const r=await crmExtendedPost("getScheduleImageData",{fileId:fileId});if(!r.success)throw new Error(r.error||"Błąd pobierania obrazu");crmRenderScheduleCropPanel(r);crmToast("Sprawdź, czy wycinek zawiera cały wiersz pracownika.");}catch(e){crmToast(e.message||String(e),"error");}
-}
-async function crmRunCroppedScheduleOCR(){
-    const canvas=document.getElementById("sch-crop-canvas"),button=document.activeElement;if(!canvas||!canvas.width)return;
-    if(button){button.disabled=true;button.textContent="Odczytywanie...";}
-    try{const top=Number(document.getElementById("sch-crop-top").value),height=Number(document.getElementById("sch-crop-height").value),r=await crmExtendedPost("processCroppedScheduleImage",{fileName:"2026-07.jpg",mimeType:"image/jpeg",base64Data:crmCanvasToBase64(canvas),crop:{topPercent:top,heightPercent:height}});if(!r.success)throw new Error(r.error||"Błąd OCR wycinka");r.fileId=crmLastScheduleImport&&crmLastScheduleImport.fileId||"";crmRenderScheduleImportReview(r);crmToast(`OCR wycinka rozpoznał ${r.recognized||0} z ${r.days||0} dni.`);}catch(e){crmToast(e.message||String(e),"error");}finally{if(button){button.disabled=false;button.textContent="Odczytaj ten wiersz";}}
-}
-// Po nieudanym pełnym OCR pokaż narzędzie kadrowania zamiast 31 pustych pól bez wyjaśnienia.
-const crmOldRenderScheduleImportReview=crmRenderScheduleImportReview;
-crmRenderScheduleImportReview=function(data){crmOldRenderScheduleImportReview(data);if((data.recognized||0)===0&&data.fileId)crmPrepareScheduleCrop(data.fileId);};
-/* KONIEC KADROWANIA WIERSZA GRAFIKU */
-
-
-/* ==========================================================
-   SEGMENTACJA 31 KOMOREK GRAFIKU I ANALIZA KOLORU
-   ========================================================== */
-let crmSegmentedScheduleCells=[];
-function crmAverageCellColor(ctx,x,y,w,h){
-    const sx=Math.round(x+w*0.22),sy=Math.round(y+h*0.22),sw=Math.max(2,Math.round(w*0.56)),sh=Math.max(2,Math.round(h*0.56));
-    const data=ctx.getImageData(sx,sy,sw,sh).data;let r=0,g=0,b=0,n=0;
-    for(let i=0;i<data.length;i+=4){if(data[i+3]<100)continue;r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
-    return n?{r:Math.round(r/n),g:Math.round(g/n),b:Math.round(b/n)}:{r:255,g:255,b:255};
-}
-function crmGuessCodeFromColor(c){
-    // Kolor daje bezpieczną podpowiedź kategorii. Użytkownik nadal zatwierdza kod tekstowy.
-    if(c.r>190&&c.g>185&&c.b<105)return{code:"1",confidence:"wysoka",kind:"żółta"};
-    if(c.g>135&&c.r<190&&c.b<150)return{code:"2",confidence:"wysoka",kind:"zielona"};
-    if(c.b>145&&c.r<190&&c.g>125)return{code:"UW",confidence:"średnia",kind:"niebieska"};
-    if(c.r>205&&c.g>205&&c.b>205)return{code:"W",confidence:"średnia",kind:"biała"};
-    return{code:"?",confidence:"niska",kind:"nieznana"};
-}
-function crmFindNameColumnBoundary(ctx,width,height){
-    // W oficjalnym arkuszu kolumna z nazwiskiem zajmuje około 12% szerokości.
-    // Szukamy silnej pionowej linii w zakresie 8-20%, a jeśli jej nie ma, używamy 12%.
-    let bestX=Math.round(width*0.12),bestScore=-1;
-    for(let x=Math.round(width*0.08);x<=Math.round(width*0.20);x++){
-        let dark=0;for(let y=0;y<height;y++){const p=ctx.getImageData(x,y,1,1).data;if(p[0]<110&&p[1]<110&&p[2]<110)dark++;}
-        if(dark>bestScore){bestScore=dark;bestX=x;}
-    }
-    return bestX;
-}
-function crmCellThumbnail(sourceCanvas,x,y,w,h){
-    const c=document.createElement("canvas");c.width=120;c.height=54;const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(sourceCanvas,x,y,w,h,4,4,c.width-8,c.height-8);return c.toDataURL("image/png");
-}
-function crmSegmentCurrentScheduleRow(){
-    const canvas=document.getElementById("sch-crop-canvas");if(!canvas||!canvas.width)return crmToast("Najpierw ustaw widoczny wiersz grafiku.","error");
-    const ctx=canvas.getContext("2d"),nameEnd=crmFindNameColumnBoundary(ctx,canvas.width,canvas.height),gridWidth=canvas.width-nameEnd,cellWidth=gridWidth/31;
-    crmSegmentedScheduleCells=[];
-    for(let i=0;i<31;i++){
-        const x=Math.round(nameEnd+i*cellWidth),next=Math.round(nameEnd+(i+1)*cellWidth),w=Math.max(2,next-x),color=crmAverageCellColor(ctx,x,0,w,canvas.height),guess=crmGuessCodeFromColor(color);
-        crmSegmentedScheduleCells.push({day:i+1,x:x,width:w,color:color,guess:guess,thumbnail:crmCellThumbnail(canvas,x,0,w,canvas.height)});
-    }
-    crmRenderSegmentedScheduleReview(nameEnd);
-}
-function crmRenderSegmentedScheduleReview(nameEnd){
-    let panel=document.getElementById("sch-cell-review");if(!panel){panel=document.createElement("div");panel.id="sch-cell-review";panel.style.cssText="margin-top:14px;padding:14px;border:1px solid #d7baa0;border-radius:10px;background:#fff";document.getElementById("sch-crop-panel").after(panel);}
-    const high=crmSegmentedScheduleCells.filter(x=>x.guess.confidence==="wysoka").length,medium=crmSegmentedScheduleCells.filter(x=>x.guess.confidence==="średnia").length;
-    panel.innerHTML=`<h3 style="margin:0 0 8px">Analiza 31 komórek</h3><p>Granica nazwiska: ${nameEnd}px. Pewne kolory: ${high}. Wymagające kontroli tekstu: ${medium}. Każda miniatura pochodzi bezpośrednio z oficjalnego pliku.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px">${crmSegmentedScheduleCells.map(cell=>`<label style="border:1px solid #ddd;border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:4px"><strong>Dzień ${cell.day}</strong><img src="${cell.thumbnail}" alt="Komórka dnia ${cell.day}" style="width:100%;height:54px;object-fit:contain;image-rendering:auto;background:#fff"><select data-segment-day="${cell.day}">${crmScheduleCodeOptions(cell.guess.code)}</select><small>${cell.guess.kind}, RGB ${cell.color.r}/${cell.color.g}/${cell.color.b}, pewność ${cell.guess.confidence}</small></label>`).join("")}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn-primary" onclick="crmUseSegmentedCodes()">Przenieś kody do formularza</button><button type="button" class="btn-secondary" onclick="crmSegmentCurrentScheduleRow()">Analizuj ponownie</button></div><p style="margin-bottom:0"><strong>Uwaga:</strong> żółte i zielone komórki są rozpoznawane jako 1 i 2. Białe oraz niebieskie wymagają wzrokowej kontroli, ponieważ kolor nie odróżnia W od WH/WN ani UW od OP/BHP.</p>`;
-}
-function crmUseSegmentedCodes(){
-    const source=Array.from(document.querySelectorAll("[data-segment-day]"));if(source.length!==31)return crmToast("Brak kompletu 31 komórek.","error");
-    source.forEach(select=>{const day=select.dataset.segmentDay,target=document.querySelector(`[data-official-day="${day}"]`);if(target)target.value=select.value;});
-    const unknown=source.filter(x=>x.value==="?").length;crmToast(unknown?`Przeniesiono podpowiedzi. Pozostało ${unknown} nierozpoznanych dni.`:"Przeniesiono wszystkie 31 kodów. Sprawdź je przed zatwierdzeniem.");
-    document.getElementById("sch-import-review")?.scrollIntoView({behavior:"smooth",block:"start"});
-}
-// Zmieniamy domyślne ustawienie kadrowania na wartość potwierdzoną w żywym teście.
-crmAutoFindScheduleRow=function(){document.getElementById("sch-crop-top").value="62";document.getElementById("sch-crop-height").value="5";crmDrawScheduleCrop();};
-const crmOldRenderCropPanel=crmRenderScheduleCropPanel;
-crmRenderScheduleCropPanel=function(file){crmOldRenderCropPanel(file);setTimeout(()=>{crmAutoFindScheduleRow();const actions=document.querySelector("#sch-crop-panel div:last-child");if(actions&&!document.getElementById("sch-segment-btn")){const btn=document.createElement("button");btn.id="sch-segment-btn";btn.type="button";btn.className="btn-primary";btn.textContent="Podziel na 31 komórek";btn.onclick=crmSegmentCurrentScheduleRow;actions.appendChild(btn);}},100);};
-/* KONIEC SEGMENTACJI 31 KOMOREK */
+document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallCalendarCleanupControls,100));
+/* KONIEC POPRAWKI ADMIN KALENDARZA */
 
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
@@ -4457,12 +3607,8 @@ function crmTestFrontendChecks(report) {
     [
         "loadSystem", "loadServices", "loadSettings", "loadClients",
         "renderDashboard", "renderBooksyCalendar", "renderMiniMonthCalendar",
-        "renderDayCalendar", "renderWeekCalendar", "renderMonthCalendar",
-        "normalizeClientCounter", "renderClients", "renderServicesTable", "calculateFinanceReport",
+        "renderClients", "renderServicesTable", "calculateFinanceReport",
         "saveSettings", "saveAppointment", "deleteAppointmentFromAdmin",
-        "deleteBlockTimeFromAdmin", "deleteSelectedCalendarItemFromAdmin",
-        "recordAppointmentLifecycle", "loadClientCRMProfile", "saveClientBookingMode",
-        "getSmartNextVisitSuggestion", "saveFamilyScheduleEntry",
         "submitBlockTime", "saveClientModalData", "deleteClient",
         "saveDraftsToCloud", "publishDrafts"
     ].forEach(name => {
@@ -4572,42 +3718,8 @@ async function runCRMFullTest() {
     try {
         crmTestSetProgress(5, "Sprawdzanie HTML i JavaScript...");
         crmTestFrontendChecks(report);
-
-        const savedViewMode = calendarViewMode;
-        const savedSelectedDate = new Date(selectedCalendarDate);
-        ["day", "week", "month"].forEach(mode => {
-            setCalendarView(mode);
-            const calendarGrid = document.getElementById("booksy-grid");
-            crmTestAdd(
-                report,
-                calendarGrid && calendarGrid.dataset.calendarView === mode ? "OK" : "BLAD",
-                "Renderowanie widoku " + mode,
-                calendarGrid ? calendarGrid.dataset.calendarView : "Brak siatki kalendarza"
-            );
-        });
-        selectedCalendarDate = savedSelectedDate;
-        setCalendarView(savedViewMode);
-
         crmTestSetProgress(15, "Sprawdzanie API i ustawien...");
         await crmTestApiChecks(report);
-
-        const extensionInit = await crmExtendedPost("initializeCRMExtensions");
-        crmTestAdd(report, extensionInit && extensionInit.success ? "OK" : "BLAD",
-            "Inicjalizacja modułów 3.3E-3.3H", extensionInit);
-
-        const familyRead = await crmExtendedPost("getFamilySchedule", { fromDate: "", toDate: "" });
-        crmTestAdd(report, familyRead && familyRead.success && Array.isArray(familyRead.entries) ? "OK" : "BLAD",
-            "Odczyt grafiku rodzinnego", familyRead);
-
-        const point35 = await crmExtendedPost("runPoint35Diagnostics");
-        crmTestAdd(report, point35 && point35.success ? "OK" : "BLAD", "Diagnostyka końcowa 3.4 i 3.5", point35);
-        crmTestAdd(report, point35 && point35.drive && point35.drive.folderAccessible ? "OK" : "BLAD", "Dostęp do folderu prawdziwego grafiku", point35 && point35.drive);
-        crmTestAdd(report, point35 && point35.manualCorrectionHighestPriority ? "OK" : "BLAD", "Ręczna korekta ma najwyższy priorytet", point35);
-        crmTestAdd(report, point35 && point35.privateCalendarProtection ? "OK" : "BLAD", "Ochrona prywatnych wydarzeń Google Calendar", point35);
-        crmTestAdd(report, point35 && point35.smartVisitEngine ? "OK" : "BLAD", "Silnik inteligentnego kolejnego wizytu", point35);
-
-        const backupResult = await crmExtendedPost("createFinalAdminBackup", { description: "Automatyczny backup testu " + report.testId });
-        crmTestAdd(report, backupResult && backupResult.success ? "OK" : "BLAD", "Finalny backup ADMIN", backupResult);
 
         crmTestSetProgress(25, "Tworzenie klienta testowego...");
         const clientCreate = await crmTestPost({
@@ -4635,31 +3747,6 @@ async function runCRMFullTest() {
         if (appointment) appointmentEventId = appointment.eventId || "";
         crmTestAdd(report, appointment ? "OK" : "BLAD", "Odczyt utworzonej wizyty", appointment || "Nie znaleziono");
         crmTestAdd(report, appointmentEventId ? "OK" : "OSTRZEZENIE", "Event ID wizyty", appointmentEventId || "Brak Event ID");
-        crmTestAdd(report, appointment && Number(appointment.duration) === 45 ? "OK" : "BLAD",
-            "Czas trwania utworzonej wizyty", appointment ? appointment.duration + " min" : "Brak wizyty");
-
-        let clientsAfterCreate = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-        let testClientStats = clientsAfterCreate.find(item => String(item.phone) === phone);
-        crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 1 ? "OK" : "BLAD",
-            "Statystyka klienta po utworzeniu wizyty", testClientStats || "Nie znaleziono klienta");
-        crmTestAdd(report, testClientStats && typeof testClientStats.visits === "number" ? "OK" : "BLAD",
-            "Licznik wizyt klienta jest liczbą", testClientStats || "Nie znaleziono klienta");
-
-        const conflictAttempt = await crmTestPost({
-            action: "createBooking",
-            phone: phone + "-KONFLIKT",
-            name: "CRM_TEST_KONFLIKT_" + marker,
-            service: serviceName + "_KONFLIKT",
-            date: crmTestLocalDate(20, 11, 0),
-            duration: 45,
-            rodo: "Test konfliktu CRM"
-        });
-        const conflictRejected =
-            conflictAttempt &&
-            conflictAttempt.success === false &&
-            conflictAttempt.code === "TIME_CONFLICT";
-        crmTestAdd(report, conflictRejected ? "OK" : "BLAD",
-            "Odrzucenie nakładającej się wizyty", conflictAttempt);
 
         crmTestSetProgress(52, "Edytowanie wizyty testowej...");
         if (appointmentEventId) {
@@ -4677,13 +3764,6 @@ async function runCRMFullTest() {
             );
             if (appointment) appointmentEventId = appointment.eventId || appointmentEventId;
             crmTestAdd(report, appointment ? "OK" : "BLAD", "Weryfikacja wizyty po edycji", appointment || "Nie znaleziono");
-            crmTestAdd(report, appointment && Number(appointment.duration) === 60 ? "OK" : "BLAD",
-                "Czas trwania wizyty po edycji", appointment ? appointment.duration + " min" : "Brak wizyty");
-
-            const clientsAfterEdit = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-            testClientStats = clientsAfterEdit.find(item => String(item.phone) === phone);
-            crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 1 ? "OK" : "BLAD",
-                "Edycja nie zwiększa licznika wizyt", testClientStats || "Nie znaleziono klienta");
         }
 
         crmTestSetProgress(65, "Tworzenie blokady testowej...");
@@ -4701,36 +3781,14 @@ async function runCRMFullTest() {
                 action: "createBooking", deleteFlag: true, eventId: appointmentEventId,
                 date: editedDate, name: editedName
             });
-            let deletionSucceeded = Boolean(result && result.success);
-            if (!deletionSucceeded) {
-                await crmTestWait(700);
-                const verificationBusy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
-                const stillExists = verificationBusy && Array.isArray(verificationBusy.appointments)
-                    ? verificationBusy.appointments.some(item => item.eventId === appointmentEventId)
-                    : true;
-                deletionSucceeded = !stillExists;
-            }
-            crmTestAdd(report, deletionSucceeded ? "OK" : "BLAD", "Usuwanie wizyty testowej",
-                deletionSucceeded && (!result || !result.success)
-                    ? "Wizyta usunięta; odpowiedź API została utracona, stan potwierdzony odczytem"
-                    : result);
-            await crmTestWait(500);
-            const clientsAfterAppointmentDelete = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-            testClientStats = clientsAfterAppointmentDelete.find(item => String(item.phone) === phone);
-            const customerRemovedAfterCleanup = !testClientStats;
-            const customerCounterReset = testClientStats && Number(testClientStats.visits) === 0;
-            crmTestAdd(report, customerRemovedAfterCleanup || customerCounterReset ? "OK" : "BLAD",
-                "Licznik klienta po usunięciu wizyty",
-                customerRemovedAfterCleanup
-                    ? "Klient testowy bez wizyt został automatycznie usunięty"
-                    : testClientStats);
+            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie wizyty testowej", result);
         }
         if (blockEventId) {
             const result = await crmTestPost({
-                action: "deleteBlockTime", eventId: blockEventId,
-                start: crmTestLocalDay(21) + "T14:10", end: crmTestLocalDay(21) + "T15:20", title: blockTitle
+                action: "createBooking", deleteFlag: true, eventId: blockEventId,
+                date: new Date().toISOString(), name: blockTitle
             });
-            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie blokady przez deleteBlockTime", result);
+            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie blokady testowej", result);
         }
         const clientDelete = await crmTestPost({ action: "deleteClient", phone });
         crmTestAdd(report, clientDelete.success ? "OK" : "BLAD", "Usuwanie klienta testowego", clientDelete);
