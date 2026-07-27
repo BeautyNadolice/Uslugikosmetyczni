@@ -756,7 +756,11 @@ function getCalendarEventsForDate(date) {
     const dateKey = getFormattedISOBlockDate(date);
     return appointmentsData
         .filter(item => item.date && item.date.startsWith(dateKey))
-        .sort((a, b) => a.date.localeCompare(b.date));
+        .sort((a, b) => {
+            const pa = a.eventType === "work_shift" ? 0 : 1;
+            const pb = b.eventType === "work_shift" ? 0 : 1;
+            return pa - pb || a.date.localeCompare(b.date);
+        });
 }
 
 function formatCalendarTime(dateValue) {
@@ -850,7 +854,7 @@ function renderCompactCalendarEvent(item, container, mode) {
     let color = "#b05c75";
     if (item.eventType === "block") color = "#8c6b4f";
     else if (item.eventType === "external") color = "#555555";
-    else if (item.eventType === "work_shift") color = "#3f6fae";
+    else if (item.eventType === "work_shift") color = "#f2c94c";
     else {
         const service = currentServices.find(value =>
             value.name && item.service &&
@@ -861,10 +865,17 @@ function renderCompactCalendarEvent(item, container, mode) {
 
     event.style.background = color;
     const time = formatCalendarTime(item.date);
-    const prefix = item.eventType === "work_shift" ? "🕒 " : "";
-    event.innerHTML = prefix + "<strong>" + time + "</strong> " + (item.name || item.service || "Wpis");
-    event.title = time + " " + (item.name || "") + " " + (item.service || "");
-    event.onclick = () => openAppointmentDetailsModal(item);
+    if (item.eventType === "work_shift") {
+        event.style.color = "#111";
+        event.style.fontWeight = "700";
+        event.innerHTML = item.name || "Brak";
+        event.title = item.name || "Grafik pracy";
+        event.onclick = null;
+    } else {
+        event.innerHTML = "<strong>" + time + "</strong> " + (item.name || item.service || "Wpis");
+        event.title = time + " " + (item.name || "") + " " + (item.service || "");
+        event.onclick = () => openAppointmentDetailsModal(item);
+    }
     container.appendChild(event);
 }
 
@@ -1005,7 +1016,8 @@ function renderAppointmentCard(app,container){
         color = "#555555";
     }
     else if(isWorkShift){
-        color = "#3f6fae";
+        color = "#f2c94c";
+        card.style.color = "#111";
         card.classList.add("booksy-work-shift-card");
     }
     else{
@@ -4386,7 +4398,7 @@ function crmUpdateSchedulePanelForXlsx(){
     const panel=document.getElementById("schedule-full-panel");if(!panel)return;
     panel.dataset.scheduleVersion="XLSX-V4-BEZ-OCR";
     let badge=document.getElementById("sch-xlsx-version-badge");
-    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Wersja grafiku: XLSX-V5 + grafik w kalendarzu";panel.querySelector("h2").after(badge);}else{badge.textContent="Wersja grafiku: XLSX-V5 + grafik w kalendarzu";}
+    if(!badge){badge=document.createElement("div");badge.id="sch-xlsx-version-badge";badge.style.cssText="display:inline-block;margin:0 0 12px;padding:5px 9px;border-radius:14px;background:#e8f5e9;color:#1b5e20;font-size:12px;font-weight:700";badge.textContent="Grafik aktualny";panel.querySelector("h2").after(badge);}else{badge.textContent="Grafik aktualny";}
     const details=Array.from(panel.querySelectorAll("details")).find(d=>d.querySelector("summary")&&d.querySelector("summary").textContent.includes("Oficjalny grafik"));
     if(!details)return;const p=details.querySelector("p");if(p)p.textContent="Folder: Grafik. Plik: Grafik_Oleksandr.xlsx. Źródło danych: arkusz Dane CRM, kolumny Data i Kod końcowy.";
     const triggerBtn=details.querySelector('button[onclick="installScheduleFolderTriggers()"]');if(triggerBtn)triggerBtn.style.display="none";
@@ -4394,6 +4406,149 @@ function crmUpdateSchedulePanelForXlsx(){
 }
 document.addEventListener("DOMContentLoaded",()=>setTimeout(crmUpdateSchedulePanelForXlsx,150));
 /* KONIEC POPRAWKI ADMIN XLSX */
+
+
+/* ==========================================================
+   FINALNY UKLAD ZWIJANY I AUTOMATYCZNA AKTUALIZACJA GRAFIKU
+   ========================================================== */
+function crmWrapSectionAsDetails(section, title) {
+    if (!section || section.dataset.collapsibleReady === "1") return;
+    section.dataset.collapsibleReady = "1";
+    const details = document.createElement("details");
+    details.className = "crm-main-collapsible";
+    details.style.cssText = "border:0;margin:0";
+    const summary = document.createElement("summary");
+    summary.style.cssText = "cursor:pointer;font-size:22px;font-weight:700;padding:4px 0;list-style-position:outside";
+    summary.textContent = title;
+    const body = document.createElement("div");
+    body.style.cssText = "padding-top:14px";
+    Array.from(section.children).forEach(child => {
+        if (child.tagName === "H2") child.remove();
+        else body.appendChild(child);
+    });
+    details.append(summary, body);
+    section.appendChild(details);
+}
+function crmMakeProcedure(details, title) {
+    if (!details) return;
+    details.open = false;
+    const summary = details.querySelector(":scope > summary");
+    if (summary && title) summary.textContent = title;
+}
+function crmCreateProcedure(title, contentNode) {
+    const details = document.createElement("details");
+    details.style.cssText = "margin:8px 0";
+    const summary = document.createElement("summary");
+    summary.style.cssText = "cursor:pointer;font-weight:700";
+    summary.textContent = title;
+    const body = document.createElement("div");
+    body.style.cssText = "padding:10px 0 4px 16px";
+    if (contentNode) body.appendChild(contentNode);
+    details.append(summary, body);
+    return details;
+}
+function crmArrangeSchedulePanel() {
+    const panel = document.getElementById("schedule-full-panel");
+    if (!panel || panel.dataset.finalLayout === "1") return;
+    panel.dataset.finalLayout = "1";
+    const originalDetails = Array.from(panel.querySelectorAll(":scope > details"));
+    originalDetails.forEach(d => { d.open = false; });
+    const official = originalDetails.find(d => (d.querySelector("summary")?.textContent || "").includes("Oficjalny"));
+    if (official) {
+        const syncBtn = official.querySelector('button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
+        if (syncBtn) {
+            const wrap = document.createElement("div");
+            wrap.appendChild(syncBtn);
+            official.after(crmCreateProcedure("Synchronizacja z Google Calendar", wrap));
+        }
+        crmMakeProcedure(official, "Aktualizacja pliku XLSX");
+        const p = official.querySelector("p");
+        if (p) p.textContent = "";
+    }
+    const cleanup = document.getElementById("sch-calendar-cleanup-box");
+    if (cleanup) {
+        const wrapper = crmCreateProcedure("Czyszczenie wpisów grafiku", cleanup);
+        const syncDetails = official?.nextElementSibling;
+        (syncDetails || official)?.after(wrapper);
+    }
+    const badge = document.getElementById("sch-xlsx-version-badge");
+    if (badge) badge.textContent = "Grafik aktualny";
+    crmWrapSectionAsDetails(panel, "Grafik pracy");
+}
+function crmArrangeDiagnosticsPanel() {
+    const panel = document.getElementById("crm-diagnostics-panel");
+    if (!panel || panel.dataset.finalLayout === "1") return;
+    panel.dataset.finalLayout = "1";
+    const buttons = Array.from(panel.querySelectorAll("button"));
+    const host = document.createElement("div");
+    host.style.cssText = "display:block";
+    const definitions = [
+        ["Szybki test", b => /Szybki test/i.test(b.textContent)],
+        ["Pełny test CRM", b => /Pełny test/i.test(b.textContent)],
+        ["Raport diagnostyczny", b => /Kopiuj raport/i.test(b.textContent)],
+        ["Historia testów", b => /Historia testów/i.test(b.textContent)]
+    ];
+    definitions.forEach(([title, match]) => {
+        const button = buttons.find(match);
+        if (!button) return;
+        const row = document.createElement("div");
+        row.appendChild(button);
+        host.appendChild(crmCreateProcedure(title, row));
+    });
+    const firstDetails = panel.querySelector("details");
+    if (firstDetails) firstDetails.before(host); else panel.appendChild(host);
+    Array.from(panel.querySelectorAll("details")).forEach(d => d.open = false);
+    crmWrapSectionAsDetails(panel, "Diagnostyka systemu CRM");
+}
+function crmCollapseWorkCalendar() {
+    const host = document.getElementById("work-schedule-calendar");
+    if (!host || host.parentElement?.id === "work-schedule-calendar-details") return;
+    const details = document.createElement("details");
+    details.id = "work-schedule-calendar-details";
+    details.style.cssText = host.style.cssText || "margin-top:22px";
+    host.style.cssText = "padding-top:12px";
+    const summary = document.createElement("summary");
+    summary.style.cssText = "cursor:pointer;font-size:18px;font-weight:700";
+    summary.textContent = "Grafik pracy";
+    host.parentNode.insertBefore(details, host);
+    details.append(summary, host);
+    details.open = false;
+}
+async function crmSmartScheduleUpdateNow() {
+    const button = document.getElementById("sch-smart-update-btn");
+    if (button) { button.disabled = true; button.textContent = "Sprawdzanie..."; }
+    try {
+        const response = await crmExtendedPost("smartScheduleUpdate", {manual:true});
+        if (!response.success) throw new Error(response.error || "Błąd aktualizacji grafiku");
+        const message = response.changed ? "Grafik zaktualizowany" : "Grafik aktualny";
+        crmToast(message);
+        await crmRefreshAllViews();
+    } catch (error) { crmToast(error.message || String(error), "error"); }
+    finally { if (button) { button.disabled = false; button.textContent = "Sprawdź aktualizację"; } }
+}
+function crmInstallSmartButton() {
+    const official = Array.from(document.querySelectorAll("#schedule-full-panel details")).find(d => (d.querySelector("summary")?.textContent || "").includes("Aktualizacja pliku"));
+    if (!official || document.getElementById("sch-smart-update-btn")) return;
+    const button = document.createElement("button");
+    button.id = "sch-smart-update-btn";
+    button.type = "button";
+    button.className = "btn-primary";
+    button.textContent = "Sprawdź aktualizację";
+    button.onclick = crmSmartScheduleUpdateNow;
+    const old = official.querySelector("#sch-check-folder-btn");
+    if (old) old.replaceWith(button); else official.appendChild(button);
+}
+function crmApplyFinalLayout() {
+    crmArrangeSchedulePanel();
+    crmArrangeDiagnosticsPanel();
+    crmCollapseWorkCalendar();
+    crmInstallSmartButton();
+}
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(crmApplyFinalLayout, 250);
+    setTimeout(crmApplyFinalLayout, 1000);
+});
+/* KONIEC FINALNEGO UKLADU I AKTUALIZACJI */
 
 /* ==========================================================
    DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
