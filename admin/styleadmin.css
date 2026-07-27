@@ -301,3 +301,306 @@ details > summary { color: #4d4549; }
   .crm-main-collapsible > summary { padding: 15px 16px !important; }
   .crm-main-collapsible > div { padding: 15px !important; }
 }
+/* =====================================================
+   styleadmin_BOOKSY_LIGHT_V2.css
+   BOOKSY LIGHT REVISION
+   ===================================================== */
+
+:root {
+  --crm-bg: #fafafa;
+  --crm-surface: #ffffff;
+  --crm-surface-soft: #fdfdfd;
+  --crm-surface-muted: #f7f7f7;
+
+  --crm-text: #2f2f2f;
+  --crm-text-soft: #737373;
+  --crm-text-faint: #a0a0a0;
+
+  --crm-primary: #c67b96;
+  --crm-primary-dark: #af6881;
+
+  --crm-primary-soft: #faf1f4;
+  --crm-primary-pale: #fdf8fa;
+
+  --crm-border: #ececec;
+  --crm-border-strong: #dddddd;
+
+  --crm-shadow-xs: 0 1px 6px rgba(0,0,0,.03);
+  --crm-shadow-sm: 0 2px 12px rgba(0,0,0,.04);
+  --crm-shadow-md: 0 8px 24px rgba(0,0,0,.06);
+}
+
+/* BODY */
+
+html,
+body{
+  background:#fafafa !important;
+}
+
+body{
+  background:#fafafa !important;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+  background:#ffffff !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  border-right:1px solid #ececec !important;
+}
+
+.sidebar-header{
+  border-bottom:1px solid #f3f3f3;
+}
+
+.sidebar-header h2{
+  color:#c67b96 !important;
+}
+
+/* MENU */
+
+.nav-btn{
+  border-radius:10px !important;
+}
+
+.nav-btn:hover{
+  background:#f9f3f6 !important;
+  transform:none !important;
+}
+
+.nav-btn.active{
+  background:#c67b96 !important;
+  color:#fff !important;
+  box-shadow:none !important;
+}
+
+/* BUTTONS */
+
+.btn-primary{
+  background:#c67b96 !important;
+  box-shadow:none !important;
+  border:none !important;
+}
+
+.btn-primary:hover:not(:disabled){
+  background:#af6881 !important;
+  box-shadow:none !important;
+}
+
+.btn-secondary{
+  background:#ffffff !important;
+  border:1px solid #dddddd !important;
+}
+
+.btn-secondary:hover:not(:disabled){
+  background:#fafafa !important;
+}
+
+.btn-danger{
+  box-shadow:none !important;
+}
+
+/* DASHBOARD */
+
+.dashboard-card{
+  background:#ffffff !important;
+  border:1px solid #ececec !important;
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+}
+
+.dashboard-card h3{
+  color:#7a7a7a !important;
+}
+
+/* HEADERS */
+
+.page-header,
+.calendar-layout-header{
+  margin-bottom:16px !important;
+}
+
+/* CALENDAR HEADER */
+
+.calendar-layout-header{
+  background:#ffffff !important;
+  backdrop-filter:none !important;
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+}
+
+/* CALENDAR PANELS */
+
+.calendar-sidebar,
+.calendar-main-schedule{
+  background:#ffffff !important;
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+  border:1px solid #ececec !important;
+}
+
+/* MINI CALENDAR */
+
+.mini-month-header button:hover{
+  background:#f5f5f5 !important;
+}
+
+.mini-date-cell:hover{
+  background:#f8f3f5 !important;
+}
+
+.mini-date-cell.today{
+  background:#f9eef3 !important;
+}
+
+.mini-date-cell.selected{
+  background:#c67b96 !important;
+  color:#ffffff !important;
+  box-shadow:none !important;
+}
+
+/* DAY / WEEK / MONTH CELLS */
+
+.calendar-week-day,
+.calendar-month-day{
+  background:#ffffff !important;
+  border-color:#eeeeee !important;
+  box-shadow:none !important;
+}
+
+.calendar-week-day:hover,
+.calendar-month-day:hover{
+  border-color:#e5e5e5 !important;
+  box-shadow:0 1px 6px rgba(0,0,0,.03) !important;
+}
+
+/* EVENTS */
+
+.calendar-compact-event{
+  box-shadow:none !important;
+  border-radius:8px !important;
+}
+
+.booksy-event-card{
+  border-radius:10px !important;
+  box-shadow:none !important;
+}
+
+.booksy-event-card:hover{
+  transform:none !important;
+  box-shadow:none !important;
+}
+
+/* TABLES */
+
+.admin-table{
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+}
+
+.admin-table th{
+  background:#fbfbfb !important;
+}
+
+.admin-table td{
+  border-bottom:1px solid #f3f3f3 !important;
+}
+
+.admin-table tbody tr:hover td{
+  background:#fdfdfd !important;
+}
+
+/* FORMS */
+
+#settingsForm{
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+}
+
+.form-group{
+  margin-bottom:12px !important;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea{
+  border-color:#dddddd !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus{
+  border-color:#c67b96 !important;
+  box-shadow:0 0 0 3px rgba(198,123,150,.12) !important;
+}
+
+/* DETAILS */
+
+.crm-main-collapsible{
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+}
+
+.crm-main-collapsible > summary{
+  background:#ffffff !important;
+}
+
+.crm-main-collapsible[open] > summary{
+  background:#faf5f7 !important;
+}
+
+#booking-requests-panel{
+  box-shadow:0 1px 8px rgba(0,0,0,.04) !important;
+  background:#ffffff !important;
+}
+
+/* MODALS */
+
+.modal-overlay{
+  background:rgba(0,0,0,.28) !important;
+  backdrop-filter:blur(2px) !important;
+}
+
+.modal-content{
+  border:1px solid #ececec !important;
+  box-shadow:0 12px 28px rgba(0,0,0,.08) !important;
+}
+
+.modal-header{
+  border-bottom:1px solid #f2f2f2 !important;
+}
+
+.modal-close{
+  background:#f6f6f6 !important;
+}
+
+.modal-close:hover{
+  background:#f9eef3 !important;
+}
+
+.details-row{
+  background:#fcfcfc !important;
+}
+
+/* MOBILE */
+
+@media (max-width:820px){
+
+  .calendar-sidebar{
+    position:static !important;
+  }
+
+  .calendar-layout-header{
+    position:static !important;
+  }
+}
+
+@media (max-width:520px){
+
+  .dashboard-card{
+    padding:14px !important;
+  }
+
+  .calendar-main-schedule{
+    padding:8px !important;
+  }
+
+  .modal-content{
+    border-radius:18px 18px 0 0 !important;
+  }
+}
