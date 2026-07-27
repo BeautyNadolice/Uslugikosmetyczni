@@ -1,3 +1,4 @@
+// WERSJA LOGIKI INDEX: 2026-07-27-18-40
  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
   let iti; 
 let allAvailableSlots = []; 
@@ -565,7 +566,10 @@ function classifyFamilySlot(dateStr,time,duration){
 
   // Pierwsza nocna: każdy termin kończący się najpóźniej o 18:00 wymaga decyzji stylistki.
   if (firstNight) {
-    if (endMinutes > 18 * 60) {
+    // Delikatna reguła graniczna: liczy się koniec pełnego zabiegu.
+    // Koniec o 18:00 jest dozwolony z potwierdzeniem, po 18:00 slot znika.
+    const firstNightLatestEnd = 18 * 60;
+    if (endMinutes > firstNightLatestEnd) {
       return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
     }
     return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
