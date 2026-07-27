@@ -5280,3 +5280,89 @@ function saveServiceModalData() {
     setTimeout(hideColors, 800);
 })();
 /* KONIEC CENNIKA */
+
+/* ==========================================================
+   CENNIK: WYBOR KATEGORII I ZABIEGU W FORMULARZU
+   ========================================================== */
+function crmReplaceServiceFormInputs() {
+    const categoryInput = document.getElementById("serviceCategory");
+    const serviceInput = document.getElementById("serviceName");
+    if (!categoryInput || !serviceInput) return;
+
+    if (categoryInput.tagName !== "SELECT") {
+        const select = document.createElement("select");
+        Array.from(categoryInput.attributes).forEach(attribute => select.setAttribute(attribute.name, attribute.value));
+        select.id = "serviceCategory";
+        select.name = categoryInput.name || "serviceCategory";
+        select.innerHTML = '<option value="">Wybierz kategorię</option>';
+        categoryInput.replaceWith(select);
+    }
+
+    const currentServiceInput = document.getElementById("serviceName");
+    if (currentServiceInput && !currentServiceInput.getAttribute("list")) {
+        currentServiceInput.setAttribute("list", "crmServiceNamesList");
+        currentServiceInput.setAttribute("autocomplete", "off");
+        currentServiceInput.placeholder = "Wybierz lub wpisz nazwę zabiegu";
+        const datalist = document.createElement("datalist");
+        datalist.id = "crmServiceNamesList";
+        currentServiceInput.after(datalist);
+    }
+
+    crmRefreshServiceFormChoices();
+}
+
+function crmRefreshServiceFormChoices(selectedCategory, selectedService) {
+    const select = document.getElementById("serviceCategory");
+    if (!select || select.tagName !== "SELECT") return;
+    const current = selectedCategory !== undefined ? selectedCategory : select.value;
+    const categories = crmCategoriesFromPrices();
+    select.innerHTML = '<option value="">Wybierz kategorię</option>' + categories
+        .map(category => `<option value="${category.name.replace(/"/g, "&quot;")}">${category.name}</option>`)
+        .join("");
+    if (current && !categories.some(category => category.name === current)) {
+        const option = document.createElement("option");
+        option.value = current;
+        option.textContent = current;
+        select.appendChild(option);
+    }
+    select.value = current || "";
+
+    const list = document.getElementById("crmServiceNamesList");
+    if (list) {
+        const names = [...new Set(currentServices
+            .filter(service => !select.value || service.category === select.value)
+            .map(service => String(service.name || "").trim())
+            .filter(Boolean))];
+        list.innerHTML = names.map(name => `<option value="${name.replace(/"/g, "&quot;")}"></option>`).join("");
+    }
+    if (selectedService !== undefined) document.getElementById("serviceName").value = selectedService || "";
+}
+
+document.addEventListener("change", event => {
+    if (event.target && event.target.id === "serviceCategory") crmRefreshServiceFormChoices();
+});
+
+const crmOriginalOpenAddServiceModal = openAddServiceModal;
+openAddServiceModal = function() {
+    crmOriginalOpenAddServiceModal();
+    crmReplaceServiceFormInputs();
+    crmRefreshServiceFormChoices("", "");
+};
+
+const crmOriginalEditService = editService;
+editService = function(index) {
+    const service = currentServices[index];
+    crmReplaceServiceFormInputs();
+    crmOriginalEditService(index);
+    if (service) crmRefreshServiceFormChoices(service.category || "", service.name || "");
+};
+
+const crmOriginalLoadServicesForChoices = loadServices;
+loadServices = async function() {
+    await crmOriginalLoadServicesForChoices();
+    crmReplaceServiceFormInputs();
+    crmRefreshServiceFormChoices();
+};
+
+document.addEventListener("DOMContentLoaded", () => setTimeout(crmReplaceServiceFormInputs, 300));
+/* KONIEC WYBORU KATEGORII I ZABIEGU */
