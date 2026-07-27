@@ -1,4 +1,4 @@
- const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
+ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUfjqgo760pzbeEx9-7Dnnk_t2gnYPBdWUZNk3kVob1C2FQF_Hqewfq9C1WFaYYHJYjQ/exec";
   let iti; 
 let allAvailableSlots = []; 
 let appointmentsData = []; 
@@ -514,13 +514,19 @@ function classifyFamilySlot(dateStr,time,duration){
   if(working && childHome) return {mode:'MANUAL_ONLY',reason:'Oleksandr pracuje, a dziecko jest w domu.'};
   if(firstNight){
     if(minutesOfDate(end)>18*60) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się po 18:00 w dniu pierwszej nocnej zmiany.'};
-    return {mode:'CONFIRM',reason:minutesOfDate(end)>17*60+30?'Wizyta kończy się między 17:30 a 18:00.':'Pierwsza nocna zmiana Oleksandra.'};
+    if(minutesOfDate(end)>17*60+30) return {mode:'CONFIRM',reason:'Wizyta kończy się między 17:30 a 18:00.'};
+    return {mode:'STANDARD',reason:''};
   }
-  if(code.startsWith('1') || secondNight || afterLastNight){
-    if(minutesOfDate(start)===8*60+30) return {mode:'CONFIRM',reason:'Termin o 08:30 wymaga potwierdzenia stylistki.'};
+  if(code.startsWith('1') || secondNight){
+    if(minutesOfDate(start)===8*60+30) return {mode:'CONFIRM',reason:'Termin o 08:30 wymaga potwierdzenia.'};
     if(minutesOfDate(start)<9*60) return {mode:'MANUAL_ONLY',reason:'Rezerwacja online jest dostępna od 09:00.'};
-    if(minutesOfDate(end)>16*60+30) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się zbyt późno przed odbiorem dziecka.'};
-    if(minutesOfDate(end)>15*60+30) return {mode:'CONFIRM',reason:'Wizyta kończy się po preferowanej godzinie odbioru dziecka.'};
+    if(minutesOfDate(end)>16*60+30) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się zbyt późno.'};
+    if(minutesOfDate(end)>15*60+30) return {mode:'CONFIRM',reason:'Wybrany termin wymaga potwierdzenia.'};
+  }
+  if(afterLastNight){
+    if(minutesOfDate(start)===8*60+30) return {mode:'CONFIRM',reason:'Termin o 08:30 wymaga potwierdzenia.'};
+    if(minutesOfDate(start)<8*60+30) return {mode:'MANUAL_ONLY',reason:'Termin jest niedostępny online.'};
+    return {mode:'STANDARD',reason:''};
   }
   return {mode:'STANDARD',reason:''};
 }
