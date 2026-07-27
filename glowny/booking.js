@@ -722,3 +722,105 @@ displayTimeSlots = function(dateStr){
   }
   _displayTimeSlotsServiceFix(dateStr);
 };
+
+// ==========================================================
+// FINALNA DOSTEPNOSC DNI W KALENDARZU
+// Dzien bez ani jednego widocznego slotu nie moze byc wybrany.
+// ==========================================================
+function getBookableSlotsForDate(dateStr) {
+  const serviceSelect = document.getElementById("serviceType");
+  if (!serviceSelect || !serviceSelect.value) return [];
+
+  const duration = parseInt(
+    document.getElementById("selectedDuration")?.value,
+    10
+  ) || 45;
+
+  return getFreeSlotsForService(dateStr).filter(time => {
+    return classifyFamilySlot(dateStr, time, duration).mode !== "MANUAL_ONLY";
+  });
+}
+
+function buildDisabledBookingDates(daysAhead = 60) {
+  const disabledDates = [];
+  const today = new Date();
+
+  for (let index = 0; index <= daysAhead; index += 1) {
+    const checkedDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + index
+    );
+    const dateStr = dateKeyLocal(checkedDate);
+
+    if (getBookableSlotsForDate(dateStr).length === 0) {
+      disabledDates.push(dateStr);
+    }
+  }
+
+  return disabledDates;
+}
+
+initCalendar = function(defaultDate = "") {
+  const calendarInput = document.getElementById("calendarInput");
+  if (!calendarInput) return;
+
+  if (flatpickrInstance) {
+    flatpickrInstance.destroy();
+    flatpickrInstance = null;
+  }
+
+  const serviceSelect = document.getElementById("serviceType");
+  const serviceSelected = Boolean(serviceSelect && serviceSelect.value);
+  const disabledDates = serviceSelected
+    ? buildDisabledBookingDates(60)
+    : [];
+
+  const selectedDateAvailable = Boolean(
+    defaultDate && !disabledDates.includes(defaultDate)
+  );
+
+  if (defaultDate && !selectedDateAvailable) {
+    calendarInput.value = "";
+    document.getElementById("finalDateTime").value = "";
+    selectedSlotPolicy = null;
+    updateAlternativeSection();
+  }
+
+  flatpickrInstance = flatpickr("#calendarInput", {
+    locale: "pl",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disableMobile: true,
+    allowInput: false,
+    disable: disabledDates,
+    defaultDate: selectedDateAvailable ? defaultDate : null,
+    onChange: function(selectedDates, dateStr) {
+      if (!dateStr || getBookableSlotsForDate(dateStr).length === 0) {
+        calendarInput.value = "";
+        document.getElementById("finalDateTime").value = "";
+        return;
+      }
+      displayTimeSlots(dateStr);
+    }
+  });
+};
+
+const _displayTimeSlotsWithDisabledDays = displayTimeSlots;
+displayTimeSlots = function(dateStr) {
+  if (!dateStr || getBookableSlotsForDate(dateStr).length === 0) {
+    const calendarInput = document.getElementById("calendarInput");
+    const finalDateTime = document.getElementById("finalDateTime");
+    const slotsContainer = document.getElementById("timeSlotsContainer");
+
+    if (calendarInput) calendarInput.value = "";
+    if (finalDateTime) finalDateTime.value = "";
+    if (slotsContainer) slotsContainer.innerHTML = "";
+
+    selectedSlotPolicy = null;
+    updateAlternativeSection();
+    return;
+  }
+
+  _displayTimeSlotsWithDisabledDays(dateStr);
+};
