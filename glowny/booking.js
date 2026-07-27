@@ -637,3 +637,69 @@ displayTimeSlots = function(dateStr){
   }
   _displayTimeSlotsServiceFix(dateStr);
 };
+
+
+// ==========================================================
+// FINALNA POPRAWKA KALENDARZA: UKRYWANIE DNI BEZ TERMINOW
+// ==========================================================
+function getVisibleBookableSlots(dateStr){
+  const select = document.getElementById('serviceType');
+  if(!select || !select.value) return [];
+  const duration = parseInt(document.getElementById('selectedDuration')?.value,10) || 45;
+  return getFreeSlotsForService(dateStr).filter(time => {
+    return classifyFamilySlot(dateStr,time,duration).mode !== 'MANUAL_ONLY';
+  });
+}
+
+initCalendar = function(defaultDate=''){
+  const input = document.getElementById('calendarInput');
+  if(!input) return;
+  if(flatpickrInstance) flatpickrInstance.destroy();
+
+  const select = document.getElementById('serviceType');
+  const hasService = Boolean(select && select.value);
+  const disabledDates = [];
+  if(hasService){
+    const now = new Date();
+    for(let i=0;i<=60;i++){
+      const d = new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);
+      const key = dateKeyLocal(d);
+      if(getVisibleBookableSlots(key).length===0) disabledDates.push(key);
+    }
+  }
+
+  const selectedStillAvailable = defaultDate && !disabledDates.includes(defaultDate);
+  if(defaultDate && !selectedStillAvailable){
+    input.value='';
+    document.getElementById('finalDateTime').value='';
+    const slots=document.getElementById('timeSlotsContainer');
+    if(slots) slots.innerHTML='<p>Prosimy wybrać dostępny dzień.</p>';
+  }
+
+  flatpickrInstance = flatpickr('#calendarInput',{
+    locale:'pl', dateFormat:'Y-m-d', minDate:'today', disableMobile:true,
+    disable: hasService ? disabledDates : [],
+    defaultDate: selectedStillAvailable ? defaultDate : null,
+    onChange:function(ds,dateStr){ displayTimeSlots(dateStr); }
+  });
+};
+
+// Dnia bez terminów nie pokazujemy jako wybranego. Komunikat pojawia się tylko
+// po zmianie usługi, jeżeli wcześniej wybrany dzień stał się niedostępny.
+const _displayTimeSlotsFinal = displayTimeSlots;
+displayTimeSlots = function(dateStr){
+  const select=document.getElementById('serviceType');
+  if(!select || !select.value){
+    const c=document.getElementById('timeSlotsContainer');
+    if(c)c.innerHTML='<p>Najpierw prosimy wybrać zabieg.</p>';
+    return;
+  }
+  const available=getVisibleBookableSlots(dateStr);
+  if(!available.length){
+    document.getElementById('calendarInput').value='';
+    document.getElementById('finalDateTime').value='';
+    initCalendar('');
+    return;
+  }
+  _displayTimeSlotsFinal(dateStr);
+};
