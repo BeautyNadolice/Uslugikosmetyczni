@@ -350,3 +350,6 @@ input:disabled, select:disabled {
         grid-template-columns: 1fr; /* Одна колонка на маленьких экранах */
     }
 }
+
+/* INDEX V2 */
+.booking-policy-notice{padding:12px;margin:12px 0;background:#fff4cc;border:1px solid #e3b341;border-radius:8px;color:#5f4700;text-align:left}.alternative-booking-section{padding:14px;margin:14px 0;border:1px solid #e3b341;border-radius:10px;background:#fffdf5}.time-slot.requires-confirmation{border-color:#e0a400;background:#fff4cc;color:#5f4700}.time-slot.requires-confirmation.selected{background:#e0a400;color:#fff}
