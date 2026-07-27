@@ -1,4 +1,4 @@
- const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
+ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUfjqgo760pzbeEx9-7Dnnk_t2gnYPBdWUZNk3kVob1C2FQF_Hqewfq9C1WFaYYHJYjQ/exec";
   let iti; 
 let allAvailableSlots = []; 
 let appointmentsData = []; 
@@ -296,14 +296,20 @@ function getFreeSlotsForService(dateStr) {
   });
 
   const uiStep = parseInt(adminSettings.slot_interval_minutes, 10) || 15;
+  const configuredStart = String(adminSettings.work_start_hour || "09:00").substring(0, 5);
+  const [configuredStartHour, configuredStartMinute] = configuredStart.split(":").map(Number);
+  const gridStartMinutes = (configuredStartHour * 60) + configuredStartMinute + (parseInt(adminSettings.start_offset_minutes, 10) || 0);
+
   return slotsFound.filter(time => {
     const [h, m] = time.split(":").map(Number);
+    const slotMinutes = (h * 60) + m;
     const currentSlotMs = new Date(`${dateStr}T${time}`).getTime();
     const isRightAfterAppointment = busyIntervalsOnThisDay.some(busy => {
       return currentSlotMs === (busy.end.getTime() + startOffsetMs);
     });
-    if (isRightAfterAppointment) return true; 
-    return (m % uiStep === 0); 
+    if (isRightAfterAppointment) return true;
+    if (slotMinutes < gridStartMinutes) return false;
+    return ((slotMinutes - gridStartMinutes) % uiStep) === 0;
   });
 }
 
