@@ -295,21 +295,17 @@ function getFreeSlotsForService(dateStr) {
     if (!conflictsWithBusy) { slotsFound.push(time); }
   });
 
-  const uiStep = parseInt(adminSettings.slot_interval_minutes, 10) || 15;
-  const configuredStart = String(adminSettings.work_start_hour || "09:00").substring(0, 5);
-  const [configuredStartHour, configuredStartMinute] = configuredStart.split(":").map(Number);
-  const gridStartMinutes = (configuredStartHour * 60) + configuredStartMinute + (parseInt(adminSettings.start_offset_minutes, 10) || 0);
+  const uiStep = Math.max(5, parseInt(adminSettings.slot_interval_minutes, 10) || 45);
+  const [configuredStartH, configuredStartM] = String(adminSettings.work_start_hour || "09:00")
+    .split(":")
+    .map(Number);
+  const configuredStartMinutes = (configuredStartH * 60) + configuredStartM;
 
   return slotsFound.filter(time => {
     const [h, m] = time.split(":").map(Number);
     const slotMinutes = (h * 60) + m;
-    const currentSlotMs = new Date(`${dateStr}T${time}`).getTime();
-    const isRightAfterAppointment = busyIntervalsOnThisDay.some(busy => {
-      return currentSlotMs === (busy.end.getTime() + startOffsetMs);
-    });
-    if (isRightAfterAppointment) return true;
-    if (slotMinutes < gridStartMinutes) return false;
-    return ((slotMinutes - gridStartMinutes) % uiStep) === 0;
+    return slotMinutes >= configuredStartMinutes &&
+      ((slotMinutes - configuredStartMinutes) % uiStep === 0);
   });
 }
 
@@ -510,31 +506,114 @@ function getScheduleEntry(dateStr){
   return (window.familyScheduleEntries||[]).find(e=>e.date===dateStr)||null;
 }
 function isPolishHoliday(dateStr){ return (window.polishHolidayDates||[]).includes(dateStr); }
+function shiftDateKey(dateStr, dayOffset){
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + dayOffset);
+  return dateKeyLocal(d);
+}
+
+function getScheduleCode(dateStr){
+  const entry = getScheduleEntry(dateStr);
+  return String(entry && (entry.code || entry.husbandShift) || "W").toUpperCase();
+}
+
+function getNightContext(dateStr){
+  const entry = getScheduleEntry(dateStr) || {};
+  const todayCode = getScheduleCode(dateStr);
+  const yesterdayCode = getScheduleCode(shiftDateKey(dateStr, -1));
+  const twoDaysAgoCode = getScheduleCode(shiftDateKey(dateStr, -2));
+  const explicitPosition = String(entry.nightPosition || "").toUpperCase();
+
+  const isNight = todayCode.startsWith("2");
+  const firstNight = isNight && (
+    explicitPosition === "FIRST" ||
+    entry.firstNight === true ||
+    (!yesterdayCode.startsWith("2") && explicitPosition !== "SECOND" && entry.secondNight !== true)
+  );
+  const secondNight = isNight && (
+    explicitPosition === "SECOND" ||
+    entry.secondNight === true ||
+    yesterdayCode.startsWith("2")
+  );
+  const afterLastNight = entry.afterLastNight === true || (
+    !isNight && yesterdayCode.startsWith("2") && twoDaysAgoCode.startsWith("2")
+  );
+
+  return { firstNight, secondNight, afterLastNight };
+}
+
 function classifyFamilySlot(dateStr,time,duration){
-  const start=new Date(dateStr+"T"+time), end=new Date(start.getTime()+duration*60000);
-  const e=getScheduleEntry(dateStr), code=String(e&&e.code||e&&e.husbandShift||"W").toUpperCase();
-  const dow=start.getDay(), childHome=Boolean(e&&e.childHome) || dow===0 || dow===6 || isPolishHoliday(dateStr) || /DH|DZIECKO/.test(code);
-  const working=/^[12]/.test(code), firstNight=code.startsWith('2') && !(e&&e.nightPosition==='SECOND') && !(e&&e.secondNight);
-  const secondNight=code.startsWith('2') && !firstNight;
-  const afterLastNight=Boolean(e&&e.afterLastNight);
-  if(working && childHome) return {mode:'MANUAL_ONLY',reason:'Oleksandr pracuje, a dziecko jest w domu.'};
-  if(firstNight){
-    if(minutesOfDate(end)>18*60) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się po 18:00 w dniu pierwszej nocnej zmiany.'};
-    if(minutesOfDate(end)>17*60+30) return {mode:'CONFIRM',reason:'Wizyta kończy się między 17:30 a 18:00.'};
-    return {mode:'STANDARD',reason:''};
+  const start = new Date(dateStr + "T" + time);
+  const end = new Date(start.getTime() + duration * 60000);
+  const entry = getScheduleEntry(dateStr);
+  const code = getScheduleCode(dateStr);
+  const dayOfWeek = start.getDay();
+  const childHome = Boolean(entry && entry.childHome) ||
+    dayOfWeek === 0 ||
+    dayOfWeek === 6 ||
+    isPolishHoliday(dateStr) ||
+    /DH|DZIECKO/.test(code);
+  const working = /^[12]/.test(code);
+  const { firstNight, secondNight, afterLastNight } = getNightContext(dateStr);
+  const startMinutes = minutesOfDate(start);
+  const endMinutes = minutesOfDate(end);
+
+  // Najwyższy priorytet: Oleksandr pracuje, a dziecko jest w domu.
+  if (working && childHome) {
+    return { mode:'MANUAL_ONLY', reason:'Rezerwacja online w tym dniu jest niedostępna.' };
   }
-  if(code.startsWith('1') || secondNight){
-    if(minutesOfDate(start)===8*60+30) return {mode:'CONFIRM',reason:'Termin o 08:30 wymaga potwierdzenia.'};
-    if(minutesOfDate(start)<9*60) return {mode:'MANUAL_ONLY',reason:'Rezerwacja online jest dostępna od 09:00.'};
-    if(minutesOfDate(end)>16*60+30) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się zbyt późno.'};
-    if(minutesOfDate(end)>15*60+30) return {mode:'CONFIRM',reason:'Wybrany termin wymaga potwierdzenia.'};
+
+  // Pierwsza nocna: każdy termin kończący się najpóźniej o 18:00 wymaga decyzji stylistki.
+  if (firstNight) {
+    if (endMinutes > 18 * 60) {
+      return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
+    }
+    return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
   }
-  if(afterLastNight){
-    if(minutesOfDate(start)===8*60+30) return {mode:'CONFIRM',reason:'Termin o 08:30 wymaga potwierdzenia.'};
-    if(minutesOfDate(start)<8*60+30) return {mode:'MANUAL_ONLY',reason:'Termin jest niedostępny online.'};
-    return {mode:'STANDARD',reason:''};
+
+  // Druga nocna: przed 09:00 wymagane jest potwierdzenie. Później obowiązują
+  // ograniczenia końca wizyty takie jak w dniu zmiany dziennej.
+  if (secondNight) {
+    if (startMinutes < 9 * 60) {
+      return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
+    }
+    if (endMinutes > 16 * 60 + 30) {
+      return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
+    }
+    if (endMinutes > 15 * 60 + 30) {
+      return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
+    }
+    return { mode:'STANDARD', reason:'' };
   }
-  return {mode:'STANDARD',reason:''};
+
+  // Dzień po ostatniej nocnej: tylko poranne terminy przed 09:00 wymagają
+  // potwierdzenia. Po 09:00 nie nakładamy ograniczeń popołudniowych.
+  if (afterLastNight) {
+    if (startMinutes < 9 * 60) {
+      return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
+    }
+    return { mode:'STANDARD', reason:'' };
+  }
+
+  // Zmiana dzienna: termin przed 08:30 pozostaje niewidoczny online,
+  // 08:30-08:59 wymaga potwierdzenia, od 09:00 działa standardowo.
+  if (code.startsWith('1')) {
+    if (startMinutes < 8 * 60 + 30) {
+      return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
+    }
+    if (startMinutes < 9 * 60) {
+      return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
+    }
+
+    if (endMinutes > 16 * 60 + 30) {
+      return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
+    }
+    if (endMinutes > 15 * 60 + 30) {
+      return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
+    }
+  }
+
+  return { mode:'STANDARD', reason:'' };
 }
 
 const _loadFreeSlotsBase=loadFreeSlots;
@@ -563,12 +642,12 @@ displayTimeSlots=function(dateStr){
       document.getElementById('finalDateTime').value=`${dateStr}T${time}`; selectedSlotPolicy=policy; updateAlternativeSection(); };
     c.appendChild(el); shown++;
   });
-  if(!shown)c.innerHTML='<p>Brak terminów dostępnych online. Skontaktuj się ze stylistką.</p>';
+  if(!shown)c.innerHTML='';
 };
 function updateAlternativeSection(){
   const sec=document.getElementById('alternativeBookingSection'), note=document.getElementById('bookingPolicyNotice');
   const need=selectedSlotPolicy&&selectedSlotPolicy.mode==='CONFIRM';
-  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?'Wybrany termin wymaga potwierdzenia. Prosimy wybrać dodatkowy termin na wypadek odrzucenia pierwszego.':'';
+  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?'Ten termin wymaga potwierdzenia. Prosimy wybrać dodatkowy termin na wypadek odrzucenia pierwszego.':'';
   if(!need){ document.getElementById('alternativeDateTime').value=''; return; }
   if(alternativeFlatpickr)alternativeFlatpickr.destroy();
   alternativeFlatpickr=flatpickr('#alternativeCalendarInput',{locale:'pl',dateFormat:'Y-m-d',minDate:'today',disableMobile:true,onChange:(ds,date)=>renderAlternativeSlots(date)});
@@ -642,70 +721,4 @@ displayTimeSlots = function(dateStr){
     return;
   }
   _displayTimeSlotsServiceFix(dateStr);
-};
-
-
-// ==========================================================
-// FINALNA POPRAWKA KALENDARZA: UKRYWANIE DNI BEZ TERMINOW
-// ==========================================================
-function getVisibleBookableSlots(dateStr){
-  const select = document.getElementById('serviceType');
-  if(!select || !select.value) return [];
-  const duration = parseInt(document.getElementById('selectedDuration')?.value,10) || 45;
-  return getFreeSlotsForService(dateStr).filter(time => {
-    return classifyFamilySlot(dateStr,time,duration).mode !== 'MANUAL_ONLY';
-  });
-}
-
-initCalendar = function(defaultDate=''){
-  const input = document.getElementById('calendarInput');
-  if(!input) return;
-  if(flatpickrInstance) flatpickrInstance.destroy();
-
-  const select = document.getElementById('serviceType');
-  const hasService = Boolean(select && select.value);
-  const disabledDates = [];
-  if(hasService){
-    const now = new Date();
-    for(let i=0;i<=60;i++){
-      const d = new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);
-      const key = dateKeyLocal(d);
-      if(getVisibleBookableSlots(key).length===0) disabledDates.push(key);
-    }
-  }
-
-  const selectedStillAvailable = defaultDate && !disabledDates.includes(defaultDate);
-  if(defaultDate && !selectedStillAvailable){
-    input.value='';
-    document.getElementById('finalDateTime').value='';
-    const slots=document.getElementById('timeSlotsContainer');
-    if(slots) slots.innerHTML='<p>Prosimy wybrać dostępny dzień.</p>';
-  }
-
-  flatpickrInstance = flatpickr('#calendarInput',{
-    locale:'pl', dateFormat:'Y-m-d', minDate:'today', disableMobile:true,
-    disable: hasService ? disabledDates : [],
-    defaultDate: selectedStillAvailable ? defaultDate : null,
-    onChange:function(ds,dateStr){ displayTimeSlots(dateStr); }
-  });
-};
-
-// Dnia bez terminów nie pokazujemy jako wybranego. Komunikat pojawia się tylko
-// po zmianie usługi, jeżeli wcześniej wybrany dzień stał się niedostępny.
-const _displayTimeSlotsFinal = displayTimeSlots;
-displayTimeSlots = function(dateStr){
-  const select=document.getElementById('serviceType');
-  if(!select || !select.value){
-    const c=document.getElementById('timeSlotsContainer');
-    if(c)c.innerHTML='<p>Najpierw prosimy wybrać zabieg.</p>';
-    return;
-  }
-  const available=getVisibleBookableSlots(dateStr);
-  if(!available.length){
-    document.getElementById('calendarInput').value='';
-    document.getElementById('finalDateTime').value='';
-    initCalendar('');
-    return;
-  }
-  _displayTimeSlotsFinal(dateStr);
 };
