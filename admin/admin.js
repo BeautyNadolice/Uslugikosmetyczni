@@ -5366,3 +5366,15 @@ loadServices = async function() {
 
 document.addEventListener("DOMContentLoaded", () => setTimeout(crmReplaceServiceFormInputs, 300));
 /* KONIEC WYBORU KATEGORII I ZABIEGU */
+
+
+// ==========================================================
+// ADMIN V2: prośby o wizytę i porządek cennika
+// ==========================================================
+async function loadBookingRequests(){
+  const box=document.getElementById('bookingRequestsList');if(!box)return;box.innerHTML='Ładowanie...';
+  try{const r=await crmPost({action:'getBookingRequests'});const rows=r.requests||[];box.innerHTML=rows.length?'':'Brak oczekujących próśb.';
+    rows.forEach(x=>{const d=document.createElement('div');d.className='dashboard-card';d.innerHTML=`<strong>${x.client}</strong><br>${x.service}<br>Główny: ${x.main}<br>Alternatywny: ${x.alternative}<br><small>${x.reason||''}</small><div style="margin-top:10px"><button class="btn-primary" data-choice="MAIN">Potwierdź główny</button> <button class="btn-secondary" data-choice="ALT">Potwierdź alternatywny</button> <button class="btn-danger" data-choice="REJECT">Odrzuć oba</button></div>`;d.querySelectorAll('button').forEach(b=>b.onclick=async()=>{if(b.disabled)return;d.querySelectorAll('button').forEach(z=>z.disabled=true);const res=await crmPost({action:'decideBookingRequest',requestId:x.id,choice:b.dataset.choice});if(!res.success)alert(res.error||'Błąd');await loadBookingRequests();await loadSystem();});box.appendChild(d);});
+  }catch(e){box.textContent='Błąd pobierania próśb.';}
+}
+const _switchTabV2=switchTab;switchTab=function(name){_switchTabV2(name);if(name==='ustawienia')loadBookingRequests();};
