@@ -88,6 +88,14 @@
                     <input type="hidden" id="selectedDuration" value="45">
                 </div>
 
+                <div id="bookingPolicyNotice" class="booking-policy-notice" style="display:none;"></div>
+                <div id="alternativeBookingSection" class="alternative-booking-section" style="display:none;">
+                    <h3>Termin alternatywny</h3>
+                    <p>Ten termin wymaga potwierdzenia stylistki. Wybierz dodatkowy termin na wypadek odrzucenia pierwszego.</p>
+                    <input type="text" id="alternativeCalendarInput" placeholder="Wybierz alternatywny dzień" readonly>
+                    <div id="alternativeTimeSlotsContainer" class="time-slots-grid"></div>
+                    <input type="hidden" id="alternativeDateTime">
+                </div>
                 <div id="priceDisplay" style="margin: 15px 0; font-weight: bold; color: var(--accent-color); font-size: 18px; text-align: center;"></div>
 
                 <div class="rodo-group">
