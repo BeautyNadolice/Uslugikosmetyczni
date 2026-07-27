@@ -580,7 +580,7 @@ function classifyFamilySlot(dateStr,time,duration){
     if (endMinutes > 16 * 60 + 30) {
       return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
     }
-    if (endMinutes > 15 * 60 + 30) {
+    if (endMinutes > 16 * 60) {
       return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
     }
     return { mode:'STANDARD', reason:'' };
@@ -608,7 +608,7 @@ function classifyFamilySlot(dateStr,time,duration){
     if (endMinutes > 16 * 60 + 30) {
       return { mode:'MANUAL_ONLY', reason:'Termin jest niedostępny online.' };
     }
-    if (endMinutes > 15 * 60 + 30) {
+    if (endMinutes > 16 * 60) {
       return { mode:'CONFIRM', reason:'Wybrany termin wymaga potwierdzenia.' };
     }
   }
