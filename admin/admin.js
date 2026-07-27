@@ -1053,29 +1053,20 @@ function renderAppointmentCard(app,container){
     card.style.background =
         color;
 
-    card.innerHTML = `
-
-        <strong>
-            ${app.name}
-        </strong>
-
-        <br>
-
-        ${app.service}
-
-        <br>
-
-        ${app.date}
-
-    `;
-
-    card.onclick = ()=>{
-
-        openAppointmentDetailsModal(
-            app
-        );
-
-    };
+    if (isWorkShift) {
+        card.innerHTML = `<strong>${app.name || "Brak"}</strong>`;
+        card.onclick = null;
+        card.style.cursor = "default";
+    } else {
+        card.innerHTML = `
+            <strong>${app.name}</strong>
+            <br>
+            ${app.service}
+            <br>
+            ${app.date}
+        `;
+        card.onclick = () => openAppointmentDetailsModal(app);
+    }
 
     container.appendChild(
         card
@@ -3912,7 +3903,7 @@ async function renderWorkScheduleCalendar() {
     response.entries.forEach(item => { byDate[item.date] = item; });
     const names = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"];
     const monthName = new Date(year, monthIndex, 1).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
-    let html = `<h3 style="margin:0 0 12px">Grafik pracy: ${monthName}</h3><div class="work-schedule-grid" style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:5px">`;
+    let html = `<h3 style="margin:0 0 12px">${monthName}</h3><div class="work-schedule-grid" style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:5px">`;
     names.forEach(name => { html += `<div style="font-weight:700;text-align:center;padding:5px">${name}</div>`; });
     const first = new Date(year, monthIndex, 1);
     const leading = first.getDay() === 0 ? 6 : first.getDay() - 1;
@@ -4451,30 +4442,60 @@ function crmArrangeSchedulePanel() {
     const panel = document.getElementById("schedule-full-panel");
     if (!panel || panel.dataset.finalLayout === "1") return;
     panel.dataset.finalLayout = "1";
-    const originalDetails = Array.from(panel.querySelectorAll(":scope > details"));
-    originalDetails.forEach(d => { d.open = false; });
-    const official = originalDetails.find(d => (d.querySelector("summary")?.textContent || "").includes("Oficjalny"));
-    if (official) {
-        const syncBtn = official.querySelector('button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
-        if (syncBtn) {
-            const wrap = document.createElement("div");
-            wrap.appendChild(syncBtn);
-            official.after(crmCreateProcedure("Synchronizacja z Google Calendar", wrap));
-        }
-        crmMakeProcedure(official, "Aktualizacja pliku XLSX");
-        const p = official.querySelector("p");
-        if (p) p.textContent = "";
+
+    const details = Array.from(panel.querySelectorAll(":scope > details"));
+    const forecast = details.find(d => /Prognoza 4x4|Prognoza 4×4/i.test(d.querySelector("summary")?.textContent || ""));
+    const manual = details.find(d => /Ręczna korekta dnia/i.test(d.querySelector("summary")?.textContent || ""));
+    const official = details.find(d => /Oficjalny grafik|Aktualizacja pliku/i.test(d.querySelector("summary")?.textContent || ""));
+    const preview = details.find(d => /Podgląd danych i historii/i.test(d.querySelector("summary")?.textContent || ""));
+
+    // Prognoza 4x4 pozostaje mechanizmem technicznym w backendzie.
+    // Edycja grafiku odbywa się wyłącznie w Grafik_Oleksandr.xlsx.
+    forecast?.remove();
+    manual?.remove();
+
+    const actions = document.createElement("div");
+    actions.id = "sch-main-actions";
+    actions.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px";
+
+    const updateButton = document.createElement("button");
+    updateButton.id = "sch-smart-update-btn";
+    updateButton.type = "button";
+    updateButton.className = "btn-primary";
+    updateButton.textContent = "Sprawdź aktualizację";
+    updateButton.onclick = crmSmartScheduleUpdateNow;
+    actions.appendChild(updateButton);
+
+    const syncButton = official?.querySelector('button[onclick="synchronizeWorkScheduleWithGoogleCalendar()"]');
+    if (syncButton) {
+        syncButton.textContent = "Synchronizuj z Google Calendar";
+        actions.appendChild(syncButton);
     }
+    official?.remove();
+
     const cleanup = document.getElementById("sch-calendar-cleanup-box");
-    if (cleanup) {
-        const wrapper = crmCreateProcedure("Czyszczenie wpisów grafiku", cleanup);
-        const syncDetails = official?.nextElementSibling;
-        (syncDetails || official)?.after(wrapper);
+    let cleanupDetails = null;
+    if (cleanup) cleanupDetails = crmCreateProcedure("Czyszczenie wpisów grafiku", cleanup);
+
+    if (preview) {
+        preview.open = false;
+        const summary = preview.querySelector(":scope > summary");
+        if (summary) summary.textContent = "Podgląd danych i historii";
     }
+
     const badge = document.getElementById("sch-xlsx-version-badge");
-    if (badge) badge.textContent = "Grafik aktualny";
-    crmWrapSectionAsDetails(panel, "Grafik pracy");
+    badge?.remove();
+
+    // Usuń wszystkie pozostawione opisy techniczne poza podglądem.
+    Array.from(panel.children).forEach(child => {
+        if (child.tagName === "P" && !child.closest("details")) child.remove();
+    });
+
+    panel.insertBefore(actions, panel.firstChild?.nextSibling || null);
+    if (cleanupDetails) panel.insertBefore(cleanupDetails, preview || null);
+    crmWrapSectionAsDetails(panel, "Grafik męża");
 }
+
 function crmArrangeDiagnosticsPanel() {
     const panel = document.getElementById("crm-diagnostics-panel");
     if (!panel || panel.dataset.finalLayout === "1") return;
@@ -4502,18 +4523,14 @@ function crmArrangeDiagnosticsPanel() {
 }
 function crmCollapseWorkCalendar() {
     const host = document.getElementById("work-schedule-calendar");
-    if (!host || host.parentElement?.id === "work-schedule-calendar-details") return;
-    const details = document.createElement("details");
-    details.id = "work-schedule-calendar-details";
-    details.style.cssText = host.style.cssText || "margin-top:22px";
-    host.style.cssText = "padding-top:12px";
-    const summary = document.createElement("summary");
-    summary.style.cssText = "cursor:pointer;font-size:18px;font-weight:700";
-    summary.textContent = "Grafik pracy";
-    host.parentNode.insertBefore(details, host);
-    details.append(summary, host);
-    details.open = false;
+    const panel = document.getElementById("schedule-full-panel");
+    if (!host || !panel) return;
+    const mainBody = panel.querySelector(":scope > details.crm-main-collapsible > div");
+    if (!mainBody) return;
+    host.style.cssText = "padding:4px 0 14px;border:0;background:transparent";
+    mainBody.insertBefore(host, mainBody.firstChild);
 }
+
 async function crmSmartScheduleUpdateNow() {
     const button = document.getElementById("sch-smart-update-btn");
     if (button) { button.disabled = true; button.textContent = "Sprawdzanie..."; }
@@ -4526,23 +4543,17 @@ async function crmSmartScheduleUpdateNow() {
     } catch (error) { crmToast(error.message || String(error), "error"); }
     finally { if (button) { button.disabled = false; button.textContent = "Sprawdź aktualizację"; } }
 }
-function crmInstallSmartButton() {
-    const official = Array.from(document.querySelectorAll("#schedule-full-panel details")).find(d => (d.querySelector("summary")?.textContent || "").includes("Aktualizacja pliku"));
-    if (!official || document.getElementById("sch-smart-update-btn")) return;
-    const button = document.createElement("button");
-    button.id = "sch-smart-update-btn";
-    button.type = "button";
-    button.className = "btn-primary";
-    button.textContent = "Sprawdź aktualizację";
-    button.onclick = crmSmartScheduleUpdateNow;
-    const old = official.querySelector("#sch-check-folder-btn");
-    if (old) old.replaceWith(button); else official.appendChild(button);
-}
+function crmInstallSmartButton() {}
 function crmApplyFinalLayout() {
+    const cycle = document.getElementById("schedule_cycle");
+    if (cycle) {
+        const wrapper = cycle.closest(".form-group, .setting-row, label, div");
+        if (wrapper) wrapper.style.display = "none";
+        else cycle.style.display = "none";
+    }
     crmArrangeSchedulePanel();
     crmArrangeDiagnosticsPanel();
     crmCollapseWorkCalendar();
-    crmInstallSmartButton();
 }
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(crmApplyFinalLayout, 250);
@@ -5077,3 +5088,195 @@ async function loadCRMTestHistory() {
    TEN KOMENTARZ MUSI POZOSTAC NA SAMYM KONCU ADMIN.JS.
    ========================================================== */
 
+
+/* ==========================================================
+   CENNIK: KATEGORIE, KOLORY I KOLEJNOSC
+   ========================================================== */
+function crmPriceId(prefix) {
+    return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
+
+function crmPreparePriceStructure() {
+    const seenCategories = new Map();
+    currentServices.forEach((service, index) => {
+        service.serviceId = service.serviceId || crmPriceId("srv");
+        service.serviceOrder = Number(service.serviceOrder) > 0 ? Number(service.serviceOrder) : index + 1;
+        const name = String(service.category || "Inne").trim() || "Inne";
+        service.category = name;
+        if (!seenCategories.has(name)) {
+            seenCategories.set(name, {
+                categoryId: service.categoryId || crmPriceId("cat"),
+                categoryOrder: Number(service.categoryOrder) > 0 ? Number(service.categoryOrder) : seenCategories.size + 1,
+                categoryColor: service.categoryColor || globalColors[name] || "#b05c75"
+            });
+        }
+        const meta = seenCategories.get(name);
+        service.categoryId = meta.categoryId;
+        service.categoryOrder = meta.categoryOrder;
+        service.categoryColor = meta.categoryColor;
+        globalColors[name] = meta.categoryColor;
+    });
+    currentServices.sort((a, b) => Number(a.categoryOrder) - Number(b.categoryOrder) || Number(a.serviceOrder) - Number(b.serviceOrder));
+}
+
+function crmCategoriesFromPrices() {
+    crmPreparePriceStructure();
+    const map = new Map();
+    currentServices.forEach((service, serviceIndex) => {
+        if (!map.has(service.categoryId)) {
+            map.set(service.categoryId, {
+                id: service.categoryId,
+                name: service.category,
+                color: service.categoryColor,
+                order: Number(service.categoryOrder),
+                services: []
+            });
+        }
+        map.get(service.categoryId).services.push({ service, serviceIndex });
+    });
+    return Array.from(map.values()).sort((a, b) => a.order - b.order);
+}
+
+function crmNormalizePriceOrder() {
+    const categories = crmCategoriesFromPrices();
+    categories.forEach((category, categoryIndex) => {
+        category.services.sort((a, b) => Number(a.service.serviceOrder) - Number(b.service.serviceOrder));
+        category.services.forEach((item, serviceIndex) => {
+            item.service.categoryOrder = categoryIndex + 1;
+            item.service.serviceOrder = serviceIndex + 1;
+            item.service.category = category.name;
+            item.service.categoryId = category.id;
+            item.service.categoryColor = category.color;
+        });
+    });
+    currentServices.sort((a, b) => Number(a.categoryOrder) - Number(b.categoryOrder) || Number(a.serviceOrder) - Number(b.serviceOrder));
+}
+
+function crmMoveCategory(categoryId, direction) {
+    const categories = crmCategoriesFromPrices();
+    const index = categories.findIndex(category => category.id === categoryId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= categories.length) return;
+    const firstOrder = categories[index].order;
+    categories[index].services.forEach(item => item.service.categoryOrder = categories[target].order);
+    categories[target].services.forEach(item => item.service.categoryOrder = firstOrder);
+    crmNormalizePriceOrder();
+    renderServicesTable();
+}
+
+function crmMoveService(serviceId, direction) {
+    crmPreparePriceStructure();
+    const service = currentServices.find(item => item.serviceId === serviceId);
+    if (!service) return;
+    const siblings = currentServices.filter(item => item.categoryId === service.categoryId)
+        .sort((a, b) => Number(a.serviceOrder) - Number(b.serviceOrder));
+    const index = siblings.findIndex(item => item.serviceId === serviceId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= siblings.length) return;
+    const oldOrder = siblings[index].serviceOrder;
+    siblings[index].serviceOrder = siblings[target].serviceOrder;
+    siblings[target].serviceOrder = oldOrder;
+    crmNormalizePriceOrder();
+    renderServicesTable();
+}
+
+function crmChangeCategoryColor(categoryId, color) {
+    currentServices.filter(service => service.categoryId === categoryId).forEach(service => service.categoryColor = color);
+    renderServicesTable();
+}
+
+function crmEditCategory(categoryId) {
+    const category = crmCategoriesFromPrices().find(item => item.id === categoryId);
+    if (!category) return;
+    const newName = prompt("Nazwa kategorii:", category.name);
+    if (newName === null) return;
+    const cleanName = newName.trim();
+    if (!cleanName) return alert("Nazwa kategorii nie może być pusta.");
+    const duplicate = crmCategoriesFromPrices().some(item => item.id !== categoryId && item.name.toLowerCase() === cleanName.toLowerCase());
+    if (duplicate) return alert("Taka kategoria już istnieje.");
+    currentServices.filter(service => service.categoryId === categoryId).forEach(service => service.category = cleanName);
+    renderServicesTable();
+}
+
+function renderServicesTable() {
+    const tbody = document.getElementById("adminServicesTableBody");
+    if (!tbody) return;
+    crmPreparePriceStructure();
+    const table = tbody.closest("table");
+    if (table) {
+        const head = table.querySelector("thead tr");
+        if (head) head.innerHTML = "<th>Kategoria i usługi</th>";
+    }
+    tbody.innerHTML = "";
+    const categories = crmCategoriesFromPrices();
+    if (!categories.length) {
+        tbody.innerHTML = '<tr><td style="text-align:center">Brak kategorii i usług</td></tr>';
+        return;
+    }
+    categories.forEach((category, categoryIndex) => {
+        const categoryRow = document.createElement("tr");
+        categoryRow.className = "crm-price-category-row";
+        categoryRow.innerHTML = `<td>
+          <details open class="crm-price-category" data-category-id="${category.id}">
+            <summary style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 0">
+              <span style="width:16px;height:16px;border-radius:4px;background:${category.color};display:inline-block"></span>
+              <strong style="flex:1">${category.name}</strong>
+              <span>${category.services.length} usług</span>
+              <button type="button" class="btn-secondary" ${categoryIndex === 0 ? "disabled" : ""} onclick="event.preventDefault();crmMoveCategory('${category.id}',-1)">↑</button>
+              <button type="button" class="btn-secondary" ${categoryIndex === categories.length - 1 ? "disabled" : ""} onclick="event.preventDefault();crmMoveCategory('${category.id}',1)">↓</button>
+              <input type="color" value="${category.color}" title="Kolor kategorii" onclick="event.stopPropagation()" onchange="crmChangeCategoryColor('${category.id}',this.value)">
+              <button type="button" class="btn-secondary" onclick="event.preventDefault();crmEditCategory('${category.id}')">Edytuj kategorię</button>
+            </summary>
+            <div style="overflow:auto">
+              <table style="width:100%"><thead><tr><th>Kolejność</th><th>Usługa</th><th>Cena</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
+              <tbody>${category.services.map((item, serviceIndex) => `<tr>
+                <td><button type="button" class="btn-secondary" ${serviceIndex === 0 ? "disabled" : ""} onclick="crmMoveService('${item.service.serviceId}',-1)">↑</button> <button type="button" class="btn-secondary" ${serviceIndex === category.services.length - 1 ? "disabled" : ""} onclick="crmMoveService('${item.service.serviceId}',1)">↓</button></td>
+                <td>${item.service.name || ""}</td><td>${Number(item.service.price || 0)} zł</td><td>${Number(item.service.duration || 0)} min</td><td>${item.service.status || ""}</td>
+                <td><button class="btn-secondary" onclick="editService(${item.serviceIndex})">Edytuj</button> <button class="btn-danger" onclick="deleteService(${item.serviceIndex})">Usuń</button></td>
+              </tr>`).join("")}</tbody></table>
+            </div>
+          </details>
+        </td>`;
+        tbody.appendChild(categoryRow);
+    });
+}
+
+function saveServiceModalData() {
+    const index = parseInt(document.getElementById("editServiceIndex").value, 10);
+    const previous = index >= 0 ? currentServices[index] : null;
+    const categoryName = document.getElementById("serviceCategory").value.trim();
+    const category = crmCategoriesFromPrices().find(item => item.name === categoryName);
+    const serviceData = {
+        ...(previous || {}),
+        serviceId: previous?.serviceId || crmPriceId("srv"),
+        category: categoryName,
+        categoryId: category?.id || previous?.categoryId || crmPriceId("cat"),
+        categoryOrder: category?.order || previous?.categoryOrder || crmCategoriesFromPrices().length + 1,
+        categoryColor: category?.color || previous?.categoryColor || "#b05c75",
+        serviceOrder: previous?.categoryId === category?.id ? previous.serviceOrder : ((category?.services.length || 0) + 1),
+        name: document.getElementById("serviceName").value.trim(),
+        price: Number(document.getElementById("servicePrice").value) || 0,
+        duration: Number(document.getElementById("serviceDuration").value) || 60,
+        showPrice: "Tak", showDuration: "Tak",
+        status: document.getElementById("serviceStatus").value || "Szkic"
+    };
+    if (!serviceData.category || !serviceData.name) return alert("Wpisz kategorię i nazwę usługi.");
+    if (index >= 0) currentServices[index] = serviceData; else currentServices.push(serviceData);
+    crmNormalizePriceOrder();
+    renderServicesTable();
+    closeServiceModal();
+    alert("Usługa zapisana lokalnie. Zapisz szkic, a następnie opublikuj cennik.");
+}
+
+(function crmMoveCategoryColorsToPrices() {
+    const hideColors = () => {
+        const list = document.getElementById("categories-colors-list");
+        if (!list) return;
+        const block = list.closest("section, fieldset, .settings-section, div");
+        if (block) block.style.display = "none";
+        else list.style.display = "none";
+    };
+    document.addEventListener("DOMContentLoaded", hideColors);
+    setTimeout(hideColors, 800);
+})();
+/* KONIEC CENNIKA */
