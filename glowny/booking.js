@@ -484,3 +484,99 @@ async function submitForm(event) {
 function openBookingModal() { document.getElementById("bookingModal").style.display = "flex"; }
 function closeBookingModal() { document.getElementById("bookingModal").style.display = "none"; resetBookingForm(); }
 window.addEventListener("click", (e) => { if (e.target === document.getElementById("bookingModal")) { closeBookingModal(); } });
+
+
+// ==========================================================
+// INDEX V2: polityka rodzinna, potwierdzenie i termin alternatywny
+// ==========================================================
+let selectedSlotPolicy = null;
+let alternativeFlatpickr = null;
+let bookingSubmissionLocked = false;
+
+function minutesOfDate(d){ return d.getHours()*60+d.getMinutes(); }
+function dateKeyLocal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function getScheduleEntry(dateStr){
+  return (window.familyScheduleEntries||[]).find(e=>e.date===dateStr)||null;
+}
+function isPolishHoliday(dateStr){ return (window.polishHolidayDates||[]).includes(dateStr); }
+function classifyFamilySlot(dateStr,time,duration){
+  const start=new Date(dateStr+"T"+time), end=new Date(start.getTime()+duration*60000);
+  const e=getScheduleEntry(dateStr), code=String(e&&e.code||e&&e.husbandShift||"W").toUpperCase();
+  const dow=start.getDay(), childHome=Boolean(e&&e.childHome) || dow===0 || dow===6 || isPolishHoliday(dateStr) || /DH|DZIECKO/.test(code);
+  const working=/^[12]/.test(code), firstNight=code.startsWith('2') && !(e&&e.nightPosition==='SECOND') && !(e&&e.secondNight);
+  const secondNight=code.startsWith('2') && !firstNight;
+  const afterLastNight=Boolean(e&&e.afterLastNight);
+  if(working && childHome) return {mode:'MANUAL_ONLY',reason:'Oleksandr pracuje, a dziecko jest w domu.'};
+  if(firstNight){
+    if(minutesOfDate(end)>18*60) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się po 18:00 w dniu pierwszej nocnej zmiany.'};
+    return {mode:'CONFIRM',reason:minutesOfDate(end)>17*60+30?'Wizyta kończy się między 17:30 a 18:00.':'Pierwsza nocna zmiana Oleksandra.'};
+  }
+  if(code.startsWith('1') || secondNight || afterLastNight){
+    if(minutesOfDate(start)===8*60+30) return {mode:'CONFIRM',reason:'Termin o 08:30 wymaga potwierdzenia stylistki.'};
+    if(minutesOfDate(start)<9*60) return {mode:'MANUAL_ONLY',reason:'Rezerwacja online jest dostępna od 09:00.'};
+    if(minutesOfDate(end)>16*60+30) return {mode:'MANUAL_ONLY',reason:'Wizyta kończy się zbyt późno przed odbiorem dziecka.'};
+    if(minutesOfDate(end)>15*60+30) return {mode:'CONFIRM',reason:'Wizyta kończy się po preferowanej godzinie odbioru dziecka.'};
+  }
+  return {mode:'STANDARD',reason:''};
+}
+
+const _loadFreeSlotsBase=loadFreeSlots;
+loadFreeSlots=async function(){
+  try{
+    const data=await fetchJSONP(`${APPS_SCRIPT_URL}?checkBusy=true&includeFamilyPolicy=true`);
+    allAvailableSlots=data.busySlots||[]; appointmentsData=data.appointments||[];
+    window.familyScheduleEntries=data.familySchedule||[]; window.polishHolidayDates=data.holidays||[];
+    if(data.settings) adminSettings={...adminSettings,...data.settings};
+    const d=document.getElementById('calendarInput')?.value||''; initCalendar(d); if(d) displayTimeSlots(d);
+  }catch(e){ console.error(e); await _loadFreeSlotsBase(); }
+};
+
+const _displayTimeSlotsBase=displayTimeSlots;
+displayTimeSlots=function(dateStr){
+  const c=document.getElementById('timeSlotsContainer'); if(!c)return; c.innerHTML='';
+  document.getElementById('finalDateTime').value=''; selectedSlotPolicy=null;
+  const dur=parseInt(document.getElementById('selectedDuration').value,10)||45;
+  const free=getFreeSlotsForService(dateStr);
+  let shown=0;
+  free.forEach(time=>{
+    const policy=classifyFamilySlot(dateStr,time,dur); if(policy.mode==='MANUAL_ONLY')return;
+    const el=document.createElement('div'); el.className='time-slot'+(policy.mode==='CONFIRM'?' requires-confirmation':'');
+    el.innerText=time+(policy.mode==='CONFIRM'?' *':''); el.title=policy.reason;
+    el.onclick=()=>{ document.querySelectorAll('#timeSlotsContainer .time-slot').forEach(x=>x.classList.remove('selected')); el.classList.add('selected');
+      document.getElementById('finalDateTime').value=`${dateStr}T${time}`; selectedSlotPolicy=policy; updateAlternativeSection(); };
+    c.appendChild(el); shown++;
+  });
+  if(!shown)c.innerHTML='<p>Brak terminów dostępnych online. Skontaktuj się ze stylistką.</p>';
+};
+function updateAlternativeSection(){
+  const sec=document.getElementById('alternativeBookingSection'), note=document.getElementById('bookingPolicyNotice');
+  const need=selectedSlotPolicy&&selectedSlotPolicy.mode==='CONFIRM';
+  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?selectedSlotPolicy.reason+' Wybierz termin alternatywny.':'';
+  if(!need){ document.getElementById('alternativeDateTime').value=''; return; }
+  if(alternativeFlatpickr)alternativeFlatpickr.destroy();
+  alternativeFlatpickr=flatpickr('#alternativeCalendarInput',{locale:'pl',dateFormat:'Y-m-d',minDate:'today',disableMobile:true,onChange:(ds,date)=>renderAlternativeSlots(date)});
+}
+function renderAlternativeSlots(dateStr){
+  const c=document.getElementById('alternativeTimeSlotsContainer'); c.innerHTML='';
+  const dur=parseInt(document.getElementById('selectedDuration').value,10)||45;
+  getFreeSlotsForService(dateStr).forEach(time=>{
+    const value=`${dateStr}T${time}`; if(value===document.getElementById('finalDateTime').value)return;
+    const p=classifyFamilySlot(dateStr,time,dur); if(p.mode==='MANUAL_ONLY')return;
+    const el=document.createElement('div'); el.className='time-slot'; el.textContent=time+(p.mode==='CONFIRM'?' *':'');
+    el.onclick=()=>{c.querySelectorAll('.time-slot').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');document.getElementById('alternativeDateTime').value=value;}; c.appendChild(el);
+  });
+}
+submitForm=async function(event){
+  event.preventDefault(); if(bookingSubmissionLocked)return;
+  const main=document.getElementById('finalDateTime').value, alt=document.getElementById('alternativeDateTime').value;
+  if(!isClientApproved||!main){alert('Zweryfikuj telefon i wybierz termin.');return;}
+  const requires=selectedSlotPolicy&&selectedSlotPolicy.mode==='CONFIRM'; if(requires&&!alt){alert('Wybierz termin alternatywny.');return;}
+  bookingSubmissionLocked=true; const btn=document.getElementById('submitBookingBtn'); btn.disabled=true; btn.textContent='Wysyłanie...';
+  try{
+    const opt=document.getElementById('serviceType').selectedOptions[0], duration=parseInt(document.getElementById('selectedDuration').value,10)||45;
+    const payload={action:requires?'createBookingRequest':'createBooking',phone:iti.getNumber().replace(/\s+/g,''),name:document.getElementById('clientName').value,service:document.getElementById('serviceType').value,date:main,alternativeDate:alt||'',duration,rodo:document.getElementById('rodoConsent').checked?'Tak':'Nie',confirmationReason:selectedSlotPolicy?.reason||'',bookingSource:'INDEX'};
+    const result=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(r=>r.json());
+    if(!result.success)throw new Error(result.error||'Nie udało się zapisać');
+    alert(requires?'Prośba z terminem głównym i alternatywnym została wysłana.':'Wizyta została zarezerwowana.'); closeBookingModal(); await loadFreeSlots();
+  }catch(e){alert(e.message||'Wystąpił błąd.');}finally{bookingSubmissionLocked=false;btn.disabled=false;btn.textContent='Zarezerwuj wizytę';}
+};
