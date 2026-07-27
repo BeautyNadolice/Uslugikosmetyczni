@@ -483,7 +483,12 @@ async function submitForm(event) {
 
 function openBookingModal() { document.getElementById("bookingModal").style.display = "flex"; }
 function closeBookingModal() { document.getElementById("bookingModal").style.display = "none"; resetBookingForm(); }
-window.addEventListener("click", (e) => { if (e.target === document.getElementById("bookingModal")) { closeBookingModal(); } });
+window.addEventListener("click", (e) => {
+  if (e.target === document.getElementById("bookingModal")) {
+    // Formularz zamyka się wyłącznie przyciskiem X.
+    e.preventDefault();
+  }
+});
 
 
 // ==========================================================
@@ -551,7 +556,7 @@ displayTimeSlots=function(dateStr){
 function updateAlternativeSection(){
   const sec=document.getElementById('alternativeBookingSection'), note=document.getElementById('bookingPolicyNotice');
   const need=selectedSlotPolicy&&selectedSlotPolicy.mode==='CONFIRM';
-  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?selectedSlotPolicy.reason+' Wybierz termin alternatywny.':'';
+  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?'Wybrany termin wymaga potwierdzenia. Prosimy wybrać dodatkowy termin na wypadek odrzucenia pierwszego.':'';
   if(!need){ document.getElementById('alternativeDateTime').value=''; return; }
   if(alternativeFlatpickr)alternativeFlatpickr.destroy();
   alternativeFlatpickr=flatpickr('#alternativeCalendarInput',{locale:'pl',dateFormat:'Y-m-d',minDate:'today',disableMobile:true,onChange:(ds,date)=>renderAlternativeSlots(date)});
@@ -579,4 +584,50 @@ submitForm=async function(event){
     if(!result.success)throw new Error(result.error||'Nie udało się zapisać');
     alert(requires?'Prośba z terminem głównym i alternatywnym została wysłana.':'Wizyta została zarezerwowana.'); closeBookingModal(); await loadFreeSlots();
   }catch(e){alert(e.message||'Wystąpił błąd.');}finally{bookingSubmissionLocked=false;btn.disabled=false;btn.textContent='Zarezerwuj wizytę';}
+};
+
+
+// ==========================================================
+// POPRAWKA STANU MODALU I KALENDARZA
+// ==========================================================
+const _openBookingModalStateFix = openBookingModal;
+openBookingModal = function(){
+  selectedSlotPolicy = null;
+  const alt = document.getElementById('alternativeDateTime'); if(alt) alt.value='';
+  const altDate = document.getElementById('alternativeCalendarInput'); if(altDate) altDate.value='';
+  const altSlots = document.getElementById('alternativeTimeSlotsContainer'); if(altSlots) altSlots.innerHTML='';
+  const section = document.getElementById('alternativeBookingSection'); if(section) section.style.display='none';
+  const notice = document.getElementById('bookingPolicyNotice'); if(notice){notice.style.display='none';notice.textContent='';}
+  _openBookingModalStateFix();
+};
+const _closeBookingModalStateFix = closeBookingModal;
+closeBookingModal = function(){
+  selectedSlotPolicy = null;
+  if(alternativeFlatpickr){alternativeFlatpickr.destroy();alternativeFlatpickr=null;}
+  const alt = document.getElementById('alternativeDateTime'); if(alt) alt.value='';
+  const section = document.getElementById('alternativeBookingSection'); if(section) section.style.display='none';
+  const notice = document.getElementById('bookingPolicyNotice'); if(notice){notice.style.display='none';notice.textContent='';}
+  _closeBookingModalStateFix();
+};
+
+// Bez wybranego zabiegu kalendarz pokazuje również dzień dzisiejszy.
+const _initCalendarServiceFix = initCalendar;
+initCalendar = function(defaultDate=''){
+  const select=document.getElementById('serviceType');
+  if(select && !select.value){
+    const input=document.getElementById('calendarInput'); if(!input)return;
+    if(flatpickrInstance) flatpickrInstance.destroy();
+    flatpickrInstance=flatpickr('#calendarInput',{locale:'pl',dateFormat:'Y-m-d',minDate:'today',disableMobile:true,defaultDate:defaultDate||null,onChange:function(ds,dateStr){displayTimeSlots(dateStr);}});
+    return;
+  }
+  _initCalendarServiceFix(defaultDate);
+};
+const _displayTimeSlotsServiceFix = displayTimeSlots;
+displayTimeSlots = function(dateStr){
+  const select=document.getElementById('serviceType');
+  if(select && !select.value){
+    const c=document.getElementById('timeSlotsContainer'); if(c)c.innerHTML='<p>Najpierw prosimy wybrać zabieg.</p>';
+    return;
+  }
+  _displayTimeSlotsServiceFix(dateStr);
 };
