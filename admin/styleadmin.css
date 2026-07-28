@@ -820,3 +820,339 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:var
   :root{--crm-sidebar:0px;}
   .calendar-three-columns{grid-template-columns:1fr!important;}
 }
+
+/* ==========================================================
+   ADMIN V3.2: SOFT SALON / PASTEL GLOW
+   Miękka, kobieca i spokojna warstwa wizualna kalendarza
+   ========================================================== */
+:root{
+  --crm-bg:#fbf9fb;
+  --crm-surface:#fffefe;
+  --crm-surface-soft:#fdf9fb;
+  --crm-surface-muted:#f7f2f5;
+  --crm-text:#37323a;
+  --crm-text-soft:#817781;
+  --crm-text-faint:#aaa1a8;
+  --crm-primary:#bb6f8f;
+  --crm-primary-dark:#9f5877;
+  --crm-primary-soft:#f7e8ef;
+  --crm-primary-pale:#fdf5f8;
+  --crm-success:#78c9a7;
+  --crm-success-soft:#eaf9f2;
+  --crm-warning:#e8c870;
+  --crm-warning-soft:#fff8df;
+  --crm-danger:#df7180;
+  --crm-danger-soft:#fcecef;
+  --crm-info:#91b7e8;
+  --crm-info-soft:#eef6ff;
+  --crm-border:#eee7eb;
+  --crm-border-strong:#e3d9df;
+  --crm-shadow-xs:0 2px 9px rgba(104,72,88,.045);
+  --crm-shadow-sm:0 8px 24px rgba(104,72,88,.07);
+  --crm-shadow-md:0 18px 48px rgba(104,72,88,.11);
+  --crm-radius-sm:13px;
+  --crm-radius-md:19px;
+  --crm-radius-lg:26px;
+}
+
+html,body{
+  background:
+    radial-gradient(circle at 10% 0%,rgba(244,220,230,.32),transparent 28rem),
+    radial-gradient(circle at 95% 15%,rgba(222,240,249,.24),transparent 32rem),
+    var(--crm-bg)!important;
+}
+
+/* MIĘKKI SIDEBAR */
+.sidebar{
+  background:rgba(255,254,254,.93)!important;
+  border-right:1px solid rgba(229,218,224,.8)!important;
+  box-shadow:8px 0 32px rgba(116,82,98,.035)!important;
+  backdrop-filter:blur(18px)!important;
+}
+.sidebar-header h2{
+  color:#a95d7c!important;
+  font-weight:760!important;
+  letter-spacing:-.025em!important;
+}
+.sidebar-nav{gap:8px!important;}
+.nav-btn{
+  min-height:43px!important;
+  border-radius:13px!important;
+  color:#58505a!important;
+  font-weight:620!important;
+  transition:all .18s ease!important;
+}
+.nav-btn:hover:not(.active){
+  color:#9f5877!important;
+  background:linear-gradient(135deg,#fdf6f9,#f8edf2)!important;
+  transform:translateX(2px)!important;
+}
+.nav-btn.active{
+  color:#fff!important;
+  background:linear-gradient(135deg,#c77d9b,#ae6282)!important;
+  box-shadow:0 8px 20px rgba(177,96,130,.20)!important;
+}
+.sidebar-footer .btn-danger{
+  background:linear-gradient(135deg,#df7b88,#c95f70)!important;
+  border-radius:13px!important;
+  box-shadow:0 7px 16px rgba(205,96,112,.16)!important;
+}
+
+/* GÓRNY PASEK I PRZEŁĄCZNIKI */
+.calendar-layout-header{
+  min-height:68px!important;
+  padding:10px 13px!important;
+  background:rgba(255,254,254,.88)!important;
+  border:1px solid rgba(233,223,228,.9)!important;
+  border-radius:20px!important;
+  box-shadow:0 9px 28px rgba(104,72,88,.065)!important;
+  backdrop-filter:blur(16px)!important;
+}
+.calendar-view-toggle{
+  gap:5px!important;
+  padding:5px!important;
+  background:#f7f2f5!important;
+  border-radius:16px!important;
+}
+.btn-toggle{
+  min-height:39px!important;
+  padding:8px 18px!important;
+  border-radius:12px!important;
+  color:#6d636d!important;
+}
+.btn-toggle:hover{background:rgba(255,255,255,.72)!important;}
+.btn-toggle.active{
+  color:#a25575!important;
+  background:#fff!important;
+  border-color:#eadde3!important;
+  box-shadow:0 5px 14px rgba(111,76,92,.09)!important;
+}
+.calendar-date-scroller .btn-secondary,
+.mini-month-header button{
+  border-radius:13px!important;
+  background:#fff!important;
+  border:1px solid #eee5ea!important;
+  box-shadow:0 3px 10px rgba(86,62,73,.05)!important;
+}
+.calendar-date-scroller .btn-secondary:hover,
+.mini-month-header button:hover{
+  color:#a25575!important;
+  background:#fdf5f8!important;
+  border-color:#e8d5de!important;
+}
+
+.btn-primary{
+  color:#fff!important;
+  background:linear-gradient(135deg,#c77d9b,#ad627f)!important;
+  border:0!important;
+  border-radius:13px!important;
+  box-shadow:0 7px 17px rgba(177,98,130,.17)!important;
+}
+.btn-primary:hover:not(:disabled){
+  background:linear-gradient(135deg,#b96c8d,#9f5877)!important;
+  box-shadow:0 10px 22px rgba(177,98,130,.22)!important;
+  transform:translateY(-1px)!important;
+}
+.btn-secondary{
+  color:#675e68!important;
+  background:rgba(255,255,255,.88)!important;
+  border:1px solid #eadfe5!important;
+  border-radius:13px!important;
+  box-shadow:0 3px 10px rgba(86,62,73,.045)!important;
+}
+.btn-secondary:hover:not(:disabled){
+  color:#9f5877!important;
+  background:#fdf6f9!important;
+  border-color:#e4cfda!important;
+}
+.crm-pending-counter.has-items{
+  color:#8f6b18!important;
+  background:linear-gradient(135deg,#fffaf0,#fff4cf)!important;
+  border-color:#f0d787!important;
+}
+
+/* POWIERZCHNIE KALENDARZA */
+.calendar-sidebar,.calendar-main-schedule{
+  background:rgba(255,254,254,.91)!important;
+  border:1px solid rgba(233,224,229,.92)!important;
+  border-radius:21px!important;
+  box-shadow:0 10px 30px rgba(104,72,88,.065)!important;
+  backdrop-filter:blur(14px)!important;
+}
+.calendar-sidebar{padding:17px!important;}
+.mini-month-header{font-weight:760!important;}
+.mini-date-cell{
+  min-height:31px!important;
+  border-radius:11px!important;
+  transition:all .16s ease!important;
+}
+.mini-date-cell:hover{
+  color:#a25575!important;
+  background:#f9edf3!important;
+  transform:translateY(-1px)!important;
+}
+.mini-date-cell.today{
+  color:#a25575!important;
+  background:#f8e8ef!important;
+}
+.mini-date-cell.selected{
+  color:#fff!important;
+  background:linear-gradient(135deg,#cd829e,#b76586)!important;
+  box-shadow:0 6px 15px rgba(184,99,134,.21)!important;
+}
+
+.calendar-week-day,.calendar-month-day{
+  background:rgba(255,255,255,.84)!important;
+  border:1px solid #eee8ec!important;
+  border-radius:14px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75)!important;
+  transition:all .16s ease!important;
+}
+.calendar-week-day:hover,.calendar-month-day:hover{
+  background:#fff!important;
+  border-color:#e5d9df!important;
+  box-shadow:0 6px 16px rgba(104,72,88,.06)!important;
+}
+
+/* PASTELOWE, LEKKO ŚWIETLISTE KARTY WIZYT */
+.booksy-event-card,.calendar-compact-event{
+  border:1px solid rgba(255,255,255,.58)!important;
+  border-left-width:4px!important;
+  border-radius:12px!important;
+  color:#3e3540!important;
+  filter:saturate(.52) brightness(1.17)!important;
+  box-shadow:0 7px 17px rgba(89,65,77,.075)!important;
+  backdrop-filter:blur(4px)!important;
+  transition:all .17s ease!important;
+}
+.booksy-event-card:hover,.calendar-compact-event:hover{
+  filter:saturate(.64) brightness(1.12)!important;
+  transform:translateY(-2px)!important;
+  box-shadow:0 11px 24px rgba(89,65,77,.11)!important;
+}
+.booksy-work-shift-card{
+  color:#65501c!important;
+  background:linear-gradient(135deg,#ffe9a5,#f8d770)!important;
+  border-color:#f2d176!important;
+  filter:none!important;
+}
+.booksy-block-card{
+  color:#676069!important;
+  background:linear-gradient(135deg,#f3eff1,#e9e3e7)!important;
+  border-color:#ded5da!important;
+  filter:none!important;
+}
+.crm-v3-status-icon{
+  background:rgba(255,255,255,.90)!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  box-shadow:0 3px 9px rgba(80,56,68,.10)!important;
+}
+[data-crm-status="pending"]{outline:2px solid rgba(235,194,80,.68)!important;}
+[data-crm-status="alternative"]{outline:2px solid rgba(123,171,229,.62)!important;}
+[data-crm-status="contact"]{outline:2px solid rgba(238,157,94,.62)!important;}
+[data-crm-status="completed"]{outline:2px solid rgba(157,124,210,.58)!important;}
+
+/* PROŚBY O WIZYTĘ */
+.calendar-sidebar #booking-requests-panel{
+  margin-top:16px!important;
+  padding-top:4px!important;
+  border-top:1px solid #eee5ea!important;
+}
+.calendar-sidebar #booking-requests-panel>summary{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  color:#625862!important;
+  border-radius:11px!important;
+}
+.calendar-sidebar #booking-requests-panel>summary:hover{
+  color:#9f5877!important;
+  background:#fdf5f8!important;
+}
+#bookingRequestsList>.dashboard-card{
+  background:linear-gradient(145deg,#fff,#fdf8fa)!important;
+  border:1px solid #eee1e7!important;
+  border-radius:15px!important;
+  box-shadow:0 6px 16px rgba(104,72,88,.055)!important;
+}
+
+/* DELIKATNY PANEL SZCZEGÓŁÓW */
+#appointmentDetailsModal .modal-content{
+  background:
+    linear-gradient(180deg,#fff 0,#fdfafb 100%)!important;
+  border-left:1px solid #eadfe4!important;
+  box-shadow:-18px 0 48px rgba(83,59,71,.12)!important;
+}
+#appointmentDetailsModal .modal-header{
+  min-height:104px!important;
+  background:linear-gradient(135deg,#73c9a5,#54b88d)!important;
+  border-radius:0 0 24px 24px!important;
+  box-shadow:0 8px 22px rgba(76,167,127,.15)!important;
+}
+#appointmentDetailsModal .modal-header h4{
+  font-size:22px!important;
+  font-weight:760!important;
+}
+#appointmentDetailsModal .modal-close{
+  background:rgba(255,255,255,.20)!important;
+  border:1px solid rgba(255,255,255,.25)!important;
+}
+#appointmentDetailsModal #appointment-details-view{padding:20px!important;}
+#appointmentDetailsModal .details-row{
+  padding:15px 16px!important;
+  background:rgba(255,255,255,.92)!important;
+  border:1px solid #eee5e9!important;
+  border-radius:15px!important;
+  box-shadow:0 5px 16px rgba(94,66,80,.045)!important;
+}
+#appointmentDetailsModal .modal-footer{
+  gap:10px!important;
+  background:rgba(255,252,253,.94)!important;
+  backdrop-filter:blur(12px)!important;
+}
+#appointmentDetailsModal .modal-footer button{
+  min-height:45px!important;
+  border-radius:13px!important;
+}
+#appointmentDetailsModal[data-crm-status="pending"] .modal-header{
+  background:linear-gradient(135deg,#eccd78,#d6aa3d)!important;
+}
+#appointmentDetailsModal[data-crm-status="alternative"] .modal-header{
+  background:linear-gradient(135deg,#96bde9,#6f9fd8)!important;
+}
+#appointmentDetailsModal[data-crm-status="contact"] .modal-header{
+  background:linear-gradient(135deg,#f2b178,#df8d4a)!important;
+}
+#appointmentDetailsModal[data-crm-status="cancelled-client"] .modal-header{
+  background:linear-gradient(135deg,#e98993,#cf6875)!important;
+}
+#appointmentDetailsModal[data-crm-status="cancelled-salon"] .modal-header{
+  background:linear-gradient(135deg,#c77d88,#a85263)!important;
+}
+#appointmentDetailsModal[data-crm-status="completed"] .modal-header{
+  background:linear-gradient(135deg,#ad94da,#8e70c5)!important;
+}
+
+/* POZOSTAŁE ELEMENTY WSPÓLNE */
+.dashboard-card,.admin-table,#settingsForm,.crm-main-collapsible{
+  border-color:#eee5e9!important;
+  border-radius:18px!important;
+  box-shadow:0 9px 26px rgba(104,72,88,.06)!important;
+}
+.admin-table th{background:#fcf7f9!important;}
+.form-group input,.form-group select,.form-group textarea,#settingsForm input,#settingsForm select{
+  border-color:#e7dce2!important;
+  border-radius:13px!important;
+  background:rgba(255,255,255,.94)!important;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus,#settingsForm input:focus{
+  border-color:#c9829f!important;
+  box-shadow:0 0 0 4px rgba(201,130,159,.12)!important;
+}
+
+@media(max-width:560px){
+  .calendar-layout-header{border-radius:16px!important;}
+  #appointmentDetailsModal .modal-content{border-radius:26px 26px 0 0!important;}
+  #appointmentDetailsModal .modal-header{border-radius:26px 26px 22px 22px!important;}
+}
+/* KONIEC ADMIN V3.2 */
