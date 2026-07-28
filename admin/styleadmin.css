@@ -2157,3 +2157,145 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   }
 }
 /* KONIEC ADMIN V6.6 */
+
+/* ==========================================================
+   ADMIN V7: LEWY SIDEBAR CRM V3
+   Kompaktowy pasek z liniowymi ikonami jak w makiecie
+   ========================================================== */
+:root{--crm-sidebar:158px;}
+.sidebar{
+  width:var(--crm-sidebar)!important;
+  background:#fff!important;
+  border-right:1px solid #eee9ec!important;
+  box-shadow:none!important;
+}
+.main-content{
+  width:calc(100% - var(--crm-sidebar))!important;
+  margin-left:var(--crm-sidebar)!important;
+}
+.sidebar-header{
+  display:grid!important;
+  grid-template-columns:24px minmax(0,1fr);
+  align-items:start;
+  gap:7px;
+  min-height:88px;
+  padding:20px 14px 14px!important;
+  border-bottom:1px solid #f2edf0!important;
+}
+.crm-brand-mark{
+  color:#b34d73;
+  font-size:19px;
+  line-height:1;
+  transform:rotate(-10deg);
+}
+.crm-brand-copy{min-width:0;}
+.sidebar-header h2{
+  margin:0!important;
+  color:#ad4f72!important;
+  font-size:18px!important;
+  font-weight:800!important;
+  line-height:1.05;
+  letter-spacing:-.03em!important;
+}
+.sidebar-header p{
+  margin:7px 0 0!important;
+  color:#8e858b!important;
+  font-size:10px!important;
+  white-space:nowrap;
+}
+.crm-dev-link-wrap{
+  padding:13px 14px 8px;
+  text-align:left;
+}
+.crm-dev-link{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:27px;
+  padding:5px 9px;
+  color:#a14d6d;
+  background:#fff;
+  border:1px solid #d989a6;
+  border-radius:6px;
+  font-size:9px;
+  font-weight:700;
+  text-decoration:none;
+}
+.crm-dev-link:hover{background:#fff5f8;color:#8f3f60;}
+.crm-dev-link svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.sidebar-nav{
+  gap:5px!important;
+  padding:10px 10px!important;
+}
+.nav-btn{
+  display:grid!important;
+  grid-template-columns:17px minmax(0,1fr);
+  align-items:center;
+  gap:9px;
+  min-height:36px!important;
+  padding:8px 10px!important;
+  color:#504950!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:7px!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+  font-weight:650!important;
+  text-align:left;
+}
+.nav-btn svg{
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.65;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.nav-btn:first-child svg{fill:none;}
+.nav-btn:hover:not(.active){
+  color:#9a4b69!important;
+  background:#fcf5f8!important;
+  transform:none!important;
+}
+.nav-btn.active{
+  color:#fff!important;
+  background:linear-gradient(135deg,#b45378,#a54167)!important;
+  box-shadow:0 5px 13px rgba(165,65,103,.16)!important;
+}
+.crm-nav-coming-soon{opacity:.82;}
+.sidebar-footer{
+  padding:14px 12px 18px!important;
+  border-top:1px solid #f1ecef!important;
+}
+.crm-logout-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:35px;
+  padding:8px 12px;
+  color:#fff;
+  background:linear-gradient(135deg,#cc5572,#b83e5e);
+  border:0;
+  border-radius:7px;
+  box-shadow:0 5px 13px rgba(190,65,94,.16);
+  font-size:10px;
+  font-weight:750;
+  cursor:pointer;
+}
+.crm-logout-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+
+@media(max-width:1080px) and (min-width:821px){
+  :root{--crm-sidebar:148px;}
+}
+@media(max-width:820px){
+  :root{--crm-sidebar:0px;}
+  .sidebar{width:100%!important;}
+  .main-content{width:100%!important;margin-left:0!important;}
+  .sidebar-header{min-height:auto;grid-template-columns:22px minmax(0,1fr);}
+  .crm-dev-link-wrap{display:none;}
+  .sidebar-nav{display:flex!important;flex-direction:row!important;}
+  .nav-btn{display:flex!important;grid-template-columns:none;white-space:nowrap;}
+}
+/* KONIEC ADMIN V7 */
