@@ -5856,3 +5856,44 @@ document.addEventListener("DOMContentLoaded", function() {
     }, 500);
 });
 /* KONIEC ADMIN V6 */
+
+/* ==========================================================
+   ADMIN V6.2: ŹRÓDŁO WIZYTY I UPROSZCZENIE PANELU
+   ========================================================== */
+function crmVisitSourceInfo(app) {
+    const raw = String(app?.bookingSource || app?.source || app?.createdBy || "").trim().toUpperCase();
+    const phone = String(app?.phone || "").trim().toUpperCase();
+    if (raw.includes("BOOKSY")) return { code:"BOOKSY", label:"Wizyta zaimportowana z Booksy", manual:false };
+    if (raw.includes("GOOGLE") || phone === "GOOGLE CALENDAR") return { code:"GOOGLE", label:"Wizyta dodana ręcznie w Google Calendar", manual:true };
+    if (raw.includes("ADMIN") || raw.includes("MISTRZYNI") || raw.includes("MASTER")) return { code:"ADMIN", label:"Wizyta dodana ręcznie w ADMIN", manual:true };
+    if (raw.includes("INDEX") || raw.includes("ONLINE") || raw.includes("CLIENT") || raw.includes("KLIENT")) return { code:"ONLINE", label:"Klient zarezerwował online", manual:false };
+    return { code:"ONLINE", label:"Klient zarezerwował online", manual:false };
+}
+function crmApplyVisitPanelBusinessRules(app) {
+    const source = crmVisitSourceInfo(app);
+    const note = document.getElementById("crmWorkerNote");
+    if (note) {
+        note.hidden = !source.manual;
+        note.textContent = source.manual ? "Pracownik wybrany ręcznie" : "";
+    }
+    const sourceNode = document.getElementById("crmInfoSource");
+    if (sourceNode) sourceNode.textContent = source.label;
+    const reservationId = document.getElementById("crmVisitReservationId");
+    if (reservationId) reservationId.hidden = true;
+    const fields = document.querySelectorAll("#appointmentDetailsModal .crm-visit-field");
+    fields.forEach(field => {
+        const label = field.querySelector("span")?.textContent?.trim();
+        if (label === "Pracownik" || label === "Sprzęt") field.hidden = true;
+    });
+    document.querySelector("#appointmentDetailsModal .crm-client-choice")?.setAttribute("hidden", "");
+    const settle = document.getElementById("crmSettleVisitBtn");
+    if (settle) settle.hidden = true;
+    const repeat = document.getElementById("crmRepeatVisitBtn");
+    if (repeat) repeat.textContent = "UMÓW PONOWNIE";
+}
+const crmPopulateNewVisitPanelV62 = crmPopulateNewVisitPanel;
+crmPopulateNewVisitPanel = function(app) {
+    crmPopulateNewVisitPanelV62(app);
+    crmApplyVisitPanelBusinessRules(app);
+};
+/* KONIEC ADMIN V6.2 */
