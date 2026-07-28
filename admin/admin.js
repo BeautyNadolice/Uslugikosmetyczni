@@ -5378,3 +5378,123 @@ async function loadBookingRequests(){
   }catch(e){box.textContent='Błąd pobierania próśb.';}
 }
 const _switchTabV2=switchTab;switchTab=function(name){_switchTabV2(name);if(name==='ustawienia')loadBookingRequests();};
+
+
+/* ==========================================================
+   ADMIN V3: BOOKSY WORKSPACE, STATUSY I OCZEKUJĄCE
+   Warstwa interfejsu. Nie zmienia endpointów Google Apps Script.
+   ========================================================== */
+const CRM_V3_STATUS_META = {
+    CONFIRMED: { icon: "✅", label: "POTWIERDZONO", css: "confirmed" },
+    PENDING: { icon: "⏳", label: "OCZEKUJE POTWIERDZENIA", css: "pending" },
+    ALTERNATIVE: { icon: "🔄", label: "TERMIN ALTERNATYWNY", css: "alternative" },
+    CONTACT: { icon: "📞", label: "WYMAGA KONTAKTU", css: "contact" },
+    CANCELLED_CLIENT: { icon: "🚫", label: "ANULOWANA PRZEZ KLIENTA", css: "cancelled-client" },
+    CANCELLED_SALON: { icon: "⛔", label: "ANULOWANA PRZEZ SALON", css: "cancelled-salon" },
+    COMPLETED: { icon: "⭐", label: "ZREALIZOWANA", css: "completed" }
+};
+
+function crmV3NormalizeStatus(item) {
+    const raw = String(item?.crmStatus || item?.status || item?.bookingStatus || "CONFIRMED")
+        .trim().toUpperCase();
+    const map = {
+        "POTWIERDZONA":"CONFIRMED", "POTWIERDZONO":"CONFIRMED", "CONFIRMED":"CONFIRMED",
+        "OCZEKUJE":"PENDING", "OCZEKUJE_POTWIERDZENIA":"PENDING", "PENDING":"PENDING",
+        "TERMIN_ALTERNATYWNY":"ALTERNATIVE", "ALTERNATIVE":"ALTERNATIVE",
+        "WYMAGA_KONTAKTU":"CONTACT", "CONTACT":"CONTACT",
+        "ANULOWANA_PRZEZ_KLIENTA":"CANCELLED_CLIENT", "CANCELLED_CLIENT":"CANCELLED_CLIENT",
+        "ANULOWANA_PRZEZ_SALON":"CANCELLED_SALON", "CANCELLED_SALON":"CANCELLED_SALON",
+        "ZREALIZOWANA":"COMPLETED", "COMPLETED":"COMPLETED"
+    };
+    return map[raw] || "CONFIRMED";
+}
+
+function crmV3ApplyStatusToElement(element, item) {
+    if (!element || !item || item.eventType !== "appointment") return;
+    const key = crmV3NormalizeStatus(item);
+    const meta = CRM_V3_STATUS_META[key];
+    element.dataset.crmStatus = meta.css;
+    if (!element.querySelector(".crm-v3-status-icon")) {
+        const badge = document.createElement("span");
+        badge.className = "crm-v3-status-icon";
+        badge.textContent = meta.icon;
+        badge.title = meta.label;
+        element.prepend(badge);
+    }
+}
+
+const crmV3RenderAppointmentCardOriginal = renderAppointmentCard;
+renderAppointmentCard = function(app, container) {
+    const before = container.children.length;
+    crmV3RenderAppointmentCardOriginal(app, container);
+    crmV3ApplyStatusToElement(container.children[before], app);
+};
+
+const crmV3RenderCompactEventOriginal = renderCompactCalendarEvent;
+renderCompactCalendarEvent = function(item, container, mode) {
+    const before = container.children.length;
+    crmV3RenderCompactEventOriginal(item, container, mode);
+    crmV3ApplyStatusToElement(container.children[before], item);
+};
+
+function crmV3UpdateDetailsStatus(item) {
+    const modal = document.getElementById("appointmentDetailsModal");
+    if (!modal) return;
+    const key = crmV3NormalizeStatus(item);
+    const meta = CRM_V3_STATUS_META[key];
+    modal.dataset.crmStatus = meta.css;
+    const title = document.getElementById("appointmentDetailsTitle");
+    if (title && item?.eventType === "appointment") title.textContent = meta.icon + " " + meta.label;
+}
+
+const crmV3OpenDetailsOriginal = openAppointmentDetailsModal;
+openAppointmentDetailsModal = function(item) {
+    crmV3OpenDetailsOriginal(item);
+    crmV3UpdateDetailsStatus(item);
+    document.body.classList.add("crm-v3-details-open");
+};
+
+const crmV3CloseDetailsOriginal = closeAppointmentModal;
+closeAppointmentModal = function() {
+    crmV3CloseDetailsOriginal();
+    document.body.classList.remove("crm-v3-details-open");
+};
+
+function crmV3SetPendingCount(value) {
+    const count = Math.max(0, Number(value) || 0);
+    const node = document.getElementById("crmPendingRequestsCount");
+    const button = document.getElementById("crmPendingRequestsBtn");
+    if (node) node.textContent = String(count);
+    if (button) button.classList.toggle("has-items", count > 0);
+}
+
+function crmFocusPendingRequests() {
+    const panel = document.getElementById("booking-requests-panel");
+    if (!panel) return;
+    panel.open = true;
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+const crmV3LoadBookingRequestsOriginal = loadBookingRequests;
+loadBookingRequests = async function() {
+    await crmV3LoadBookingRequestsOriginal();
+    const list = document.getElementById("bookingRequestsList");
+    const cards = list ? list.querySelectorAll(":scope > .dashboard-card").length : 0;
+    crmV3SetPendingCount(cards);
+};
+
+function crmV3MoveRequestsToCalendar() {
+    const panel = document.getElementById("booking-requests-panel");
+    const sidebar = document.querySelector("#tab-kalendarz .calendar-sidebar");
+    if (panel && sidebar && panel.parentNode !== sidebar) sidebar.appendChild(panel);
+}
+
+function crmV3InitializeWorkspace() {
+    crmV3MoveRequestsToCalendar();
+    loadBookingRequests().catch(console.error);
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(crmV3InitializeWorkspace, 450);
+});
+/* KONIEC ADMIN V3 */
