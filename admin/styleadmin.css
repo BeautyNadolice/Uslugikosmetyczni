@@ -1585,3 +1585,116 @@ html,body{
   .crm-visit-panel__header{grid-template-columns:32px minmax(0,1fr)!important;}
 }
 /* KONIEC ADMIN V6.1 */
+
+/* ==========================================================
+   ADMIN V6.2: FINALNY UKŁAD PRAWEGO PANELU I MIĘKKIE KARTY
+   ========================================================== */
+/* Panel ma własny odstęp od kalendarza i biały margines wokół zielonej główki. */
+#appointmentDetailsModal.modal-overlay{
+  padding:12px 12px 12px 0!important;
+  background:transparent!important;
+}
+#appointmentDetailsModal .crm-visit-panel__surface{
+  height:calc(100vh - 24px)!important;
+  max-height:calc(100vh - 24px)!important;
+  border:1px solid #eee6ea!important;
+  border-radius:20px!important;
+  overflow:auto!important;
+  background:#fff!important;
+  box-shadow:-14px 0 42px rgba(89,63,76,.11)!important;
+}
+.crm-visit-panel__header{
+  position:relative!important;
+  top:auto!important;
+  min-height:88px!important;
+  margin:10px 10px 0!important;
+  padding:17px 15px 24px!important;
+  border-radius:14px 14px 10px 10px!important;
+  background:linear-gradient(135deg,rgba(93,201,157,.96),rgba(44,174,123,.96))!important;
+  box-shadow:0 8px 20px rgba(45,166,119,.13)!important;
+}
+.crm-visit-panel__status-copy small,
+#crmVisitReservationId{display:none!important;}
+.crm-client-card{
+  z-index:22!important;
+  margin:-13px 18px 14px!important;
+  border-radius:12px!important;
+  box-shadow:0 7px 20px rgba(82,58,70,.09)!important;
+}
+#appointmentDetailsModal .crm-visit-panel__body{padding:0 10px 18px!important;}
+.crm-visit-tabs{margin:0 8px!important;}
+.crm-visit-tab-content,.crm-info-tab-content{padding-left:8px!important;padding-right:8px!important;}
+
+/* Niepotrzebne elementy biznesowe są całkowicie usunięte z układu. */
+#appointmentDetailsModal .crm-visit-field[hidden],
+#appointmentDetailsModal .crm-client-choice[hidden],
+#crmSettleVisitBtn[hidden],
+#crmVisitGroupFlag,
+#crmVisitRecurringFlag{display:none!important;}
+.crm-visit-fields{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.crm-worker-note[hidden]{display:none!important;}
+.crm-worker-note{
+  margin:3px 0 16px!important;
+  color:#817780!important;
+}
+.crm-add-service-button{opacity:1!important;cursor:pointer!important;}
+#appointmentDetailsModal .crm-visit-panel__footer{
+  grid-template-columns:1fr!important;
+}
+#crmRepeatVisitBtn{
+  width:100%!important;
+  color:#5b525c!important;
+  background:#fff!important;
+  border:1px solid #e7dce2!important;
+}
+
+/* Pasek usługi jest zawsze kolorem kategorii, reszta karty zostaje biała. */
+.crm-service-card{
+  background:rgba(255,255,255,.96)!important;
+  border-color:#eee7eb!important;
+  box-shadow:0 5px 16px rgba(88,62,75,.045)!important;
+}
+.crm-service-card__stripe{
+  width:4px!important;
+  opacity:.78!important;
+  border-radius:0 4px 4px 0!important;
+}
+
+/* Miękkie karty wizyt we wszystkich widokach. */
+.calendar-compact-event,.booksy-event-card,.crm-day-event{
+  border-color:rgba(255,255,255,.68)!important;
+  color:#4b424b!important;
+  filter:saturate(.46) brightness(1.18)!important;
+  box-shadow:0 5px 15px rgba(87,62,75,.07)!important;
+  backdrop-filter:blur(7px)!important;
+}
+.calendar-compact-event:hover,.booksy-event-card:hover,.crm-day-event:hover{
+  filter:saturate(.58) brightness(1.13)!important;
+  box-shadow:0 9px 21px rgba(87,62,75,.10)!important;
+}
+/* Zielony status ma być miętowy, nie ciemny. */
+[data-crm-status="confirmed"]{
+  outline-color:rgba(86,190,146,.32)!important;
+}
+.calendar-compact-event[data-crm-status="confirmed"],
+.booksy-event-card[data-crm-status="confirmed"],
+.crm-day-event[data-crm-status="confirmed"]{
+  box-shadow:inset 3px 0 0 rgba(53,170,119,.62),0 5px 15px rgba(87,62,75,.07)!important;
+}
+
+/* Piąty, zbędny przycisk mini-kalendarza znika nawet przy starszym HTML. */
+.crm-left-quick-buttons .crm-left-date-button,
+.crm-left-quick-buttons button:nth-child(n+5){display:none!important;}
+.crm-left-quick-buttons{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+
+@media(max-width:560px){
+  #appointmentDetailsModal.modal-overlay{padding:8px 0 0!important;}
+  #appointmentDetailsModal .crm-visit-panel__surface{
+    height:calc(100vh - 8px)!important;
+    max-height:calc(100vh - 8px)!important;
+    border-radius:22px 22px 0 0!important;
+  }
+}
+/* KONIEC ADMIN V6.2 */
