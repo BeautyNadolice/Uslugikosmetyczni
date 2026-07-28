@@ -5752,7 +5752,10 @@ renderDayCalendar = function(grid) {
         }
     }
 
-    const entries = getCalendarEventsForDate(selectedCalendarDate)
+    const dayItems = getCalendarEventsForDate(selectedCalendarDate);
+    const allDayInfo = dayItems.filter(item => item.eventType === "work_shift");
+    const entries = dayItems
+        .filter(item => item.eventType !== "work_shift")
         .map(item => {
             const date = crmDayEventDate(item);
             if (!date) return null;
@@ -5766,6 +5769,15 @@ renderDayCalendar = function(grid) {
     crmRenderCurrentTimeLine(layer, selectedCalendarDate, start, end, pixelsPerMinute);
     canvas.appendChild(layer);
     shell.append(labels, canvas);
+
+    if (allDayInfo.length) {
+        const infoBar = document.createElement("div");
+        infoBar.className = "crm-day-all-day-info";
+        infoBar.innerHTML = allDayInfo.map(item =>
+            `<span title="Informacyjny wpis grafiku">${String(item.name || "Brak")}</span>`
+        ).join("");
+        grid.appendChild(infoBar);
+    }
     grid.appendChild(shell);
 
     if (!entries.length) {
