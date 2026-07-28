@@ -604,3 +604,108 @@ body{
     border-radius:18px 18px 0 0 !important;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V3: BOOKSY WORKSPACE
+   Finalna warstwa układu i statusów
+   ========================================================== */
+:root{
+  --crm-sidebar:220px;
+  --crm-bg:#f5f6f8;
+  --crm-surface:#fff;
+  --crm-border:#e2e5e9;
+  --crm-border-strong:#d6d9de;
+  --crm-primary:#a94f73;
+  --crm-primary-dark:#8f3f60;
+  --crm-shadow-xs:0 1px 4px rgba(24,28,36,.05);
+  --crm-shadow-sm:0 3px 14px rgba(24,28,36,.07);
+}
+body{background:var(--crm-bg)!important;color:#24262b;}
+.sidebar{width:var(--crm-sidebar)!important;background:#fff!important;box-shadow:1px 0 0 var(--crm-border)!important;}
+.sidebar-header{padding:22px 20px 15px!important;}
+.sidebar-nav{gap:4px!important;padding:14px 10px!important;}
+.nav-btn{min-height:38px!important;padding:9px 12px!important;border-radius:8px!important;}
+.main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;padding:18px 18px 32px!important;}
+
+#tab-kalendarz{min-height:calc(100vh - 36px);}
+.calendar-layout-header{position:sticky;top:0;padding:8px!important;margin-bottom:10px!important;border-radius:12px!important;box-shadow:var(--crm-shadow-xs)!important;}
+.calendar-view-toggle{padding:3px!important;border-radius:10px!important;}
+.btn-toggle{min-height:34px!important;padding:7px 14px!important;}
+.calendar-date-scroller{min-width:220px!important;}
+.calendar-date-scroller h3{min-width:145px!important;}
+.crm-pending-counter.has-items{color:#8a5a00!important;background:#fff7d6!important;border-color:#edcf6a!important;}
+
+.calendar-three-columns{grid-template-columns:210px minmax(520px,1fr)!important;gap:10px!important;align-items:start;}
+.calendar-sidebar{position:sticky!important;top:70px!important;padding:14px!important;border-radius:12px!important;box-shadow:var(--crm-shadow-xs)!important;max-height:calc(100vh - 88px);overflow:auto;}
+.calendar-main-schedule{padding:8px!important;border-radius:12px!important;box-shadow:var(--crm-shadow-xs)!important;min-height:calc(100vh - 94px);}
+.mini-month-header{margin-bottom:9px!important;}
+.mini-date-cell{min-height:28px!important;border-radius:7px!important;}
+
+#booking-requests-panel.crm-calendar-requests,
+.calendar-sidebar #booking-requests-panel{margin-top:14px!important;padding:0!important;border:0!important;border-top:1px solid var(--crm-border)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;}
+.calendar-sidebar #booking-requests-panel>summary{padding:13px 0 8px!important;font-size:13px;}
+#bookingRequestsList>.dashboard-card{padding:10px!important;margin:7px 0!important;border-radius:9px!important;font-size:12px;box-shadow:none!important;}
+#bookingRequestsList>.dashboard-card button{min-height:32px!important;padding:6px 8px!important;font-size:11px;}
+
+.calendar-week-day,.calendar-month-day{border-radius:8px!important;border-color:#e4e6ea!important;}
+.calendar-compact-event,.booksy-event-card{position:relative;border-radius:7px!important;box-shadow:none!important;font-size:12px;font-weight:600;}
+.calendar-compact-event{padding:5px 6px 5px 26px!important;}
+.booksy-event-card{padding:10px 12px 10px 36px!important;color:#25262a!important;border-color:rgba(0,0,0,.08)!important;}
+.crm-v3-status-icon{position:absolute;left:7px;top:7px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.82);font-size:12px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.calendar-compact-event .crm-v3-status-icon{left:4px;top:4px;width:17px;height:17px;font-size:10px;}
+[data-crm-status="pending"]{outline:2px solid #f0c94e!important;outline-offset:-2px;}
+[data-crm-status="alternative"]{outline:2px solid #71a7ed!important;outline-offset:-2px;}
+[data-crm-status="contact"]{outline:2px solid #f59a56!important;outline-offset:-2px;}
+[data-crm-status="cancelled-client"],[data-crm-status="cancelled-salon"]{opacity:.68;text-decoration:line-through;}
+[data-crm-status="completed"]{outline:2px solid #9a7bd7!important;outline-offset:-2px;}
+
+/* Prawy panel szczegółów bez blokowania kalendarza */
+#appointmentDetailsModal.modal-overlay{align-items:stretch!important;justify-content:flex-end!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;pointer-events:none;}
+#appointmentDetailsModal .modal-content{pointer-events:auto;width:min(410px,94vw)!important;max-height:100vh!important;height:100vh;margin:0!important;padding:0!important;border:0!important;border-left:1px solid var(--crm-border)!important;border-radius:0!important;box-shadow:-12px 0 32px rgba(28,31,38,.12)!important;overflow:auto;}
+#appointmentDetailsModal .modal-header{position:sticky;top:0;z-index:3;margin:0!important;padding:18px 20px!important;color:#fff;background:#138b5b;border:0!important;}
+#appointmentDetailsModal[data-crm-status="pending"] .modal-header{background:#c28b12;}
+#appointmentDetailsModal[data-crm-status="alternative"] .modal-header{background:#397ac4;}
+#appointmentDetailsModal[data-crm-status="contact"] .modal-header{background:#d87522;}
+#appointmentDetailsModal[data-crm-status="cancelled-client"] .modal-header{background:#c94040;}
+#appointmentDetailsModal[data-crm-status="cancelled-salon"] .modal-header{background:#8f2630;}
+#appointmentDetailsModal[data-crm-status="completed"] .modal-header{background:#7050ad;}
+#appointmentDetailsModal .modal-close{color:#fff!important;background:rgba(255,255,255,.16)!important;}
+#appointmentDetailsModal #appointment-details-view{padding:18px 20px 26px;}
+#appointmentDetailsModal .details-row{padding:12px!important;margin-bottom:8px!important;background:#fff!important;border-color:var(--crm-border)!important;}
+#appointmentDetailsModal .modal-footer{position:sticky;bottom:0;z-index:2;margin:20px -20px -26px!important;padding:14px 20px!important;background:#fff;border-top:1px solid var(--crm-border);}
+#crm-lifecycle-actions{margin:18px 20px!important;padding:15px 0 24px!important;}
+
+body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:410px;transition:padding-right .18s ease;}
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:410px;transition:margin-right .18s ease;}
+
+/* Cennik: dwie kolumny wierszami na desktopie */
+@media (min-width:1180px){
+  #tab-cennik .admin-table{display:block;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;}
+  #tab-cennik .admin-table>thead{display:none;}
+  #tab-cennik #adminServicesTableBody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  #tab-cennik .crm-price-category-row{display:block;min-width:0;}
+  #tab-cennik .crm-price-category-row>td{display:block;height:100%;padding:0!important;}
+  #tab-cennik .crm-price-category{display:block;height:100%;padding:0;background:#fff;border:1px solid var(--crm-border);border-radius:12px;overflow:hidden;}
+  #tab-cennik .crm-price-category>summary{padding:10px!important;}
+}
+
+@media (max-width:1280px){
+  body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0;}
+  body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0;}
+  #appointmentDetailsModal.modal-overlay{background:rgba(24,28,34,.24)!important;pointer-events:auto;}
+}
+@media (max-width:900px){
+  :root{--crm-sidebar:0px;}
+  .main-content{width:100%!important;margin-left:0!important;padding:12px!important;}
+  .calendar-three-columns{grid-template-columns:1fr!important;}
+  .calendar-sidebar{position:static!important;max-height:none;}
+  #appointmentDetailsModal .modal-content{width:min(430px,100vw)!important;}
+}
+@media (max-width:560px){
+  #appointmentDetailsModal.modal-overlay{align-items:flex-end!important;}
+  #appointmentDetailsModal .modal-content{width:100%!important;height:min(92vh,760px);border-left:0!important;border-radius:18px 18px 0 0!important;}
+  .calendar-layout-header{gap:6px!important;}
+  .crm-pending-counter{width:100%;}
+}
+/* KONIEC ADMIN V3 */
