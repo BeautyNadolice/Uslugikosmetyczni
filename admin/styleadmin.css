@@ -709,3 +709,114 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:410
   .crm-pending-counter{width:100%;}
 }
 /* KONIEC ADMIN V3 */
+
+/* ==========================================================
+   ADMIN V3.1: DOPRACOWANIE WIZUALNE WG ZAAKCEPTOWANEJ MAKIETY
+   ========================================================== */
+:root{
+  --crm-bg:#f7f7f8;
+  --crm-primary:#ad4d74;
+  --crm-primary-dark:#913c5f;
+  --crm-primary-soft:#f7eaf0;
+  --crm-border:#e6e7ea;
+  --crm-border-strong:#d9dbe0;
+  --crm-text:#202127;
+  --crm-text-soft:#70727a;
+  --crm-sidebar:190px;
+  --crm-panel-width:400px;
+}
+
+body{background:#f7f7f8!important;color:var(--crm-text)!important;}
+.sidebar{width:var(--crm-sidebar)!important;border-right:1px solid #e3e4e7!important;}
+.sidebar-header{padding:24px 20px 16px!important;}
+.sidebar-header h2{font-size:22px!important;color:#a94f73!important;}
+.sidebar-header p{color:#7d7f86!important;}
+.sidebar-nav{padding:14px 8px!important;gap:5px!important;}
+.nav-btn{padding:10px 14px!important;color:#34363d!important;font-weight:600!important;}
+.nav-btn.active{background:#ad4d74!important;color:#fff!important;}
+.nav-btn:hover:not(.active){background:#f7edf2!important;color:#913c5f!important;}
+.main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;padding:16px!important;}
+
+.calendar-layout-header{min-height:64px;padding:10px 12px!important;background:#fff!important;border-color:#e6e7ea!important;border-radius:14px!important;box-shadow:0 2px 10px rgba(30,34,43,.05)!important;}
+.calendar-view-toggle{background:#f6f5f6!important;}
+.btn-toggle{color:#383a41!important;font-weight:650!important;}
+.btn-toggle.active{color:#9a4164!important;background:#fff!important;border-color:#e1dfe2!important;box-shadow:0 2px 7px rgba(31,34,41,.07)!important;}
+.calendar-date-scroller h3{font-size:16px!important;font-weight:750!important;color:#2a2c32!important;}
+.btn-primary{background:#ad4d74!important;border-color:#ad4d74!important;border-radius:9px!important;}
+.btn-primary:hover:not(:disabled){background:#913c5f!important;}
+.btn-secondary{border-radius:9px!important;color:#3e4047!important;}
+.crm-pending-counter{background:#fff!important;}
+.crm-pending-counter.has-items{background:#fff8df!important;border-color:#ead071!important;color:#725200!important;}
+
+.calendar-three-columns{grid-template-columns:220px minmax(560px,1fr)!important;gap:12px!important;}
+.calendar-sidebar,.calendar-main-schedule{background:#fff!important;border-color:#e4e5e8!important;border-radius:14px!important;box-shadow:0 3px 14px rgba(30,34,43,.055)!important;}
+.calendar-sidebar{padding:16px!important;top:78px!important;}
+.calendar-main-schedule{padding:8px!important;}
+.mini-month-header{font-size:15px!important;color:#292b31!important;}
+.mini-month-weekdays{color:#8d8f96!important;}
+.mini-date-cell{color:#404249!important;}
+.mini-date-cell:hover{background:#f7edf2!important;color:#913c5f!important;}
+.mini-date-cell.today{background:#f7e9ef!important;color:#9d4568!important;}
+.mini-date-cell.selected{background:#bd627f!important;color:#fff!important;}
+
+.calendar-week-day,.calendar-month-day{background:#fff!important;border:1px solid #e1e3e7!important;border-radius:8px!important;}
+.calendar-month-day:hover,.calendar-week-day:hover{border-color:#cfd2d8!important;background:#fdfdfd!important;}
+
+/* Karty pozostają powiązane z kolorami kategorii, ale są spokojniejsze. */
+.booksy-event-card,.calendar-compact-event{
+  color:#26272c!important;
+  border:1px solid rgba(30,32,38,.08)!important;
+  border-left-width:4px!important;
+  filter:saturate(.66) brightness(1.08);
+  box-shadow:0 1px 3px rgba(25,29,37,.06)!important;
+  line-height:1.35!important;
+}
+.booksy-event-card:hover,.calendar-compact-event:hover{
+  filter:saturate(.76) brightness(1.05);
+  transform:translateY(-1px)!important;
+  box-shadow:0 4px 10px rgba(25,29,37,.09)!important;
+}
+.booksy-work-shift-card{background:#f7cb42!important;color:#513b00!important;filter:saturate(.85)!important;}
+.booksy-block-card{background:#ececef!important;color:#565860!important;filter:none!important;}
+.crm-v3-status-icon{background:rgba(255,255,255,.92)!important;border:1px solid rgba(0,0,0,.06);}
+
+.calendar-sidebar #booking-requests-panel>summary{font-weight:750!important;color:#45474e!important;}
+#bookingRequestsList{margin-top:8px!important;}
+#bookingRequestsList>.dashboard-card{background:#fcfcfd!important;border-color:#e4e5e8!important;}
+
+/* Panel wizyty bliżej zaakceptowanej ilustracji. */
+#appointmentDetailsModal .modal-content{width:min(var(--crm-panel-width),96vw)!important;background:#fafafa!important;}
+#appointmentDetailsModal .modal-header{min-height:96px!important;padding:22px 22px!important;background:#0f9a63!important;align-items:flex-start!important;}
+#appointmentDetailsModal .modal-header h4{font-size:21px!important;font-weight:800!important;letter-spacing:.01em!important;}
+#appointmentDetailsModal .modal-close{width:38px!important;height:38px!important;}
+#appointmentDetailsModal #appointment-details-view{padding:18px!important;}
+#appointmentDetailsModal .details-row{margin-bottom:10px!important;padding:14px!important;background:#fff!important;border:1px solid #e3e5e8!important;border-radius:10px!important;box-shadow:0 1px 3px rgba(30,33,40,.025)!important;}
+#appointmentDetailsModal .details-row strong{color:#2b2d33!important;}
+#appointmentDetailsModal .modal-footer{gap:10px!important;background:#fafafa!important;}
+#appointmentDetailsModal .modal-footer button{min-height:44px!important;border-radius:10px!important;}
+#appointmentDetailsModal[data-crm-status="pending"] .modal-header{background:#c69119!important;}
+#appointmentDetailsModal[data-crm-status="alternative"] .modal-header{background:#3f7fc5!important;}
+#appointmentDetailsModal[data-crm-status="contact"] .modal-header{background:#dd7b2a!important;}
+#appointmentDetailsModal[data-crm-status="cancelled-client"] .modal-header{background:#ca454d!important;}
+#appointmentDetailsModal[data-crm-status="cancelled-salon"] .modal-header{background:#922e3c!important;}
+#appointmentDetailsModal[data-crm-status="completed"] .modal-header{background:#7355af!important;}
+
+body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:var(--crm-panel-width)!important;}
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:var(--crm-panel-width)!important;}
+
+.admin-table{border-color:#e4e5e8!important;border-radius:12px!important;box-shadow:0 3px 14px rgba(30,34,43,.05)!important;}
+.admin-table th{background:#f8f8f9!important;color:#656770!important;}
+.dashboard-card{border-radius:12px!important;}
+
+@media(max-width:1380px){
+  :root{--crm-sidebar:176px;--crm-panel-width:380px;}
+  .calendar-three-columns{grid-template-columns:205px minmax(500px,1fr)!important;}
+}
+@media(max-width:1180px){
+  body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!important;}
+  body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!important;}
+}
+@media(max-width:900px){
+  :root{--crm-sidebar:0px;}
+  .calendar-three-columns{grid-template-columns:1fr!important;}
+}
