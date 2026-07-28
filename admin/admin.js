@@ -5498,3 +5498,122 @@ document.addEventListener("DOMContentLoaded", function() {
     setTimeout(crmV3InitializeWorkspace, 450);
 });
 /* KONIEC ADMIN V3 */
+
+
+/* ==========================================================
+   ADMIN V4: NOWY PANEL WIZYTY BOOKSY WORKSPACE
+   ========================================================== */
+function crmEscapePanelValue(value, fallback) {
+    const text = String(value ?? "").trim();
+    return text || (fallback || "—");
+}
+function crmParseVisitDate(value) {
+    const raw = String(value || "");
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const match = raw.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4}).*?(\d{1,2}):(\d{2})/);
+    if (!match) return null;
+    return new Date(Number(match[3]), Number(match[2])-1, Number(match[1]), Number(match[4]), Number(match[5]));
+}
+function crmFormatVisitDay(date) {
+    if (!date) return "Data wizyty";
+    const text = date.toLocaleDateString("pl-PL", {weekday:"short",day:"numeric",month:"short"});
+    return text.charAt(0).toUpperCase() + text.slice(1).replace(/\.$/, "");
+}
+function crmFormatVisitTime(date) {
+    return date ? date.toLocaleTimeString("pl-PL", {hour:"2-digit",minute:"2-digit"}) : "—";
+}
+function crmFindServiceForVisit(app) {
+    const name = String(app?.service || "").trim().toLowerCase();
+    return (Array.isArray(currentServices) ? currentServices : []).find(item => String(item.name || "").trim().toLowerCase() === name) || null;
+}
+function crmGetServicePriceText(app) {
+    const service = crmFindServiceForVisit(app);
+    const value = app?.price ?? service?.price;
+    if (value === undefined || value === null || value === "") return "—";
+    const number = Number(String(value).replace(",","."));
+    return Number.isFinite(number) ? number.toLocaleString("pl-PL", {minimumFractionDigits:2,maximumFractionDigits:2}) + " zł" : String(value);
+}
+function crmGetVisitWorker(app) {
+    return crmEscapePanelValue(app?.worker || app?.employee || app?.master || app?.staffName, "Nie przypisano");
+}
+function crmGetVisitEquipment(app) {
+    return crmEscapePanelValue(app?.equipment || app?.room || app?.cabinet, "Nie przypisano");
+}
+function crmInitial(name) {
+    const value = String(name || "K").trim();
+    return (Array.from(value)[0] || "K").toUpperCase();
+}
+function crmSwitchVisitPanelTab(tab) {
+    const visit = tab !== "info";
+    document.getElementById("crmVisitTabVisit")?.classList.toggle("active", visit);
+    document.getElementById("crmVisitTabInfo")?.classList.toggle("active", !visit);
+    const visitContent = document.getElementById("crmVisitTabContent");
+    const infoContent = document.getElementById("crmInfoTabContent");
+    if (visitContent) visitContent.hidden = !visit;
+    if (infoContent) infoContent.hidden = visit;
+}
+function crmToggleVisitStatusMenu(force) {
+    const menu = document.getElementById("crmVisitStatusMenu");
+    if (!menu) return;
+    menu.hidden = typeof force === "boolean" ? !force : !menu.hidden;
+}
+async function crmVisitStatusAction(action) {
+    crmToggleVisitStatusMenu(false);
+    if (action === "COMPLETED") return completeCurrentAppointment();
+    if (action === "NO_SHOW") return markCurrentAppointmentNoShow();
+    if (action === "CANCEL_CLIENT") return cancelAppointmentWithHistory("KLIENT", "");
+    if (action === "CANCEL_SALON") return cancelAppointmentWithHistory("MISTRZYNI", "");
+}
+function crmPopulateNewVisitPanel(app) {
+    const isAppointment = app?.eventType === "appointment";
+    const date = crmParseVisitDate(app?.date);
+    const duration = Math.max(0, Number(app?.duration) || 0);
+    const end = date ? new Date(date.getTime() + duration * 60000) : null;
+    const service = crmFindServiceForVisit(app);
+    const name = crmEscapePanelValue(app?.name, isAppointment ? "Klient" : "Wydarzenie");
+
+    setText("details-name", name);
+    setText("details-phone", crmEscapePanelValue(app?.phone, "Numer telefonu jest ukryty"));
+    setText("details-service", crmEscapePanelValue(app?.service, "Brak usługi"));
+    setText("details-duration", duration || 0);
+    setText("details-datetime", crmFormatDateTime(app?.date));
+    setText("crmInfoClient", name);
+    setText("crmInfoService", crmEscapePanelValue(app?.service, "Brak usługi"));
+    setText("crmInfoSource", crmEscapePanelValue(app?.source || app?.eventType, "CRM"));
+    setText("crmClientAvatar", crmInitial(name));
+    setText("crmVisitReservationId", "ID rezerwacji klienta: " + crmEscapePanelValue(app?.requestId || app?.eventId || app?.id, "—"));
+    setText("crmVisitDateHeading", crmFormatVisitDay(date));
+    setText("crmVisitStart", crmFormatVisitTime(date));
+    setText("crmVisitEnd", crmFormatVisitTime(end));
+    setText("crmVisitWorker", crmGetVisitWorker(app));
+    setText("crmVisitEquipment", crmGetVisitEquipment(app));
+    setText("crmServiceDescription", crmEscapePanelValue(app?.serviceDescription || service?.description, "Usługa salonowa"));
+    setText("crmServicePrice", crmGetServicePriceText(app));
+
+    const stripe = document.getElementById("crmServiceStripe");
+    if (stripe) stripe.style.background = app?.color || service?.color || "#d6df73";
+    const group = document.getElementById("crmVisitGroupFlag");
+    const recurring = document.getElementById("crmVisitRecurringFlag");
+    if (group) group.hidden = !(app?.group || app?.isGroup);
+    if (recurring) recurring.hidden = !(app?.recurring || app?.isRecurring);
+    const statusButton = document.getElementById("crmVisitStatusButton");
+    const repeatButton = document.getElementById("crmRepeatVisitBtn");
+    const settleButton = document.getElementById("crmSettleVisitBtn");
+    if (statusButton) statusButton.hidden = !isAppointment;
+    if (repeatButton) repeatButton.hidden = !isAppointment;
+    if (settleButton) settleButton.hidden = !isAppointment;
+    crmSwitchVisitPanelTab("visit");
+    crmToggleVisitStatusMenu(false);
+}
+const crmV4OpenDetailsOriginal = openAppointmentDetailsModal;
+openAppointmentDetailsModal = function(app) {
+    crmV4OpenDetailsOriginal(app);
+    crmPopulateNewVisitPanel(app);
+};
+document.addEventListener("click", function(event) {
+    const menu = document.getElementById("crmVisitStatusMenu");
+    const button = document.getElementById("crmVisitStatusButton");
+    if (menu && !menu.hidden && !menu.contains(event.target) && !button?.contains(event.target)) menu.hidden = true;
+});
+/* KONIEC ADMIN V4 */
