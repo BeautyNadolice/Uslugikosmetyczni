@@ -5617,3 +5617,162 @@ document.addEventListener("click", function(event) {
     if (menu && !menu.hidden && !menu.contains(event.target) && !button?.contains(event.target)) menu.hidden = true;
 });
 /* KONIEC ADMIN V4 */
+
+/* ==========================================================
+   ADMIN V5: WIDOK DNIA NA OSI CZASU
+   ========================================================== */
+function crmDayMinutes(value, fallback) {
+    const match = String(value || "").match(/^(\d{1,2}):(\d{2})/);
+    return match ? Number(match[1]) * 60 + Number(match[2]) : fallback;
+}
+function crmDaySettingsRange() {
+    const start = crmDayMinutes(settingsData?.work_start_hour, 8 * 60);
+    const end = crmDayMinutes(settingsData?.work_end_hour, 21 * 60);
+    return {start: Math.min(start, end - 60), end: Math.max(end, start + 60)};
+}
+function crmDayEventDate(item) {
+    if (typeof crmParseVisitDate === "function") return crmParseVisitDate(item?.date);
+    const date = new Date(item?.date || "");
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+function crmDayEventColor(item) {
+    if (item?.eventType === "block") return "#ddd6dc";
+    if (item?.eventType === "external") return "#d9dde4";
+    if (item?.eventType === "work_shift") return "#f5d976";
+    const service = (Array.isArray(currentServices) ? currentServices : []).find(value =>
+        value.name && item?.service && value.name.trim().toLowerCase() === item.service.trim().toLowerCase()
+    );
+    return item?.color || (service && globalColors[service.category]) || "#e8bfd0";
+}
+function crmDayPastelColor(color) {
+    const source = String(color || "#e8bfd0").trim();
+    if (!/^#[0-9a-f]{6}$/i.test(source)) return {background:"#f5dfe8", border:"#d8799e"};
+    const red = parseInt(source.slice(1,3),16);
+    const green = parseInt(source.slice(3,5),16);
+    const blue = parseInt(source.slice(5,7),16);
+    const mix = component => Math.round(component * .28 + 255 * .72);
+    return {
+        background:`rgb(${mix(red)},${mix(green)},${mix(blue)})`,
+        border:`rgb(${Math.round(red*.7)},${Math.round(green*.7)},${Math.round(blue*.7)})`
+    };
+}
+function crmDayAssignLanes(items) {
+    const sorted = [...items].sort((a,b) => a.start - b.start || a.end - b.end);
+    const laneEnds = [];
+    sorted.forEach(entry => {
+        let lane = laneEnds.findIndex(end => end <= entry.start);
+        if (lane < 0) lane = laneEnds.length;
+        laneEnds[lane] = entry.end;
+        entry.lane = lane;
+    });
+    sorted.forEach(entry => {
+        const overlapping = sorted.filter(other => other.start < entry.end && other.end > entry.start);
+        entry.laneCount = Math.max(1, ...overlapping.map(other => other.lane + 1));
+    });
+    return sorted;
+}
+function crmRenderDayTimelineCard(entry, layer, rangeStart, pixelsPerMinute) {
+    const item = entry.item;
+    const palette = crmDayPastelColor(crmDayEventColor(item));
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "crm-day-event";
+    card.dataset.crmStatus = typeof crmV3NormalizeStatus === "function" ? CRM_V3_STATUS_META[crmV3NormalizeStatus(item)].css : "confirmed";
+    const width = 100 / entry.laneCount;
+    card.style.top = `${(entry.start - rangeStart) * pixelsPerMinute}px`;
+    card.style.height = `${Math.max(42, (entry.end - entry.start) * pixelsPerMinute - 4)}px`;
+    card.style.left = `calc(${entry.lane * width}% + 8px)`;
+    card.style.width = `calc(${width}% - 14px)`;
+    card.style.background = palette.background;
+    card.style.borderLeftColor = palette.border;
+
+    const startText = crmFormatVisitTime(entry.date);
+    const endText = crmFormatVisitTime(entry.endDate);
+    const icon = item.eventType === "appointment" && typeof crmV3NormalizeStatus === "function"
+        ? CRM_V3_STATUS_META[crmV3NormalizeStatus(item)].icon : "";
+    const title = item.eventType === "work_shift" ? (item.name || "Grafik pracy") : (item.service || item.name || "Wpis");
+    const client = item.eventType === "appointment" ? (item.name || "") : "";
+    card.innerHTML = `
+      <span class="crm-day-event__time">${icon ? `<span class="crm-day-event__status">${icon}</span>` : ""}${startText} – ${endText}</span>
+      <strong>${title}</strong>
+      ${item.serviceDescription ? `<span>${item.serviceDescription}</span>` : ""}
+      ${client ? `<span>${client}</span>` : ""}
+    `;
+    card.title = `${startText}–${endText} ${title} ${client}`.trim();
+    if (item.eventType !== "work_shift") card.onclick = () => openAppointmentDetailsModal(item);
+    else card.disabled = true;
+    layer.appendChild(card);
+}
+function crmRenderCurrentTimeLine(layer, selectedDate, rangeStart, rangeEnd, pixelsPerMinute) {
+    const now = new Date();
+    if (selectedDate.toDateString() !== now.toDateString()) return;
+    const minute = now.getHours() * 60 + now.getMinutes();
+    if (minute < rangeStart || minute > rangeEnd) return;
+    const line = document.createElement("div");
+    line.className = "crm-day-now-line";
+    line.style.top = `${(minute - rangeStart) * pixelsPerMinute}px`;
+    line.innerHTML = `<span>${crmFormatVisitTime(now)}</span>`;
+    layer.appendChild(line);
+}
+renderDayCalendar = function(grid) {
+    grid.innerHTML = "";
+    grid.dataset.calendarView = "day";
+    grid.style.cssText = "";
+    grid.className = "crm-day-timeline";
+
+    const {start, end} = crmDaySettingsRange();
+    const pixelsPerMinute = 1.12;
+    const timelineHeight = (end - start) * pixelsPerMinute;
+    const shell = document.createElement("div");
+    shell.className = "crm-day-timeline__shell";
+
+    const labels = document.createElement("div");
+    labels.className = "crm-day-timeline__labels";
+    labels.style.height = `${timelineHeight}px`;
+    const canvas = document.createElement("div");
+    canvas.className = "crm-day-timeline__canvas";
+    canvas.style.height = `${timelineHeight}px`;
+    const layer = document.createElement("div");
+    layer.className = "crm-day-timeline__events";
+
+    for (let minute = start; minute <= end; minute += 30) {
+        const hour = Math.floor(minute / 60) % 24;
+        const mins = minute % 60;
+        const top = (minute - start) * pixelsPerMinute;
+        const line = document.createElement("div");
+        line.className = mins === 0 ? "crm-day-grid-line is-hour" : "crm-day-grid-line is-half";
+        line.style.top = `${top}px`;
+        canvas.appendChild(line);
+        if (mins === 0 && minute < end) {
+            const label = document.createElement("span");
+            label.className = "crm-day-time-label";
+            label.style.top = `${top}px`;
+            label.textContent = `${String(hour).padStart(2,"0")}:00`;
+            labels.appendChild(label);
+        }
+    }
+
+    const entries = getCalendarEventsForDate(selectedCalendarDate)
+        .map(item => {
+            const date = crmDayEventDate(item);
+            if (!date) return null;
+            const itemStart = date.getHours() * 60 + date.getMinutes();
+            const duration = Math.max(15, Number(item.duration) || 45);
+            return {item, date, endDate:new Date(date.getTime()+duration*60000), start:Math.max(start,itemStart), end:Math.min(end,itemStart+duration)};
+        })
+        .filter(entry => entry && entry.end > start && entry.start < end);
+
+    crmDayAssignLanes(entries).forEach(entry => crmRenderDayTimelineCard(entry, layer, start, pixelsPerMinute));
+    crmRenderCurrentTimeLine(layer, selectedCalendarDate, start, end, pixelsPerMinute);
+    canvas.appendChild(layer);
+    shell.append(labels, canvas);
+    grid.appendChild(shell);
+
+    if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "crm-day-empty";
+        empty.textContent = "Brak wizyt i blokad w tym dniu";
+        canvas.appendChild(empty);
+    }
+};
+/* KONIEC ADMIN V5 */
