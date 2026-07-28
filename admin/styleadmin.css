@@ -1887,3 +1887,82 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   #crmRepeatVisitBtn{width:100%!important;}
 }
 /* KONIEC ADMIN V6.3 */
+
+/* ==========================================================
+   ADMIN V6.4: NAGŁÓWEK I KARTA KLIENTA JAK W MAKIETCIE
+   ========================================================== */
+#appointmentDetailsModal .crm-visit-panel__surface{
+  padding-top:0!important;
+}
+
+/* Zielony blok jest niski, prostszy i nie ma formy dużej kapsuły. */
+.crm-visit-panel__header{
+  min-height:66px!important;
+  margin:8px 8px 0!important;
+  padding:11px 12px 18px!important;
+  border-radius:10px 10px 4px 4px!important;
+  background:linear-gradient(135deg,#28b276 0%,#15a668 100%)!important;
+  box-shadow:none!important;
+}
+.crm-visit-panel__close{
+  width:27px!important;
+  height:27px!important;
+  background:transparent!important;
+  border:0!important;
+  font-size:20px!important;
+}
+.crm-visit-panel__status-copy h4{
+  font-size:14px!important;
+  font-weight:800!important;
+  line-height:1.1!important;
+}
+.crm-status-button{
+  min-height:30px!important;
+  padding:5px 9px!important;
+  background:rgba(255,255,255,.08)!important;
+  border:1px solid rgba(255,255,255,.48)!important;
+  border-radius:7px!important;
+  font-size:9px!important;
+}
+
+/* Karta klienta wchodzi w dolną część zielonego nagłówka. */
+.crm-client-card{
+  position:relative!important;
+  z-index:30!important;
+  min-height:57px!important;
+  margin:-12px 14px 7px!important;
+  padding:9px 10px!important;
+  background:#fff!important;
+  border:1px solid #eee8eb!important;
+  border-radius:9px!important;
+  box-shadow:0 4px 12px rgba(64,45,55,.07)!important;
+}
+.crm-client-avatar{
+  width:34px!important;
+  height:34px!important;
+  font-size:14px!important;
+}
+.crm-client-card__copy strong{font-size:11px!important;}
+.crm-client-card__copy span{font-size:9px!important;}
+.crm-icon-button{
+  width:27px!important;
+  height:27px!important;
+  background:transparent!important;
+}
+.crm-client-card__arrow{font-size:18px!important;}
+
+/* Zakładki zaczynają się bliżej karty klienta. */
+.crm-visit-tabs{
+  height:38px!important;
+  margin:0 14px!important;
+}
+.crm-visit-tabs button{font-size:9px!important;}
+
+@media(max-width:560px){
+  .crm-visit-panel__header{
+    margin:6px 6px 0!important;
+    border-radius:12px 12px 4px 4px!important;
+  }
+  .crm-client-card{margin:-12px 12px 7px!important;}
+}
+/* KONIEC ADMIN V6.4 */
