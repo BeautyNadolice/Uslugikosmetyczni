@@ -224,7 +224,7 @@
 
             <!-- KALENDARZ -->
 
-            <section id="tab-kalendarz"
+            <section id="tab-kalendarz" data-workspace-version="BOOKSY-V3"
                      class="tab-page"
                      style="display:none;">
 
@@ -295,6 +295,9 @@
         onclick="openBlockTimeModal()">
     Zablokuj czas 🔒
 </button>
+<button id="crmPendingRequestsBtn" class="btn-secondary crm-pending-counter" type="button" onclick="crmFocusPendingRequests()">
+    ⏳ Oczekujące: <span id="crmPendingRequestsCount">0</span>
+</button>
 
                     </div>
 
@@ -340,6 +343,8 @@
                         <div id="mini-month-days-grid"
                              class="mini-month-days-grid">
                         </div>
+
+<details id="booking-requests-panel" class="crm-calendar-requests"><summary><strong>Prośby o wizytę</strong></summary><div id="bookingRequestsList" style="margin-top:14px;"></div></details>
 
                     </div>
 
@@ -571,8 +576,7 @@
                     </button>
 
                 </form>
-
-                <details id="booking-requests-panel" style="margin-top:24px;"><summary><strong>Prośby o wizytę</strong></summary><div id="bookingRequestsList" style="margin-top:14px;"></div></details><!-- DIAGNOSTYKA SYSTEMU CRM -->
+<!-- DIAGNOSTYKA SYSTEMU CRM -->
                 <section id="crm-diagnostics-panel" style="width:100%;box-sizing:border-box;margin-top:35px;padding:24px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6;">
                     <h2 style="margin-top:0;">🧪 Diagnostyka systemu CRM</h2>
                     <p>Test sprawdza frontend, Google Apps Script, Google Sheets, klientów, wizyty, blokady czasu i automatyczne sprzątanie danych testowych.</p>
