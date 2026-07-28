@@ -8,7 +8,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Nail-Art Daria CRM V2</title>
+    <title>Nail-Art Daria CRM V3</title>
 <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
 <script src="https://accounts.google.com/gsi/client"
         async
@@ -75,84 +75,62 @@
         <aside class="sidebar">
 
             <div class="sidebar-header">
-
-                <h2>✨ CRM V2</h2>
-
-                <p>
-                    Nail-Art Daria
-                </p>
-
+                <div class="crm-brand-mark" aria-hidden="true">✣</div>
+                <div class="crm-brand-copy">
+                    <h2>CRM V3</h2>
+                    <p>Nail-Art Daria</p>
+                </div>
             </div>
- <div style="margin-top: 15px; text-align: center;">
-            <a href="dev/dev.html" style="
-                display: inline-block;
-                color: var(--text-muted, #777);
-                font-size: 12px;
-                text-decoration: none;
-                border: 1px dashed var(--accent-color, #c2a383);
-                padding: 6px 12px;
-                border-radius: 4px;
-                transition: all 0.2s ease;
-            " onmouseover="this.style.background='#f0e6dc'; this.style.color='var(--text-main, #333)'" 
-               onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted, #777)'">
-                ⚙️ DEV
-            </a>
-        </div>
-            <nav class="sidebar-nav">
 
-                <button class="nav-btn active"
-                        onclick="switchTab('dashboard')">
+            <div class="crm-dev-link-wrap">
+                <a href="dev/dev.html" class="crm-dev-link">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 7 3.5 12l5 5M15.5 7l5 5-5 5M14 4l-4 16"/></svg>
+                    <span>DEV</span>
+                </a>
+            </div>
 
-                    📊 Dashboard
-
+            <nav class="sidebar-nav" aria-label="Główna nawigacja ADMIN">
+                <button class="nav-btn active" onclick="switchTab('dashboard')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+                    <span>Dashboard</span>
                 </button>
 
-                <button class="nav-btn"
-                        onclick="switchTab('kalendarz')">
-
-                    📅 Kalendarz
-
+                <button class="nav-btn" onclick="switchTab('kalendarz')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg>
+                    <span>Kalendarz</span>
                 </button>
 
-                <button class="nav-btn"
-                        onclick="switchTab('klienci')">
-
-                    👥 Klienci
-
+                <button class="nav-btn" onclick="switchTab('klienci')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM21 20v-2a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Klienci</span>
                 </button>
 
-                <button class="nav-btn"
-                        onclick="switchTab('cennik')">
-
-                    💅 Cennik
-
+                <button class="nav-btn" onclick="switchTab('cennik')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>
+                    <span>Cennik</span>
                 </button>
 
-                <button class="nav-btn"
-                        onclick="switchTab('finanse')">
-
-                    💰 Finanse
-
+                <button class="nav-btn" onclick="switchTab('finanse')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.5c0-2-2-3.5-5-3.5S7 4.2 7 6.5 9 10 12 10s5 1.2 5 3.5S15 17 12 17s-5-1.5-5-3.5"/></svg>
+                    <span>Finanse</span>
                 </button>
 
-                <button class="nav-btn"
-                        onclick="switchTab('ustawienia')">
-
-                    ⚙️ Ustawienia
-
+                <button class="nav-btn crm-nav-coming-soon" type="button" title="Moduł Raporty zostanie utworzony w kolejnym etapie" aria-disabled="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M3 20h18"/></svg>
+                    <span>Raporty</span>
                 </button>
 
+                <button class="nav-btn" onclick="switchTab('ustawienia')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.18.37.49.68.9.9.3.16.67.25 1.09.25H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+                    <span>Ustawienia</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
-
-                <button class="btn-danger"
-                        onclick="logout()">
-
-                    🚪 Wyloguj
-
+                <button class="crm-logout-btn" onclick="logout()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>
+                    <span>Wyloguj</span>
                 </button>
-
             </div>
 
         </aside>
@@ -340,32 +318,6 @@
                         <div id="mini-month-days-grid"
                              class="mini-month-days-grid">
                         </div>
-
-                        <section class="crm-left-section crm-left-quick-nav">
-                          <div class="crm-left-section__heading">
-                            <strong>Przejdź do dnia</strong>
-                            <button type="button" class="crm-left-today" onclick="crmGoToToday()">Dziś</button>
-                          </div>
-                          <div class="crm-left-quick-buttons">
-                            <button type="button" onclick="crmJumpCalendarDays(-7)">−7</button>
-                            <button type="button" onclick="crmJumpCalendarDays(-1)">−1</button>
-                            <button type="button" onclick="crmJumpCalendarDays(1)">+1</button>
-                            <button type="button" onclick="crmJumpCalendarDays(7)">+7</button>
-                            <button type="button" class="crm-left-date-button" onclick="crmFocusMiniCalendar()" aria-label="Wybierz datę">▣</button>
-                          </div>
-                        </section>
-
-                        <details id="crmPaymentFilters" class="crm-left-section crm-left-filters" open>
-                          <summary><strong>Płatności</strong><span aria-hidden="true">⌃</span></summary>
-                          <label><input type="radio" name="crmPaymentFilter" value="all" checked onchange="crmSetPaymentFilter(this.value)"><span>Wszystkie</span><i class="crm-filter-dot is-all"></i></label>
-                          <label><input type="radio" name="crmPaymentFilter" value="paid" onchange="crmSetPaymentFilter(this.value)"><span>Opłacone</span><i class="crm-filter-dot is-paid"></i></label>
-                          <label><input type="radio" name="crmPaymentFilter" value="unpaid" onchange="crmSetPaymentFilter(this.value)"><span>Nieopłacone</span><i class="crm-filter-dot is-unpaid"></i></label>
-                        </details>
-
-                        <details id="booking-requests-panel" class="crm-left-section crm-left-requests">
-  <summary><strong>Prośby o wizytę</strong><span id="crmLeftPendingBadge" class="crm-left-badge">0</span></summary>
-  <div id="bookingRequestsList"></div>
-</details>
 
                     </div>
 
@@ -596,7 +548,9 @@
 
                     </button>
 
-                </form><!-- DIAGNOSTYKA SYSTEMU CRM -->
+                </form>
+
+                <details id="booking-requests-panel" style="margin-top:24px;"><summary><strong>Prośby o wizytę</strong></summary><div id="bookingRequestsList" style="margin-top:14px;"></div></details><!-- DIAGNOSTYKA SYSTEMU CRM -->
                 <section id="crm-diagnostics-panel" style="width:100%;box-sizing:border-box;margin-top:35px;padding:24px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6;">
                     <h2 style="margin-top:0;">🧪 Diagnostyka systemu CRM</h2>
                     <p>Test sprawdza frontend, Google Apps Script, Google Sheets, klientów, wizyty, blokady czasu i automatyczne sprzątanie danych testowych.</p>
@@ -714,90 +668,38 @@
         </div>
     </div>
 </div>
-<!-- PANEL: SZCZEGÓŁY WIZYTY BOOKSY WORKSPACE -->
-<div id="appointmentDetailsModal" class="modal-overlay crm-visit-panel" style="display:none;">
-  <aside class="modal-content crm-visit-panel__surface" aria-label="Szczegóły wizyty">
-    <header class="modal-header crm-visit-panel__header">
-      <button class="modal-close crm-visit-panel__close" type="button" onclick="closeAppointmentModal()" aria-label="Zamknij">×</button>
-      <div class="crm-visit-panel__status-copy">
-        <h4 id="appointmentDetailsTitle">✅ POTWIERDZONO</h4>
-        <small id="crmVisitReservationId">ID rezerwacji klienta: —</small>
-      </div>
-      <button id="crmVisitStatusButton" class="crm-status-button" type="button" onclick="crmToggleVisitStatusMenu()">
-        Zmień status <span aria-hidden="true">⌄</span>
-      </button>
-      <div id="crmVisitStatusMenu" class="crm-status-menu" hidden>
-        <button type="button" onclick="crmVisitStatusAction('COMPLETED')">⭐ Zrealizowana</button>
-        <button type="button" onclick="crmVisitStatusAction('NO_SHOW')">⚠ Nieobecność</button>
-        <button type="button" onclick="crmVisitStatusAction('CANCEL_CLIENT')">🚫 Anulowana przez klienta</button>
-        <button type="button" onclick="crmVisitStatusAction('CANCEL_SALON')">⛔ Anulowana przez salon</button>
-      </div>
-    </header>
-
-    <div id="appointment-details-view" class="crm-visit-panel__body">
-      <section class="crm-client-card">
-        <div id="crmClientAvatar" class="crm-client-avatar">K</div>
-        <div class="crm-client-card__copy">
-          <strong id="details-name"></strong>
-          <span id="details-phone-row">☎ <span id="details-phone"></span></span>
-        </div>
-        <button type="button" class="crm-icon-button" title="Edytuj wizytę" onclick="openEditAppointmentModal()">✎</button>
-        <span class="crm-client-card__arrow" aria-hidden="true">›</span>
-      </section>
-
-      <nav class="crm-visit-tabs" aria-label="Sekcje panelu wizyty">
-        <button id="crmVisitTabVisit" class="active" type="button" onclick="crmSwitchVisitPanelTab('visit')">WIZYTA</button>
-        <button id="crmVisitTabInfo" type="button" onclick="crmSwitchVisitPanelTab('info')">INFORMACJE</button>
-      </nav>
-
-      <section id="crmVisitTabContent" class="crm-visit-tab-content">
-        <div class="crm-visit-date-row">
-          <strong id="crmVisitDateHeading">Data wizyty</strong>
-          <div class="crm-visit-flags">
-            <span id="crmVisitGroupFlag" class="crm-soft-chip" hidden>GRUPOWA</span>
-            <span id="crmVisitRecurringFlag" class="crm-soft-chip" hidden>CYKLICZNA</span>
-          </div>
+<!-- MODAL: SZCZEGÓŁY WIZYTY -->
+<div id="appointmentDetailsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 id="appointmentDetailsTitle">Szczegóły rezerwacji</h4>
+            <button class="modal-close" onclick="closeAppointmentModal()">&times;</button>
         </div>
 
-        <article class="crm-service-card">
-          <span id="crmServiceStripe" class="crm-service-card__stripe"></span>
-          <div class="crm-service-card__copy">
-            <strong id="details-service"></strong>
-            <span id="crmServiceDescription">Usługa salonowa</span>
-            <small><span id="details-duration"></span> min</small>
-          </div>
-          <strong id="crmServicePrice" class="crm-service-card__price">—</strong>
-          <span class="crm-service-card__arrow" aria-hidden="true">›</span>
-        </article>
+        <div id="appointment-details-view">
+            <div class="details-row"><strong id="details-name-label">Klient:</strong> <span id="details-name"></span></div>
+            <div class="details-row" id="details-phone-row"><strong>Telefon:</strong> <span id="details-phone"></span></div>
+            <div class="details-row"><strong id="details-service-label">Zabieg:</strong> <span id="details-service"></span></div>
+            <div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div>
+            <div class="details-row"><strong>Czas trwania:</strong> <span id="details-duration"></span> min</div>
 
-        <div class="crm-visit-fields">
-          <div class="crm-visit-field"><span>Początek</span><strong id="crmVisitStart">—</strong></div>
-          <div class="crm-visit-field"><span>Koniec</span><strong id="crmVisitEnd">—</strong></div>
-          <div class="crm-visit-field"><span>Pracownik</span><strong id="crmVisitWorker">Nie przypisano</strong></div>
-          <div class="crm-visit-field"><span>Sprzęt</span><strong id="crmVisitEquipment">Nie przypisano</strong></div>
+            <div class="modal-footer" style="margin-top:25px;justify-content:space-between;">
+          <button id="deleteAppointmentBtn" class="btn-danger" onclick="deleteSelectedCalendarItemFromAdmin()">
+    Usuń wizytę 🗑️
+</button>
+
+<button id="editAppointmentBtn" class="btn-primary" onclick="openEditAppointmentModal()">
+    Edytuj wizytę
+</button>
+
+<button class="btn-secondary" onclick="closeAppointmentModal()">
+    Zamknij
+</button>
+            </div>
         </div>
-
-        <p id="crmWorkerNote" class="crm-worker-note">♧ Pracownik wybrany ręcznie</p>
-        <div class="crm-client-choice"><span class="crm-client-choice__heart">♥</span><span>Wybór klienta</span><span title="Informacja">?</span></div>
-        <button type="button" class="crm-add-service-button" disabled>DODAJ KOLEJNĄ USŁUGĘ <span>＋</span></button>
-      </section>
-
-      <section id="crmInfoTabContent" class="crm-info-tab-content" hidden>
-        <div class="details-row"><strong id="details-name-label">Klient:</strong> <span id="crmInfoClient"></span></div>
-        <div class="details-row"><strong id="details-service-label">Zabieg:</strong> <span id="crmInfoService"></span></div>
-        <div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div>
-        <div class="details-row"><strong>Źródło:</strong> <span id="crmInfoSource">CRM</span></div>
-      </section>
-
-      <footer class="modal-footer crm-visit-panel__footer">
-        <button id="crmRepeatVisitBtn" type="button" class="btn-secondary" onclick="planNextVisitFromCurrentAppointment()">UMÓW PONOWNIE</button>
-        <button id="crmSettleVisitBtn" type="button" class="crm-settle-button" onclick="completeCurrentAppointment()">ROZLICZ</button>
-        <button id="deleteAppointmentBtn" type="button" class="crm-hidden-action" onclick="deleteSelectedCalendarItemFromAdmin()">Usuń wizytę</button>
-        <button id="editAppointmentBtn" type="button" class="crm-hidden-action" onclick="openEditAppointmentModal()">Edytuj wizytę</button>
-      </footer>
     </div>
-  </aside>
 </div>
+
 <!-- MODAL: BLOKADA CZASU -->
 <div id="blockTimeModal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
