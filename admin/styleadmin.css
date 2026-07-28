@@ -2299,3 +2299,78 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   .nav-btn{display:flex!important;grid-template-columns:none;white-space:nowrap;}
 }
 /* KONIEC ADMIN V7 */
+
+/* ==========================================================
+   ADMIN V6.7: WIĘKSZA CZYTELNOŚĆ GŁÓWKI I KARTY KLIENTA
+   Usunięcie zbędnej strzałki z karty klienta
+   ========================================================== */
+/* Zielony pasek: proporcje jak w makiecie, ale czytelniejszy tekst. */
+#appointmentDetailsModal .crm-visit-panel__header{
+  grid-template-columns:26px minmax(0,1fr) auto!important;
+  height:84px!important;
+  min-height:84px!important;
+  max-height:84px!important;
+  padding:12px 12px 28px!important;
+}
+#appointmentDetailsModal .crm-visit-panel__status-copy h4{
+  font-size:16px!important;
+  line-height:1.05!important;
+  letter-spacing:.005em!important;
+}
+#appointmentDetailsModal .crm-visit-panel__close{
+  width:26px!important;
+  height:26px!important;
+  min-width:26px!important;
+  min-height:26px!important;
+}
+#appointmentDetailsModal .crm-status-button{
+  min-width:88px!important;
+  height:31px!important;
+  min-height:31px!important;
+  padding:5px 9px!important;
+  font-size:9.5px!important;
+}
+
+/* Karta klienta: trochę większa, szersza i bez niezrozumiałej strzałki. */
+#appointmentDetailsModal .crm-client-card{
+  grid-template-columns:40px minmax(0,1fr) 30px!important;
+  width:calc(100% - 24px)!important;
+  min-height:62px!important;
+  margin:-17px 12px 9px!important;
+  padding:10px 11px!important;
+}
+#appointmentDetailsModal .crm-client-avatar{
+  width:38px!important;
+  height:38px!important;
+  font-size:16px!important;
+}
+#appointmentDetailsModal .crm-client-card__copy strong{
+  font-size:12.5px!important;
+  line-height:1.25!important;
+}
+#appointmentDetailsModal .crm-client-card__copy span{
+  font-size:10.5px!important;
+  line-height:1.25!important;
+}
+#appointmentDetailsModal .crm-icon-button{
+  width:29px!important;
+  height:29px!important;
+  font-size:13px!important;
+}
+#appointmentDetailsModal .crm-client-card__arrow{
+  display:none!important;
+}
+
+/* Zielone boczne fragmenty utrzymane pod szerszą kartą klienta. */
+#appointmentDetailsModal .crm-visit-panel__header::after{
+  bottom:-16px!important;
+  height:20px!important;
+}
+
+@media(max-width:560px){
+  #appointmentDetailsModal .crm-client-card{
+    width:calc(100% - 20px)!important;
+    margin:-17px 10px 9px!important;
+  }
+}
+/* KONIEC ADMIN V6.7 */
