@@ -2093,3 +2093,67 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   }
 }
 /* KONIEC ADMIN V6.5 */
+
+/* ==========================================================
+   ADMIN V6.6: FINALNE DOPASOWANIE GŁÓWKI PANELU
+   Zielone boczne zakładki i karta klienta jak na wzorze
+   ========================================================== */
+#appointmentDetailsModal .crm-visit-panel__header{
+  height:82px!important;
+  min-height:82px!important;
+  max-height:82px!important;
+  padding:11px 12px 27px!important;
+  border-radius:10px 10px 0 0!important;
+  background:#12a966!important;
+}
+
+/* Dwa zielone fragmenty widoczne po bokach karty klienta. */
+#appointmentDetailsModal .crm-visit-panel__header::after{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:-14px!important;
+  height:18px!important;
+  z-index:1!important;
+  background:#12a966!important;
+  border-radius:0 0 4px 4px!important;
+}
+
+#appointmentDetailsModal .crm-client-card{
+  z-index:40!important;
+  width:calc(100% - 28px)!important;
+  min-height:57px!important;
+  margin:-15px 14px 8px!important;
+  padding:9px 10px!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  box-shadow:0 4px 12px rgba(60,43,52,.08)!important;
+}
+
+/* Zielony pasek nie prześwituje pod środkiem białej karty. */
+#appointmentDetailsModal .crm-client-card::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:-1;
+  border-radius:9px;
+  background:#fff;
+}
+
+#appointmentDetailsModal .crm-visit-tabs{
+  margin-top:0!important;
+}
+
+@media(max-width:560px){
+  #appointmentDetailsModal .crm-visit-panel__header{
+    height:82px!important;
+    min-height:82px!important;
+    max-height:82px!important;
+  }
+  #appointmentDetailsModal .crm-client-card{
+    width:calc(100% - 24px)!important;
+    margin:-15px 12px 8px!important;
+  }
+}
+/* KONIEC ADMIN V6.6 */
