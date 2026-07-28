@@ -1557,3 +1557,31 @@ html,body{
   .crm-day-all-day-info{margin-left:48px;}
 }
 /* KONIEC ADMIN V5.1 */
+
+/* ==========================================================
+   ADMIN V6.1: USUNIĘCIE ZBĘDNEGO PRZYCISKU I NAGŁÓWEK PANELU
+   ========================================================== */
+.crm-left-quick-buttons{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+.crm-visit-panel__header{
+  grid-template-columns:34px minmax(150px,1fr) auto!important;
+  column-gap:9px!important;
+}
+.crm-visit-panel__status-copy h4{
+  font-size:17px!important;
+  line-height:1.18!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.crm-status-button{
+  padding:8px 10px!important;
+  font-size:11px!important;
+  white-space:nowrap;
+}
+@media(max-width:560px){
+  .crm-left-quick-buttons{grid-template-columns:repeat(4,minmax(44px,1fr))!important;}
+  .crm-visit-panel__header{grid-template-columns:32px minmax(0,1fr)!important;}
+}
+/* KONIEC ADMIN V6.1 */
