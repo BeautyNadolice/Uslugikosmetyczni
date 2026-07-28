@@ -5776,3 +5776,71 @@ renderDayCalendar = function(grid) {
     }
 };
 /* KONIEC ADMIN V5 */
+
+/* ==========================================================
+   ADMIN V6: LEWY PANEL KALENDARZA
+   ========================================================== */
+let crmPaymentFilter = "all";
+function crmJumpCalendarDays(days) {
+    selectedCalendarDate = new Date(selectedCalendarDate);
+    selectedCalendarDate.setDate(selectedCalendarDate.getDate() + Number(days || 0));
+    miniMonthDate = new Date(selectedCalendarDate);
+    updateCalendarRangeTitle();
+    renderMiniMonthCalendar();
+    renderBooksyCalendar();
+}
+function crmGoToToday() {
+    selectedCalendarDate = new Date();
+    miniMonthDate = new Date();
+    updateCalendarRangeTitle();
+    renderMiniMonthCalendar();
+    renderBooksyCalendar();
+}
+function crmFocusMiniCalendar() {
+    const grid = document.getElementById("mini-month-days-grid");
+    if (!grid) return;
+    grid.scrollIntoView({behavior:"smooth",block:"nearest"});
+    grid.classList.remove("crm-mini-calendar-pulse");
+    requestAnimationFrame(() => grid.classList.add("crm-mini-calendar-pulse"));
+    setTimeout(() => grid.classList.remove("crm-mini-calendar-pulse"), 900);
+}
+function crmPaymentState(item) {
+    const raw = String(item?.paymentStatus || item?.payment || item?.paidStatus || "").trim().toUpperCase();
+    if (item?.paid === true || ["PAID","OPLACONE","OPŁACONE","ZAPLACONE","ZAPŁACONE"].includes(raw)) return "paid";
+    if (item?.paid === false || ["UNPAID","NIEOPLACONE","NIEOPŁACONE"].includes(raw)) return "unpaid";
+    return "unknown";
+}
+function crmSetPaymentFilter(value) {
+    crmPaymentFilter = ["paid","unpaid"].includes(value) ? value : "all";
+    renderBooksyCalendar();
+}
+const crmGetCalendarEventsForDateOriginalV6 = getCalendarEventsForDate;
+getCalendarEventsForDate = function(date) {
+    const rows = crmGetCalendarEventsForDateOriginalV6(date);
+    if (crmPaymentFilter === "all") return rows;
+    return rows.filter(item => item.eventType !== "appointment" || crmPaymentState(item) === crmPaymentFilter);
+};
+function crmUpdateLeftPendingBadge() {
+    const list = document.getElementById("bookingRequestsList");
+    const badge = document.getElementById("crmLeftPendingBadge");
+    const topCount = document.getElementById("crmPendingRequestsCount");
+    if (!badge || !list) return;
+    const count = list.querySelectorAll(":scope > .dashboard-card").length;
+    badge.textContent = String(count);
+    badge.classList.toggle("has-items", count > 0);
+    if (topCount) topCount.textContent = String(count);
+}
+const crmLoadBookingRequestsOriginalV6 = loadBookingRequests;
+loadBookingRequests = async function() {
+    await crmLoadBookingRequestsOriginalV6();
+    crmUpdateLeftPendingBadge();
+};
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(() => {
+        crmUpdateLeftPendingBadge();
+        const panel = document.getElementById("booking-requests-panel");
+        const sidebar = document.querySelector("#tab-kalendarz .calendar-sidebar");
+        if (panel && sidebar && panel.parentNode !== sidebar) sidebar.appendChild(panel);
+    }, 500);
+});
+/* KONIEC ADMIN V6 */
