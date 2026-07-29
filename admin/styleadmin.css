@@ -2536,3 +2536,42 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 @media(max-width:1500px){:root{--crm-sidebar:190px;--crm-calendar-side:235px;--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(600px,1fr) var(--crm-insights-width)!important;}}
 @media(max-width:1250px){.calendar-three-columns{grid-template-columns:225px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}}
 /* KONIEC ADMIN V9 */
+
+/* ==========================================================
+   ADMIN V9.1: BIAŁY PLUS I PRECYZYJNE USTAWIENIE WIZYT
+   ========================================================== */
+/* Jeden wygląd znaku plus we wszystkich malinowych akcjach. */
+.crm-white-plus,
+.crm-action-symbol{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  color:#fff!important;
+  font-family:Arial,sans-serif!important;
+  font-size:17px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  vertical-align:-1px!important;
+}
+.btn-primary .crm-white-plus,
+.crm-add-service-button .crm-white-plus{
+  color:#fff!important;
+}
+/* Karta zaczyna się dokładnie na linii godziny. Brak przesunięcia na hover. */
+.crm-3day-event{
+  transform:none!important;
+  margin-top:0!important;
+  box-sizing:border-box!important;
+  justify-content:center!important;
+}
+.crm-3day-event:hover{
+  transform:none!important;
+}
+.crm-3day-event__time{
+  width:100%!important;
+  align-items:center!important;
+}
+/* Linia godziny pozostaje dokładnie pod górną krawędzią karty. */
+.crm-3day-line.is-hour{z-index:0!important;}
+.crm-3day-events{z-index:1!important;}
+/* KONIEC ADMIN V9.1 */
