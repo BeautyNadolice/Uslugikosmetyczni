@@ -8,7 +8,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Nail-Art Daria CRM V3</title>
+    <title>Nail-Art Daria CRM V2</title>
 <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
 <script src="https://accounts.google.com/gsi/client"
         async
@@ -75,62 +75,84 @@
         <aside class="sidebar">
 
             <div class="sidebar-header">
-                <div class="crm-brand-mark" aria-hidden="true">✣</div>
-                <div class="crm-brand-copy">
-                    <h2>CRM V3</h2>
-                    <p>Nail-Art Daria</p>
-                </div>
+
+                <h2>✨ CRM V2</h2>
+
+                <p>
+                    Nail-Art Daria
+                </p>
+
             </div>
+ <div style="margin-top: 15px; text-align: center;">
+            <a href="dev/dev.html" style="
+                display: inline-block;
+                color: var(--text-muted, #777);
+                font-size: 12px;
+                text-decoration: none;
+                border: 1px dashed var(--accent-color, #c2a383);
+                padding: 6px 12px;
+                border-radius: 4px;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#f0e6dc'; this.style.color='var(--text-main, #333)'" 
+               onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted, #777)'">
+                ⚙️ DEV
+            </a>
+        </div>
+            <nav class="sidebar-nav">
 
-            <div class="crm-dev-link-wrap">
-                <a href="dev/dev.html" class="crm-dev-link">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 7 3.5 12l5 5M15.5 7l5 5-5 5M14 4l-4 16"/></svg>
-                    <span>DEV</span>
-                </a>
-            </div>
+                <button class="nav-btn active"
+                        onclick="switchTab('dashboard')">
 
-            <nav class="sidebar-nav" aria-label="Główna nawigacja ADMIN">
-                <button class="nav-btn active" onclick="switchTab('dashboard')">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
-                    <span>Dashboard</span>
+                    📊 Dashboard
+
                 </button>
 
-                <button class="nav-btn" onclick="switchTab('kalendarz')">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg>
-                    <span>Kalendarz</span>
+                <button class="nav-btn"
+                        onclick="switchTab('kalendarz')">
+
+                    📅 Kalendarz
+
                 </button>
 
-                <button class="nav-btn" onclick="switchTab('klienci')">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM21 20v-2a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span>Klienci</span>
+                <button class="nav-btn"
+                        onclick="switchTab('klienci')">
+
+                    👥 Klienci
+
                 </button>
 
-                <button class="nav-btn" onclick="switchTab('cennik')">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>
-                    <span>Cennik</span>
+                <button class="nav-btn"
+                        onclick="switchTab('cennik')">
+
+                    💅 Cennik
+
                 </button>
 
-                <button class="nav-btn" onclick="switchTab('finanse')">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.5c0-2-2-3.5-5-3.5S7 4.2 7 6.5 9 10 12 10s5 1.2 5 3.5S15 17 12 17s-5-1.5-5-3.5"/></svg>
-                    <span>Finanse</span>
+                <button class="nav-btn"
+                        onclick="switchTab('finanse')">
+
+                    💰 Finanse
+
                 </button>
 
-                <button class="nav-btn crm-nav-coming-soon" type="button" title="Moduł Raporty zostanie utworzony w kolejnym etapie" aria-disabled="true">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M3 20h18"/></svg>
-                    <span>Raporty</span>
+                <button class="nav-btn"
+                        onclick="switchTab('ustawienia')">
+
+                    ⚙️ Ustawienia
+
                 </button>
 
-                <button class="nav-btn" onclick="switchTab('ustawienia')">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.18.37.49.68.9.9.3.16.67.25 1.09.25H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
-                    <span>Ustawienia</span>
-                </button>
             </nav>
 
             <div class="sidebar-footer">
-                <button class="crm-logout-btn" onclick="logout()">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>
-                    <span>Wyloguj</span>
+
+                <button class="btn-danger"
+                        onclick="logout()">
+
+                    🚪 Wyloguj
+
                 </button>
+
             </div>
 
         </aside>
@@ -214,7 +236,7 @@
                                 class="btn-toggle active"
                                 onclick="setCalendarView('day')">
 
-                            Dzień
+                            Terminarz
 
                         </button>
 
@@ -328,6 +350,22 @@
                         </div>
 
                     </div>
+
+                    <aside id="crmCalendarInsights" class="crm-calendar-insights" aria-live="polite">
+                        <div class="crm-insights-header">
+                            <div>
+                                <span id="crmInsightsEyebrow">Podsumowanie dnia</span>
+                                <h3 id="crmInsightsTitle">Wybrany dzień</h3>
+                            </div>
+                            <span class="crm-insights-calendar-icon" aria-hidden="true">▣</span>
+                        </div>
+                        <div id="crmInsightsMetrics" class="crm-insights-metrics"></div>
+                        <div id="crmInsightsNext" class="crm-insights-next"></div>
+                        <div class="crm-insights-actions">
+                            <button type="button" class="btn-primary" onclick="openCreateModal()">＋ Dodaj wizytę</button>
+                            <p>Kliknij wizytę w kalendarzu, aby zobaczyć szczegóły.</p>
+                        </div>
+                    </aside>
 
                 </div>
 
