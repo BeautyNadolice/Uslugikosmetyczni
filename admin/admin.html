@@ -343,13 +343,13 @@
 
                     </div>
 
-                    <div class="calendar-main-schedule">
-
-                        <div id="booksy-grid">
-
-                        </div>
-
-                    </div>
+                    
+                    <aside id="crmCalendarInsights" class="crm-calendar-insights" aria-live="polite">
+                        <div class="crm-insights-header"><div><span id="crmInsightsEyebrow">Podsumowanie terminarza</span><h3 id="crmInsightsTitle">Wybrany okres</h3></div><span class="crm-insights-calendar-icon" aria-hidden="true">▣</span></div>
+                        <div id="crmInsightsMetrics" class="crm-insights-metrics"></div>
+                        <div id="crmInsightsNext" class="crm-insights-next"></div>
+                        <div class="crm-insights-actions"><p>Kliknij wizytę w kalendarzu, aby zobaczyć szczegóły.</p></div>
+                    </aside>
 
                 </div>
 
@@ -520,6 +520,7 @@
                 <h1>Ustawienia</h1>
 
                 <form id="settingsForm">
+                    <input type="hidden" id="schedule_cycle" name="schedule_cycle" value="4x4">
 
                     <div class="form-group">
 
