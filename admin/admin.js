@@ -10,7 +10,7 @@
    ========================================================== */
 
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
+"https://script.google.com/macros/s/AKfycbwwBboidDdr5gX8RtCXuokMnwMMl_Jy6o88iDYQjrFNc6ubxD87xeWhrLQFYUvsXLLd/exec";
 
 const ALLOWED_EMAIL =
 "strsasa@gmail.com";
@@ -6144,34 +6144,54 @@ crmRenderThreeDayCalendar = function(grid) {
 
 
 /* ==========================================================
-   ADMIN V10: FINALNY PRAWY PANEL WIZYTY
+   ADMIN V10: PANEL KALENDARZA I ZAMYKANIE SZCZEGÓŁÓW
    ========================================================== */
-function crmVisitCategoryColor(app) {
-    const service = typeof crmFindServiceForVisit === "function" ? crmFindServiceForVisit(app) : null;
-    const category = app?.category || service?.category || "";
-    return app?.categoryColor || service?.categoryColor || globalColors?.[category] || app?.color || "#b05c75";
+function crmIsCalendarTabVisible() {
+    const tab = document.getElementById("tab-kalendarz");
+    return Boolean(tab && getComputedStyle(tab).display !== "none");
 }
-function crmVisitSourceLabel(app) {
-    const source = String(app?.source || app?.bookingSource || app?.eventType || "").toUpperCase();
-    if (source.includes("BOOKSY")) return "Wizyta zaimportowana z Booksy";
-    if (source.includes("GOOGLE") || app?.phone === "Google Calendar") return "Wizyta dodana ręcznie w Google Calendar";
-    if (source.includes("INDEX") || source.includes("ONLINE")) return "Klient zarezerwował online";
-    if (source.includes("ADMIN") || source === "APPOINTMENT") return "Wizyta dodana ręcznie w ADMIN";
-    return "Wizyta CRM";
-}
-const crmPopulateNewVisitPanelV10Base = crmPopulateNewVisitPanel;
-crmPopulateNewVisitPanel = function(app) {
-    crmPopulateNewVisitPanelV10Base(app);
-    const stripe = document.getElementById("crmServiceStripe");
-    if (stripe) stripe.style.background = crmVisitCategoryColor(app);
-    setText("crmInfoSource", crmVisitSourceLabel(app));
+function crmCloseVisitPanelForNavigation() {
     const modal = document.getElementById("appointmentDetailsModal");
-    if (modal) modal.classList.toggle("is-non-appointment", app?.eventType !== "appointment");
-    document.body.classList.add("crm-v3-details-open");
-};
-const crmCloseAppointmentModalV10Base = closeAppointmentModal;
-closeAppointmentModal = function() {
-    crmCloseAppointmentModalV10Base();
+    if (modal) modal.style.display = "none";
     document.body.classList.remove("crm-v3-details-open");
+    currentEditingAppointment = null;
+    const menu = document.getElementById("crmVisitStatusMenu");
+    if (menu) menu.hidden = true;
+}
+const crmSwitchTabBeforeV10 = switchTab;
+switchTab = function(tabName) {
+    if (tabName !== "kalendarz") crmCloseVisitPanelForNavigation();
+    crmSwitchTabBeforeV10(tabName);
+    document.body.classList.toggle("crm-calendar-tab-active", tabName === "kalendarz");
+    if (tabName === "kalendarz") {
+        const summary = document.getElementById("crmCalendarInsights");
+        if (summary) summary.style.display = "block";
+        if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+    }
 };
+const crmOpenAppointmentBeforeV10 = openAppointmentDetailsModal;
+openAppointmentDetailsModal = function(app) {
+    if (!crmIsCalendarTabVisible()) return;
+    crmOpenAppointmentBeforeV10(app);
+    document.body.classList.add("crm-v3-details-open");
+    const summary = document.getElementById("crmCalendarInsights");
+    if (summary) summary.style.visibility = "hidden";
+};
+const crmCloseAppointmentBeforeV10 = closeAppointmentModal;
+closeAppointmentModal = function() {
+    crmCloseAppointmentBeforeV10();
+    document.body.classList.remove("crm-v3-details-open");
+    currentEditingAppointment = null;
+    const summary = document.getElementById("crmCalendarInsights");
+    if (summary) {
+        summary.style.visibility = "visible";
+        summary.style.display = crmIsCalendarTabVisible() ? "block" : "none";
+    }
+    if (crmIsCalendarTabVisible() && typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+};
+document.addEventListener("DOMContentLoaded", function() {
+    const calendarTab = document.getElementById("tab-kalendarz");
+    document.body.classList.toggle("crm-calendar-tab-active", Boolean(calendarTab && getComputedStyle(calendarTab).display !== "none"));
+    if (!crmIsCalendarTabVisible()) crmCloseVisitPanelForNavigation();
+});
 /* KONIEC ADMIN V10 */
