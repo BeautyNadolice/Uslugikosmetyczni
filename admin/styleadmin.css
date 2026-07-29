@@ -2374,3 +2374,52 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   }
 }
 /* KONIEC ADMIN V6.7 */
+
+
+/* ==========================================================
+   ADMIN V8: TERMINARZ 3-DNIOWY I STAŁY PANEL INFORMACJI
+   ========================================================== */
+:root{--crm-insights-width:285px;}
+.calendar-three-columns{grid-template-columns:210px minmax(600px,1fr) var(--crm-insights-width)!important;gap:12px!important;}
+.crm-three-day-calendar{min-width:0;overflow-x:auto;background:#fff;border-radius:14px;}
+.crm-3day-shell{display:grid;grid-template-columns:48px repeat(3,minmax(180px,1fr));min-width:640px;}
+.crm-3day-labels{position:relative;border-right:1px solid #eee8ec;}
+.crm-3day-corner{height:48px;border-bottom:1px solid #eee8ec;}
+.crm-3day-labels>span{position:absolute;right:8px;transform:translateY(-50%);color:#756d74;font-size:10px;}
+.crm-3day-column{min-width:0;border-right:1px solid #eee8ec;background:linear-gradient(180deg,#fff,#fffdfd);}
+.crm-3day-header{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;padding:0;border:0;border-bottom:1px solid #eee8ec;background:#fff;color:#312c31;cursor:pointer;font-size:11px;}
+.crm-3day-header b{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;color:#a84e70;background:#f9edf2;}
+.crm-3day-header.is-today b{color:#fff;background:#be5d82;}
+.crm-3day-header span{font-weight:720;text-transform:capitalize;}
+.crm-3day-canvas{position:relative;overflow:hidden;}
+.crm-3day-line{position:absolute;left:0;right:0;height:1px;background:repeating-linear-gradient(90deg,#f2edf0 0 3px,transparent 3px 7px);}
+.crm-3day-line.is-hour{background:#eae4e8;}
+.crm-3day-events{position:absolute;inset:0;}
+.crm-3day-event{position:absolute;left:7px;width:calc(100% - 14px);display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 8px 7px 10px;overflow:hidden;color:#312a31;background:var(--event-fill);border:1px solid rgba(255,255,255,.75);border-left:4px solid var(--event-stripe);border-radius:8px;box-shadow:0 5px 13px rgba(82,55,68,.07);text-align:left;cursor:pointer;z-index:2;}
+.crm-3day-event:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(82,55,68,.11);}
+.crm-3day-event__time{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:760;white-space:nowrap;}
+.crm-3day-event__time i{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.78);font-style:normal;font-size:9px;}
+.crm-3day-event strong{max-width:100%;font-size:11px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.crm-3day-event>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#5f565f;font-size:10px;}
+.crm-calendar-insights{position:sticky;top:78px;align-self:start;min-height:calc(100vh - 96px);padding:15px;background:linear-gradient(180deg,#fff,#fdfafb);border:1px solid #eee5e9;border-radius:16px;box-shadow:0 9px 26px rgba(104,72,88,.06);}
+.crm-insights-header{display:flex;justify-content:space-between;gap:10px;padding-bottom:13px;border-bottom:1px solid #eee7eb;}
+.crm-insights-header span{color:#8f858d;font-size:9px;text-transform:uppercase;letter-spacing:.04em;}
+.crm-insights-header h3{margin:4px 0 0;font-size:14px;text-transform:capitalize;}
+.crm-insights-calendar-icon{display:grid!important;place-items:center;width:34px;height:34px;color:#ad5475!important;background:#fff7fa;border:1px solid #eadce2;border-radius:9px;font-size:15px!important;}
+.crm-insights-metrics>div{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:43px;border-bottom:1px solid #f1ebee;font-size:10px;}
+.crm-insights-metrics i{color:#b45678;font-style:normal}.crm-insights-metrics span{color:#716870}.crm-insights-metrics strong{color:#312b31;font-size:10px;}
+.crm-insights-next{padding:14px 0;border-bottom:1px solid #eee7eb;}.crm-insights-next h4{margin:0 0 9px;color:#756b74;font-size:10px;}
+.crm-insights-next button{display:grid;grid-template-columns:45px 1fr;gap:8px;width:100%;padding:10px;background:#fff;border:1px solid #eee4e9;border-left:3px solid #d3d95f;border-radius:10px;text-align:left;cursor:pointer;}.crm-insights-next button>b{color:#4eaf7f}.crm-insights-next button span{display:flex;flex-direction:column;gap:3px;font-size:9px}.crm-insights-next button strong{font-size:10px;}
+.crm-insights-actions{padding-top:14px}.crm-insights-actions .btn-primary{width:100%;}.crm-insights-actions p{margin:12px 0 0;padding:10px;color:#8a7f87;background:#fbf5f8;border-radius:9px;font-size:9px;}
+/* Panel wizyty przykrywa stałe podsumowanie, kalendarz nie zmienia szerokości. */
+body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!important;}
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!important;}
+#appointmentDetailsModal.modal-overlay{left:auto!important;right:10px!important;top:88px!important;bottom:8px!important;width:var(--crm-insights-width)!important;height:auto!important;padding:0!important;}
+#appointmentDetailsModal .crm-visit-panel__surface{width:100%!important;height:100%!important;max-height:100%!important;}
+/* Kalendarz: pasek kategorii pozostaje ciemniejszy, tło jest jasną wersją tego samego koloru. */
+.calendar-compact-event,.booksy-event-card,.crm-day-event{filter:none!important;}
+.calendar-compact-event[data-crm-status="confirmed"],.booksy-event-card[data-crm-status="confirmed"],.crm-day-event[data-crm-status="confirmed"]{box-shadow:0 5px 15px rgba(87,62,75,.07)!important;}
+@media(max-width:1350px){:root{--crm-insights-width:260px}.calendar-three-columns{grid-template-columns:195px minmax(540px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:44px repeat(3,minmax(165px,1fr));}}
+@media(max-width:1050px){.calendar-three-columns{grid-template-columns:190px minmax(480px,1fr)!important;}.crm-calendar-insights{display:none;}#appointmentDetailsModal.modal-overlay{top:0!important;bottom:0!important;right:0!important;width:min(390px,96vw)!important;}}
+@media(max-width:820px){.calendar-three-columns{grid-template-columns:1fr!important;}.crm-3day-shell{grid-template-columns:44px repeat(3,minmax(180px,1fr));}}
+/* KONIEC ADMIN V8 */
