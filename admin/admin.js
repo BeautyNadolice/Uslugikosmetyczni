@@ -6030,3 +6030,33 @@ updateCalendarRangeTitle=function(){
     title.textContent=`${selectedCalendarDate.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"short"})} – ${end.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"short",year:"numeric"})}`;
 };
 /* KONIEC ADMIN V8 */
+
+/* ==========================================================
+   ADMIN V8.1: HARMONIJNY TERMINARZ I KOLORY KATEGORII
+   ========================================================== */
+function crmApplyCategoryVisualsToLegacyCards() {
+    document.querySelectorAll('.calendar-compact-event,.booksy-event-card,.crm-day-event').forEach(card => {
+        const item = card.__crmItem;
+        if (!item) return;
+        const palette = crmCategoryPalette(item);
+        card.style.setProperty('--event-stripe', palette.stripe);
+        card.style.setProperty('--event-fill', palette.fill);
+        card.style.background = palette.fill;
+        card.style.borderLeftColor = palette.stripe;
+    });
+}
+const crmRenderCalendarInsightsV81 = crmRenderCalendarInsights;
+crmRenderCalendarInsights = function() {
+    crmRenderCalendarInsightsV81();
+    const nextButton = document.querySelector('#crmInsightsNext button');
+    if (nextButton) {
+        const rows = crmInsightAppointments().sort((a,b) => crmDayEventDate(a)-crmDayEventDate(b));
+        const next = rows.find(x => crmDayEventDate(x) >= new Date()) || rows[0];
+        if (next) {
+            const palette = crmCategoryPalette(next);
+            nextButton.style.borderLeftColor = palette.stripe;
+            nextButton.onclick = () => openAppointmentDetailsModal(next);
+        }
+    }
+};
+/* KONIEC ADMIN V8.1 */
