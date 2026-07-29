@@ -2488,3 +2488,51 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 @media(max-width:1450px){:root{--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:210px minmax(630px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:50px repeat(3,minmax(195px,1fr))!important;}}
 @media(max-width:1200px){.calendar-three-columns{grid-template-columns:205px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}#appointmentDetailsModal.modal-overlay{right:0!important;top:0!important;bottom:0!important;width:min(390px,96vw)!important;}}
 /* KONIEC ADMIN V8.2 */
+
+
+/* ==========================================================
+   ADMIN V9: ZEBRANE POPRAWKI WIZUALNE
+   ========================================================== */
+:root{
+  --crm-sidebar:205px;
+  --crm-calendar-side:255px;
+  --crm-insights-width:360px;
+  --crm-hour-height:74px;
+}
+.main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;}
+/* Główny pasek CRM: większa typografia i liniowe ikony. */
+.sidebar{width:var(--crm-sidebar)!important;}
+.sidebar-header{display:grid!important;grid-template-columns:28px minmax(0,1fr);gap:8px;min-height:103px;padding:24px 18px 17px!important;}
+.crm-brand-mark{font-size:22px!important;}.sidebar-header h2{font-size:22px!important;white-space:nowrap;}.sidebar-header p{font-size:12px!important;}
+.crm-dev-link-wrap{padding:14px 16px 9px!important;}.crm-dev-link{font-size:11px!important;min-height:32px!important;padding:6px 11px!important;}
+.sidebar-nav{gap:6px!important;padding:10px 12px!important;}.nav-btn{grid-template-columns:20px minmax(0,1fr)!important;gap:10px!important;min-height:45px!important;padding:10px 12px!important;border-radius:11px!important;font-size:13px!important;}.nav-btn svg{width:18px!important;height:18px!important;}
+.crm-logout-btn{min-height:38px!important;padding:9px 12px!important;border-radius:7px!important;font-size:11px!important;font-weight:600!important;background:#c35c77!important;box-shadow:none!important;}.crm-logout-btn svg{width:14px!important;height:14px!important;stroke:#fff!important;}
+/* Układ: bardziej kwadratowy lewy panel, 3 dni, stały panel informacji. */
+.calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(660px,1fr) var(--crm-insights-width)!important;gap:14px!important;}
+.calendar-sidebar{width:var(--crm-calendar-side)!important;min-height:355px!important;padding:19px!important;border-radius:20px!important;}
+.mini-month-days-grid,.mini-month-weekdays{gap:6px!important;}.mini-date-cell{min-height:31px!important;font-size:12px!important;}.crm-left-section{margin-top:12px!important;padding-top:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}
+.calendar-main-schedule,.crm-three-day-calendar,.crm-calendar-insights{border-radius:20px!important;}
+.crm-3day-shell{grid-template-columns:52px repeat(3,minmax(205px,1fr))!important;}
+.crm-3day-corner,.crm-3day-header{height:40px!important;}.crm-3day-header{font-size:12px!important;}.crm-3day-header b{width:23px!important;height:23px!important;}
+/* 74 px/h niezależnie od wcześniejszej wysokości wygenerowanej inline. */
+.crm-3day-canvas{height:calc((var(--crm-hour-height) / 60) * 780)!important;min-height:962px!important;}
+.crm-3day-labels{height:1002px!important;}
+.crm-3day-event{min-height:54px!important;left:8px!important;width:calc(100% - 16px)!important;padding:7px 9px 7px 11px!important;border-radius:10px!important;background:var(--event-fill)!important;border-left:4px solid var(--event-stripe)!important;}
+/* Tydzień i miesiąc: ta sama logika kategorii, nie statusu. */
+.calendar-week-day,.calendar-month-day{border-radius:14px!important;background:#fff!important;}
+.calendar-compact-event.crm-category-event{display:flex!important;flex-direction:column!important;gap:2px!important;width:100%!important;margin:5px 0!important;padding:6px 6px 6px 9px!important;color:#403740!important;background:var(--event-fill)!important;border:1px solid rgba(255,255,255,.7)!important;border-left:4px solid var(--event-stripe)!important;border-radius:9px!important;box-shadow:0 4px 11px rgba(82,55,68,.06)!important;text-align:left!important;}
+.crm-compact-time{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:750;}.crm-compact-time i{display:grid;place-items:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.78);font-style:normal;font-size:9px;}.calendar-compact-event strong{font-size:10.5px;line-height:1.2;}.crm-compact-client{font-size:9.5px;color:#655b64;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.crm-schedule-info{margin:5px 0;padding:6px 8px;color:#6e5a1d;background:#fff2bd;border:1px solid #efd06d;border-radius:9px;font-size:10px;font-weight:700;text-align:center;}
+/* Prawy panel: większe napisy, bez metryki wolnych terminów i bez dolnego przycisku. */
+.crm-calendar-insights{width:var(--crm-insights-width)!important;padding:20px!important;}.crm-insights-header h3{font-size:18px!important;}.crm-insights-header>div>span{font-size:11px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;}.crm-insights-calendar-icon svg{width:18px;height:18px;fill:none;stroke:#b14f73;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.crm-insights-metrics>div{min-height:51px!important;grid-template-columns:25px minmax(0,1fr) auto!important;}.crm-insights-metrics i svg{width:16px;height:16px;fill:none;stroke:#bb5579;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-actions button{display:none!important;}.crm-insights-actions p{margin-top:13px!important;font-size:11px!important;text-align:left!important;}
+/* Górne działania. */
+.calendar-layout-header .btn-primary{font-size:13px!important;font-weight:700!important;}.crm-action-symbol{color:#fff!important;font-size:16px!important;line-height:1;}
+/* Panel wizyty: karta klienta szersza, ale zachowuje poprzednią wysokość. */
+#appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 18px)!important;min-height:57px!important;margin:-15px 9px 8px!important;padding:9px 10px!important;}
+#appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
+#appointmentDetailsModal .crm-client-card__copy strong{font-size:12px!important;}#appointmentDetailsModal .crm-client-card__copy span{font-size:10px!important;}
+#appointmentDetailsModal .crm-status-button{font-size:10px!important;min-width:92px!important;}
+@media(max-width:1500px){:root{--crm-sidebar:190px;--crm-calendar-side:235px;--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(600px,1fr) var(--crm-insights-width)!important;}}
+@media(max-width:1250px){.calendar-three-columns{grid-template-columns:225px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}}
+/* KONIEC ADMIN V9 */
