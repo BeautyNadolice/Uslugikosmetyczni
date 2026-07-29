@@ -6060,3 +6060,82 @@ crmRenderCalendarInsights = function() {
     }
 };
 /* KONIEC ADMIN V8.1 */
+
+
+/* ==========================================================
+   ADMIN V9: ZEBRANE POPRAWKI WIDOKÓW I PODSUMOWANIA
+   ========================================================== */
+function crmCompactEventStatusMeta(item) {
+    if (item?.eventType !== "appointment" || typeof crmV3NormalizeStatus !== "function") return null;
+    return CRM_V3_STATUS_META[crmV3NormalizeStatus(item)] || null;
+}
+function crmCompactEventEnd(item) {
+    const start = crmDayEventDate(item);
+    if (!start) return null;
+    return new Date(start.getTime() + Math.max(15, Number(item.duration) || 45) * 60000);
+}
+renderCompactCalendarEvent = function(item, container, mode) {
+    if (item.eventType === "work_shift") {
+        const info = document.createElement("div");
+        info.className = "crm-schedule-info";
+        info.textContent = item.name || "BRAK";
+        info.title = "Informacyjny wpis grafiku";
+        container.appendChild(info);
+        return;
+    }
+    const palette = crmCategoryPalette(item);
+    const event = document.createElement("button");
+    event.type = "button";
+    event.className = "calendar-compact-event crm-category-event";
+    event.style.setProperty("--event-stripe", palette.stripe);
+    event.style.setProperty("--event-fill", palette.fill);
+    const start = crmDayEventDate(item);
+    const end = crmCompactEventEnd(item);
+    const meta = crmCompactEventStatusMeta(item);
+    const time = start ? crmFormatVisitTime(start) : "";
+    const endTime = end ? crmFormatVisitTime(end) : "";
+    const service = crmSafeText(item.service || item.name || "Wpis");
+    const client = item.eventType === "appointment" ? crmSafeText(item.name || "") : "";
+    const timeText = mode === "week" && endTime ? `${time}–${endTime}` : time;
+    event.innerHTML = `<span class="crm-compact-time">${meta ? `<i>${meta.icon}</i>` : ""}${timeText}</span><strong>${service}</strong>${client ? `<span class="crm-compact-client">${client}</span>` : ""}`;
+    event.title = `${timeText} ${service} ${client}`.trim();
+    event.onclick = () => openAppointmentDetailsModal(item);
+    container.appendChild(event);
+};
+
+function crmRenderInsightsMetricsWithoutAvailability() {
+    const panel = document.getElementById("crmCalendarInsights");
+    if (!panel) return;
+    const rows = crmInsightAppointments();
+    const totalMinutes = rows.reduce((sum,x)=>sum+(Number(x.duration)||45),0);
+    const revenue = rows.reduce((sum,x)=>{
+        const srv=(currentServices||[]).find(s=>s.name&&x.service&&s.name.trim().toLowerCase()===x.service.trim().toLowerCase());
+        return sum+(Number(x.price ?? srv?.price)||0);
+    },0);
+    const cancelled=rows.filter(x=>/ANUL|CANCEL/.test(String(x.status||x.crmStatus||"").toUpperCase())).length;
+    const pending=rows.filter(x=>/OCZEK|PENDING/.test(String(x.status||x.crmStatus||"").toUpperCase())).length;
+    const icon=(path)=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+    const metric=(svg,label,value)=>`<div><i>${svg}</i><span>${label}</span><strong>${value}</strong></div>`;
+    document.getElementById("crmInsightsMetrics").innerHTML=[
+      metric(icon("M5 5h14v14H5zM9 9h6M9 13h6"),"Liczba wizyt",rows.length),
+      metric(icon("M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"),"Łączny czas",`${Math.floor(totalMinutes/60)} h ${totalMinutes%60} min`),
+      metric(icon("M5 19V9M10 19V5M15 19v-7M4 20h16"),"Przewidywany obrót",`${revenue.toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})} zł`),
+      metric(icon("M12 3 14 9h6l-5 3.5 2 6L12 15l-5 3.5 2-6L4 9h6Z"),"Oczekujące prośby",pending),
+      metric(icon("M8 8l8 8M16 8l-8 8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"),"Anulowane wizyty",cancelled)
+    ].join("");
+}
+const crmRenderCalendarInsightsV9 = crmRenderCalendarInsights;
+crmRenderCalendarInsights = function() {
+    crmRenderCalendarInsightsV9();
+    crmRenderInsightsMetricsWithoutAvailability();
+    const actions = document.querySelector('.crm-insights-actions');
+    actions?.querySelector('button')?.remove();
+};
+
+/* Gęstość osi: około 74 px na godzinę. */
+const crmRenderThreeDayCalendarV9 = crmRenderThreeDayCalendar;
+crmRenderThreeDayCalendar = function(grid) {
+    crmRenderThreeDayCalendarV9(grid);
+    document.documentElement.style.setProperty('--crm-hour-height','74px');
+};
+/* KONIEC ADMIN V9 */
