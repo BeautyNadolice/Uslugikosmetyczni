@@ -10,7 +10,12 @@
 
     <title>Nail-Art Daria CRM V2</title>
 <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
-<link rel="stylesheet"
+<script src="https://accounts.google.com/gsi/client"
+        async
+        defer>
+</script>
+
+    <link rel="stylesheet"
           href="styleadmin.css">
 
 </head>
@@ -26,17 +31,31 @@
          style="display:flex;">
 
         <div class="modal-content login-box">
-            <!-- LOGOWANIE ADMIN: bez Google OAuth; wejście obsługuje loginTest() -->
 
             <h1>Nail-Art Daria CRM</h1>
 
             <p>
                 Logowanie administratora
             </p>
-<button class="btn-primary"
+<!-- ===================================================== -->
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-size="large"
+                 data-theme="outline">
+            </div>
+<!-- ===================================================== -->
+            <button id="test-login-btn"
+                    type="button"
+                    class="btn-primary"
                     onclick="loginTest()">
 
-                🔓 Wejście do ADMIN
+                🔓 Logowanie testowe
 
             </button>
 
@@ -270,7 +289,7 @@
                         <button class="btn-primary"
                                 onclick="openCreateModal()">
 
-                            <span class="crm-white-plus" aria-hidden="true">+</span> Dodaj wizytę
+                            ➕ Dodaj wizytę
 </button>
 
                       <button id="openBlockTimeBtn"
@@ -352,7 +371,7 @@
                     <button id="addClientBtn"
         class="btn-primary"
         onclick="openAddClientModal()">
-    <span class="crm-white-plus" aria-hidden="true">+</span> Dodaj klienta
+    ➕ Dodaj klienta
 </button>
 
                 </div>
@@ -401,7 +420,7 @@
                     <div>
 
                         <button class="btn-primary" onclick="openAddServiceModal()">
-    <span class="crm-white-plus" aria-hidden="true">+</span> Usługa
+    ➕ Usługa
 </button>
 
 <button class="btn-secondary" onclick="openCategoryModal()">
@@ -503,7 +522,6 @@
                 <h1>Ustawienia</h1>
 
                 <form id="settingsForm">
-                    <input type="hidden" id="schedule_cycle" name="schedule_cycle" value="4x4">
 
                     <div class="form-group">
 
