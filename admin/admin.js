@@ -10,7 +10,7 @@
    ========================================================== */
 
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbwwBboidDdr5gX8RtCXuokMnwMMl_Jy6o88iDYQjrFNc6ubxD87xeWhrLQFYUvsXLLd/exec";
+"https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
 
 const ALLOWED_EMAIL =
 "strsasa@gmail.com";
@@ -48,7 +48,8 @@ document.addEventListener(
 
 async function initializeCRM() {
 
-    checkAuthSession();
+    // Dostęp otwarty: autoryzacja Google i logowanie testowe są wyłączone.
+    await showAdminPanel();
 
 }
 
@@ -59,21 +60,8 @@ async function initializeCRM() {
 
 function checkAuthSession() {
 
-    const savedEmail =
-        localStorage.getItem("admin_email");
-
-    if (
-        savedEmail === ALLOWED_EMAIL ||
-        savedEmail === "test_admin@test.com"
-    ) {
-
-        showAdminPanel();
-
-    } else {
-
-        showLoginScreen();
-
-    }
+    // Funkcja pozostaje dla zgodności ze starszym kodem, ale nie blokuje dostępu.
+    showAdminPanel();
 
 }
 
@@ -89,9 +77,8 @@ function showLoginScreen() {
 
 async function showAdminPanel() {
 
-    document.getElementById(
-        "login-modal"
-    ).style.display = "none";
+    const loginModal = document.getElementById("login-modal");
+    if (loginModal) loginModal.style.display = "none";
 
     document.getElementById(
         "admin-panel-wrapper"
@@ -6141,57 +6128,3 @@ crmRenderThreeDayCalendar = function(grid) {
     document.documentElement.style.setProperty('--crm-hour-height','74px');
 };
 /* KONIEC ADMIN V9 */
-
-
-/* ==========================================================
-   ADMIN V10: PANEL KALENDARZA I ZAMYKANIE SZCZEGÓŁÓW
-   ========================================================== */
-function crmIsCalendarTabVisible() {
-    const tab = document.getElementById("tab-kalendarz");
-    return Boolean(tab && getComputedStyle(tab).display !== "none");
-}
-function crmCloseVisitPanelForNavigation() {
-    const modal = document.getElementById("appointmentDetailsModal");
-    if (modal) modal.style.display = "none";
-    document.body.classList.remove("crm-v3-details-open");
-    currentEditingAppointment = null;
-    const menu = document.getElementById("crmVisitStatusMenu");
-    if (menu) menu.hidden = true;
-}
-const crmSwitchTabBeforeV10 = switchTab;
-switchTab = function(tabName) {
-    if (tabName !== "kalendarz") crmCloseVisitPanelForNavigation();
-    crmSwitchTabBeforeV10(tabName);
-    document.body.classList.toggle("crm-calendar-tab-active", tabName === "kalendarz");
-    if (tabName === "kalendarz") {
-        const summary = document.getElementById("crmCalendarInsights");
-        if (summary) summary.style.display = "block";
-        if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
-    }
-};
-const crmOpenAppointmentBeforeV10 = openAppointmentDetailsModal;
-openAppointmentDetailsModal = function(app) {
-    if (!crmIsCalendarTabVisible()) return;
-    crmOpenAppointmentBeforeV10(app);
-    document.body.classList.add("crm-v3-details-open");
-    const summary = document.getElementById("crmCalendarInsights");
-    if (summary) summary.style.visibility = "hidden";
-};
-const crmCloseAppointmentBeforeV10 = closeAppointmentModal;
-closeAppointmentModal = function() {
-    crmCloseAppointmentBeforeV10();
-    document.body.classList.remove("crm-v3-details-open");
-    currentEditingAppointment = null;
-    const summary = document.getElementById("crmCalendarInsights");
-    if (summary) {
-        summary.style.visibility = "visible";
-        summary.style.display = crmIsCalendarTabVisible() ? "block" : "none";
-    }
-    if (crmIsCalendarTabVisible() && typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
-};
-document.addEventListener("DOMContentLoaded", function() {
-    const calendarTab = document.getElementById("tab-kalendarz");
-    document.body.classList.toggle("crm-calendar-tab-active", Boolean(calendarTab && getComputedStyle(calendarTab).display !== "none"));
-    if (!crmIsCalendarTabVisible()) crmCloseVisitPanelForNavigation();
-});
-/* KONIEC ADMIN V10 */
