@@ -235,7 +235,9 @@
                         <button id="view-day-btn"
                                 class="btn-toggle active"
                                 onclick="setCalendarView('day')">
-                            Terminarz
+
+                            Dzień
+
                         </button>
 
                         <button id="view-week-btn"
@@ -350,19 +352,8 @@
                     </div>
 
                     <aside id="crmCalendarInsights" class="crm-calendar-insights" aria-live="polite">
-                        <div class="crm-insights-header">
-                            <div>
-                                <span id="crmInsightsEyebrow">Podsumowanie dnia</span>
-                                <h3 id="crmInsightsTitle">Wybrany dzień</h3>
-                            </div>
-                            <span class="crm-insights-calendar-icon" aria-hidden="true">▣</span>
-                        </div>
-                        <div id="crmInsightsMetrics" class="crm-insights-metrics"></div>
-                        <div id="crmInsightsNext" class="crm-insights-next"></div>
-                        <div class="crm-insights-actions">
-                            <button type="button" class="btn-primary" onclick="openCreateModal()">＋ Dodaj wizytę</button>
-                            <p>Kliknij wizytę w kalendarzu, aby zobaczyć szczegóły.</p>
-                        </div>
+                      <div class="crm-insights-header"><div><span id="crmInsightsEyebrow">Podsumowanie terminarza</span><h3 id="crmInsightsTitle">Wybrany okres</h3></div><span class="crm-insights-calendar-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg></span></div>
+                      <div id="crmInsightsMetrics" class="crm-insights-metrics"></div><div id="crmInsightsNext" class="crm-insights-next"></div><div class="crm-insights-actions"><p>Kliknij wizytę w kalendarzu, aby zobaczyć szczegóły.</p></div>
                     </aside>
 
                 </div>
@@ -706,36 +697,21 @@
 </div>
 <!-- PANEL: SZCZEGÓŁY WIZYTY -->
 <div id="appointmentDetailsModal" class="modal-overlay crm-visit-panel" style="display:none;">
-  <aside class="modal-content crm-visit-panel__surface" aria-label="Szczegóły wizyty">
-    <header class="modal-header crm-visit-panel__header">
-      <button class="modal-close crm-visit-panel__close" type="button" onclick="closeAppointmentModal()" aria-label="Zamknij">×</button>
-      <div class="crm-visit-panel__status-copy"><h4 id="appointmentDetailsTitle">✅ POTWIERDZONO</h4><small id="crmVisitReservationId"></small></div>
-      <button id="crmVisitStatusButton" class="crm-status-button" type="button" onclick="crmToggleVisitStatusMenu()">Zmień status <span aria-hidden="true">⌄</span></button>
-      <div id="crmVisitStatusMenu" class="crm-status-menu" hidden>
-        <button type="button" onclick="crmVisitStatusAction('COMPLETED')">⭐ Zrealizowana</button>
-        <button type="button" onclick="crmVisitStatusAction('NO_SHOW')">⚠ Nieobecność</button>
-        <button type="button" onclick="crmVisitStatusAction('CANCEL_CLIENT')">Anulowana przez klienta</button>
-        <button type="button" onclick="crmVisitStatusAction('CANCEL_SALON')">Anulowana przez salon</button>
-      </div>
-    </header>
-    <div id="appointment-details-view" class="crm-visit-panel__body">
-      <section class="crm-client-card">
-        <div id="crmClientAvatar" class="crm-client-avatar">K</div>
-        <div class="crm-client-card__copy"><strong id="details-name"></strong><span id="details-phone-row">☎ <span id="details-phone"></span></span></div>
-        <button type="button" class="crm-icon-button" title="Edytuj wizytę" onclick="openEditAppointmentModal()">✎</button>
-      </section>
-      <nav class="crm-visit-tabs"><button id="crmVisitTabVisit" class="active" type="button" onclick="crmSwitchVisitPanelTab('visit')">WIZYTA</button><button id="crmVisitTabInfo" type="button" onclick="crmSwitchVisitPanelTab('info')">INFORMACJE</button></nav>
-      <section id="crmVisitTabContent" class="crm-visit-tab-content">
-        <div class="crm-visit-date-row"><strong id="crmVisitDateHeading">Data wizyty</strong></div>
-        <article class="crm-service-card"><span id="crmServiceStripe" class="crm-service-card__stripe"></span><div class="crm-service-card__copy"><strong id="details-service"></strong><span id="crmServiceDescription"></span><small><span id="details-duration"></span> min</small></div><strong id="crmServicePrice" class="crm-service-card__price">—</strong></article>
-        <div class="crm-visit-fields"><div class="crm-visit-field"><span>Początek</span><strong id="crmVisitStart">—</strong></div><div class="crm-visit-field"><span>Koniec</span><strong id="crmVisitEnd">—</strong></div><div class="crm-visit-field" hidden><span>Pracownik</span><strong id="crmVisitWorker"></strong></div><div class="crm-visit-field" hidden><span>Sprzęt</span><strong id="crmVisitEquipment"></strong></div></div>
-        <p id="crmWorkerNote" class="crm-worker-note" hidden></p>
-        <button type="button" class="crm-add-service-button">DODAJ KOLEJNĄ USŁUGĘ <span>＋</span></button>
-      </section>
-      <section id="crmInfoTabContent" class="crm-info-tab-content" hidden><div class="details-row"><strong>Klient:</strong> <span id="crmInfoClient"></span></div><div class="details-row"><strong>Zabieg:</strong> <span id="crmInfoService"></span></div><div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div><div class="details-row"><strong>Źródło zapisu:</strong> <span id="crmInfoSource"></span></div></section>
-      <footer class="modal-footer crm-visit-panel__footer"><button id="crmRepeatVisitBtn" type="button" class="btn-secondary" onclick="planNextVisitFromCurrentAppointment()">UMÓW PONOWNIE</button><button id="crmSettleVisitBtn" type="button" hidden></button><button id="deleteAppointmentBtn" class="crm-hidden-action" type="button"></button><button id="editAppointmentBtn" class="crm-hidden-action" type="button"></button></footer>
-    </div>
-  </aside>
+ <aside class="modal-content crm-visit-panel__surface" aria-label="Szczegóły wizyty">
+  <header class="modal-header crm-visit-panel__header">
+   <button class="modal-close crm-visit-panel__close" type="button" onclick="closeAppointmentModal()" aria-label="Zamknij">×</button>
+   <div class="crm-visit-panel__status-copy"><h4 id="appointmentDetailsTitle">✅ POTWIERDZONO</h4><small id="crmVisitReservationId"></small></div>
+   <button id="crmVisitStatusButton" class="crm-status-button" type="button" onclick="crmToggleVisitStatusMenu()">Zmień status⌄</button>
+   <div id="crmVisitStatusMenu" class="crm-status-menu" hidden><button type="button" onclick="crmVisitStatusAction('COMPLETED')">⭐ Zrealizowana</button><button type="button" onclick="crmVisitStatusAction('NO_SHOW')">⚠ Nieobecność</button><button type="button" onclick="crmVisitStatusAction('CANCEL_CLIENT')">Anulowana przez klienta</button><button type="button" onclick="crmVisitStatusAction('CANCEL_SALON')">Anulowana przez salon</button></div>
+  </header>
+  <div id="appointment-details-view" class="crm-visit-panel__body">
+   <section class="crm-client-card"><div id="crmClientAvatar" class="crm-client-avatar">K</div><div class="crm-client-card__copy"><strong id="details-name"></strong><span id="details-phone-row">☎ <span id="details-phone"></span></span></div><button type="button" class="crm-icon-button" title="Edytuj wizytę" onclick="openEditAppointmentModal()">✎</button></section>
+   <nav class="crm-visit-tabs"><button id="crmVisitTabVisit" class="active" type="button" onclick="crmSwitchVisitPanelTab('visit')">WIZYTA</button><button id="crmVisitTabInfo" type="button" onclick="crmSwitchVisitPanelTab('info')">INFORMACJE</button></nav>
+   <section id="crmVisitTabContent" class="crm-visit-tab-content"><div class="crm-visit-date-row"><strong id="crmVisitDateHeading">Data wizyty</strong></div><article class="crm-service-card"><span id="crmServiceStripe" class="crm-service-card__stripe"></span><div class="crm-service-card__copy"><strong id="details-service"></strong><span id="crmServiceDescription"></span><small><span id="details-duration"></span> min</small></div><strong id="crmServicePrice" class="crm-service-card__price">—</strong></article><div class="crm-visit-fields"><div class="crm-visit-field"><span>Początek</span><strong id="crmVisitStart">—</strong></div><div class="crm-visit-field"><span>Koniec</span><strong id="crmVisitEnd">—</strong></div><div class="crm-visit-field" hidden><span>Pracownik</span><strong id="crmVisitWorker"></strong></div><div class="crm-visit-field" hidden><span>Sprzęt</span><strong id="crmVisitEquipment"></strong></div></div><p id="crmWorkerNote" class="crm-worker-note" hidden></p><button type="button" class="crm-add-service-button">DODAJ KOLEJNĄ USŁUGĘ <span>＋</span></button></section>
+   <section id="crmInfoTabContent" class="crm-info-tab-content" hidden><div class="details-row"><strong>Klient:</strong> <span id="crmInfoClient"></span></div><div class="details-row"><strong>Zabieg:</strong> <span id="crmInfoService"></span></div><div class="details-row"><strong>Data i godzina:</strong> <span id="details-datetime"></span></div><div class="details-row"><strong>Źródło zapisu:</strong> <span id="crmInfoSource"></span></div></section>
+   <footer class="modal-footer crm-visit-panel__footer"><button id="crmRepeatVisitBtn" type="button" class="btn-secondary" onclick="planNextVisitFromCurrentAppointment()">UMÓW PONOWNIE</button><button id="crmSettleVisitBtn" type="button" hidden></button><button id="deleteAppointmentBtn" class="crm-hidden-action" type="button"></button><button id="editAppointmentBtn" class="crm-hidden-action" type="button"></button></footer>
+  </div>
+ </aside>
 </div>
 <!-- MODAL: BLOKADA CZASU -->
 <div id="blockTimeModal" class="modal-overlay" style="display:none;">
