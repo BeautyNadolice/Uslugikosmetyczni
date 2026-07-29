@@ -5941,8 +5941,10 @@ function crmRenderThreeDayEvent(entry, layer, rangeStart, ppm) {
     const item=entry.item, palette=crmCategoryPalette(item);
     const card=document.createElement("button");
     card.type="button"; card.className="crm-3day-event";
-    card.style.top=`${(entry.start-rangeStart)*ppm}px`;
-    card.style.height=`${Math.max(48,(entry.end-entry.start)*ppm-4)}px`;
+    const exactTop = Math.round((entry.start - rangeStart) * ppm);
+    const exactHeight = Math.max(48, Math.round((entry.end - entry.start) * ppm) - 4);
+    card.style.top = `${exactTop}px`;
+    card.style.height = `${exactHeight}px`;
     card.style.setProperty("--event-stripe",palette.stripe);
     card.style.setProperty("--event-fill",palette.fill);
     const statusKey=typeof crmV3NormalizeStatus==="function"?crmV3NormalizeStatus(item):"CONFIRMED";
