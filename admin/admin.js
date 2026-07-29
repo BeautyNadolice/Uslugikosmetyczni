@@ -6141,3 +6141,37 @@ crmRenderThreeDayCalendar = function(grid) {
     document.documentElement.style.setProperty('--crm-hour-height','74px');
 };
 /* KONIEC ADMIN V9 */
+
+
+/* ==========================================================
+   ADMIN V10: FINALNY PRAWY PANEL WIZYTY
+   ========================================================== */
+function crmVisitCategoryColor(app) {
+    const service = typeof crmFindServiceForVisit === "function" ? crmFindServiceForVisit(app) : null;
+    const category = app?.category || service?.category || "";
+    return app?.categoryColor || service?.categoryColor || globalColors?.[category] || app?.color || "#b05c75";
+}
+function crmVisitSourceLabel(app) {
+    const source = String(app?.source || app?.bookingSource || app?.eventType || "").toUpperCase();
+    if (source.includes("BOOKSY")) return "Wizyta zaimportowana z Booksy";
+    if (source.includes("GOOGLE") || app?.phone === "Google Calendar") return "Wizyta dodana ręcznie w Google Calendar";
+    if (source.includes("INDEX") || source.includes("ONLINE")) return "Klient zarezerwował online";
+    if (source.includes("ADMIN") || source === "APPOINTMENT") return "Wizyta dodana ręcznie w ADMIN";
+    return "Wizyta CRM";
+}
+const crmPopulateNewVisitPanelV10Base = crmPopulateNewVisitPanel;
+crmPopulateNewVisitPanel = function(app) {
+    crmPopulateNewVisitPanelV10Base(app);
+    const stripe = document.getElementById("crmServiceStripe");
+    if (stripe) stripe.style.background = crmVisitCategoryColor(app);
+    setText("crmInfoSource", crmVisitSourceLabel(app));
+    const modal = document.getElementById("appointmentDetailsModal");
+    if (modal) modal.classList.toggle("is-non-appointment", app?.eventType !== "appointment");
+    document.body.classList.add("crm-v3-details-open");
+};
+const crmCloseAppointmentModalV10Base = closeAppointmentModal;
+closeAppointmentModal = function() {
+    crmCloseAppointmentModalV10Base();
+    document.body.classList.remove("crm-v3-details-open");
+};
+/* KONIEC ADMIN V10 */
