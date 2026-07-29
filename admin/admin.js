@@ -5897,3 +5897,136 @@ crmPopulateNewVisitPanel = function(app) {
     crmApplyVisitPanelBusinessRules(app);
 };
 /* KONIEC ADMIN V6.2 */
+
+
+/* ==========================================================
+   ADMIN V8: TERMINARZ 3-DNIOWY I STAŁY PANEL INFORMACJI
+   ========================================================== */
+const CRM_THREE_DAY_COUNT = 3;
+function crmSafeText(value) {
+    return String(value ?? "").replace(/[&<>"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[char]));
+}
+function crmHexToRgb(hex) {
+    const value = String(hex || "").trim();
+    const short = value.match(/^#([0-9a-f]{3})$/i);
+    const full = value.match(/^#([0-9a-f]{6})$/i);
+    if (short) return short[1].split("").map(x => parseInt(x+x,16));
+    if (full) return [parseInt(full[1].slice(0,2),16),parseInt(full[1].slice(2,4),16),parseInt(full[1].slice(4,6),16)];
+    return [187,111,143];
+}
+function crmCategoryColor(item) {
+    if (item?.eventType === "block") return "#b8afb4";
+    if (item?.eventType === "external") return "#9ba8ba";
+    if (item?.eventType === "work_shift") return "#d9b43b";
+    const service = (Array.isArray(currentServices) ? currentServices : []).find(value =>
+        value.name && item?.service && value.name.trim().toLowerCase() === item.service.trim().toLowerCase()
+    );
+    return item?.categoryColor || item?.color || service?.categoryColor || globalColors?.[service?.category] || globalColors?.[item?.category] || "#bb6f8f";
+}
+function crmCategoryPalette(item) {
+    const color = crmCategoryColor(item);
+    const [r,g,b] = crmHexToRgb(color);
+    return {stripe:color, fill:`rgba(${r},${g},${b},.16)`, hover:`rgba(${r},${g},${b},.22)`};
+}
+function crmVisitEntry(item, rangeStart, rangeEnd) {
+    const date = crmDayEventDate(item);
+    if (!date) return null;
+    const start = date.getHours()*60 + date.getMinutes();
+    const duration = Math.max(15,Number(item.duration)||45);
+    const end = start + duration;
+    if (end <= rangeStart || start >= rangeEnd) return null;
+    return {item,date,endDate:new Date(date.getTime()+duration*60000),start:Math.max(rangeStart,start),end:Math.min(rangeEnd,end)};
+}
+function crmRenderThreeDayEvent(entry, layer, rangeStart, ppm) {
+    const item=entry.item, palette=crmCategoryPalette(item);
+    const card=document.createElement("button");
+    card.type="button"; card.className="crm-3day-event";
+    card.style.top=`${(entry.start-rangeStart)*ppm}px`;
+    card.style.height=`${Math.max(48,(entry.end-entry.start)*ppm-4)}px`;
+    card.style.setProperty("--event-stripe",palette.stripe);
+    card.style.setProperty("--event-fill",palette.fill);
+    const statusKey=typeof crmV3NormalizeStatus==="function"?crmV3NormalizeStatus(item):"CONFIRMED";
+    const meta=typeof CRM_V3_STATUS_META!=="undefined"?CRM_V3_STATUS_META[statusKey]:null;
+    const service=crmSafeText(item.service||item.name||"Wpis");
+    const client=item.eventType==="appointment"?crmSafeText(item.name||""):"";
+    card.innerHTML=`<span class="crm-3day-event__time">${meta?`<i>${meta.icon}</i>`:""}${crmFormatVisitTime(entry.date)} – ${crmFormatVisitTime(entry.endDate)}</span><strong>${service}</strong>${client?`<span>${client}</span>`:""}`;
+    card.title=`${crmFormatVisitTime(entry.date)}–${crmFormatVisitTime(entry.endDate)} ${service} ${client}`;
+    if(item.eventType!=="work_shift") card.onclick=()=>openAppointmentDetailsModal(item); else card.disabled=true;
+    layer.appendChild(card);
+}
+function crmRenderThreeDayCalendar(grid) {
+    const {start,end}=crmDaySettingsRange(), ppm=1.08, height=(end-start)*ppm;
+    grid.innerHTML=""; grid.className="crm-three-day-calendar"; grid.dataset.calendarView="day";
+    const shell=document.createElement("div"); shell.className="crm-3day-shell";
+    const labels=document.createElement("div"); labels.className="crm-3day-labels"; labels.style.height=`${height+48}px`;
+    const spacer=document.createElement("div"); spacer.className="crm-3day-corner"; labels.appendChild(spacer);
+    for(let minute=start;minute<end;minute+=60){const label=document.createElement("span");label.style.top=`${48+(minute-start)*ppm}px`;label.textContent=`${String(Math.floor(minute/60)).padStart(2,"0")}:00`;labels.appendChild(label);}
+    shell.appendChild(labels);
+    for(let dayIndex=0;dayIndex<CRM_THREE_DAY_COUNT;dayIndex++){
+        const date=new Date(selectedCalendarDate); date.setDate(date.getDate()+dayIndex);
+        const col=document.createElement("section"); col.className="crm-3day-column";
+        const header=document.createElement("button"); header.type="button"; header.className="crm-3day-header";
+        header.innerHTML=`<b>${date.getDate()}</b><span>${date.toLocaleDateString("pl-PL",{weekday:"short",day:"numeric",month:"short"})}</span>`;
+        if(date.toDateString()===new Date().toDateString()) header.classList.add("is-today");
+        header.onclick=()=>{selectedCalendarDate=new Date(date);crmRenderCalendarInsights();renderMiniMonthCalendar();};
+        const canvas=document.createElement("div"); canvas.className="crm-3day-canvas"; canvas.style.height=`${height}px`;
+        for(let minute=start;minute<=end;minute+=30){const line=document.createElement("div");line.className=minute%60===0?"crm-3day-line is-hour":"crm-3day-line";line.style.top=`${(minute-start)*ppm}px`;canvas.appendChild(line);}
+        const layer=document.createElement("div"); layer.className="crm-3day-events";
+        getCalendarEventsForDate(date).filter(x=>x.eventType!=="work_shift").map(x=>crmVisitEntry(x,start,end)).filter(Boolean).forEach(e=>crmRenderThreeDayEvent(e,layer,start,ppm));
+        crmRenderCurrentTimeLine(layer,date,start,end,ppm);
+        canvas.appendChild(layer); col.append(header,canvas); shell.appendChild(col);
+    }
+    grid.appendChild(shell); crmRenderCalendarInsights();
+}
+function crmInsightRange() {
+    const from=new Date(selectedCalendarDate); from.setHours(0,0,0,0);
+    const to=new Date(from);
+    if(calendarViewMode==="month") to.setMonth(to.getMonth()+1,0);
+    else if(calendarViewMode==="week") to.setDate(to.getDate()+6);
+    else to.setDate(to.getDate()+CRM_THREE_DAY_COUNT-1);
+    to.setHours(23,59,59,999); return {from,to};
+}
+function crmInsightAppointments() {
+    const {from,to}=crmInsightRange();
+    return (appointmentsData||[]).filter(x=>x.eventType==="appointment").filter(x=>{const d=crmDayEventDate(x);return d&&d>=from&&d<=to;});
+}
+function crmRenderCalendarInsights() {
+    const panel=document.getElementById("crmCalendarInsights"); if(!panel)return;
+    const rows=crmInsightAppointments(), {from,to}=crmInsightRange();
+    const totalMinutes=rows.reduce((sum,x)=>sum+(Number(x.duration)||45),0);
+    const revenue=rows.reduce((sum,x)=>{const srv=(currentServices||[]).find(s=>s.name&&x.service&&s.name.trim().toLowerCase()===x.service.trim().toLowerCase());return sum+(Number(x.price??srv?.price)||0);},0);
+    const cancelled=rows.filter(x=>/ANUL|CANCEL/.test(String(x.status||x.crmStatus||"").toUpperCase())).length;
+    const pending=rows.filter(x=>/OCZEK|PENDING/.test(String(x.status||x.crmStatus||"").toUpperCase())).length;
+    const chronological=[...rows].sort((a,b)=>crmDayEventDate(a)-crmDayEventDate(b));
+    const title=calendarViewMode==="month"?from.toLocaleDateString("pl-PL",{month:"long",year:"numeric"}):calendarViewMode==="week"?`${formatPolishShortDate(from)} – ${formatPolishShortDate(to)}`:`${formatPolishShortDate(from)} – ${formatPolishShortDate(to)}`;
+    document.getElementById("crmInsightsEyebrow").textContent=calendarViewMode==="month"?"Podsumowanie miesiąca":calendarViewMode==="week"?"Podsumowanie tygodnia":"Podsumowanie terminarza";
+    document.getElementById("crmInsightsTitle").textContent=title;
+    const metric=(icon,label,value)=>`<div><i>${icon}</i><span>${label}</span><strong>${value}</strong></div>`;
+    document.getElementById("crmInsightsMetrics").innerHTML=[metric("▣","Liczba wizyt",rows.length),metric("◷","Łączny czas",`${Math.floor(totalMinutes/60)} h ${totalMinutes%60} min`),metric("○","Wolne terminy","wg grafiku"),metric("▤","Przewidywany obrót",`${revenue.toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})} zł`),metric("☆","Oczekujące prośby",pending),metric("⊗","Anulowane wizyty",cancelled)].join("");
+    const next=chronological.find(x=>crmDayEventDate(x)>=new Date())||chronological[0];
+    document.getElementById("crmInsightsNext").innerHTML=next?`<h4>Następna wizyta</h4><button type="button"><b>${crmFormatVisitTime(crmDayEventDate(next))}</b><span><strong>${crmSafeText(next.service||"Wizyta")}</strong>${crmSafeText(next.name||"")}</span></button>`:"<h4>Brak wizyt w wybranym okresie</h4>";
+}
+const crmRenderBooksyCalendarV8=renderBooksyCalendar;
+renderBooksyCalendar=function(){
+    if(calendarViewMode==="day"){
+        const grid=document.getElementById("booksy-grid"); if(!grid)return;
+        updateCalendarRangeTitle(); crmRenderThreeDayCalendar(grid); return;
+    }
+    crmRenderBooksyCalendarV8(); crmRenderCalendarInsights();
+};
+const crmChangeSelectedDateV8=changeSelectedDate;
+changeSelectedDate=function(days){
+    if(calendarViewMode==="day"){
+        selectedCalendarDate.setDate(selectedCalendarDate.getDate()+days*CRM_THREE_DAY_COUNT);
+        miniMonthDate=new Date(selectedCalendarDate);renderMiniMonthCalendar();renderBooksyCalendar();return;
+    }
+    crmChangeSelectedDateV8(days);
+};
+const crmUpdateCalendarRangeTitleV8=updateCalendarRangeTitle;
+updateCalendarRangeTitle=function(){
+    if(calendarViewMode!=="day")return crmUpdateCalendarRangeTitleV8();
+    const title=document.getElementById("calendar-current-date-title");if(!title)return;
+    const end=new Date(selectedCalendarDate);end.setDate(end.getDate()+2);
+    title.textContent=`${selectedCalendarDate.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"short"})} – ${end.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"short",year:"numeric"})}`;
+};
+/* KONIEC ADMIN V8 */
