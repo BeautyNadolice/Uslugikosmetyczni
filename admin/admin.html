@@ -10,12 +10,7 @@
 
     <title>Nail-Art Daria CRM V2</title>
 <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
-<script src="https://accounts.google.com/gsi/client"
-        async
-        defer>
-</script>
-
-    <link rel="stylesheet"
+<link rel="stylesheet"
           href="styleadmin.css">
 
 </head>
@@ -28,32 +23,20 @@
 
     <div id="login-modal"
          class="modal-overlay"
-         style="display:none;">
+         style="display:flex;">
 
         <div class="modal-content login-box">
+            <!-- LOGOWANIE ADMIN: bez Google OAuth; wejście obsługuje loginTest() -->
 
             <h1>Nail-Art Daria CRM</h1>
 
             <p>
                 Logowanie administratora
             </p>
-<!-- ===================================================== -->
-            <div id="g_id_onload"
-                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-                 data-callback="handleCredentialResponse"
-                 data-auto_prompt="false">
-            </div>
-
-            <div class="g_id_signin"
-                 data-type="standard"
-                 data-size="large"
-                 data-theme="outline">
-            </div>
-<!-- ===================================================== -->
-            <button class="btn-primary"
+<button class="btn-primary"
                     onclick="loginTest()">
 
-                🔓 Logowanie testowe
+                🔓 Wejście do ADMIN
 
             </button>
 
