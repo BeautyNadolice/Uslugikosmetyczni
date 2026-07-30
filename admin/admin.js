@@ -6128,3 +6128,94 @@ crmRenderThreeDayCalendar = function(grid) {
     document.documentElement.style.setProperty('--crm-hour-height','74px');
 };
 /* KONIEC ADMIN V9 */
+
+
+/* ==========================================================
+   ADMIN V10-SAFE: PRAWY PANEL BEZ ZMIANY HTML
+   ========================================================== */
+function crmInstallSafeRightVisitPanel() {
+    const modal = document.getElementById("appointmentDetailsModal");
+    if (!modal || modal.dataset.crmSafePanel === "1") return;
+    const surface = modal.querySelector(".modal-content");
+    if (!surface) return;
+
+    modal.dataset.crmSafePanel = "1";
+    modal.classList.add("crm-safe-visit-panel");
+    surface.classList.add("crm-safe-visit-surface");
+
+    surface.innerHTML = `
+      <header class="crm-safe-header">
+        <button type="button" class="crm-safe-close" onclick="closeAppointmentModal()" aria-label="Zamknij">×</button>
+        <div class="crm-safe-status-copy">
+          <h4 id="appointmentDetailsTitle">✓ POTWIERDZONO</h4>
+          <small id="crmVisitReservationId"></small>
+        </div>
+        <button id="crmVisitStatusButton" type="button" class="crm-safe-status-btn" onclick="crmToggleVisitStatusMenu()">Zmień status⌄</button>
+        <div id="crmVisitStatusMenu" class="crm-safe-status-menu" hidden>
+          <button type="button" onclick="crmVisitStatusAction('COMPLETED')">Zrealizowana</button>
+          <button type="button" onclick="crmVisitStatusAction('NO_SHOW')">Nieobecność</button>
+          <button type="button" onclick="crmVisitStatusAction('CANCEL_CLIENT')">Anulowana przez klienta</button>
+          <button type="button" onclick="crmVisitStatusAction('CANCEL_SALON')">Anulowana przez salon</button>
+        </div>
+      </header>
+      <div id="appointment-details-view" class="crm-safe-body">
+        <section class="crm-safe-client-card">
+          <div id="crmClientAvatar" class="crm-safe-avatar">K</div>
+          <div class="crm-safe-client-copy">
+            <strong id="details-name">Klient</strong>
+            <span id="details-phone-row">☎ <span id="details-phone">—</span></span>
+          </div>
+          <button type="button" class="crm-safe-edit" onclick="openEditAppointmentModal()" aria-label="Edytuj wizytę">✎</button>
+        </section>
+        <nav class="crm-safe-tabs">
+          <button id="crmVisitTabVisit" type="button" class="active" onclick="crmSwitchVisitPanelTab('visit')">WIZYTA</button>
+          <button id="crmVisitTabInfo" type="button" onclick="crmSwitchVisitPanelTab('info')">INFORMACJE</button>
+        </nav>
+        <section id="crmVisitTabContent" class="crm-safe-tab-content">
+          <strong id="crmVisitDateHeading" class="crm-safe-date">Data wizyty</strong>
+          <article class="crm-safe-service-card">
+            <span id="crmServiceStripe" class="crm-safe-service-stripe"></span>
+            <div class="crm-safe-service-copy">
+              <strong id="details-service">Usługa</strong>
+              <span id="crmServiceDescription">Usługa salonowa</span>
+              <small><span id="details-duration">0</span> min</small>
+            </div>
+            <strong id="crmServicePrice" class="crm-safe-price">—</strong>
+          </article>
+          <div class="crm-safe-time-grid">
+            <div><span>Początek</span><strong id="crmVisitStart">—</strong></div>
+            <div><span>Koniec</span><strong id="crmVisitEnd">—</strong></div>
+          </div>
+          <span id="crmVisitWorker" hidden></span><span id="crmVisitEquipment" hidden></span>
+          <button type="button" class="crm-safe-add-service">DODAJ KOLEJNĄ USŁUGĘ <b>+</b></button>
+          <button id="crmRepeatVisitBtn" type="button" class="crm-safe-repeat" onclick="planNextVisitFromCurrentAppointment()">UMÓW PONOWNIE</button>
+        </section>
+        <section id="crmInfoTabContent" class="crm-safe-info" hidden>
+          <div><span>Klient</span><strong id="crmInfoClient">—</strong></div>
+          <div><span>Usługa</span><strong id="crmInfoService">—</strong></div>
+          <div><span>Data i godzina</span><strong id="details-datetime">—</strong></div>
+          <div><span>Źródło</span><strong id="crmInfoSource">—</strong></div>
+        </section>
+        <button id="deleteAppointmentBtn" type="button" hidden onclick="deleteSelectedCalendarItemFromAdmin()"></button>
+        <button id="editAppointmentBtn" type="button" hidden onclick="openEditAppointmentModal()"></button>
+        <button id="crmSettleVisitBtn" type="button" hidden></button>
+      </div>`;
+}
+
+function crmSafeVisitCategoryColor(app) {
+    const service = typeof crmFindServiceForVisit === "function" ? crmFindServiceForVisit(app) : null;
+    const category = app?.category || service?.category || "";
+    return app?.categoryColor || service?.categoryColor || globalColors?.[category] || app?.color || "#b05c75";
+}
+
+const crmSafeOpenAppointmentOriginal = openAppointmentDetailsModal;
+openAppointmentDetailsModal = function(app) {
+    crmInstallSafeRightVisitPanel();
+    crmSafeOpenAppointmentOriginal(app);
+    if (typeof crmPopulateNewVisitPanel === "function") crmPopulateNewVisitPanel(app);
+    const stripe = document.getElementById("crmServiceStripe");
+    if (stripe) stripe.style.background = crmSafeVisitCategoryColor(app);
+};
+
+document.addEventListener("DOMContentLoaded", crmInstallSafeRightVisitPanel);
+/* KONIEC ADMIN V10-SAFE */
