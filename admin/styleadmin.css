@@ -1,7 +1,7 @@
 /* ==========================================================
    NAIL-ART DARIA CRM
    TESTOWA WARSTWA WIZUALNA ADMIN
-   Styl: jasny, profesjonalny, miÄkki, bez zmian w logice JS
+   Styl: jasny, profesjonalny, miękki, bez zmian w logice JS
    ========================================================== */
 
 :root {
@@ -62,7 +62,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   outline-offset: 2px;
 }
 
-/* GĹĂWNY UKĹAD */
+/* GŁÓWNY UKŁAD */
 .crm-shell { display: flex; min-height: 100vh; }
 .sidebar {
   position: fixed;
@@ -117,7 +117,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .btn-danger:hover:not(:disabled) { background: var(--crm-danger-dark); transform: translateY(-1px); }
 button:disabled { opacity: .48; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-/* NAGĹĂWKI I KARTY */
+/* NAGŁÓWKI I KARTY */
 .page-header, .calendar-layout-header {
   display: flex;
   align-items: center;
@@ -233,7 +233,7 @@ button:disabled { opacity: .48; cursor: not-allowed; transform: none !important;
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus, #settingsForm input:focus { border-color: var(--crm-primary); box-shadow: 0 0 0 4px rgba(170,83,110,.1); outline: none; }
 input[type="color"] { width: 38px !important; min-height: 34px !important; padding: 2px !important; cursor: pointer; }
 
-/* DETAILS I BLOKI USTAWIEĹ */
+/* DETAILS I BLOKI USTAWIEŃ */
 details { border-radius: 12px; }
 details > summary { color: #4d4549; }
 .crm-main-collapsible { margin-top: 18px !important; padding: 0 !important; background: #fff; border: 1px solid var(--crm-border) !important; border-radius: var(--crm-radius-md) !important; box-shadow: var(--crm-shadow-sm); overflow: hidden; }
@@ -241,7 +241,7 @@ details > summary { color: #4d4549; }
 .crm-main-collapsible > summary::-webkit-details-marker { display: none; }
 .crm-main-collapsible > summary::after { content: "+"; float: right; color: var(--crm-primary); font-size: 23px; line-height: 1; }
 .crm-main-collapsible[open] > summary { border-bottom: 1px solid var(--crm-border); background: var(--crm-primary-pale); }
-.crm-main-collapsible[open] > summary::after { content: "â"; }
+.crm-main-collapsible[open] > summary::after { content: "−"; }
 .crm-main-collapsible > div { padding: 18px 20px 21px !important; }
 #booking-requests-panel { padding: 14px 16px; background: #fff; border: 1px solid var(--crm-border); border-radius: var(--crm-radius-md); box-shadow: var(--crm-shadow-xs); }
 #booking-requests-panel > summary { cursor: pointer; }
@@ -263,7 +263,7 @@ details > summary { color: #4d4549; }
 #crm-toast-container > div { border: 1px solid rgba(255,255,255,.25); border-radius: 12px !important; box-shadow: var(--crm-shadow-md) !important; }
 #crm-test-report-output { border: 1px solid #34383c; box-shadow: inset 0 0 0 1px rgba(255,255,255,.03); }
 
-/* RESPONSYWNOĹÄ */
+/* RESPONSYWNOŚĆ */
 @media (max-width: 1080px) {
   :root { --crm-sidebar: 210px; }
   .calendar-three-columns { grid-template-columns: 210px minmax(0, 1fr); }
@@ -608,7 +608,7 @@ body{
 
 /* ==========================================================
    ADMIN V3: BOOKSY WORKSPACE
-   Finalna warstwa ukĹadu i statusĂłw
+   Finalna warstwa układu i statusów
    ========================================================== */
 :root{
   --crm-sidebar:220px;
@@ -660,7 +660,7 @@ body{background:var(--crm-bg)!important;color:#24262b;}
 [data-crm-status="cancelled-client"],[data-crm-status="cancelled-salon"]{opacity:.68;text-decoration:line-through;}
 [data-crm-status="completed"]{outline:2px solid #9a7bd7!important;outline-offset:-2px;}
 
-/* Prawy panel szczegĂłĹĂłw bez blokowania kalendarza */
+/* Prawy panel szczegółów bez blokowania kalendarza */
 #appointmentDetailsModal.modal-overlay{align-items:stretch!important;justify-content:flex-end!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;pointer-events:none;}
 #appointmentDetailsModal .modal-content{pointer-events:auto;width:min(410px,94vw)!important;max-height:100vh!important;height:100vh;margin:0!important;padding:0!important;border:0!important;border-left:1px solid var(--crm-border)!important;border-radius:0!important;box-shadow:-12px 0 32px rgba(28,31,38,.12)!important;overflow:auto;}
 #appointmentDetailsModal .modal-header{position:sticky;top:0;z-index:3;margin:0!important;padding:18px 20px!important;color:#fff;background:#138b5b;border:0!important;}
@@ -762,7 +762,7 @@ body{background:#f7f7f8!important;color:var(--crm-text)!important;}
 .calendar-week-day,.calendar-month-day{background:#fff!important;border:1px solid #e1e3e7!important;border-radius:8px!important;}
 .calendar-month-day:hover,.calendar-week-day:hover{border-color:#cfd2d8!important;background:#fdfdfd!important;}
 
-/* Karty pozostajÄ powiÄzane z kolorami kategorii, ale sÄ spokojniejsze. */
+/* Karty pozostają powiązane z kolorami kategorii, ale są spokojniejsze. */
 .booksy-event-card,.calendar-compact-event{
   color:#26272c!important;
   border:1px solid rgba(30,32,38,.08)!important;
@@ -784,7 +784,7 @@ body{background:#f7f7f8!important;color:var(--crm-text)!important;}
 #bookingRequestsList{margin-top:8px!important;}
 #bookingRequestsList>.dashboard-card{background:#fcfcfd!important;border-color:#e4e5e8!important;}
 
-/* Panel wizyty bliĹźej zaakceptowanej ilustracji. */
+/* Panel wizyty bliżej zaakceptowanej ilustracji. */
 #appointmentDetailsModal .modal-content{width:min(var(--crm-panel-width),96vw)!important;background:#fafafa!important;}
 #appointmentDetailsModal .modal-header{min-height:96px!important;padding:22px 22px!important;background:#0f9a63!important;align-items:flex-start!important;}
 #appointmentDetailsModal .modal-header h4{font-size:21px!important;font-weight:800!important;letter-spacing:.01em!important;}
@@ -823,7 +823,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:var
 
 /* ==========================================================
    ADMIN V3.2: SOFT SALON / PASTEL GLOW
-   MiÄkka, kobieca i spokojna warstwa wizualna kalendarza
+   Miękka, kobieca i spokojna warstwa wizualna kalendarza
    ========================================================== */
 :root{
   --crm-bg:#fbf9fb;
@@ -862,7 +862,7 @@ html,body{
     var(--crm-bg)!important;
 }
 
-/* MIÄKKI SIDEBAR */
+/* MIĘKKI SIDEBAR */
 .sidebar{
   background:rgba(255,254,254,.93)!important;
   border-right:1px solid rgba(229,218,224,.8)!important;
@@ -898,7 +898,7 @@ html,body{
   box-shadow:0 7px 16px rgba(205,96,112,.16)!important;
 }
 
-/* GĂRNY PASEK I PRZEĹÄCZNIKI */
+/* GÓRNY PASEK I PRZEŁĄCZNIKI */
 .calendar-layout-header{
   min-height:68px!important;
   padding:10px 13px!important;
@@ -1014,7 +1014,7 @@ html,body{
   box-shadow:0 6px 16px rgba(104,72,88,.06)!important;
 }
 
-/* PASTELOWE, LEKKO ĹWIETLISTE KARTY WIZYT */
+/* PASTELOWE, LEKKO ŚWIETLISTE KARTY WIZYT */
 .booksy-event-card,.calendar-compact-event{
   border:1px solid rgba(255,255,255,.58)!important;
   border-left-width:4px!important;
@@ -1052,7 +1052,7 @@ html,body{
 [data-crm-status="contact"]{outline:2px solid rgba(238,157,94,.62)!important;}
 [data-crm-status="completed"]{outline:2px solid rgba(157,124,210,.58)!important;}
 
-/* PROĹBY O WIZYTÄ */
+/* PROŚBY O WIZYTĘ */
 .calendar-sidebar #booking-requests-panel{
   margin-top:16px!important;
   padding-top:4px!important;
@@ -1076,7 +1076,7 @@ html,body{
   box-shadow:0 6px 16px rgba(104,72,88,.055)!important;
 }
 
-/* DELIKATNY PANEL SZCZEGĂĹĂW */
+/* DELIKATNY PANEL SZCZEGÓŁÓW */
 #appointmentDetailsModal .modal-content{
   background:
     linear-gradient(180deg,#fff 0,#fdfafb 100%)!important;
@@ -1133,7 +1133,7 @@ html,body{
   background:linear-gradient(135deg,#ad94da,#8e70c5)!important;
 }
 
-/* POZOSTAĹE ELEMENTY WSPĂLNE */
+/* POZOSTAŁE ELEMENTY WSPÓLNE */
 .dashboard-card,.admin-table,#settingsForm,.crm-main-collapsible{
   border-color:#eee5e9!important;
   border-radius:18px!important;
@@ -1532,7 +1532,7 @@ html,body{
 /* KONIEC ADMIN V6 */
 
 /* ==========================================================
-   ADMIN V5.1: CAĹODNIOWY GRAFIK NAD OSIÄ CZASU
+   ADMIN V5.1: CAŁODNIOWY GRAFIK NAD OSIĄ CZASU
    ========================================================== */
 .crm-day-all-day-info{
   display:flex;
@@ -1559,7 +1559,7 @@ html,body{
 /* KONIEC ADMIN V5.1 */
 
 /* ==========================================================
-   ADMIN V6.1: USUNIÄCIE ZBÄDNEGO PRZYCISKU I NAGĹĂWEK PANELU
+   ADMIN V6.1: USUNIĘCIE ZBĘDNEGO PRZYCISKU I NAGŁÓWEK PANELU
    ========================================================== */
 .crm-left-quick-buttons{
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
@@ -1587,9 +1587,9 @@ html,body{
 /* KONIEC ADMIN V6.1 */
 
 /* ==========================================================
-   ADMIN V6.2: FINALNY UKĹAD PRAWEGO PANELU I MIÄKKIE KARTY
+   ADMIN V6.2: FINALNY UKŁAD PRAWEGO PANELU I MIĘKKIE KARTY
    ========================================================== */
-/* Panel ma wĹasny odstÄp od kalendarza i biaĹy margines wokĂłĹ zielonej gĹĂłwki. */
+/* Panel ma własny odstęp od kalendarza i biały margines wokół zielonej główki. */
 #appointmentDetailsModal.modal-overlay{
   padding:12px 12px 12px 0!important;
   background:transparent!important;
@@ -1625,7 +1625,7 @@ html,body{
 .crm-visit-tabs{margin:0 8px!important;}
 .crm-visit-tab-content,.crm-info-tab-content{padding-left:8px!important;padding-right:8px!important;}
 
-/* Niepotrzebne elementy biznesowe sÄ caĹkowicie usuniÄte z ukĹadu. */
+/* Niepotrzebne elementy biznesowe są całkowicie usunięte z układu. */
 #appointmentDetailsModal .crm-visit-field[hidden],
 #appointmentDetailsModal .crm-client-choice[hidden],
 #crmSettleVisitBtn[hidden],
@@ -1650,7 +1650,7 @@ html,body{
   border:1px solid #e7dce2!important;
 }
 
-/* Pasek usĹugi jest zawsze kolorem kategorii, reszta karty zostaje biaĹa. */
+/* Pasek usługi jest zawsze kolorem kategorii, reszta karty zostaje biała. */
 .crm-service-card{
   background:rgba(255,255,255,.96)!important;
   border-color:#eee7eb!important;
@@ -1662,7 +1662,7 @@ html,body{
   border-radius:0 4px 4px 0!important;
 }
 
-/* MiÄkkie karty wizyt we wszystkich widokach. */
+/* Miękkie karty wizyt we wszystkich widokach. */
 .calendar-compact-event,.booksy-event-card,.crm-day-event{
   border-color:rgba(255,255,255,.68)!important;
   color:#4b424b!important;
@@ -1674,7 +1674,7 @@ html,body{
   filter:saturate(.58) brightness(1.13)!important;
   box-shadow:0 9px 21px rgba(87,62,75,.10)!important;
 }
-/* Zielony status ma byÄ miÄtowy, nie ciemny. */
+/* Zielony status ma być miętowy, nie ciemny. */
 [data-crm-status="confirmed"]{
   outline-color:rgba(86,190,146,.32)!important;
 }
@@ -1684,7 +1684,7 @@ html,body{
   box-shadow:inset 3px 0 0 rgba(53,170,119,.62),0 5px 15px rgba(87,62,75,.07)!important;
 }
 
-/* PiÄty, zbÄdny przycisk mini-kalendarza znika nawet przy starszym HTML. */
+/* Piąty, zbędny przycisk mini-kalendarza znika nawet przy starszym HTML. */
 .crm-left-quick-buttons .crm-left-date-button,
 .crm-left-quick-buttons button:nth-child(n+5){display:none!important;}
 .crm-left-quick-buttons{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
@@ -1701,13 +1701,13 @@ html,body{
 
 /* ==========================================================
    ADMIN V6.3: PRECYZYJNE PROPORCJE PRAWEGO PANELU
-   ZgodnoĹÄ wizualna z zaakceptowanÄ makietÄ
+   Zgodność wizualna z zaakceptowaną makietą
    ========================================================== */
 :root{
   --crm-panel-width:392px;
 }
 
-/* Szczelina pomiÄdzy kalendarzem i panelem. */
+/* Szczelina pomiędzy kalendarzem i panelem. */
 #appointmentDetailsModal.modal-overlay{
   padding:8px 10px 8px 8px!important;
 }
@@ -1719,7 +1719,7 @@ html,body{
   box-shadow:-10px 0 30px rgba(77,55,66,.10)!important;
 }
 
-/* NiĹźsza zielona gĹĂłwka wewnÄtrz biaĹego panelu. */
+/* Niższa zielona główka wewnątrz białego panelu. */
 .crm-visit-panel__header{
   grid-template-columns:30px minmax(0,1fr) auto!important;
   align-items:start!important;
@@ -1753,7 +1753,7 @@ html,body{
   font-size:10px!important;
 }
 
-/* Karta klienta wyraĹşnie nachodzi na zielonÄ gĹĂłwkÄ. */
+/* Karta klienta wyraźnie nachodzi na zieloną główkę. */
 #appointmentDetailsModal .crm-visit-panel__body{
   padding:0 8px 12px!important;
 }
@@ -1780,7 +1780,7 @@ html,body{
 }
 .crm-client-card__arrow{font-size:20px!important;}
 
-/* Zwarty ukĹad zakĹadek i treĹci. */
+/* Zwarty układ zakładek i treści. */
 .crm-visit-tabs{
   height:42px!important;
   margin:0 10px!important;
@@ -1798,7 +1798,7 @@ html,body{
   font-size:15px!important;
 }
 
-/* NiĹźsza karta usĹugi i czytelniejszy pasek kategorii. */
+/* Niższa karta usługi i czytelniejszy pasek kategorii. */
 .crm-service-card{
   grid-template-columns:minmax(0,1fr) auto 12px!important;
   gap:7px!important;
@@ -1844,7 +1844,7 @@ html,body{
   font-size:9px!important;
 }
 
-/* Kolejna usĹuga i dolna akcja bez zbÄdnego rozciÄgania. */
+/* Kolejna usługa i dolna akcja bez zbędnego rozciągania. */
 .crm-add-service-button{
   padding:11px 0!important;
   font-size:9px!important;
@@ -1863,7 +1863,7 @@ html,body{
   font-size:11px!important;
 }
 
-/* Kalendarz zachowuje szczelinÄ odpowiadajÄcÄ wÄĹźszemu panelowi. */
+/* Kalendarz zachowuje szczelinę odpowiadającą węższemu panelowi. */
 body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{
   padding-right:calc(var(--crm-panel-width) + 10px)!important;
 }
@@ -1889,13 +1889,13 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V6.3 */
 
 /* ==========================================================
-   ADMIN V6.4: NAGĹĂWEK I KARTA KLIENTA JAK W MAKIETCIE
+   ADMIN V6.4: NAGŁÓWEK I KARTA KLIENTA JAK W MAKIETCIE
    ========================================================== */
 #appointmentDetailsModal .crm-visit-panel__surface{
   padding-top:0!important;
 }
 
-/* Zielony blok jest niski, prostszy i nie ma formy duĹźej kapsuĹy. */
+/* Zielony blok jest niski, prostszy i nie ma formy dużej kapsuły. */
 .crm-visit-panel__header{
   min-height:66px!important;
   margin:8px 8px 0!important;
@@ -1925,7 +1925,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   font-size:9px!important;
 }
 
-/* Karta klienta wchodzi w dolnÄ czÄĹÄ zielonego nagĹĂłwka. */
+/* Karta klienta wchodzi w dolną część zielonego nagłówka. */
 .crm-client-card{
   position:relative!important;
   z-index:30!important;
@@ -1951,7 +1951,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 }
 .crm-client-card__arrow{font-size:18px!important;}
 
-/* ZakĹadki zaczynajÄ siÄ bliĹźej karty klienta. */
+/* Zakładki zaczynają się bliżej karty klienta. */
 .crm-visit-tabs{
   height:38px!important;
   margin:0 14px!important;
@@ -1968,8 +1968,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V6.4 */
 
 /* ==========================================================
-   ADMIN V6.5: NAPRAWA GĂRNEJ CZÄĹCI PANELU
-   Wymuszona wysokoĹÄ nagĹĂłwka i rzeczywiste nakĹadanie karty
+   ADMIN V6.5: NAPRAWA GÓRNEJ CZĘŚCI PANELU
+   Wymuszona wysokość nagłówka i rzeczywiste nakładanie karty
    ========================================================== */
 #appointmentDetailsModal .crm-visit-panel__surface{
   position:relative!important;
@@ -2069,7 +2069,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   margin:0 14px!important;
 }
 
-/* Zielone boczne fragmenty majÄ byÄ widoczne za kartÄ klienta. */
+/* Zielone boczne fragmenty mają być widoczne za kartą klienta. */
 #appointmentDetailsModal .crm-visit-panel__header::after{
   content:"";
   position:absolute;
@@ -2095,8 +2095,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V6.5 */
 
 /* ==========================================================
-   ADMIN V6.6: FINALNE DOPASOWANIE GĹĂWKI PANELU
-   Zielone boczne zakĹadki i karta klienta jak na wzorze
+   ADMIN V6.6: FINALNE DOPASOWANIE GŁÓWKI PANELU
+   Zielone boczne zakładki i karta klienta jak na wzorze
    ========================================================== */
 #appointmentDetailsModal .crm-visit-panel__header{
   height:82px!important;
@@ -2131,7 +2131,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   box-shadow:0 4px 12px rgba(60,43,52,.08)!important;
 }
 
-/* Zielony pasek nie przeĹwituje pod Ĺrodkiem biaĹej karty. */
+/* Zielony pasek nie prześwituje pod środkiem białej karty. */
 #appointmentDetailsModal .crm-client-card::before{
   content:"";
   position:absolute;
@@ -2301,8 +2301,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V7 */
 
 /* ==========================================================
-   ADMIN V6.7: WIÄKSZA CZYTELNOĹÄ GĹĂWKI I KARTY KLIENTA
-   UsuniÄcie zbÄdnej strzaĹki z karty klienta
+   ADMIN V6.7: WIĘKSZA CZYTELNOŚĆ GŁÓWKI I KARTY KLIENTA
+   Usunięcie zbędnej strzałki z karty klienta
    ========================================================== */
 /* Zielony pasek: proporcje jak w makiecie, ale czytelniejszy tekst. */
 #appointmentDetailsModal .crm-visit-panel__header{
@@ -2331,7 +2331,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   font-size:9.5px!important;
 }
 
-/* Karta klienta: trochÄ wiÄksza, szersza i bez niezrozumiaĹej strzaĹki. */
+/* Karta klienta: trochę większa, szersza i bez niezrozumiałej strzałki. */
 #appointmentDetailsModal .crm-client-card{
   grid-template-columns:40px minmax(0,1fr) 30px!important;
   width:calc(100% - 24px)!important;
@@ -2361,7 +2361,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   display:none!important;
 }
 
-/* Zielone boczne fragmenty utrzymane pod szerszÄ kartÄ klienta. */
+/* Zielone boczne fragmenty utrzymane pod szerszą kartą klienta. */
 #appointmentDetailsModal .crm-visit-panel__header::after{
   bottom:-16px!important;
   height:20px!important;
@@ -2377,7 +2377,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 
 
 /* ==========================================================
-   ADMIN V8: TERMINARZ 3-DNIOWY I STAĹY PANEL INFORMACJI
+   ADMIN V8: TERMINARZ 3-DNIOWY I STAŁY PANEL INFORMACJI
    ========================================================== */
 :root{--crm-insights-width:285px;}
 .calendar-three-columns{grid-template-columns:210px minmax(600px,1fr) var(--crm-insights-width)!important;gap:12px!important;}
@@ -2411,12 +2411,12 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 .crm-insights-next{padding:14px 0;border-bottom:1px solid #eee7eb;}.crm-insights-next h4{margin:0 0 9px;color:#756b74;font-size:10px;}
 .crm-insights-next button{display:grid;grid-template-columns:45px 1fr;gap:8px;width:100%;padding:10px;background:#fff;border:1px solid #eee4e9;border-left:3px solid #d3d95f;border-radius:10px;text-align:left;cursor:pointer;}.crm-insights-next button>b{color:#4eaf7f}.crm-insights-next button span{display:flex;flex-direction:column;gap:3px;font-size:9px}.crm-insights-next button strong{font-size:10px;}
 .crm-insights-actions{padding-top:14px}.crm-insights-actions .btn-primary{width:100%;}.crm-insights-actions p{margin:12px 0 0;padding:10px;color:#8a7f87;background:#fbf5f8;border-radius:9px;font-size:9px;}
-/* Panel wizyty przykrywa staĹe podsumowanie, kalendarz nie zmienia szerokoĹci. */
+/* Panel wizyty przykrywa stałe podsumowanie, kalendarz nie zmienia szerokości. */
 body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!important;}
 body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!important;}
 #appointmentDetailsModal.modal-overlay{left:auto!important;right:10px!important;top:88px!important;bottom:8px!important;width:var(--crm-insights-width)!important;height:auto!important;padding:0!important;}
 #appointmentDetailsModal .crm-visit-panel__surface{width:100%!important;height:100%!important;max-height:100%!important;}
-/* Kalendarz: pasek kategorii pozostaje ciemniejszy, tĹo jest jasnÄ wersjÄ tego samego koloru. */
+/* Kalendarz: pasek kategorii pozostaje ciemniejszy, tło jest jasną wersją tego samego koloru. */
 .calendar-compact-event,.booksy-event-card,.crm-day-event{filter:none!important;}
 .calendar-compact-event[data-crm-status="confirmed"],.booksy-event-card[data-crm-status="confirmed"],.crm-day-event[data-crm-status="confirmed"]{box-shadow:0 5px 15px rgba(87,62,75,.07)!important;}
 @media(max-width:1350px){:root{--crm-insights-width:260px}.calendar-three-columns{grid-template-columns:195px minmax(540px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:44px repeat(3,minmax(165px,1fr));}}
@@ -2446,16 +2446,16 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!i
 .crm-3day-event__time{font-size:11px!important;}.crm-3day-event strong{font-size:12px!important;line-height:1.28!important;}.crm-3day-event>span:last-child{font-size:11px!important;}
 .calendar-sidebar{width:auto!important;padding:17px!important;}.mini-month-header{font-size:15px!important;}.mini-month-weekdays{font-size:11px!important;}.mini-date-cell{font-size:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}.crm-left-filters label{font-size:12px!important;}.crm-left-quick-buttons button{font-size:12px!important;}
 .crm-calendar-insights{padding:20px!important;min-height:calc(100vh - 94px)!important;}.crm-insights-header span{font-size:11px!important;}.crm-insights-header h3{font-size:17px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;font-size:17px!important;}.crm-insights-metrics>div{min-height:50px!important;font-size:12px!important;grid-template-columns:24px minmax(0,1fr) auto!important;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-next h4{font-size:12px!important;}.crm-insights-next button{padding:13px!important;grid-template-columns:52px 1fr!important;}.crm-insights-next button strong{font-size:13px!important;}.crm-insights-next button span{font-size:11px!important;}.crm-insights-actions p{font-size:11px!important;}
-/* Prawy panel wizyty zajmuje dokĹadnie staĹÄ prawÄ kolumnÄ. */
+/* Prawy panel wizyty zajmuje dokładnie stałą prawą kolumnę. */
 #appointmentDetailsModal.modal-overlay{right:14px!important;top:82px!important;bottom:10px!important;width:var(--crm-insights-width)!important;}
 #appointmentDetailsModal .crm-visit-panel__surface{border-radius:18px!important;}
-/* PrzywrĂłcona kompaktowa karta klienta, bez strzaĹki. */
+/* Przywrócona kompaktowa karta klienta, bez strzałki. */
 #appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 28px)!important;min-height:57px!important;margin:-15px 14px 8px!important;padding:9px 10px!important;}
 #appointmentDetailsModal .crm-client-avatar{width:34px!important;height:34px!important;font-size:14px!important;}
 #appointmentDetailsModal .crm-client-card__copy strong{font-size:11px!important;}
 #appointmentDetailsModal .crm-client-card__copy span{font-size:9.5px!important;}
 #appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
-/* UsĹuga: biaĹe wypeĹnienie, pasek ma kolor kategorii. */
+/* Usługa: białe wypełnienie, pasek ma kolor kategorii. */
 #appointmentDetailsModal .crm-service-card{background:#fff!important;}
 @media(max-width:1450px){:root{--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:210px minmax(630px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:50px repeat(3,minmax(195px,1fr))!important;}}
 @media(max-width:1200px){.calendar-three-columns{grid-template-columns:205px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}#appointmentDetailsModal.modal-overlay{right:0!important;top:0!important;bottom:0!important;width:min(390px,96vw)!important;}}
@@ -2500,35 +2500,35 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --crm-hour-height:74px;
 }
 .main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;}
-/* GĹĂłwny pasek CRM: wiÄksza typografia i liniowe ikony. */
+/* Główny pasek CRM: większa typografia i liniowe ikony. */
 .sidebar{width:var(--crm-sidebar)!important;}
 .sidebar-header{display:grid!important;grid-template-columns:28px minmax(0,1fr);gap:8px;min-height:103px;padding:24px 18px 17px!important;}
 .crm-brand-mark{font-size:22px!important;}.sidebar-header h2{font-size:22px!important;white-space:nowrap;}.sidebar-header p{font-size:12px!important;}
 .crm-dev-link-wrap{padding:14px 16px 9px!important;}.crm-dev-link{font-size:11px!important;min-height:32px!important;padding:6px 11px!important;}
 .sidebar-nav{gap:6px!important;padding:10px 12px!important;}.nav-btn{grid-template-columns:20px minmax(0,1fr)!important;gap:10px!important;min-height:45px!important;padding:10px 12px!important;border-radius:11px!important;font-size:13px!important;}.nav-btn svg{width:18px!important;height:18px!important;}
 .crm-logout-btn{min-height:38px!important;padding:9px 12px!important;border-radius:7px!important;font-size:11px!important;font-weight:600!important;background:#c35c77!important;box-shadow:none!important;}.crm-logout-btn svg{width:14px!important;height:14px!important;stroke:#fff!important;}
-/* UkĹad: bardziej kwadratowy lewy panel, 3 dni, staĹy panel informacji. */
+/* Układ: bardziej kwadratowy lewy panel, 3 dni, stały panel informacji. */
 .calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(660px,1fr) var(--crm-insights-width)!important;gap:14px!important;}
 .calendar-sidebar{width:var(--crm-calendar-side)!important;min-height:355px!important;padding:19px!important;border-radius:20px!important;}
 .mini-month-days-grid,.mini-month-weekdays{gap:6px!important;}.mini-date-cell{min-height:31px!important;font-size:12px!important;}.crm-left-section{margin-top:12px!important;padding-top:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}
 .calendar-main-schedule,.crm-three-day-calendar,.crm-calendar-insights{border-radius:20px!important;}
 .crm-3day-shell{grid-template-columns:52px repeat(3,minmax(205px,1fr))!important;}
 .crm-3day-corner,.crm-3day-header{height:40px!important;}.crm-3day-header{font-size:12px!important;}.crm-3day-header b{width:23px!important;height:23px!important;}
-/* 74 px/h niezaleĹźnie od wczeĹniejszej wysokoĹci wygenerowanej inline. */
+/* 74 px/h niezależnie od wcześniejszej wysokości wygenerowanej inline. */
 .crm-3day-canvas{height:calc((var(--crm-hour-height) / 60) * 780)!important;min-height:962px!important;}
 .crm-3day-labels{height:1002px!important;}
 .crm-3day-event{min-height:54px!important;left:8px!important;width:calc(100% - 16px)!important;padding:7px 9px 7px 11px!important;border-radius:10px!important;background:var(--event-fill)!important;border-left:4px solid var(--event-stripe)!important;}
-/* TydzieĹ i miesiÄc: ta sama logika kategorii, nie statusu. */
+/* Tydzień i miesiąc: ta sama logika kategorii, nie statusu. */
 .calendar-week-day,.calendar-month-day{border-radius:14px!important;background:#fff!important;}
 .calendar-compact-event.crm-category-event{display:flex!important;flex-direction:column!important;gap:2px!important;width:100%!important;margin:5px 0!important;padding:6px 6px 6px 9px!important;color:#403740!important;background:var(--event-fill)!important;border:1px solid rgba(255,255,255,.7)!important;border-left:4px solid var(--event-stripe)!important;border-radius:9px!important;box-shadow:0 4px 11px rgba(82,55,68,.06)!important;text-align:left!important;}
 .crm-compact-time{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:750;}.crm-compact-time i{display:grid;place-items:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.78);font-style:normal;font-size:9px;}.calendar-compact-event strong{font-size:10.5px;line-height:1.2;}.crm-compact-client{font-size:9.5px;color:#655b64;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .crm-schedule-info{margin:5px 0;padding:6px 8px;color:#6e5a1d;background:#fff2bd;border:1px solid #efd06d;border-radius:9px;font-size:10px;font-weight:700;text-align:center;}
-/* Prawy panel: wiÄksze napisy, bez metryki wolnych terminĂłw i bez dolnego przycisku. */
+/* Prawy panel: większe napisy, bez metryki wolnych terminów i bez dolnego przycisku. */
 .crm-calendar-insights{width:var(--crm-insights-width)!important;padding:20px!important;}.crm-insights-header h3{font-size:18px!important;}.crm-insights-header>div>span{font-size:11px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;}.crm-insights-calendar-icon svg{width:18px;height:18px;fill:none;stroke:#b14f73;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
 .crm-insights-metrics>div{min-height:51px!important;grid-template-columns:25px minmax(0,1fr) auto!important;}.crm-insights-metrics i svg{width:16px;height:16px;fill:none;stroke:#bb5579;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-actions button{display:none!important;}.crm-insights-actions p{margin-top:13px!important;font-size:11px!important;text-align:left!important;}
-/* GĂłrne dziaĹania. */
+/* Górne działania. */
 .calendar-layout-header .btn-primary{font-size:13px!important;font-weight:700!important;}.crm-action-symbol{color:#fff!important;font-size:16px!important;line-height:1;}
-/* Panel wizyty: karta klienta szersza, ale zachowuje poprzedniÄ wysokoĹÄ. */
+/* Panel wizyty: karta klienta szersza, ale zachowuje poprzednią wysokość. */
 #appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 18px)!important;min-height:57px!important;margin:-15px 9px 8px!important;padding:9px 10px!important;}
 #appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
 #appointmentDetailsModal .crm-client-card__copy strong{font-size:12px!important;}#appointmentDetailsModal .crm-client-card__copy span{font-size:10px!important;}
@@ -2538,9 +2538,9 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 /* KONIEC ADMIN V9 */
 
 /* ==========================================================
-   ADMIN V9.1: BIAĹY PLUS I PRECYZYJNE USTAWIENIE WIZYT
+   ADMIN V9.1: BIAŁY PLUS I PRECYZYJNE USTAWIENIE WIZYT
    ========================================================== */
-/* Jeden wyglÄd znaku plus we wszystkich malinowych akcjach. */
+/* Jeden wygląd znaku plus we wszystkich malinowych akcjach. */
 .crm-white-plus,
 .crm-action-symbol{
   display:inline-flex!important;
@@ -2557,7 +2557,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 .crm-add-service-button .crm-white-plus{
   color:#fff!important;
 }
-/* Karta zaczyna siÄ dokĹadnie na linii godziny. Brak przesuniÄcia na hover. */
+/* Karta zaczyna się dokładnie na linii godziny. Brak przesunięcia na hover. */
 .crm-3day-event{
   transform:none!important;
   margin-top:0!important;
@@ -2571,7 +2571,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   width:100%!important;
   align-items:center!important;
 }
-/* Linia godziny pozostaje dokĹadnie pod gĂłrnÄ krawÄdziÄ karty. */
+/* Linia godziny pozostaje dokładnie pod górną krawędzią karty. */
 .crm-3day-line.is-hour{z-index:0!important;}
 .crm-3day-events{z-index:1!important;}
 /* KONIEC ADMIN V9.1 */
@@ -2608,19 +2608,19 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 
 /* ----------------------------------------------------------
    REGULACJA KARTY KLIENTA
-   Te wartoĹci moĹźna zmieniaÄ samodzielnie.
+   Te wartości można zmieniać samodzielnie.
 
-   --crm-client-card-overlap: jak wysoko karta nachodzi na zielony nagĹĂłwek.
-     WiÄksza wartoĹÄ = karta idzie wyĹźej. PrzykĹad: 28px.
+   --crm-client-card-overlap: jak wysoko karta nachodzi na zielony nagłówek.
+     Większa wartość = karta idzie wyżej. Przykład: 28px.
 
-   --crm-client-card-side: odstÄp karty od lewej i prawej krawÄdzi.
-     Mniejsza wartoĹÄ = karta jest szersza. PrzykĹad: 4px.
+   --crm-client-card-side: odstęp karty od lewej i prawej krawędzi.
+     Mniejsza wartość = karta jest szersza. Przykład: 4px.
 
-   --crm-client-card-height: minimalna wysokoĹÄ karty klienta.
-     WiÄksza wartoĹÄ = wyĹźsza karta. PrzykĹad: 68px.
+   --crm-client-card-height: minimalna wysokość karty klienta.
+     Większa wartość = wyższa karta. Przykład: 68px.
 
-   --crm-client-card-padding-y: wewnÄtrzny odstÄp gĂłra/dĂłĹ.
-   --crm-client-card-padding-x: wewnÄtrzny odstÄp lewo/prawo.
+   --crm-client-card-padding-y: wewnętrzny odstęp góra/dół.
+   --crm-client-card-padding-x: wewnętrzny odstęp lewo/prawo.
    ---------------------------------------------------------- */
 #appointmentDetailsModal{
   --crm-client-card-overlap:24px;
@@ -2647,7 +2647,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   outline:none!important;
 }
 
-/* KrzyĹźyk jest wyĹrodkowany i podniesiony do gĂłrnej linii nagĹĂłwka. */
+/* Krzyżyk jest wyśrodkowany i podniesiony do górnej linii nagłówka. */
 #appointmentDetailsModal .crm-safe-close{
   align-self:start!important;
   margin-top:-2px!important;
@@ -2664,7 +2664,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   outline:none!important;
 }
 
-/* Wszystkie elementy interaktywne panelu pokazujÄ rÄkÄ i reakcjÄ hover. */
+/* Wszystkie elementy interaktywne panelu pokazują rękę i reakcję hover. */
 #appointmentDetailsModal button,
 .sidebar button,
 .sidebar a,
@@ -2728,7 +2728,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   outline:none!important;
 }
 
-/* Plus jest idealnie wyĹrodkowany w swoim kole. */
+/* Plus jest idealnie wyśrodkowany w swoim kole. */
 #appointmentDetailsModal .crm-safe-add-service b{
   display:inline-flex!important;
   align-items:center!important;
@@ -2742,13 +2742,13 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   transform:none!important;
 }
 
-/* Statyczny panel: nie przemieszcza siÄ i ma staĹÄ wysokoĹÄ ekranu. */
+/* Statyczny panel: nie przemieszcza się i ma stałą wysokość ekranu. */
 #appointmentDetailsModal.crm-safe-visit-panel{
   position:fixed!important;
   transform:none!important;
 }
 
-/* Techniczne stare przyciski nie mogÄ przebiÄ siÄ przez wczeĹniejsze style. */
+/* Techniczne stare przyciski nie mogą przebić się przez wcześniejsze style. */
 #appointmentDetailsModal [hidden],
 #appointmentDetailsModal #deleteAppointmentBtn,
 #appointmentDetailsModal #editAppointmentBtn,
@@ -2847,16 +2847,16 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --status-title-color: #ffffff;         /* kolor napisu statusu */
 
   /* ===== 5. PRZYCISK ZMIEN STATUS ===== */
-  --status-button-width: 92px;           /* szerokosc przycisku Zmien status */
+  --status-button-width: 112px;           /* szerokosc przycisku Zmien status */
   --status-button-height: 30px;          /* wysokosc przycisku */
-  --status-button-font-size: 9px;        /* wielkosc tekstu */
+  --status-button-font-size: 12px;        /* wielkosc tekstu */
   --status-button-move-up: 0px;          /* przesuniecie pionowe: ujemna = wyzej */
   --status-button-background: rgba(255,255,255,.14); /* tlo normalne */
   --status-button-hover: rgba(255,255,255,.28);      /* tlo po najechaniu */
 
   /* ===== 6. KARTA KLIENTA - NAJWAZNIEJSZA REGULACJA ===== */
-  --client-overlap: 46px;                /* jak mocno karta nachodzi na zielony naglowek; wiecej = wyzej */
-  --client-side-gap: -14px;                /* odstep od bokow; mniej = karta szersza */
+  --client-overlap: 48px;                /* jak mocno karta nachodzi na zielony naglowek; wiecej = wyzej */
+  --client-side-gap: -12px;                /* odstep od bokow; mniej = karta szersza */
   --client-height: 84px;                 /* minimalna wysokosc karty klienta */
   --client-padding-y: 11px;              /* wewnetrzny odstep gora/dol */
   --client-padding-x: 12px;              /* wewnetrzny odstep lewo/prawo */
@@ -3163,7 +3163,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   overflow:visible!important;
 }
 #appointmentDetailsModal .crm-safe-close::before{
-  content:"Ă";
+  content:"×";
   display:block;
   position:relative;
   left:var(--close-symbol-move-x);
@@ -3258,23 +3258,23 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 /* ==========================================================
    ADMIN V10.5: POPRAWNE NACHODZENIE KARTY KLIENTA
    ==========================================================
-   Przyczyna wczeĹniejszego obcinania:
-   crm-safe-body miaĹ overflow:auto, wiÄc karta z ujemnym margin-top
-   byĹa obcinana na gĂłrnej krawÄdzi biaĹej czÄĹci.
+   Przyczyna wcześniejszego obcinania:
+   crm-safe-body miał overflow:auto, więc karta z ujemnym margin-top
+   była obcinana na górnej krawędzi białej części.
 
-   Teraz do gĂłry przesuwa siÄ CAĹA biaĹa czÄĹÄ panelu, a karta klienta
-   pozostaje wewnÄtrz niej. DziÄki temu karta jest nad zielonym nagĹĂłwkiem
+   Teraz do góry przesuwa się CAŁA biała część panelu, a karta klienta
+   pozostaje wewnątrz niej. Dzięki temu karta jest nad zielonym nagłówkiem
    i nie jest przez niego zakrywana.
    ========================================================== */
 
-/* Zielony nagĹĂłwek jest dolnÄ warstwÄ. */
+/* Zielony nagłówek jest dolną warstwą. */
 #appointmentDetailsModal .crm-safe-header{
   position:relative!important;
   z-index:1!important;
   overflow:visible!important;
 }
 
-/* BiaĹa czÄĹÄ razem z kartÄ klienta wchodzi na zielony nagĹĂłwek. */
+/* Biała część razem z kartą klienta wchodzi na zielony nagłówek. */
 #appointmentDetailsModal .crm-safe-body{
   position:relative!important;
   z-index:2!important;
@@ -3286,7 +3286,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   box-sizing:border-box!important;
 }
 
-/* Karta nie wychodzi juĹź poza wĹasny kontener, wiÄc nie jest obcinana. */
+/* Karta nie wychodzi już poza własny kontener, więc nie jest obcinana. */
 #appointmentDetailsModal .crm-safe-client-card{
   position:relative!important;
   z-index:20!important;
@@ -3300,7 +3300,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
    ADMIN V10.6: DOLNE ROGI ZIELONEGO I ZAKLADKA INFORMACJE
    ========================================================== */
 
-/* Osobna regulacja dolnych rogĂłw zielonego nagĹĂłwka. */
+/* Osobna regulacja dolnych rogów zielonego nagłówka. */
 #appointmentDetailsModal .crm-safe-header{
   border-radius:
     var(--header-radius)
@@ -3309,7 +3309,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
     var(--header-bottom-left-radius)!important;
 }
 
-/* CaĹa zawartoĹÄ zakĹadki INFORMACJE. */
+/* Cała zawartość zakładki INFORMACJE. */
 #appointmentDetailsModal .crm-safe-info{
   padding:
     var(--info-padding-top)
@@ -3319,7 +3319,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   transform:translate(var(--info-row-move-x),var(--info-row-move-y))!important;
 }
 
-/* KaĹźdy osobny punkt w zakĹadce INFORMACJE. */
+/* Każdy osobny punkt w zakładce INFORMACJE. */
 #appointmentDetailsModal .crm-safe-info > div{
   display:flex!important;
   align-items:center!important;
@@ -3331,14 +3331,14 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   box-sizing:border-box!important;
 }
 
-/* Nazwy punktĂłw po lewej: Klient, UsĹuga, Data i godzina, ĹšrĂłdĹo. */
+/* Nazwy punktów po lewej: Klient, Usługa, Data i godzina, Źródło. */
 #appointmentDetailsModal .crm-safe-info > div > span{
   color:var(--info-label-color)!important;
   font-size:var(--info-label-size)!important;
   line-height:1.3!important;
 }
 
-/* WartoĹci punktĂłw po prawej. */
+/* Wartości punktów po prawej. */
 #appointmentDetailsModal .crm-safe-info > div > strong{
   width:auto!important;
   max-width:var(--info-value-width)!important;
@@ -3349,3 +3349,81 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   overflow-wrap:anywhere!important;
 }
 /* KONIEC ADMIN V10.6 */
+
+
+/* ==========================================================
+   ADMIN V10.7: STATYCZNY PANEL PRAWEJ STRONY KALENDARZA
+   ========================================================== */
+
+/* Kalendarz ponownie ma stale trzy kolumny:
+   1) mini-kalendarz i filtry,
+   2) terminarz,
+   3) statyczne podsumowanie po prawej. */
+#tab-kalendarz .calendar-three-columns{
+  display:grid!important;
+  grid-template-columns:
+    var(--crm-calendar-side, 235px)
+    minmax(600px,1fr)
+    var(--crm-insights-width, 350px)!important;
+  gap:14px!important;
+  align-items:start!important;
+  padding-right:0!important;
+}
+
+/* Statyczny prawy panel jest zawsze widoczny w Kalendarzu. */
+#tab-kalendarz .crm-calendar-insights{
+  display:block!important;
+  position:sticky!important;
+  top:14px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-height:calc(100vh - 28px)!important;
+  overflow:auto!important;
+  z-index:4!important;
+}
+
+/* Panel klienta jest warstwą prawej kolumny tylko podczas oglądania Kalendarza. */
+body:not(.crm-v3-details-open) #appointmentDetailsModal{
+  display:none!important;
+}
+body.crm-v3-details-open #appointmentDetailsModal.crm-safe-visit-panel{
+  display:flex!important;
+}
+
+/* Gdy zakładka Kalendarz nie jest aktywna, panel klienta nie może zostać na ekranie. */
+body.crm-v3-details-open #tab-kalendarz[style*="display: none"] ~ #appointmentDetailsModal,
+#tab-kalendarz[style*="display: none"] #appointmentDetailsModal{
+  display:none!important;
+}
+
+/* Panel klienta pozostaje w granicach wysokości obszaru Kalendarza / ekranu. */
+#appointmentDetailsModal.crm-safe-visit-panel{
+  max-height:calc(100vh - var(--panel-top) - var(--panel-bottom))!important;
+  overflow:hidden!important;
+}
+#appointmentDetailsModal .crm-safe-visit-surface{
+  max-height:100%!important;
+  overflow:hidden!important;
+}
+
+/* Przy mniejszym ekranie prawa kolumna nadal istnieje, ale może być węższa. */
+@media(max-width:1450px){
+  #tab-kalendarz .calendar-three-columns{
+    grid-template-columns:210px minmax(560px,1fr) 320px!important;
+  }
+}
+
+/* Dopiero na bardzo wąskim ekranie podsumowanie przechodzi pod terminarz,
+   zamiast znikać całkowicie. */
+@media(max-width:1100px){
+  #tab-kalendarz .calendar-three-columns{
+    grid-template-columns:205px minmax(540px,1fr)!important;
+  }
+  #tab-kalendarz .crm-calendar-insights{
+    grid-column:1 / -1!important;
+    position:relative!important;
+    top:auto!important;
+    max-height:none!important;
+  }
+}
+/* KONIEC ADMIN V10.7 */
