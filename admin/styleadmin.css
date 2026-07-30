@@ -3437,3 +3437,46 @@ body.crm-v3-details-open #tab-kalendarz[style*="display: none"] ~ #appointmentDe
 #tab-kalendarz .crm-add-appointment-plus{display:inline-block!important;color:#fff!important;font-family:Arial,sans-serif!important;font-size:19px!important;font-weight:400!important;line-height:1!important;transform:translateY(-1px)!important;}
 #tab-kalendarz .crm-insights-calendar-icon{display:none!important;}
 /* KONIEC ADMIN V10.8 */
+
+/* ==========================================================
+   ADMIN V10.9: GORNY PASEK I PANEL PODSUMOWANIA JAK WE WZORZE
+   - prawy panel zaczyna sie przy gornej krawedzi,
+   - gorny pasek konczy sie przed prawa kolumna,
+   - przyciski przesuwaja sie w lewo razem z paskiem,
+   - bez zmian parametrow panelu informacji o wizycie.
+   ========================================================== */
+#tab-kalendarz{
+  --crm-topbar-height:70px;
+  --crm-topbar-gap:10px;
+}
+
+/* Mniejszy odstep od gornej krawedzi ekranu. */
+.main-content{
+  padding-top:4px!important;
+}
+
+/* Pasek Dzien / Tydzien / Miesiac oraz przyciski nie wchodza pod prawy panel. */
+#tab-kalendarz .calendar-layout-header{
+  margin-right:calc(var(--crm-insights-width) + 14px)!important;
+  min-height:var(--crm-topbar-height)!important;
+}
+
+/* Prawy panel podnosimy o wysokosc gornego paska i jego dolny odstep. */
+#tab-kalendarz .crm-calendar-insights{
+  margin-top:calc(-1 * (var(--crm-topbar-height) + var(--crm-topbar-gap)))!important;
+  top:4px!important;
+  min-height:calc(100vh - 8px)!important;
+}
+
+/* Przy mniejszych ekranach nie stosujemy podnoszenia, gdy prawa kolumna znika. */
+@media(max-width:1250px){
+  #tab-kalendarz .calendar-layout-header{
+    margin-right:0!important;
+  }
+  #tab-kalendarz .crm-calendar-insights{
+    margin-top:0!important;
+    top:auto!important;
+    min-height:auto!important;
+  }
+}
+/* KONIEC ADMIN V10.9 */
