@@ -2823,8 +2823,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --header-green-start: #348124;        /* pierwszy kolor zielonego gradientu */
   --header-green-end: #348124;          /* drugi kolor zielonego gradientu */
   --header-radius: 17px;                /* zaokraglenie GORNYCH rogow zielonej czesci */
-  --header-bottom-left-radius: 0px;     /* zaokraglenie DOLNEGO LEWEGO rogu zielonej czesci */
-  --header-bottom-right-radius: 0px;    /* zaokraglenie DOLNEGO PRAWEGO rogu zielonej czesci */
+  --header-bottom-left-radius: 13px;     /* zaokraglenie DOLNEGO LEWEGO rogu zielonej czesci */
+  --header-bottom-right-radius: 13px;    /* zaokraglenie DOLNEGO PRAWEGO rogu zielonej czesci */
 
   /* ===== 3. KRZYZYK ZAMKNIECIA ===== */
   --close-size: 28px;                   /* szerokosc i wysokosc kola z krzyzykiem */
@@ -2847,17 +2847,17 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --status-title-color: #ffffff;         /* kolor napisu statusu */
 
   /* ===== 5. PRZYCISK ZMIEN STATUS ===== */
-  --status-button-width: 112px;           /* szerokosc przycisku Zmien status */
+  --status-button-width: 92px;           /* szerokosc przycisku Zmien status */
   --status-button-height: 30px;          /* wysokosc przycisku */
-  --status-button-font-size: 12px;        /* wielkosc tekstu */
+  --status-button-font-size: 9px;        /* wielkosc tekstu */
   --status-button-move-up: 0px;          /* przesuniecie pionowe: ujemna = wyzej */
   --status-button-background: rgba(255,255,255,.14); /* tlo normalne */
   --status-button-hover: rgba(255,255,255,.28);      /* tlo po najechaniu */
 
   /* ===== 6. KARTA KLIENTA - NAJWAZNIEJSZA REGULACJA ===== */
-  --client-overlap: 48px;                /* jak mocno karta nachodzi na zielony naglowek; wiecej = wyzej */
-  --client-side-gap: -12px;                /* odstep od bokow; mniej = karta szersza */
-  --client-height: 84px;                 /* minimalna wysokosc karty klienta */
+  --client-overlap: 40px;                /* jak mocno karta nachodzi na zielony naglowek; wiecej = wyzej */
+  --client-side-gap: 2px;                /* odstep od bokow; mniej = karta szersza */
+  --client-height: 64px;                 /* minimalna wysokosc karty klienta */
   --client-padding-y: 11px;              /* wewnetrzny odstep gora/dol */
   --client-padding-x: 12px;              /* wewnetrzny odstep lewo/prawo */
   --client-radius: 14px;                 /* zaokraglenie karty klienta */
@@ -2869,14 +2869,14 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --client-hover-lift: -2px;             /* podniesienie po najechaniu */
 
   /* ===== 7. AVATAR KLIENTA ===== */
-  --avatar-size: 36px;                   /* srednica kola z litera */
-  --avatar-font-size: 16px;              /* wielkosc litery w avatarze */
+  --avatar-size: 34px;                   /* srednica kola z litera */
+  --avatar-font-size: 14px;              /* wielkosc litery w avatarze */
   --avatar-background: #bd6686;          /* kolor kola avatara */
   --avatar-color: #ffffff;               /* kolor litery */
 
   /* ===== 8. IMIE I TELEFON KLIENTA ===== */
-  --client-name-size: 14px;              /* wielkosc imienia klienta */
-  --client-phone-size: 12px;             /* wielkosc numeru telefonu */
+  --client-name-size: 12px;              /* wielkosc imienia klienta */
+  --client-phone-size: 10px;             /* wielkosc numeru telefonu */
   --client-name-color: #312b31;          /* kolor imienia */
   --client-phone-color: #7c727a;         /* kolor telefonu */
   --client-text-gap: 3px;                /* odstep miedzy imieniem i telefonem */
@@ -2907,9 +2907,9 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --info-row-padding-x: 0px;            /* odstep wewnatrz punktu lewo/prawo */
   --info-row-gap: 12px;                 /* odstep miedzy nazwa punktu a jego wartoscia */
   --info-row-border-color: #f0e9ec;     /* kolor linii oddzielajacej punkty */
-  --info-label-size: 12px;              /* wielkosc nazw: Klient, Usluga, Data, Zrodlo */
+  --info-label-size: 10px;              /* wielkosc nazw: Klient, Usluga, Data, Zrodlo */
   --info-label-color: #8c828a;          /* kolor nazw punktow po lewej */
-  --info-value-size: 14px;              /* wielkosc wartosci po prawej */
+  --info-value-size: 10px;              /* wielkosc wartosci po prawej */
   --info-value-color: #3b343b;          /* kolor wartosci po prawej */
   --info-value-width: 65%;               /* maksymalna szerokosc wartosci po prawej */
   --info-text-align: right;              /* ustawienie wartosci: left, center albo right */
@@ -3427,3 +3427,13 @@ body.crm-v3-details-open #tab-kalendarz[style*="display: none"] ~ #appointmentDe
   }
 }
 /* KONIEC ADMIN V10.7 */
+
+
+/* ==========================================================
+   ADMIN V10.8: BIALY PLUS W DODAJ WIZYTE
+   Bez zmian parametrow bocznego panelu informacji o wizycie.
+   ========================================================== */
+#tab-kalendarz .crm-add-appointment-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;}
+#tab-kalendarz .crm-add-appointment-plus{display:inline-block!important;color:#fff!important;font-family:Arial,sans-serif!important;font-size:19px!important;font-weight:400!important;line-height:1!important;transform:translateY(-1px)!important;}
+#tab-kalendarz .crm-insights-calendar-icon{display:none!important;}
+/* KONIEC ADMIN V10.8 */
