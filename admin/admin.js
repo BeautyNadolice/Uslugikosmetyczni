@@ -281,6 +281,14 @@ renderBooksyCalendar();
 
 function switchTab(tabName) {
 
+    // Panel szczegółów wizyty może być widoczny wyłącznie w Kalendarzu.
+    // Po przejściu do innej zakładki zamykamy go i przywracamy statyczny panel po prawej.
+    if (tabName !== "kalendarz") {
+        const appointmentPanel = document.getElementById("appointmentDetailsModal");
+        if (appointmentPanel) appointmentPanel.style.display = "none";
+        document.body.classList.remove("crm-v3-details-open");
+    }
+
     document.querySelectorAll('.tab-page')
         .forEach(tab => tab.style.display = 'none');
 
@@ -6159,7 +6167,7 @@ function crmInstallSafeRightVisitPanel() {
         </div>
       </header>
       <div id="appointment-details-view" class="crm-safe-body">
-        <section class="crm-safe-client-card">
+        <section class="crm-safe-client-card" role="button" tabindex="0" title="Edytuj wizytę" onclick="openEditAppointmentModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditAppointmentModal();}">
           <div id="crmClientAvatar" class="crm-safe-avatar">K</div>
           <div class="crm-safe-client-copy">
             <strong id="details-name">Klient</strong>
@@ -6210,6 +6218,8 @@ function crmSafeVisitCategoryColor(app) {
 
 const crmSafeOpenAppointmentOriginal = openAppointmentDetailsModal;
 openAppointmentDetailsModal = function(app) {
+    const calendarTab = document.getElementById("tab-kalendarz");
+    if (!calendarTab || getComputedStyle(calendarTab).display === "none") return;
     crmInstallSafeRightVisitPanel();
     crmSafeOpenAppointmentOriginal(app);
     if (typeof crmPopulateNewVisitPanel === "function") crmPopulateNewVisitPanel(app);
