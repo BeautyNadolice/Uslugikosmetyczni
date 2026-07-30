@@ -3480,3 +3480,31 @@ body.crm-v3-details-open #tab-kalendarz[style*="display: none"] ~ #appointmentDe
   }
 }
 /* KONIEC ADMIN V10.9 */
+
+/* ==========================================================
+   ADMIN V10.10: GORNY PASEK BEZ ZMIANY PO OTWARCIU WIZYTY
+   Panel szczegolow nie moze przywracac starej szerokosci paska.
+   Nie zmienia zadnych parametrow wygladu panelu wizyty.
+   ========================================================== */
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
+  margin-right:calc(var(--crm-insights-width) + 14px)!important;
+  min-height:var(--crm-topbar-height,70px)!important;
+}
+
+/* Przyciski pozostaja widoczne w skroconym pasku. */
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header > div:last-child{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+
+/* Na ekranie bez stalej prawej kolumny pasek ponownie zajmuje cala szerokosc. */
+@media(max-width:1250px){
+  body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
+    margin-right:0!important;
+  }
+}
+/* KONIEC ADMIN V10.10 */
