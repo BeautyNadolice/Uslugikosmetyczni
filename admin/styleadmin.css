@@ -1,7 +1,7 @@
 /* ==========================================================
    NAIL-ART DARIA CRM
    TESTOWA WARSTWA WIZUALNA ADMIN
-   Styl: jasny, profesjonalny, miękki, bez zmian w logice JS
+   Styl: jasny, profesjonalny, miÄkki, bez zmian w logice JS
    ========================================================== */
 
 :root {
@@ -62,7 +62,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   outline-offset: 2px;
 }
 
-/* GŁÓWNY UKŁAD */
+/* GĹĂWNY UKĹAD */
 .crm-shell { display: flex; min-height: 100vh; }
 .sidebar {
   position: fixed;
@@ -117,7 +117,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .btn-danger:hover:not(:disabled) { background: var(--crm-danger-dark); transform: translateY(-1px); }
 button:disabled { opacity: .48; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-/* NAGŁÓWKI I KARTY */
+/* NAGĹĂWKI I KARTY */
 .page-header, .calendar-layout-header {
   display: flex;
   align-items: center;
@@ -233,7 +233,7 @@ button:disabled { opacity: .48; cursor: not-allowed; transform: none !important;
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus, #settingsForm input:focus { border-color: var(--crm-primary); box-shadow: 0 0 0 4px rgba(170,83,110,.1); outline: none; }
 input[type="color"] { width: 38px !important; min-height: 34px !important; padding: 2px !important; cursor: pointer; }
 
-/* DETAILS I BLOKI USTAWIEŃ */
+/* DETAILS I BLOKI USTAWIEĹ */
 details { border-radius: 12px; }
 details > summary { color: #4d4549; }
 .crm-main-collapsible { margin-top: 18px !important; padding: 0 !important; background: #fff; border: 1px solid var(--crm-border) !important; border-radius: var(--crm-radius-md) !important; box-shadow: var(--crm-shadow-sm); overflow: hidden; }
@@ -241,7 +241,7 @@ details > summary { color: #4d4549; }
 .crm-main-collapsible > summary::-webkit-details-marker { display: none; }
 .crm-main-collapsible > summary::after { content: "+"; float: right; color: var(--crm-primary); font-size: 23px; line-height: 1; }
 .crm-main-collapsible[open] > summary { border-bottom: 1px solid var(--crm-border); background: var(--crm-primary-pale); }
-.crm-main-collapsible[open] > summary::after { content: "−"; }
+.crm-main-collapsible[open] > summary::after { content: "â"; }
 .crm-main-collapsible > div { padding: 18px 20px 21px !important; }
 #booking-requests-panel { padding: 14px 16px; background: #fff; border: 1px solid var(--crm-border); border-radius: var(--crm-radius-md); box-shadow: var(--crm-shadow-xs); }
 #booking-requests-panel > summary { cursor: pointer; }
@@ -263,7 +263,7 @@ details > summary { color: #4d4549; }
 #crm-toast-container > div { border: 1px solid rgba(255,255,255,.25); border-radius: 12px !important; box-shadow: var(--crm-shadow-md) !important; }
 #crm-test-report-output { border: 1px solid #34383c; box-shadow: inset 0 0 0 1px rgba(255,255,255,.03); }
 
-/* RESPONSYWNOŚĆ */
+/* RESPONSYWNOĹÄ */
 @media (max-width: 1080px) {
   :root { --crm-sidebar: 210px; }
   .calendar-three-columns { grid-template-columns: 210px minmax(0, 1fr); }
@@ -608,7 +608,7 @@ body{
 
 /* ==========================================================
    ADMIN V3: BOOKSY WORKSPACE
-   Finalna warstwa układu i statusów
+   Finalna warstwa ukĹadu i statusĂłw
    ========================================================== */
 :root{
   --crm-sidebar:220px;
@@ -660,7 +660,7 @@ body{background:var(--crm-bg)!important;color:#24262b;}
 [data-crm-status="cancelled-client"],[data-crm-status="cancelled-salon"]{opacity:.68;text-decoration:line-through;}
 [data-crm-status="completed"]{outline:2px solid #9a7bd7!important;outline-offset:-2px;}
 
-/* Prawy panel szczegółów bez blokowania kalendarza */
+/* Prawy panel szczegĂłĹĂłw bez blokowania kalendarza */
 #appointmentDetailsModal.modal-overlay{align-items:stretch!important;justify-content:flex-end!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;pointer-events:none;}
 #appointmentDetailsModal .modal-content{pointer-events:auto;width:min(410px,94vw)!important;max-height:100vh!important;height:100vh;margin:0!important;padding:0!important;border:0!important;border-left:1px solid var(--crm-border)!important;border-radius:0!important;box-shadow:-12px 0 32px rgba(28,31,38,.12)!important;overflow:auto;}
 #appointmentDetailsModal .modal-header{position:sticky;top:0;z-index:3;margin:0!important;padding:18px 20px!important;color:#fff;background:#138b5b;border:0!important;}
@@ -762,7 +762,7 @@ body{background:#f7f7f8!important;color:var(--crm-text)!important;}
 .calendar-week-day,.calendar-month-day{background:#fff!important;border:1px solid #e1e3e7!important;border-radius:8px!important;}
 .calendar-month-day:hover,.calendar-week-day:hover{border-color:#cfd2d8!important;background:#fdfdfd!important;}
 
-/* Karty pozostają powiązane z kolorami kategorii, ale są spokojniejsze. */
+/* Karty pozostajÄ powiÄzane z kolorami kategorii, ale sÄ spokojniejsze. */
 .booksy-event-card,.calendar-compact-event{
   color:#26272c!important;
   border:1px solid rgba(30,32,38,.08)!important;
@@ -784,7 +784,7 @@ body{background:#f7f7f8!important;color:var(--crm-text)!important;}
 #bookingRequestsList{margin-top:8px!important;}
 #bookingRequestsList>.dashboard-card{background:#fcfcfd!important;border-color:#e4e5e8!important;}
 
-/* Panel wizyty bliżej zaakceptowanej ilustracji. */
+/* Panel wizyty bliĹźej zaakceptowanej ilustracji. */
 #appointmentDetailsModal .modal-content{width:min(var(--crm-panel-width),96vw)!important;background:#fafafa!important;}
 #appointmentDetailsModal .modal-header{min-height:96px!important;padding:22px 22px!important;background:#0f9a63!important;align-items:flex-start!important;}
 #appointmentDetailsModal .modal-header h4{font-size:21px!important;font-weight:800!important;letter-spacing:.01em!important;}
@@ -823,7 +823,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:var
 
 /* ==========================================================
    ADMIN V3.2: SOFT SALON / PASTEL GLOW
-   Miękka, kobieca i spokojna warstwa wizualna kalendarza
+   MiÄkka, kobieca i spokojna warstwa wizualna kalendarza
    ========================================================== */
 :root{
   --crm-bg:#fbf9fb;
@@ -862,7 +862,7 @@ html,body{
     var(--crm-bg)!important;
 }
 
-/* MIĘKKI SIDEBAR */
+/* MIÄKKI SIDEBAR */
 .sidebar{
   background:rgba(255,254,254,.93)!important;
   border-right:1px solid rgba(229,218,224,.8)!important;
@@ -898,7 +898,7 @@ html,body{
   box-shadow:0 7px 16px rgba(205,96,112,.16)!important;
 }
 
-/* GÓRNY PASEK I PRZEŁĄCZNIKI */
+/* GĂRNY PASEK I PRZEĹÄCZNIKI */
 .calendar-layout-header{
   min-height:68px!important;
   padding:10px 13px!important;
@@ -1014,7 +1014,7 @@ html,body{
   box-shadow:0 6px 16px rgba(104,72,88,.06)!important;
 }
 
-/* PASTELOWE, LEKKO ŚWIETLISTE KARTY WIZYT */
+/* PASTELOWE, LEKKO ĹWIETLISTE KARTY WIZYT */
 .booksy-event-card,.calendar-compact-event{
   border:1px solid rgba(255,255,255,.58)!important;
   border-left-width:4px!important;
@@ -1052,7 +1052,7 @@ html,body{
 [data-crm-status="contact"]{outline:2px solid rgba(238,157,94,.62)!important;}
 [data-crm-status="completed"]{outline:2px solid rgba(157,124,210,.58)!important;}
 
-/* PROŚBY O WIZYTĘ */
+/* PROĹBY O WIZYTÄ */
 .calendar-sidebar #booking-requests-panel{
   margin-top:16px!important;
   padding-top:4px!important;
@@ -1076,7 +1076,7 @@ html,body{
   box-shadow:0 6px 16px rgba(104,72,88,.055)!important;
 }
 
-/* DELIKATNY PANEL SZCZEGÓŁÓW */
+/* DELIKATNY PANEL SZCZEGĂĹĂW */
 #appointmentDetailsModal .modal-content{
   background:
     linear-gradient(180deg,#fff 0,#fdfafb 100%)!important;
@@ -1133,7 +1133,7 @@ html,body{
   background:linear-gradient(135deg,#ad94da,#8e70c5)!important;
 }
 
-/* POZOSTAŁE ELEMENTY WSPÓLNE */
+/* POZOSTAĹE ELEMENTY WSPĂLNE */
 .dashboard-card,.admin-table,#settingsForm,.crm-main-collapsible{
   border-color:#eee5e9!important;
   border-radius:18px!important;
@@ -1532,7 +1532,7 @@ html,body{
 /* KONIEC ADMIN V6 */
 
 /* ==========================================================
-   ADMIN V5.1: CAŁODNIOWY GRAFIK NAD OSIĄ CZASU
+   ADMIN V5.1: CAĹODNIOWY GRAFIK NAD OSIÄ CZASU
    ========================================================== */
 .crm-day-all-day-info{
   display:flex;
@@ -1559,7 +1559,7 @@ html,body{
 /* KONIEC ADMIN V5.1 */
 
 /* ==========================================================
-   ADMIN V6.1: USUNIĘCIE ZBĘDNEGO PRZYCISKU I NAGŁÓWEK PANELU
+   ADMIN V6.1: USUNIÄCIE ZBÄDNEGO PRZYCISKU I NAGĹĂWEK PANELU
    ========================================================== */
 .crm-left-quick-buttons{
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
@@ -1587,9 +1587,9 @@ html,body{
 /* KONIEC ADMIN V6.1 */
 
 /* ==========================================================
-   ADMIN V6.2: FINALNY UKŁAD PRAWEGO PANELU I MIĘKKIE KARTY
+   ADMIN V6.2: FINALNY UKĹAD PRAWEGO PANELU I MIÄKKIE KARTY
    ========================================================== */
-/* Panel ma własny odstęp od kalendarza i biały margines wokół zielonej główki. */
+/* Panel ma wĹasny odstÄp od kalendarza i biaĹy margines wokĂłĹ zielonej gĹĂłwki. */
 #appointmentDetailsModal.modal-overlay{
   padding:12px 12px 12px 0!important;
   background:transparent!important;
@@ -1625,7 +1625,7 @@ html,body{
 .crm-visit-tabs{margin:0 8px!important;}
 .crm-visit-tab-content,.crm-info-tab-content{padding-left:8px!important;padding-right:8px!important;}
 
-/* Niepotrzebne elementy biznesowe są całkowicie usunięte z układu. */
+/* Niepotrzebne elementy biznesowe sÄ caĹkowicie usuniÄte z ukĹadu. */
 #appointmentDetailsModal .crm-visit-field[hidden],
 #appointmentDetailsModal .crm-client-choice[hidden],
 #crmSettleVisitBtn[hidden],
@@ -1650,7 +1650,7 @@ html,body{
   border:1px solid #e7dce2!important;
 }
 
-/* Pasek usługi jest zawsze kolorem kategorii, reszta karty zostaje biała. */
+/* Pasek usĹugi jest zawsze kolorem kategorii, reszta karty zostaje biaĹa. */
 .crm-service-card{
   background:rgba(255,255,255,.96)!important;
   border-color:#eee7eb!important;
@@ -1662,7 +1662,7 @@ html,body{
   border-radius:0 4px 4px 0!important;
 }
 
-/* Miękkie karty wizyt we wszystkich widokach. */
+/* MiÄkkie karty wizyt we wszystkich widokach. */
 .calendar-compact-event,.booksy-event-card,.crm-day-event{
   border-color:rgba(255,255,255,.68)!important;
   color:#4b424b!important;
@@ -1674,7 +1674,7 @@ html,body{
   filter:saturate(.58) brightness(1.13)!important;
   box-shadow:0 9px 21px rgba(87,62,75,.10)!important;
 }
-/* Zielony status ma być miętowy, nie ciemny. */
+/* Zielony status ma byÄ miÄtowy, nie ciemny. */
 [data-crm-status="confirmed"]{
   outline-color:rgba(86,190,146,.32)!important;
 }
@@ -1684,7 +1684,7 @@ html,body{
   box-shadow:inset 3px 0 0 rgba(53,170,119,.62),0 5px 15px rgba(87,62,75,.07)!important;
 }
 
-/* Piąty, zbędny przycisk mini-kalendarza znika nawet przy starszym HTML. */
+/* PiÄty, zbÄdny przycisk mini-kalendarza znika nawet przy starszym HTML. */
 .crm-left-quick-buttons .crm-left-date-button,
 .crm-left-quick-buttons button:nth-child(n+5){display:none!important;}
 .crm-left-quick-buttons{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
@@ -1701,13 +1701,13 @@ html,body{
 
 /* ==========================================================
    ADMIN V6.3: PRECYZYJNE PROPORCJE PRAWEGO PANELU
-   Zgodność wizualna z zaakceptowaną makietą
+   ZgodnoĹÄ wizualna z zaakceptowanÄ makietÄ
    ========================================================== */
 :root{
   --crm-panel-width:392px;
 }
 
-/* Szczelina pomiędzy kalendarzem i panelem. */
+/* Szczelina pomiÄdzy kalendarzem i panelem. */
 #appointmentDetailsModal.modal-overlay{
   padding:8px 10px 8px 8px!important;
 }
@@ -1719,7 +1719,7 @@ html,body{
   box-shadow:-10px 0 30px rgba(77,55,66,.10)!important;
 }
 
-/* Niższa zielona główka wewnątrz białego panelu. */
+/* NiĹźsza zielona gĹĂłwka wewnÄtrz biaĹego panelu. */
 .crm-visit-panel__header{
   grid-template-columns:30px minmax(0,1fr) auto!important;
   align-items:start!important;
@@ -1753,7 +1753,7 @@ html,body{
   font-size:10px!important;
 }
 
-/* Karta klienta wyraźnie nachodzi na zieloną główkę. */
+/* Karta klienta wyraĹşnie nachodzi na zielonÄ gĹĂłwkÄ. */
 #appointmentDetailsModal .crm-visit-panel__body{
   padding:0 8px 12px!important;
 }
@@ -1780,7 +1780,7 @@ html,body{
 }
 .crm-client-card__arrow{font-size:20px!important;}
 
-/* Zwarty układ zakładek i treści. */
+/* Zwarty ukĹad zakĹadek i treĹci. */
 .crm-visit-tabs{
   height:42px!important;
   margin:0 10px!important;
@@ -1798,7 +1798,7 @@ html,body{
   font-size:15px!important;
 }
 
-/* Niższa karta usługi i czytelniejszy pasek kategorii. */
+/* NiĹźsza karta usĹugi i czytelniejszy pasek kategorii. */
 .crm-service-card{
   grid-template-columns:minmax(0,1fr) auto 12px!important;
   gap:7px!important;
@@ -1844,7 +1844,7 @@ html,body{
   font-size:9px!important;
 }
 
-/* Kolejna usługa i dolna akcja bez zbędnego rozciągania. */
+/* Kolejna usĹuga i dolna akcja bez zbÄdnego rozciÄgania. */
 .crm-add-service-button{
   padding:11px 0!important;
   font-size:9px!important;
@@ -1863,7 +1863,7 @@ html,body{
   font-size:11px!important;
 }
 
-/* Kalendarz zachowuje szczelinę odpowiadającą węższemu panelowi. */
+/* Kalendarz zachowuje szczelinÄ odpowiadajÄcÄ wÄĹźszemu panelowi. */
 body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{
   padding-right:calc(var(--crm-panel-width) + 10px)!important;
 }
@@ -1889,13 +1889,13 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V6.3 */
 
 /* ==========================================================
-   ADMIN V6.4: NAGŁÓWEK I KARTA KLIENTA JAK W MAKIETCIE
+   ADMIN V6.4: NAGĹĂWEK I KARTA KLIENTA JAK W MAKIETCIE
    ========================================================== */
 #appointmentDetailsModal .crm-visit-panel__surface{
   padding-top:0!important;
 }
 
-/* Zielony blok jest niski, prostszy i nie ma formy dużej kapsuły. */
+/* Zielony blok jest niski, prostszy i nie ma formy duĹźej kapsuĹy. */
 .crm-visit-panel__header{
   min-height:66px!important;
   margin:8px 8px 0!important;
@@ -1925,7 +1925,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   font-size:9px!important;
 }
 
-/* Karta klienta wchodzi w dolną część zielonego nagłówka. */
+/* Karta klienta wchodzi w dolnÄ czÄĹÄ zielonego nagĹĂłwka. */
 .crm-client-card{
   position:relative!important;
   z-index:30!important;
@@ -1951,7 +1951,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 }
 .crm-client-card__arrow{font-size:18px!important;}
 
-/* Zakładki zaczynają się bliżej karty klienta. */
+/* ZakĹadki zaczynajÄ siÄ bliĹźej karty klienta. */
 .crm-visit-tabs{
   height:38px!important;
   margin:0 14px!important;
@@ -1968,8 +1968,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V6.4 */
 
 /* ==========================================================
-   ADMIN V6.5: NAPRAWA GÓRNEJ CZĘŚCI PANELU
-   Wymuszona wysokość nagłówka i rzeczywiste nakładanie karty
+   ADMIN V6.5: NAPRAWA GĂRNEJ CZÄĹCI PANELU
+   Wymuszona wysokoĹÄ nagĹĂłwka i rzeczywiste nakĹadanie karty
    ========================================================== */
 #appointmentDetailsModal .crm-visit-panel__surface{
   position:relative!important;
@@ -2069,7 +2069,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   margin:0 14px!important;
 }
 
-/* Zielone boczne fragmenty mają być widoczne za kartą klienta. */
+/* Zielone boczne fragmenty majÄ byÄ widoczne za kartÄ klienta. */
 #appointmentDetailsModal .crm-visit-panel__header::after{
   content:"";
   position:absolute;
@@ -2095,8 +2095,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V6.5 */
 
 /* ==========================================================
-   ADMIN V6.6: FINALNE DOPASOWANIE GŁÓWKI PANELU
-   Zielone boczne zakładki i karta klienta jak na wzorze
+   ADMIN V6.6: FINALNE DOPASOWANIE GĹĂWKI PANELU
+   Zielone boczne zakĹadki i karta klienta jak na wzorze
    ========================================================== */
 #appointmentDetailsModal .crm-visit-panel__header{
   height:82px!important;
@@ -2131,7 +2131,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   box-shadow:0 4px 12px rgba(60,43,52,.08)!important;
 }
 
-/* Zielony pasek nie prześwituje pod środkiem białej karty. */
+/* Zielony pasek nie przeĹwituje pod Ĺrodkiem biaĹej karty. */
 #appointmentDetailsModal .crm-client-card::before{
   content:"";
   position:absolute;
@@ -2301,8 +2301,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 /* KONIEC ADMIN V7 */
 
 /* ==========================================================
-   ADMIN V6.7: WIĘKSZA CZYTELNOŚĆ GŁÓWKI I KARTY KLIENTA
-   Usunięcie zbędnej strzałki z karty klienta
+   ADMIN V6.7: WIÄKSZA CZYTELNOĹÄ GĹĂWKI I KARTY KLIENTA
+   UsuniÄcie zbÄdnej strzaĹki z karty klienta
    ========================================================== */
 /* Zielony pasek: proporcje jak w makiecie, ale czytelniejszy tekst. */
 #appointmentDetailsModal .crm-visit-panel__header{
@@ -2331,7 +2331,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   font-size:9.5px!important;
 }
 
-/* Karta klienta: trochę większa, szersza i bez niezrozumiałej strzałki. */
+/* Karta klienta: trochÄ wiÄksza, szersza i bez niezrozumiaĹej strzaĹki. */
 #appointmentDetailsModal .crm-client-card{
   grid-template-columns:40px minmax(0,1fr) 30px!important;
   width:calc(100% - 24px)!important;
@@ -2361,7 +2361,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
   display:none!important;
 }
 
-/* Zielone boczne fragmenty utrzymane pod szerszą kartą klienta. */
+/* Zielone boczne fragmenty utrzymane pod szerszÄ kartÄ klienta. */
 #appointmentDetailsModal .crm-visit-panel__header::after{
   bottom:-16px!important;
   height:20px!important;
@@ -2377,7 +2377,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 
 
 /* ==========================================================
-   ADMIN V8: TERMINARZ 3-DNIOWY I STAŁY PANEL INFORMACJI
+   ADMIN V8: TERMINARZ 3-DNIOWY I STAĹY PANEL INFORMACJI
    ========================================================== */
 :root{--crm-insights-width:285px;}
 .calendar-three-columns{grid-template-columns:210px minmax(600px,1fr) var(--crm-insights-width)!important;gap:12px!important;}
@@ -2411,12 +2411,12 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
 .crm-insights-next{padding:14px 0;border-bottom:1px solid #eee7eb;}.crm-insights-next h4{margin:0 0 9px;color:#756b74;font-size:10px;}
 .crm-insights-next button{display:grid;grid-template-columns:45px 1fr;gap:8px;width:100%;padding:10px;background:#fff;border:1px solid #eee4e9;border-left:3px solid #d3d95f;border-radius:10px;text-align:left;cursor:pointer;}.crm-insights-next button>b{color:#4eaf7f}.crm-insights-next button span{display:flex;flex-direction:column;gap:3px;font-size:9px}.crm-insights-next button strong{font-size:10px;}
 .crm-insights-actions{padding-top:14px}.crm-insights-actions .btn-primary{width:100%;}.crm-insights-actions p{margin:12px 0 0;padding:10px;color:#8a7f87;background:#fbf5f8;border-radius:9px;font-size:9px;}
-/* Panel wizyty przykrywa stałe podsumowanie, kalendarz nie zmienia szerokości. */
+/* Panel wizyty przykrywa staĹe podsumowanie, kalendarz nie zmienia szerokoĹci. */
 body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!important;}
 body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!important;}
 #appointmentDetailsModal.modal-overlay{left:auto!important;right:10px!important;top:88px!important;bottom:8px!important;width:var(--crm-insights-width)!important;height:auto!important;padding:0!important;}
 #appointmentDetailsModal .crm-visit-panel__surface{width:100%!important;height:100%!important;max-height:100%!important;}
-/* Kalendarz: pasek kategorii pozostaje ciemniejszy, tło jest jasną wersją tego samego koloru. */
+/* Kalendarz: pasek kategorii pozostaje ciemniejszy, tĹo jest jasnÄ wersjÄ tego samego koloru. */
 .calendar-compact-event,.booksy-event-card,.crm-day-event{filter:none!important;}
 .calendar-compact-event[data-crm-status="confirmed"],.booksy-event-card[data-crm-status="confirmed"],.crm-day-event[data-crm-status="confirmed"]{box-shadow:0 5px 15px rgba(87,62,75,.07)!important;}
 @media(max-width:1350px){:root{--crm-insights-width:260px}.calendar-three-columns{grid-template-columns:195px minmax(540px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:44px repeat(3,minmax(165px,1fr));}}
@@ -2446,16 +2446,16 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!i
 .crm-3day-event__time{font-size:11px!important;}.crm-3day-event strong{font-size:12px!important;line-height:1.28!important;}.crm-3day-event>span:last-child{font-size:11px!important;}
 .calendar-sidebar{width:auto!important;padding:17px!important;}.mini-month-header{font-size:15px!important;}.mini-month-weekdays{font-size:11px!important;}.mini-date-cell{font-size:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}.crm-left-filters label{font-size:12px!important;}.crm-left-quick-buttons button{font-size:12px!important;}
 .crm-calendar-insights{padding:20px!important;min-height:calc(100vh - 94px)!important;}.crm-insights-header span{font-size:11px!important;}.crm-insights-header h3{font-size:17px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;font-size:17px!important;}.crm-insights-metrics>div{min-height:50px!important;font-size:12px!important;grid-template-columns:24px minmax(0,1fr) auto!important;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-next h4{font-size:12px!important;}.crm-insights-next button{padding:13px!important;grid-template-columns:52px 1fr!important;}.crm-insights-next button strong{font-size:13px!important;}.crm-insights-next button span{font-size:11px!important;}.crm-insights-actions p{font-size:11px!important;}
-/* Prawy panel wizyty zajmuje dokładnie stałą prawą kolumnę. */
+/* Prawy panel wizyty zajmuje dokĹadnie staĹÄ prawÄ kolumnÄ. */
 #appointmentDetailsModal.modal-overlay{right:14px!important;top:82px!important;bottom:10px!important;width:var(--crm-insights-width)!important;}
 #appointmentDetailsModal .crm-visit-panel__surface{border-radius:18px!important;}
-/* Przywrócona kompaktowa karta klienta, bez strzałki. */
+/* PrzywrĂłcona kompaktowa karta klienta, bez strzaĹki. */
 #appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 28px)!important;min-height:57px!important;margin:-15px 14px 8px!important;padding:9px 10px!important;}
 #appointmentDetailsModal .crm-client-avatar{width:34px!important;height:34px!important;font-size:14px!important;}
 #appointmentDetailsModal .crm-client-card__copy strong{font-size:11px!important;}
 #appointmentDetailsModal .crm-client-card__copy span{font-size:9.5px!important;}
 #appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
-/* Usługa: białe wypełnienie, pasek ma kolor kategorii. */
+/* UsĹuga: biaĹe wypeĹnienie, pasek ma kolor kategorii. */
 #appointmentDetailsModal .crm-service-card{background:#fff!important;}
 @media(max-width:1450px){:root{--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:210px minmax(630px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:50px repeat(3,minmax(195px,1fr))!important;}}
 @media(max-width:1200px){.calendar-three-columns{grid-template-columns:205px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}#appointmentDetailsModal.modal-overlay{right:0!important;top:0!important;bottom:0!important;width:min(390px,96vw)!important;}}
@@ -2500,35 +2500,35 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --crm-hour-height:74px;
 }
 .main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;}
-/* Główny pasek CRM: większa typografia i liniowe ikony. */
+/* GĹĂłwny pasek CRM: wiÄksza typografia i liniowe ikony. */
 .sidebar{width:var(--crm-sidebar)!important;}
 .sidebar-header{display:grid!important;grid-template-columns:28px minmax(0,1fr);gap:8px;min-height:103px;padding:24px 18px 17px!important;}
 .crm-brand-mark{font-size:22px!important;}.sidebar-header h2{font-size:22px!important;white-space:nowrap;}.sidebar-header p{font-size:12px!important;}
 .crm-dev-link-wrap{padding:14px 16px 9px!important;}.crm-dev-link{font-size:11px!important;min-height:32px!important;padding:6px 11px!important;}
 .sidebar-nav{gap:6px!important;padding:10px 12px!important;}.nav-btn{grid-template-columns:20px minmax(0,1fr)!important;gap:10px!important;min-height:45px!important;padding:10px 12px!important;border-radius:11px!important;font-size:13px!important;}.nav-btn svg{width:18px!important;height:18px!important;}
 .crm-logout-btn{min-height:38px!important;padding:9px 12px!important;border-radius:7px!important;font-size:11px!important;font-weight:600!important;background:#c35c77!important;box-shadow:none!important;}.crm-logout-btn svg{width:14px!important;height:14px!important;stroke:#fff!important;}
-/* Układ: bardziej kwadratowy lewy panel, 3 dni, stały panel informacji. */
+/* UkĹad: bardziej kwadratowy lewy panel, 3 dni, staĹy panel informacji. */
 .calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(660px,1fr) var(--crm-insights-width)!important;gap:14px!important;}
 .calendar-sidebar{width:var(--crm-calendar-side)!important;min-height:355px!important;padding:19px!important;border-radius:20px!important;}
 .mini-month-days-grid,.mini-month-weekdays{gap:6px!important;}.mini-date-cell{min-height:31px!important;font-size:12px!important;}.crm-left-section{margin-top:12px!important;padding-top:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}
 .calendar-main-schedule,.crm-three-day-calendar,.crm-calendar-insights{border-radius:20px!important;}
 .crm-3day-shell{grid-template-columns:52px repeat(3,minmax(205px,1fr))!important;}
 .crm-3day-corner,.crm-3day-header{height:40px!important;}.crm-3day-header{font-size:12px!important;}.crm-3day-header b{width:23px!important;height:23px!important;}
-/* 74 px/h niezależnie od wcześniejszej wysokości wygenerowanej inline. */
+/* 74 px/h niezaleĹźnie od wczeĹniejszej wysokoĹci wygenerowanej inline. */
 .crm-3day-canvas{height:calc((var(--crm-hour-height) / 60) * 780)!important;min-height:962px!important;}
 .crm-3day-labels{height:1002px!important;}
 .crm-3day-event{min-height:54px!important;left:8px!important;width:calc(100% - 16px)!important;padding:7px 9px 7px 11px!important;border-radius:10px!important;background:var(--event-fill)!important;border-left:4px solid var(--event-stripe)!important;}
-/* Tydzień i miesiąc: ta sama logika kategorii, nie statusu. */
+/* TydzieĹ i miesiÄc: ta sama logika kategorii, nie statusu. */
 .calendar-week-day,.calendar-month-day{border-radius:14px!important;background:#fff!important;}
 .calendar-compact-event.crm-category-event{display:flex!important;flex-direction:column!important;gap:2px!important;width:100%!important;margin:5px 0!important;padding:6px 6px 6px 9px!important;color:#403740!important;background:var(--event-fill)!important;border:1px solid rgba(255,255,255,.7)!important;border-left:4px solid var(--event-stripe)!important;border-radius:9px!important;box-shadow:0 4px 11px rgba(82,55,68,.06)!important;text-align:left!important;}
 .crm-compact-time{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:750;}.crm-compact-time i{display:grid;place-items:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.78);font-style:normal;font-size:9px;}.calendar-compact-event strong{font-size:10.5px;line-height:1.2;}.crm-compact-client{font-size:9.5px;color:#655b64;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .crm-schedule-info{margin:5px 0;padding:6px 8px;color:#6e5a1d;background:#fff2bd;border:1px solid #efd06d;border-radius:9px;font-size:10px;font-weight:700;text-align:center;}
-/* Prawy panel: większe napisy, bez metryki wolnych terminów i bez dolnego przycisku. */
+/* Prawy panel: wiÄksze napisy, bez metryki wolnych terminĂłw i bez dolnego przycisku. */
 .crm-calendar-insights{width:var(--crm-insights-width)!important;padding:20px!important;}.crm-insights-header h3{font-size:18px!important;}.crm-insights-header>div>span{font-size:11px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;}.crm-insights-calendar-icon svg{width:18px;height:18px;fill:none;stroke:#b14f73;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
 .crm-insights-metrics>div{min-height:51px!important;grid-template-columns:25px minmax(0,1fr) auto!important;}.crm-insights-metrics i svg{width:16px;height:16px;fill:none;stroke:#bb5579;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-actions button{display:none!important;}.crm-insights-actions p{margin-top:13px!important;font-size:11px!important;text-align:left!important;}
-/* Górne działania. */
+/* GĂłrne dziaĹania. */
 .calendar-layout-header .btn-primary{font-size:13px!important;font-weight:700!important;}.crm-action-symbol{color:#fff!important;font-size:16px!important;line-height:1;}
-/* Panel wizyty: karta klienta szersza, ale zachowuje poprzednią wysokość. */
+/* Panel wizyty: karta klienta szersza, ale zachowuje poprzedniÄ wysokoĹÄ. */
 #appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 18px)!important;min-height:57px!important;margin:-15px 9px 8px!important;padding:9px 10px!important;}
 #appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
 #appointmentDetailsModal .crm-client-card__copy strong{font-size:12px!important;}#appointmentDetailsModal .crm-client-card__copy span{font-size:10px!important;}
@@ -2538,9 +2538,9 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 /* KONIEC ADMIN V9 */
 
 /* ==========================================================
-   ADMIN V9.1: BIAŁY PLUS I PRECYZYJNE USTAWIENIE WIZYT
+   ADMIN V9.1: BIAĹY PLUS I PRECYZYJNE USTAWIENIE WIZYT
    ========================================================== */
-/* Jeden wygląd znaku plus we wszystkich malinowych akcjach. */
+/* Jeden wyglÄd znaku plus we wszystkich malinowych akcjach. */
 .crm-white-plus,
 .crm-action-symbol{
   display:inline-flex!important;
@@ -2557,7 +2557,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 .crm-add-service-button .crm-white-plus{
   color:#fff!important;
 }
-/* Karta zaczyna się dokładnie na linii godziny. Brak przesunięcia na hover. */
+/* Karta zaczyna siÄ dokĹadnie na linii godziny. Brak przesuniÄcia na hover. */
 .crm-3day-event{
   transform:none!important;
   margin-top:0!important;
@@ -2571,7 +2571,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   width:100%!important;
   align-items:center!important;
 }
-/* Linia godziny pozostaje dokładnie pod górną krawędzią karty. */
+/* Linia godziny pozostaje dokĹadnie pod gĂłrnÄ krawÄdziÄ karty. */
 .crm-3day-line.is-hour{z-index:0!important;}
 .crm-3day-events{z-index:1!important;}
 /* KONIEC ADMIN V9.1 */
@@ -2600,3 +2600,752 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 #appointmentDetailsModal #crm-lifecycle-actions,#appointmentDetailsModal #crm-external-actions{display:none!important;}
 @media(max-width:900px){#appointmentDetailsModal.crm-safe-visit-panel{inset:0 0 0 auto!important;width:min(365px,96vw)!important;}}
 /* KONIEC ADMIN V10-SAFE */
+
+
+/* ==========================================================
+   ADMIN V10.1: REGULACJA PANELU I REAKCJE PRZYCISKOW
+   ========================================================== */
+
+/* ----------------------------------------------------------
+   REGULACJA KARTY KLIENTA
+   Te wartoĹci moĹźna zmieniaÄ samodzielnie.
+
+   --crm-client-card-overlap: jak wysoko karta nachodzi na zielony nagĹĂłwek.
+     WiÄksza wartoĹÄ = karta idzie wyĹźej. PrzykĹad: 28px.
+
+   --crm-client-card-side: odstÄp karty od lewej i prawej krawÄdzi.
+     Mniejsza wartoĹÄ = karta jest szersza. PrzykĹad: 4px.
+
+   --crm-client-card-height: minimalna wysokoĹÄ karty klienta.
+     WiÄksza wartoĹÄ = wyĹźsza karta. PrzykĹad: 68px.
+
+   --crm-client-card-padding-y: wewnÄtrzny odstÄp gĂłra/dĂłĹ.
+   --crm-client-card-padding-x: wewnÄtrzny odstÄp lewo/prawo.
+   ---------------------------------------------------------- */
+#appointmentDetailsModal{
+  --crm-client-card-overlap:24px;
+  --crm-client-card-side:6px;
+  --crm-client-card-height:64px;
+  --crm-client-card-padding-y:11px;
+  --crm-client-card-padding-x:12px;
+}
+
+#appointmentDetailsModal .crm-safe-client-card{
+  width:calc(100% - (var(--crm-client-card-side) * 2))!important;
+  min-height:var(--crm-client-card-height)!important;
+  margin:calc(-1 * var(--crm-client-card-overlap)) var(--crm-client-card-side) 9px!important;
+  padding:var(--crm-client-card-padding-y) var(--crm-client-card-padding-x)!important;
+  cursor:pointer!important;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background-color .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-client-card:hover,
+#appointmentDetailsModal .crm-safe-client-card:focus-visible{
+  transform:translateY(-2px)!important;
+  background:#fffafd!important;
+  border-color:#dca9bc!important;
+  box-shadow:0 13px 28px rgba(80,54,67,.16)!important;
+  outline:none!important;
+}
+
+/* KrzyĹźyk jest wyĹrodkowany i podniesiony do gĂłrnej linii nagĹĂłwka. */
+#appointmentDetailsModal .crm-safe-close{
+  align-self:start!important;
+  margin-top:-2px!important;
+  padding:0!important;
+  line-height:1!important;
+  cursor:pointer!important;
+  transition:background-color .16s ease,transform .16s ease,border-color .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-close:hover,
+#appointmentDetailsModal .crm-safe-close:focus-visible{
+  background:rgba(255,255,255,.28)!important;
+  border-color:#fff!important;
+  transform:scale(1.06)!important;
+  outline:none!important;
+}
+
+/* Wszystkie elementy interaktywne panelu pokazujÄ rÄkÄ i reakcjÄ hover. */
+#appointmentDetailsModal button,
+.sidebar button,
+.sidebar a,
+.calendar-layout-header button,
+.calendar-view-toggle button{
+  cursor:pointer!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn,
+#appointmentDetailsModal .crm-safe-edit,
+#appointmentDetailsModal .crm-safe-add-service,
+#appointmentDetailsModal .crm-safe-repeat,
+#appointmentDetailsModal .crm-safe-tabs button,
+#appointmentDetailsModal .crm-safe-status-menu button{
+  transition:background-color .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn:hover,
+#appointmentDetailsModal .crm-safe-status-btn:focus-visible{
+  background:rgba(255,255,255,.27)!important;
+  border-color:#fff!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-edit:hover,
+#appointmentDetailsModal .crm-safe-edit:focus-visible{
+  color:#fff!important;
+  background:#b65b7e!important;
+  border-color:#b65b7e!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-tabs button:hover,
+#appointmentDetailsModal .crm-safe-tabs button:focus-visible{
+  color:#a34d70!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-add-service:hover,
+#appointmentDetailsModal .crm-safe-add-service:focus-visible{
+  color:#913d60!important;
+  background:#fff5f9!important;
+  border-color:#b65b7e!important;
+  box-shadow:0 6px 15px rgba(182,91,126,.12)!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-repeat{
+  border:1px solid #b65b7e!important;
+  box-shadow:0 4px 12px rgba(182,91,126,.14)!important;
+}
+#appointmentDetailsModal .crm-safe-repeat:hover,
+#appointmentDetailsModal .crm-safe-repeat:focus-visible{
+  background:#9f4669!important;
+  border-color:#9f4669!important;
+  box-shadow:0 8px 18px rgba(159,70,105,.24)!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-status-menu button:hover,
+#appointmentDetailsModal .crm-safe-status-menu button:focus-visible{
+  color:#963f62!important;
+  background:#fff1f6!important;
+  outline:none!important;
+}
+
+/* Plus jest idealnie wyĹrodkowany w swoim kole. */
+#appointmentDetailsModal .crm-safe-add-service b{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  line-height:20px!important;
+  font-family:Arial,sans-serif!important;
+  font-size:15px!important;
+  font-weight:700!important;
+  text-align:center!important;
+  transform:none!important;
+}
+
+/* Statyczny panel: nie przemieszcza siÄ i ma staĹÄ wysokoĹÄ ekranu. */
+#appointmentDetailsModal.crm-safe-visit-panel{
+  position:fixed!important;
+  transform:none!important;
+}
+
+/* Techniczne stare przyciski nie mogÄ przebiÄ siÄ przez wczeĹniejsze style. */
+#appointmentDetailsModal [hidden],
+#appointmentDetailsModal #deleteAppointmentBtn,
+#appointmentDetailsModal #editAppointmentBtn,
+#appointmentDetailsModal #crmSettleVisitBtn,
+#appointmentDetailsModal #crm-lifecycle-actions,
+#appointmentDetailsModal #crm-external-actions{
+  display:none!important;
+}
+
+/* Reakcje bocznego menu ADMIN. */
+.sidebar .nav-btn,
+.sidebar .crm-dev-link,
+.sidebar .crm-logout-btn{
+  transition:background-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease!important;
+}
+.sidebar .nav-btn:hover,
+.sidebar .nav-btn:focus-visible{
+  background:#f8eaf0!important;
+  color:#a24368!important;
+  transform:translateX(2px)!important;
+  outline:none!important;
+}
+.sidebar .nav-btn.active:hover{background:#b44770!important;color:#fff!important;}
+.sidebar .crm-dev-link:hover,
+.sidebar .crm-dev-link:focus-visible{
+  background:#fff3f7!important;
+  border-color:#b65b7e!important;
+  color:#a24368!important;
+  outline:none!important;
+}
+.sidebar .crm-logout-btn:hover,
+.sidebar .crm-logout-btn:focus-visible{
+  background:#a84768!important;
+  box-shadow:0 7px 16px rgba(168,71,104,.22)!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+/* KONIEC ADMIN V10.1 */
+
+/* ============================================================================
+   PANEL PRAWEJ WIZYTY - CENTRUM SAMODZIELNEJ REGULACJI
+   ============================================================================
+   ZMIENIAJ TYLKO WARTOSCI W TYM BLOKU.
+   CALY BLOK JEST NA KONCU PLIKU, WIEC MA PIERWSZENSTWO NAD STARSZYMI STYLAMI.
+
+   SZYBKA ZASADA:
+   - wiecej px = zwykle wiekszy element / wiekszy odstep,
+   - mniej px = zwykle mniejszy element / mniejszy odstep,
+   - wartosc ujemna, np. -4px = przesuniecie do gory lub w lewo,
+   - kolory zapisane jako #RRGGBB,
+   - 1 oznacza 100% widocznosci, 0.5 oznacza 50%.
+   ============================================================================ */
+
+#appointmentDetailsModal {
+  /* ===== 1. CALY PRAWY PANEL ===== */
+  --panel-width: 370px;                 /* szerokosc calego prawego panelu */
+  --panel-top: 14px;                    /* odleglosc panelu od gornej krawedzi ekranu */
+  --panel-right: 4px;                  /* odleglosc panelu od prawej krawedzi ekranu */
+  --panel-bottom: 2px;                 /* odleglosc panelu od dolnej krawedzi ekranu */
+  --panel-radius: 18px;                 /* zaokraglenie zewnetrznych rogow panelu */
+  --panel-background: #fffdfd;          /* kolor tla calego panelu */
+  --panel-border-color: #eadfe4;        /* kolor cienkiej ramki panelu */
+  --panel-shadow: 0 18px 44px rgba(65,43,54,.16); /* cien calego panelu */
+
+  /* ===== 2. ZIELONY NAGLOWEK ===== */
+  --header-height: 88px;                /* wysokosc zielonego naglowka */
+  --header-padding-top: 14px;           /* odstep zawartosci od gornej krawedzi naglowka */
+  --header-padding-right: 13px;         /* odstep zawartosci od prawej krawedzi */
+  --header-padding-bottom: 25px;        /* miejsce na nachodzaca karte klienta */
+  --header-padding-left: 13px;          /* odstep zawartosci od lewej krawedzi */
+  --header-gap: 9px;                    /* odstep miedzy krzyzykiem, statusem i przyciskiem */
+  --header-green-start: #348124;        /* pierwszy kolor zielonego gradientu */
+  --header-green-end: #348124;          /* drugi kolor zielonego gradientu */
+  --header-radius: 17px;                /* zaokraglenie GORNYCH rogow zielonej czesci */
+  --header-bottom-left-radius: 0px;     /* zaokraglenie DOLNEGO LEWEGO rogu zielonej czesci */
+  --header-bottom-right-radius: 0px;    /* zaokraglenie DOLNEGO PRAWEGO rogu zielonej czesci */
+
+  /* ===== 3. KRZYZYK ZAMKNIECIA ===== */
+  --close-size: 28px;                   /* szerokosc i wysokosc kola z krzyzykiem */
+  --close-font-size: 28px;              /* wielkosc samego znaku X */
+  --close-move-up: 0px;                /* pozycja pionowa: bardziej ujemna = wyzej */
+  --close-move-left: -10px;               /* pozycja pozioma: ujemna = w lewo, dodatnia = w prawo */
+  --close-background: transparent;        /* normalnie bez kola i bez tla */
+  --close-border-color: transparent;      /* normalnie bez obwodki kola */
+  --close-hover-background: rgba(255,255,255,.18); /* delikatne kolo dopiero po najechaniu */
+  --close-hover-border-color: rgba(255,255,255,.55); /* obwodka kola po najechaniu */
+  --close-hover-lift: -2px;               /* podniesienie calego X po najechaniu; bardziej ujemna = wyzej */
+  --close-symbol-move-x: 0px;           /* TYLKO znak X: ujemna = w lewo, dodatnia = w prawo */
+  --close-symbol-move-y: 0px;           /* TYLKO znak X: ujemna = w gore, dodatnia = w dol */
+  --close-symbol-weight: 200;            /* grubosc samego X: 200 cienki, 300 lekki, 400 normalny */
+  --close-symbol-font: "Segoe UI Light", "Segoe UI", Arial, sans-serif; /* kroj cienkiego X */
+
+  /* ===== 4. NAPIS STATUSU POTWIERDZONO ===== */
+  --status-title-size: 18px;             /* wielkosc napisu POTWIERDZONO */
+  --status-title-move-up: 5px;           /* przesuniecie napisu: ujemna wartosc = wyzej */
+  --status-title-color: #ffffff;         /* kolor napisu statusu */
+
+  /* ===== 5. PRZYCISK ZMIEN STATUS ===== */
+  --status-button-width: 92px;           /* szerokosc przycisku Zmien status */
+  --status-button-height: 30px;          /* wysokosc przycisku */
+  --status-button-font-size: 9px;        /* wielkosc tekstu */
+  --status-button-move-up: 0px;          /* przesuniecie pionowe: ujemna = wyzej */
+  --status-button-background: rgba(255,255,255,.14); /* tlo normalne */
+  --status-button-hover: rgba(255,255,255,.28);      /* tlo po najechaniu */
+
+  /* ===== 6. KARTA KLIENTA - NAJWAZNIEJSZA REGULACJA ===== */
+  --client-overlap: 46px;                /* jak mocno karta nachodzi na zielony naglowek; wiecej = wyzej */
+  --client-side-gap: -14px;                /* odstep od bokow; mniej = karta szersza */
+  --client-height: 84px;                 /* minimalna wysokosc karty klienta */
+  --client-padding-y: 11px;              /* wewnetrzny odstep gora/dol */
+  --client-padding-x: 12px;              /* wewnetrzny odstep lewo/prawo */
+  --client-radius: 14px;                 /* zaokraglenie karty klienta */
+  --client-background: #ffffff;          /* kolor tla karty klienta */
+  --client-border: #ebe1e6;              /* kolor ramki karty klienta */
+  --client-hover-border: #dca9bc;        /* kolor ramki po najechaniu */
+  --client-shadow: 0 9px 22px rgba(80,54,67,.11);  /* cien normalny */
+  --client-hover-shadow: 0 13px 28px rgba(80,54,67,.16); /* cien po najechaniu */
+  --client-hover-lift: -2px;             /* podniesienie po najechaniu */
+
+  /* ===== 7. AVATAR KLIENTA ===== */
+  --avatar-size: 36px;                   /* srednica kola z litera */
+  --avatar-font-size: 16px;              /* wielkosc litery w avatarze */
+  --avatar-background: #bd6686;          /* kolor kola avatara */
+  --avatar-color: #ffffff;               /* kolor litery */
+
+  /* ===== 8. IMIE I TELEFON KLIENTA ===== */
+  --client-name-size: 14px;              /* wielkosc imienia klienta */
+  --client-phone-size: 12px;             /* wielkosc numeru telefonu */
+  --client-name-color: #312b31;          /* kolor imienia */
+  --client-phone-color: #7c727a;         /* kolor telefonu */
+  --client-text-gap: 3px;                /* odstep miedzy imieniem i telefonem */
+
+  /* ===== 9. PRZYCISK EDYCJI KLIENTA ===== */
+  --edit-size: 29px;                     /* rozmiar przycisku z olowkiem */
+  --edit-icon-size: 14px;                /* wielkosc ikony olowka */
+  --edit-color: #a95073;                 /* kolor ikony */
+  --edit-background: #fff7fa;            /* tlo przycisku */
+  --edit-hover-background: #b65b7e;      /* tlo po najechaniu */
+
+  /* ===== 10. ZAKLADKI WIZYTA / INFORMACJE ===== */
+  --tabs-height: 40px;                   /* wysokosc paska zakladek */
+  --tabs-side-gap: 14px;                 /* odstep zakladek od bokow panelu */
+  --tabs-between-gap: 24px;              /* odstep miedzy WIZYTA i INFORMACJE */
+  --tabs-font-size: 10px;                /* wielkosc tekstu zakladek */
+  --tabs-color: #958b93;                 /* kolor nieaktywnej zakladki */
+  --tabs-active-color: #423942;          /* kolor aktywnej zakladki */
+  --tabs-line-color: #ad5577;            /* kolor kreski pod aktywna zakladka */
+
+  /* ===== 10A. ZAKLADKA INFORMACJE - REczna REGULACJA PUNKTOW ===== */
+  --info-padding-top: 14px;             /* odstep calej listy INFORMACJE od zakladek */
+  --info-padding-right: 14px;           /* odstep listy od prawej krawedzi panelu */
+  --info-padding-bottom: 0px;           /* odstep pod ostatnim punktem */
+  --info-padding-left: 14px;            /* odstep listy od lewej krawedzi panelu */
+  --info-row-height: 42px;              /* minimalna wysokosc jednego punktu informacji */
+  --info-row-padding-y: 11px;           /* odstep wewnatrz punktu gora/dol */
+  --info-row-padding-x: 0px;            /* odstep wewnatrz punktu lewo/prawo */
+  --info-row-gap: 12px;                 /* odstep miedzy nazwa punktu a jego wartoscia */
+  --info-row-border-color: #f0e9ec;     /* kolor linii oddzielajacej punkty */
+  --info-label-size: 12px;              /* wielkosc nazw: Klient, Usluga, Data, Zrodlo */
+  --info-label-color: #8c828a;          /* kolor nazw punktow po lewej */
+  --info-value-size: 14px;              /* wielkosc wartosci po prawej */
+  --info-value-color: #3b343b;          /* kolor wartosci po prawej */
+  --info-value-width: 65%;               /* maksymalna szerokosc wartosci po prawej */
+  --info-text-align: right;              /* ustawienie wartosci: left, center albo right */
+  --info-row-move-x: 0px;               /* przesuniecie wszystkich punktow: ujemna = w lewo, dodatnia = w prawo */
+  --info-row-move-y: 0px;               /* przesuniecie wszystkich punktow: ujemna = w gore, dodatnia = w dol */
+
+  /* ===== 11. GLOWNA TRESC PANELU ===== */
+  --content-side-padding: 14px;           /* odstep tresci od bokow panelu */
+  --content-top-padding: 14px;            /* odstep tresci od zakladek */
+  --visit-date-size: 12px;               /* wielkosc daty, np. Pon., 20 lip */
+  --visit-date-color: #4b424a;           /* kolor daty */
+
+  /* ===== 12. KARTA USLUGI ===== */
+  --service-card-height: 88px;            /* minimalna wysokosc karty uslugi */
+  --service-card-radius: 13px;            /* zaokraglenie karty uslugi */
+  --service-card-background: #ffffff;     /* tlo karty uslugi */
+  --service-card-border: #ebe2e6;         /* ramka karty uslugi */
+  --service-card-padding-top: 13px;        /* odstep wewnetrzny od gory */
+  --service-card-padding-right: 12px;      /* odstep wewnetrzny od prawej */
+  --service-card-padding-bottom: 13px;     /* odstep wewnetrzny od dolu */
+  --service-card-padding-left: 17px;       /* odstep od lewej, razem z kolorowym paskiem */
+  --service-stripe-width: 5px;             /* szerokosc kolorowego paska kategorii */
+  --service-name-size: 12px;               /* wielkosc nazwy uslugi */
+  --service-description-size: 10px;        /* wielkosc opisu uslugi */
+  --service-price-size: 11px;              /* wielkosc ceny */
+  --service-name-color: #302a30;           /* kolor nazwy */
+  --service-description-color: #776d75;   /* kolor opisu i czasu */
+
+  /* ===== 13. POLA POCZATEK / KONIEC ===== */
+  --time-box-gap: 9px;                     /* odstep miedzy dwoma polami */
+  --time-box-padding-y: 10px;              /* pionowy odstep wewnatrz pola */
+  --time-box-padding-x: 11px;              /* poziomy odstep wewnatrz pola */
+  --time-box-radius: 11px;                 /* zaokraglenie pola */
+  --time-box-background: #faf7f8;          /* tlo pola */
+  --time-label-size: 9px;                  /* wielkosc napisu POCZATEK / KONIEC */
+  --time-value-size: 12px;                 /* wielkosc godziny */
+  --time-value-color: #352f35;             /* kolor godziny */
+
+  /* ===== 14. PRZYCISK DODAJ KOLEJNA USLUGE ===== */
+  --add-service-height: 40px;              /* minimalna wysokosc przycisku */
+  --add-service-font-size: 10px;           /* wielkosc tekstu */
+  --add-service-radius: 10px;              /* zaokraglenie przycisku */
+  --add-service-color: #a34d70;            /* kolor tekstu */
+  --add-service-border: #d8a9bb;           /* kolor przerywanej ramki */
+  --add-service-hover-background: #fff5f9; /* tlo po najechaniu */
+  --plus-circle-size: 20px;                /* srednica kola z plusem */
+  --plus-font-size: 15px;                  /* wielkosc znaku plus */
+  --plus-background: #b65b7e;             /* kolor kola z plusem */
+  --plus-move-up: 0px;                     /* przesuwa CALE KOLO plusa: ujemna wartosc podnosi kolo */
+  --plus-symbol-move-x: 0px;             /* TYLKO znak +: ujemna = w lewo, dodatnia = w prawo */
+  --plus-symbol-move-y: 0px;             /* TYLKO znak +: ujemna = w gore, dodatnia = w dol */
+
+  /* ===== 15. PRZYCISK UMOW PONOWNIE ===== */
+  --repeat-width: 100%;                    /* szerokosc: 100% = cala szerokosc */
+  --repeat-height: 38px;                   /* wysokosc przycisku */
+  --repeat-margin-top: 10px;               /* odstep od przycisku powyzej */
+  --repeat-radius: 10px;                   /* zaokraglenie */
+  --repeat-font-size: 10px;                /* wielkosc tekstu */
+  --repeat-background: #b65b7e;            /* kolor normalny */
+  --repeat-hover-background: #9f4669;      /* kolor po najechaniu */
+  --repeat-text-color: #ffffff;             /* kolor tekstu */
+
+  /* ===== 16. ANIMACJE I REAKCJE ===== */
+  --button-animation-time: .16s;           /* szybkosc reakcji przyciskow */
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: CALY PANEL ===== */
+#appointmentDetailsModal.crm-safe-visit-panel{
+  top:var(--panel-top)!important;
+  right:var(--panel-right)!important;
+  bottom:var(--panel-bottom)!important;
+  left:auto!important;
+  width:var(--panel-width)!important;
+}
+#appointmentDetailsModal .crm-safe-visit-surface{
+  background:var(--panel-background)!important;
+  border-color:var(--panel-border-color)!important;
+  border-radius:var(--panel-radius)!important;
+  box-shadow:var(--panel-shadow)!important;
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: ZIELONY NAGLOWEK ===== */
+#appointmentDetailsModal .crm-safe-header{
+  height:var(--header-height)!important;
+  padding:var(--header-padding-top) var(--header-padding-right) var(--header-padding-bottom) var(--header-padding-left)!important;
+  gap:var(--header-gap)!important;
+  grid-template-columns:var(--close-size) minmax(0,1fr) var(--status-button-width)!important;
+  background:linear-gradient(135deg,var(--header-green-start),var(--header-green-end))!important;
+  border-radius:
+    var(--header-radius)
+    var(--header-radius)
+    var(--header-bottom-right-radius)
+    var(--header-bottom-left-radius)!important;
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: KRZYZYK ===== */
+#appointmentDetailsModal .crm-safe-close{
+  width:var(--close-size)!important;
+  height:var(--close-size)!important;
+  font-size:var(--close-font-size)!important;
+  margin-top:var(--close-move-up)!important;
+  margin-left:var(--close-move-left)!important;
+  background:var(--close-background)!important;
+}
+#appointmentDetailsModal .crm-safe-close:hover{background:var(--close-hover-background)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: STATUS ===== */
+#appointmentDetailsModal .crm-safe-status-copy{
+  transform:translateY(var(--status-title-move-up))!important;
+}
+#appointmentDetailsModal .crm-safe-status-copy h4{
+  font-size:var(--status-title-size)!important;
+  color:var(--status-title-color)!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn{
+  width:var(--status-button-width)!important;
+  height:var(--status-button-height)!important;
+  font-size:var(--status-button-font-size)!important;
+  transform:translateY(var(--status-button-move-up))!important;
+  background:var(--status-button-background)!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn:hover{background:var(--status-button-hover)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: KARTA KLIENTA ===== */
+#appointmentDetailsModal .crm-safe-client-card{
+  width:calc(100% - (var(--client-side-gap) * 2))!important;
+  min-height:var(--client-height)!important;
+  margin:calc(-1 * var(--client-overlap)) var(--client-side-gap) 9px!important;
+  padding:var(--client-padding-y) var(--client-padding-x)!important;
+  border-radius:var(--client-radius)!important;
+  background:var(--client-background)!important;
+  border-color:var(--client-border)!important;
+  box-shadow:var(--client-shadow)!important;
+}
+#appointmentDetailsModal .crm-safe-client-card:hover{
+  transform:translateY(var(--client-hover-lift))!important;
+  border-color:var(--client-hover-border)!important;
+  box-shadow:var(--client-hover-shadow)!important;
+}
+#appointmentDetailsModal .crm-safe-avatar{
+  width:var(--avatar-size)!important;
+  height:var(--avatar-size)!important;
+  font-size:var(--avatar-font-size)!important;
+  background:var(--avatar-background)!important;
+  color:var(--avatar-color)!important;
+}
+#appointmentDetailsModal .crm-safe-client-copy{gap:var(--client-text-gap)!important;}
+#appointmentDetailsModal .crm-safe-client-copy strong{font-size:var(--client-name-size)!important;color:var(--client-name-color)!important;}
+#appointmentDetailsModal .crm-safe-client-copy span{font-size:var(--client-phone-size)!important;color:var(--client-phone-color)!important;}
+#appointmentDetailsModal .crm-safe-edit{
+  width:var(--edit-size)!important;height:var(--edit-size)!important;font-size:var(--edit-icon-size)!important;
+  color:var(--edit-color)!important;background:var(--edit-background)!important;
+}
+#appointmentDetailsModal .crm-safe-edit:hover{background:var(--edit-hover-background)!important;color:#fff!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: ZAKLADKI ===== */
+#appointmentDetailsModal .crm-safe-tabs{
+  height:var(--tabs-height)!important;
+  margin-left:var(--tabs-side-gap)!important;
+  margin-right:var(--tabs-side-gap)!important;
+  gap:var(--tabs-between-gap)!important;
+}
+#appointmentDetailsModal .crm-safe-tabs button{font-size:var(--tabs-font-size)!important;color:var(--tabs-color)!important;}
+#appointmentDetailsModal .crm-safe-tabs button.active{color:var(--tabs-active-color)!important;}
+#appointmentDetailsModal .crm-safe-tabs button.active:after{background:var(--tabs-line-color)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: TRESC I KARTA USLUGI ===== */
+#appointmentDetailsModal .crm-safe-tab-content,
+#appointmentDetailsModal .crm-safe-info{
+  padding:var(--content-top-padding) var(--content-side-padding) 0!important;
+}
+#appointmentDetailsModal .crm-safe-date{font-size:var(--visit-date-size)!important;color:var(--visit-date-color)!important;}
+#appointmentDetailsModal .crm-safe-service-card{
+  min-height:var(--service-card-height)!important;
+  border-radius:var(--service-card-radius)!important;
+  background:var(--service-card-background)!important;
+  border-color:var(--service-card-border)!important;
+  padding:var(--service-card-padding-top) var(--service-card-padding-right) var(--service-card-padding-bottom) var(--service-card-padding-left)!important;
+}
+#appointmentDetailsModal .crm-safe-service-stripe{width:var(--service-stripe-width)!important;}
+#appointmentDetailsModal .crm-safe-service-copy strong{font-size:var(--service-name-size)!important;color:var(--service-name-color)!important;}
+#appointmentDetailsModal .crm-safe-service-copy span,
+#appointmentDetailsModal .crm-safe-service-copy small{font-size:var(--service-description-size)!important;color:var(--service-description-color)!important;}
+#appointmentDetailsModal .crm-safe-price{font-size:var(--service-price-size)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: GODZINY ===== */
+#appointmentDetailsModal .crm-safe-time-grid{gap:var(--time-box-gap)!important;}
+#appointmentDetailsModal .crm-safe-time-grid>div{
+  padding:var(--time-box-padding-y) var(--time-box-padding-x)!important;
+  border-radius:var(--time-box-radius)!important;
+  background:var(--time-box-background)!important;
+}
+#appointmentDetailsModal .crm-safe-time-grid span{font-size:var(--time-label-size)!important;}
+#appointmentDetailsModal .crm-safe-time-grid strong{font-size:var(--time-value-size)!important;color:var(--time-value-color)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: DODAJ USLUGE ===== */
+#appointmentDetailsModal .crm-safe-add-service{
+  min-height:var(--add-service-height)!important;
+  font-size:var(--add-service-font-size)!important;
+  border-radius:var(--add-service-radius)!important;
+  color:var(--add-service-color)!important;
+  border-color:var(--add-service-border)!important;
+}
+#appointmentDetailsModal .crm-safe-add-service:hover{background:var(--add-service-hover-background)!important;}
+#appointmentDetailsModal .crm-safe-add-service b{
+  width:var(--plus-circle-size)!important;
+  height:var(--plus-circle-size)!important;
+  line-height:var(--plus-circle-size)!important;
+  font-size:var(--plus-font-size)!important;
+  background:var(--plus-background)!important;
+  transform:translateY(var(--plus-move-up))!important;
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: UMOW PONOWNIE ===== */
+#appointmentDetailsModal .crm-safe-repeat{
+  width:var(--repeat-width)!important;
+  height:var(--repeat-height)!important;
+  margin-top:var(--repeat-margin-top)!important;
+  border-radius:var(--repeat-radius)!important;
+  font-size:var(--repeat-font-size)!important;
+  color:var(--repeat-text-color)!important;
+  background:var(--repeat-background)!important;
+}
+#appointmentDetailsModal .crm-safe-repeat:hover{background:var(--repeat-hover-background)!important;}
+
+/* ===== WSPOLNA SZYBKOSC ANIMACJI ===== */
+#appointmentDetailsModal button,
+#appointmentDetailsModal .crm-safe-client-card{
+  transition-duration:var(--button-animation-time)!important;
+}
+
+/* ============================================================================
+   KONIEC CENTRUM SAMODZIELNEJ REGULACJI PRAWEGO PANELU
+   ============================================================================ */
+
+
+/* ============================================================================
+   NIEZALEZNA REGULACJA SAMEGO ZNAKU X ORAZ SAMEGO ZNAKU PLUS
+   ============================================================================
+   WAZNE:
+   - --close-move-up / --close-move-left przesuwaja CALE KOLO z krzyzykiem.
+   - --close-symbol-move-x / --close-symbol-move-y przesuwaja TYLKO znak X.
+   - --plus-move-up przesuwa CALE KOLO z plusem.
+   - --plus-symbol-move-x / --plus-symbol-move-y przesuwaja TYLKO znak +.
+   ============================================================================ */
+
+/* TYLKO ZNAK X W KOLKU ZAMKNIECIA PRAWEGO PANELU */
+#appointmentDetailsModal .crm-safe-close{
+  font-size:0!important;                 /* ukrywa oryginalny tekstowy znak X */
+  line-height:1!important;
+  overflow:visible!important;
+}
+#appointmentDetailsModal .crm-safe-close::before{
+  content:"Ă";
+  display:block;
+  position:relative;
+  left:var(--close-symbol-move-x);
+  top:var(--close-symbol-move-y);
+  color:#ffffff;
+  font-family:var(--close-symbol-font);
+  font-size:var(--close-font-size);
+  font-weight:var(--close-symbol-weight);
+  line-height:1;
+  pointer-events:none;
+}
+
+/* TYLKO ZNAK PLUS W KOLKU PRZYCISKU DODAJ KOLEJNA USLUGE */
+#appointmentDetailsModal .crm-safe-add-service b{
+  font-size:0!important;                 /* ukrywa oryginalny tekstowy znak + */
+  overflow:visible!important;
+}
+#appointmentDetailsModal .crm-safe-add-service b::before{
+  content:"+";
+  display:block;
+  position:relative;
+  left:var(--plus-symbol-move-x);
+  top:var(--plus-symbol-move-y);
+  color:#ffffff;
+  font-family:Arial,sans-serif;
+  font-size:var(--plus-font-size);
+  font-weight:700;
+  line-height:1;
+  pointer-events:none;
+}
+
+/* TE SAME PARAMETRY DLA INNYCH BIALYCH PLUSOW W ADMIN,
+   JEZELI KORZYSTAJA Z KLAS crm-white-plus LUB crm-action-symbol. */
+.crm-white-plus,
+.crm-action-symbol{
+  font-size:0!important;
+  overflow:visible!important;
+}
+.crm-white-plus::before,
+.crm-action-symbol::before{
+  content:"+";
+  display:inline-block;
+  position:relative;
+  left:var(--plus-symbol-move-x, 0px);
+  top:var(--plus-symbol-move-y, 0px);
+  color:#ffffff;
+  font-family:Arial,sans-serif;
+  font-size:var(--plus-font-size, 15px);
+  font-weight:700;
+  line-height:1;
+  pointer-events:none;
+}
+/* KONIEC NIEZALEZNEJ REGULACJI ZNAKOW */
+
+
+/* ==========================================================
+   ADMIN V10.3: CIENKI ZNAK X
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-close::before{
+  font-family:var(--close-symbol-font)!important;
+  font-weight:var(--close-symbol-weight)!important;
+  -webkit-font-smoothing:antialiased!important;
+  text-rendering:geometricPrecision!important;
+}
+/* KONIEC ADMIN V10.3 */
+
+
+/* ==========================================================
+   ADMIN V10.4: X BEZ KOLA, KOLKO TYLKO HOVER
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-close{
+  background:var(--close-background)!important;
+  border-color:var(--close-border-color)!important;
+  box-shadow:none!important;
+  border-radius:50%!important;
+  transition:
+    background-color var(--button-animation-time) ease,
+    border-color var(--button-animation-time) ease,
+    transform var(--button-animation-time) ease!important;
+}
+#appointmentDetailsModal .crm-safe-close:hover,
+#appointmentDetailsModal .crm-safe-close:focus-visible{
+  background:var(--close-hover-background)!important;
+  border-color:var(--close-hover-border-color)!important;
+  transform:translateY(var(--close-hover-lift))!important;
+  box-shadow:none!important;
+  outline:none!important;
+}
+/* KONIEC ADMIN V10.4 */
+
+
+/* ==========================================================
+   ADMIN V10.5: POPRAWNE NACHODZENIE KARTY KLIENTA
+   ==========================================================
+   Przyczyna wczeĹniejszego obcinania:
+   crm-safe-body miaĹ overflow:auto, wiÄc karta z ujemnym margin-top
+   byĹa obcinana na gĂłrnej krawÄdzi biaĹej czÄĹci.
+
+   Teraz do gĂłry przesuwa siÄ CAĹA biaĹa czÄĹÄ panelu, a karta klienta
+   pozostaje wewnÄtrz niej. DziÄki temu karta jest nad zielonym nagĹĂłwkiem
+   i nie jest przez niego zakrywana.
+   ========================================================== */
+
+/* Zielony nagĹĂłwek jest dolnÄ warstwÄ. */
+#appointmentDetailsModal .crm-safe-header{
+  position:relative!important;
+  z-index:1!important;
+  overflow:visible!important;
+}
+
+/* BiaĹa czÄĹÄ razem z kartÄ klienta wchodzi na zielony nagĹĂłwek. */
+#appointmentDetailsModal .crm-safe-body{
+  position:relative!important;
+  z-index:2!important;
+  margin-top:calc(-1 * var(--client-overlap))!important;
+  height:calc(100% - var(--header-height) + var(--client-overlap))!important;
+  padding-top:0!important;
+  overflow-x:visible!important;
+  overflow-y:auto!important;
+  box-sizing:border-box!important;
+}
+
+/* Karta nie wychodzi juĹź poza wĹasny kontener, wiÄc nie jest obcinana. */
+#appointmentDetailsModal .crm-safe-client-card{
+  position:relative!important;
+  z-index:20!important;
+  width:calc(100% - (var(--client-side-gap) * 2))!important;
+  margin:0 var(--client-side-gap) 9px!important;
+}
+/* KONIEC ADMIN V10.5 */
+
+
+/* ==========================================================
+   ADMIN V10.6: DOLNE ROGI ZIELONEGO I ZAKLADKA INFORMACJE
+   ========================================================== */
+
+/* Osobna regulacja dolnych rogĂłw zielonego nagĹĂłwka. */
+#appointmentDetailsModal .crm-safe-header{
+  border-radius:
+    var(--header-radius)
+    var(--header-radius)
+    var(--header-bottom-right-radius)
+    var(--header-bottom-left-radius)!important;
+}
+
+/* CaĹa zawartoĹÄ zakĹadki INFORMACJE. */
+#appointmentDetailsModal .crm-safe-info{
+  padding:
+    var(--info-padding-top)
+    var(--info-padding-right)
+    var(--info-padding-bottom)
+    var(--info-padding-left)!important;
+  transform:translate(var(--info-row-move-x),var(--info-row-move-y))!important;
+}
+
+/* KaĹźdy osobny punkt w zakĹadce INFORMACJE. */
+#appointmentDetailsModal .crm-safe-info > div{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:var(--info-row-gap)!important;
+  min-height:var(--info-row-height)!important;
+  padding:var(--info-row-padding-y) var(--info-row-padding-x)!important;
+  border-bottom:1px solid var(--info-row-border-color)!important;
+  box-sizing:border-box!important;
+}
+
+/* Nazwy punktĂłw po lewej: Klient, UsĹuga, Data i godzina, ĹšrĂłdĹo. */
+#appointmentDetailsModal .crm-safe-info > div > span{
+  color:var(--info-label-color)!important;
+  font-size:var(--info-label-size)!important;
+  line-height:1.3!important;
+}
+
+/* WartoĹci punktĂłw po prawej. */
+#appointmentDetailsModal .crm-safe-info > div > strong{
+  width:auto!important;
+  max-width:var(--info-value-width)!important;
+  color:var(--info-value-color)!important;
+  font-size:var(--info-value-size)!important;
+  line-height:1.3!important;
+  text-align:var(--info-text-align)!important;
+  overflow-wrap:anywhere!important;
+}
+/* KONIEC ADMIN V10.6 */
