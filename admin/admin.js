@@ -878,10 +878,12 @@ function renderWeekCalendar(grid) {
     grid.innerHTML = "";
     grid.dataset.calendarView = "week";
     grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(7, minmax(130px, 1fr))";
-    grid.style.gap = "8px";
+    grid.style.gridTemplateColumns = "repeat(7, minmax(0, 1fr))";
+    grid.style.gap = "6px";
     grid.style.alignItems = "stretch";
-    grid.style.overflowX = "auto";
+    grid.style.width = "100%";
+    grid.style.minWidth = "0";
+    grid.style.overflowX = "hidden";
 
     const monday = getMondayOfWeek(selectedCalendarDate);
     const dayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
@@ -892,7 +894,7 @@ function renderWeekCalendar(grid) {
         const column = document.createElement("section");
         column.className = "calendar-week-day";
         column.dataset.date = getFormattedISOBlockDate(date);
-        column.style.cssText = "min-height:260px;padding:9px;border:1px solid #e3d8cf;border-radius:9px;background:#fff;box-sizing:border-box;";
+        column.style.cssText = "min-width:0;min-height:260px;padding:7px;border:1px solid #e3d8cf;border-radius:9px;background:#fff;box-sizing:border-box;overflow:hidden;";
 
         if (date.toDateString() === new Date().toDateString()) {
             column.style.borderColor = "#b05c75";
@@ -925,10 +927,18 @@ function renderWeekCalendar(grid) {
 function renderMonthCalendar(grid) {
     grid.innerHTML = "";
     grid.dataset.calendarView = "month";
+
+    // Widok miesiąca zawsze zaczyna się od poniedziałku.
+    // Poprzednia wersja zachowywała poziome przewinięcie kontenera,
+    // dlatego po przejściu do miesiąca były widoczne tylko Pt–Ndz.
+    grid.scrollLeft = 0;
     grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(7, minmax(115px, 1fr))";
+    grid.style.gridTemplateColumns = "repeat(7, minmax(0, 1fr))";
+    grid.style.width = "100%";
+    grid.style.minWidth = "0";
+    grid.style.maxWidth = "100%";
     grid.style.gap = "6px";
-    grid.style.overflowX = "auto";
+    grid.style.overflowX = "hidden";
 
     const year = selectedCalendarDate.getFullYear();
     const month = selectedCalendarDate.getMonth();
@@ -5975,6 +5985,34 @@ function crmRenderThreeDayCalendar(grid) {
     }
     grid.appendChild(shell); crmRenderCalendarInsights();
 }
+function crmEnsureCalendarInsights() {
+    let panel = document.getElementById("crmCalendarInsights");
+    if (panel) return panel;
+
+    const layout = document.querySelector("#tab-kalendarz .calendar-three-columns");
+    if (!layout) return null;
+
+    panel = document.createElement("aside");
+    panel.id = "crmCalendarInsights";
+    panel.className = "crm-calendar-insights";
+    panel.setAttribute("aria-label", "Podsumowanie kalendarza");
+    panel.innerHTML = `
+        <header class="crm-insights-header">
+            <div>
+                <span id="crmInsightsEyebrow">Podsumowanie terminarza</span>
+                <h3 id="crmInsightsTitle">Wybrany okres</h3>
+            </div>
+        </header>
+        <div id="crmInsightsMetrics" class="crm-insights-metrics"></div>
+        <div id="crmInsightsNext" class="crm-insights-next"></div>
+        <div class="crm-insights-actions">
+            <p>Kliknij wizytę w kalendarzu, aby zobaczyć szczegóły.</p>
+        </div>`;
+
+    layout.appendChild(panel);
+    return panel;
+}
+
 function crmInsightRange() {
     const from=new Date(selectedCalendarDate); from.setHours(0,0,0,0);
     const to=new Date(from);
@@ -5988,7 +6026,8 @@ function crmInsightAppointments() {
     return (appointmentsData||[]).filter(x=>x.eventType==="appointment").filter(x=>{const d=crmDayEventDate(x);return d&&d>=from&&d<=to;});
 }
 function crmRenderCalendarInsights() {
-    const panel=document.getElementById("crmCalendarInsights"); if(!panel)return;
+    const panel = crmEnsureCalendarInsights();
+    if (!panel) return;
     const rows=crmInsightAppointments(), {from,to}=crmInsightRange();
     const totalMinutes=rows.reduce((sum,x)=>sum+(Number(x.duration)||45),0);
     const revenue=rows.reduce((sum,x)=>{const srv=(currentServices||[]).find(s=>s.name&&x.service&&s.name.trim().toLowerCase()===x.service.trim().toLowerCase());return sum+(Number(x.price??srv?.price)||0);},0);
