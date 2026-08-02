@@ -6197,7 +6197,7 @@ function crmInstallSafeRightVisitPanel() {
           <h4 id="appointmentDetailsTitle">✓ POTWIERDZONO</h4>
           <small id="crmVisitReservationId"></small>
         </div>
-        <button id="crmVisitStatusButton" type="button" class="crm-safe-status-btn" onclick="crmToggleVisitStatusMenu()">Zmień status⌄</button>
+        <button id="crmVisitStatusButton" type="button" class="crm-safe-status-btn" onclick="crmToggleVisitStatusMenu()">Zmień status</button>
         <div id="crmVisitStatusMenu" class="crm-safe-status-menu" hidden>
           <button type="button" onclick="crmVisitStatusAction('COMPLETED')">Zrealizowana</button>
           <button type="button" onclick="crmVisitStatusAction('NO_SHOW')">Nieobecność</button>
@@ -6268,3 +6268,258 @@ openAppointmentDetailsModal = function(app) {
 
 document.addEventListener("DOMContentLoaded", crmInstallSafeRightVisitPanel);
 /* KONIEC ADMIN V10-SAFE */
+
+
+/* ==========================================================
+   ADMIN V11: TYDZIEN DYNAMICZNY I STALA LISTA DNIA
+   - 7 dni w jednym rzedzie
+   - liczba kart zalezy od dostepnej wysokosci
+   - lista dnia pozostaje otwarta po wyborze wizyty
+   ========================================================== */
+let crmOpenDayListDate = null;
+let crmOpenDayListSelectedKey = "";
+let crmWeekResizeTimer = null;
+
+function crmEscapeText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    })[char]);
+}
+
+function crmVisitStableKey(item) {
+    return String(item?.eventId || [item?.date, item?.phone, item?.name, item?.service].join("|"));
+}
+
+function crmVisitEndTime(item) {
+    const start = new Date(item?.date);
+    if (Number.isNaN(start.getTime())) return "";
+    const explicit = new Date(item?.endDate || item?.end || "");
+    const end = !Number.isNaN(explicit.getTime())
+        ? explicit
+        : new Date(start.getTime() + (Math.max(5, Number(item?.duration) || 45) * 60000));
+    return formatCalendarTime(start) + "–" + formatCalendarTime(end);
+}
+
+function crmVisitService(item) {
+    return String(item?.service || item?.name || (item?.eventType === "block" ? "Zablokowany czas" : "Wizyta"));
+}
+
+function crmVisitClient(item) {
+    if (item?.eventType === "block") return "Blokada";
+    if (item?.eventType === "external") return "Google Calendar";
+    return String(item?.name || "Klient");
+}
+
+function crmVisitCategoryColor(item) {
+    if (item?.eventType === "block") return "#aaa2a7";
+    if (item?.eventType === "external") return "#9aa2af";
+    const service = currentServices.find(value =>
+        value?.name && item?.service &&
+        value.name.trim().toLowerCase() === item.service.trim().toLowerCase()
+    );
+    const category = item?.category || service?.category || "";
+    return item?.categoryColor || globalColors?.[category] || "#b05c75";
+}
+
+function crmHexToSoftBackground(color) {
+    const source = String(color || "#b05c75").trim();
+    const match = source.match(/^#([0-9a-f]{6})$/i);
+    if (!match) return "rgba(176,92,117,.13)";
+    const number = parseInt(match[1], 16);
+    const r = (number >> 16) & 255;
+    const g = (number >> 8) & 255;
+    const b = number & 255;
+    return `rgba(${r},${g},${b},.14)`;
+}
+
+function crmStatusIcon(item) {
+    const status = String(item?.crmStatus || item?.status || "").toUpperCase();
+    if (/COMPLET|ZREALIZ/.test(status)) return "★";
+    if (/PENDING|OCZEK/.test(status)) return "⌛";
+    if (/CANCEL|ANUL/.test(status)) return "×";
+    if (/NO_SHOW|NIEOBEC/.test(status)) return "!";
+    if (item?.eventType === "block") return "■";
+    return "✓";
+}
+
+function crmCreateWeekVisitCard(item) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "crm-week-visit-card";
+    const color = crmVisitCategoryColor(item);
+    button.style.setProperty("--crm-event-color", color);
+    button.style.setProperty("--crm-event-soft", crmHexToSoftBackground(color));
+    button.dataset.visitKey = crmVisitStableKey(item);
+    button.innerHTML = `
+      <span class="crm-week-visit-time"><i>${crmEscapeText(crmStatusIcon(item))}</i>${crmEscapeText(crmVisitEndTime(item))}</span>
+      <strong>${crmEscapeText(crmVisitService(item))}</strong>
+      <small>${crmEscapeText(crmVisitClient(item))}</small>`;
+    button.title = `${crmVisitEndTime(item)} ${crmVisitService(item)} ${crmVisitClient(item)}`;
+    button.addEventListener("click", () => openAppointmentDetailsModal(item));
+    return button;
+}
+
+function crmWeekVisibleCapacity(grid) {
+    const rect = grid.getBoundingClientRect();
+    const viewportBottom = window.innerHeight - 18;
+    const available = Math.max(300, viewportBottom - rect.top);
+    const header = 64;
+    const moreButton = 34;
+    const cardWithGap = 72;
+    return Math.max(2, Math.floor((available - header - moreButton) / cardWithGap));
+}
+
+function crmRenderWeekColumnEvents(column, date, events, capacity) {
+    const list = column.querySelector(".crm-week-events");
+    if (!list) return;
+    list.innerHTML = "";
+    const visible = events.slice(0, capacity);
+    visible.forEach(item => list.appendChild(crmCreateWeekVisitCard(item)));
+    const hidden = Math.max(0, events.length - visible.length);
+    if (hidden > 0) {
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "crm-week-more";
+        more.textContent = `+${hidden} pozostałe`;
+        more.addEventListener("click", () => crmOpenDayVisitsList(date));
+        list.appendChild(more);
+    }
+}
+
+function renderWeekCalendar(grid) {
+    grid.innerHTML = "";
+    grid.dataset.calendarView = "week";
+    grid.className = "crm-week-grid";
+    grid.style.cssText = "";
+    const monday = getMondayOfWeek(selectedCalendarDate);
+    const dayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
+    const dayData = [];
+
+    for (let index = 0; index < 7; index++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + index);
+        const events = getCalendarEventsForDate(date).filter(item => item.eventType !== "work_shift");
+        const column = document.createElement("section");
+        column.className = "calendar-week-day crm-week-column";
+        column.dataset.date = getFormattedISOBlockDate(date);
+        if (date.toDateString() === new Date().toDateString()) column.classList.add("is-today");
+
+        const header = document.createElement("div");
+        header.className = "crm-week-day-header";
+        const dateButton = document.createElement("button");
+        dateButton.type = "button";
+        dateButton.innerHTML = `<strong>${dayNames[index]} ${date.getDate()}.${date.getMonth()+1}</strong><span>${events.length} ${events.length === 1 ? "wizyta" : "wizyt"}</span>`;
+        dateButton.addEventListener("click", () => crmOpenDayVisitsList(date));
+        header.appendChild(dateButton);
+        column.appendChild(header);
+
+        const list = document.createElement("div");
+        list.className = "crm-week-events";
+        column.appendChild(list);
+        grid.appendChild(column);
+        dayData.push({column, date, events});
+    }
+
+    requestAnimationFrame(() => {
+        const capacity = crmWeekVisibleCapacity(grid);
+        dayData.forEach(data => crmRenderWeekColumnEvents(data.column, data.date, data.events, capacity));
+    });
+}
+
+function crmEnsureDayVisitsList() {
+    let overlay = document.getElementById("crmDayVisitsOverlay");
+    if (overlay) return overlay;
+    overlay = document.createElement("div");
+    overlay.id = "crmDayVisitsOverlay";
+    overlay.className = "crm-day-list-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <section class="crm-day-list-panel" role="dialog" aria-modal="false" aria-labelledby="crmDayVisitsTitle">
+        <header>
+          <div><span>Wszystkie wizyty</span><h3 id="crmDayVisitsTitle">Wybrany dzień</h3></div>
+          <button type="button" class="crm-day-list-close" aria-label="Zamknij">×</button>
+        </header>
+        <div id="crmDayVisitsBody" class="crm-day-list-body"></div>
+      </section>`;
+    overlay.querySelector(".crm-day-list-close").addEventListener("click", crmCloseDayVisitsList);
+    overlay.addEventListener("click", event => {
+        if (event.target === overlay) crmCloseDayVisitsList();
+    });
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function crmOpenDayVisitsList(date) {
+    const overlay = crmEnsureDayVisitsList();
+    crmOpenDayListDate = new Date(date);
+    overlay.hidden = false;
+    crmRenderDayVisitsList();
+}
+
+function crmCloseDayVisitsList() {
+    const overlay = document.getElementById("crmDayVisitsOverlay");
+    if (overlay) overlay.hidden = true;
+    crmOpenDayListDate = null;
+    crmOpenDayListSelectedKey = "";
+}
+
+function crmRenderDayVisitsList() {
+    if (!crmOpenDayListDate) return;
+    const title = document.getElementById("crmDayVisitsTitle");
+    const body = document.getElementById("crmDayVisitsBody");
+    if (!title || !body) return;
+    title.textContent = crmOpenDayListDate.toLocaleDateString("pl-PL", {
+        weekday:"long", day:"numeric", month:"long", year:"numeric"
+    });
+    const events = getCalendarEventsForDate(crmOpenDayListDate).filter(item => item.eventType !== "work_shift");
+    body.innerHTML = "";
+    if (!events.length) {
+        const empty = document.createElement("p");
+        empty.className = "crm-day-list-empty";
+        empty.textContent = "Brak wizyt w tym dniu.";
+        body.appendChild(empty);
+        return;
+    }
+    events.forEach(item => {
+        const key = crmVisitStableKey(item);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "crm-day-list-item" + (key === crmOpenDayListSelectedKey ? " is-selected" : "");
+        const color = crmVisitCategoryColor(item);
+        button.style.setProperty("--crm-event-color", color);
+        button.style.setProperty("--crm-event-soft", crmHexToSoftBackground(color));
+        button.innerHTML = `
+          <span class="crm-day-list-time">${crmEscapeText(crmVisitEndTime(item))}</span>
+          <span class="crm-day-list-copy"><strong>${crmEscapeText(crmVisitService(item))}</strong><small>${crmEscapeText(crmVisitClient(item))}</small></span>
+          <span class="crm-day-list-status">${crmEscapeText(crmStatusIcon(item))}</span>`;
+        button.addEventListener("click", () => {
+            crmOpenDayListSelectedKey = key;
+            body.querySelectorAll(".crm-day-list-item").forEach(node => node.classList.remove("is-selected"));
+            button.classList.add("is-selected");
+            openAppointmentDetailsModal(item);
+        });
+        body.appendChild(button);
+    });
+}
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        const overlay = document.getElementById("crmDayVisitsOverlay");
+        if (overlay && !overlay.hidden) crmCloseDayVisitsList();
+    }
+});
+
+window.addEventListener("resize", () => {
+    clearTimeout(crmWeekResizeTimer);
+    crmWeekResizeTimer = setTimeout(() => {
+        if (calendarViewMode === "week") renderBooksyCalendar();
+    }, 140);
+});
+
+const crmV11SwitchTabOriginal = switchTab;
+switchTab = function(tabName) {
+    if (tabName !== "kalendarz") crmCloseDayVisitsList();
+    return crmV11SwitchTabOriginal(tabName);
+};
+/* KONIEC ADMIN V11 */
+
