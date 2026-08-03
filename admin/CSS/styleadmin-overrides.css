@@ -1564,3 +1564,114 @@ body.crm-v3-details-open .crm-day-list-panel {
 }
 /* KONIEC ADMIN V14.2 */
 
+/* ==========================================================
+   ADMIN V14.4: MENU STATUSU ZAWSZE NAD KARTA KLIENTA
+   Ten blok musi byc w overrides, poniewaz starsze V10.5 w tym samym
+   pliku ustawialo naglowek na z-index:1, a biala czesc na z-index:2.
+   ========================================================== */
+#appointmentDetailsModal.crm-safe-visit-panel {
+  isolation: isolate !important;
+}
+
+#appointmentDetailsModal .crm-safe-header {
+  position: relative !important;
+  z-index: 300 !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+}
+
+#appointmentDetailsModal .crm-safe-status-btn {
+  position: relative !important;
+  z-index: 302 !important;
+}
+
+#appointmentDetailsModal .crm-safe-status-menu {
+  position: absolute !important;
+  z-index: 500 !important;
+  top: 49px !important;
+  right: 12px !important;
+  width: 190px !important;
+  max-height: min(240px, calc(100vh - 90px)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+#appointmentDetailsModal .crm-safe-body {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+#appointmentDetailsModal .crm-safe-client-card {
+  z-index: 20 !important;
+}
+/* KONIEC ADMIN V14.4 */
+
+/* ==========================================================
+   ADMIN V14.5: KARTA KLIENTA NAD ZIELONYM NAGLOWKIEM
+   Kolejnosc warstw:
+   1. zielone tlo naglowka
+   2. karta klienta nachodzaca na naglowek
+   3. rozwijane menu statusu nad karta klienta
+   ========================================================== */
+#appointmentDetailsModal.crm-safe-visit-panel {
+  isolation: isolate !important;
+}
+
+/* Naglowek nie tworzy osobnego kontekstu warstw, dzieki czemu jego menu
+   moze byc wyzej niz karta klienta znajdujaca sie w bialej czesci. */
+#appointmentDetailsModal .crm-safe-header {
+  position: relative !important;
+  z-index: auto !important;
+  isolation: auto !important;
+  overflow: visible !important;
+}
+
+#appointmentDetailsModal .crm-safe-body {
+  position: relative !important;
+  z-index: auto !important;
+  overflow: visible auto !important;
+}
+
+/* Karta klienta fizycznie nachodzi na dolna czesc zielonego pola. */
+#appointmentDetailsModal .crm-safe-client-card {
+  position: relative !important;
+  z-index: 40 !important;
+  margin-top: calc(-1 * var(--client-overlap)) !important;
+  background: #ffffff !important;
+}
+
+/* Przycisk pozostaje w naglowku, ale menu jest niezalezna warstwa nad karta. */
+#appointmentDetailsModal .crm-safe-status-btn {
+  position: relative !important;
+  z-index: 80 !important;
+}
+
+#appointmentDetailsModal .crm-safe-status-menu {
+  position: absolute !important;
+  z-index: 120 !important;
+  top: 49px !important;
+  right: 12px !important;
+}
+/* KONIEC ADMIN V14.5 */
+
+/* ==========================================================
+   ADMIN V14.6: POZYCJA KARTY KLIENTA JAK PRZED NAPRAWA MENU
+   Pozycja karty jest niezalezna od warstwy rozwijanego menu.
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-client-card {
+  position: relative !important;
+  z-index: 40 !important;
+  margin-top: -18px !important;
+  margin-right: var(--client-side-gap) !important;
+  margin-bottom: 9px !important;
+  margin-left: var(--client-side-gap) !important;
+}
+
+/* Menu pozostaje ponad karta, ale nie steruje jej polozeniem. */
+#appointmentDetailsModal .crm-safe-status-menu {
+  z-index: 500 !important;
+}
+/* KONIEC ADMIN V14.6 */
+
