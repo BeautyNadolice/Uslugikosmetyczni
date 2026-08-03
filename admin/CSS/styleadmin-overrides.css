@@ -1,0 +1,1498 @@
+/* ===== WSPOLNA SZYBKOSC ANIMACJI ===== */
+#appointmentDetailsModal button,
+#appointmentDetailsModal .crm-safe-client-card{
+  transition-duration:var(--button-animation-time)!important;
+}
+
+/* ============================================================================
+   KONIEC CENTRUM SAMODZIELNEJ REGULACJI PRAWEGO PANELU
+   ============================================================================ */
+
+
+/* ============================================================================
+   NIEZALEZNA REGULACJA SAMEGO ZNAKU X ORAZ SAMEGO ZNAKU PLUS
+   ============================================================================
+   WAZNE:
+   - --close-move-up / --close-move-left przesuwaja CALE KOLO z krzyzykiem.
+   - --close-symbol-move-x / --close-symbol-move-y przesuwaja TYLKO znak X.
+   - --plus-move-up przesuwa CALE KOLO z plusem.
+   - --plus-symbol-move-x / --plus-symbol-move-y przesuwaja TYLKO znak +.
+   ============================================================================ */
+
+/* TYLKO ZNAK X W KOLKU ZAMKNIECIA PRAWEGO PANELU */
+#appointmentDetailsModal .crm-safe-close{
+  font-size:0!important;                 /* ukrywa oryginalny tekstowy znak X */
+  line-height:1!important;
+  overflow:visible!important;
+}
+#appointmentDetailsModal .crm-safe-close::before{
+  content:"×";
+  display:block;
+  position:relative;
+  left:var(--close-symbol-move-x);
+  top:var(--close-symbol-move-y);
+  color:#ffffff;
+  font-family:var(--close-symbol-font);
+  font-size:var(--close-font-size);
+  font-weight:var(--close-symbol-weight);
+  line-height:1;
+  pointer-events:none;
+}
+
+/* TYLKO ZNAK PLUS W KOLKU PRZYCISKU DODAJ KOLEJNA USLUGE */
+#appointmentDetailsModal .crm-safe-add-service b{
+  font-size:0!important;                 /* ukrywa oryginalny tekstowy znak + */
+  overflow:visible!important;
+}
+#appointmentDetailsModal .crm-safe-add-service b::before{
+  content:"+";
+  display:block;
+  position:relative;
+  left:var(--plus-symbol-move-x);
+  top:var(--plus-symbol-move-y);
+  color:#ffffff;
+  font-family:Arial,sans-serif;
+  font-size:var(--plus-font-size);
+  font-weight:700;
+  line-height:1;
+  pointer-events:none;
+}
+
+/* TE SAME PARAMETRY DLA INNYCH BIALYCH PLUSOW W ADMIN,
+   JEZELI KORZYSTAJA Z KLAS crm-white-plus LUB crm-action-symbol. */
+.crm-white-plus,
+.crm-action-symbol{
+  font-size:0!important;
+  overflow:visible!important;
+}
+.crm-white-plus::before,
+.crm-action-symbol::before{
+  content:"+";
+  display:inline-block;
+  position:relative;
+  left:var(--plus-symbol-move-x, 0px);
+  top:var(--plus-symbol-move-y, 0px);
+  color:#ffffff;
+  font-family:Arial,sans-serif;
+  font-size:var(--plus-font-size, 15px);
+  font-weight:700;
+  line-height:1;
+  pointer-events:none;
+}
+/* KONIEC NIEZALEZNEJ REGULACJI ZNAKOW */
+
+
+/* ==========================================================
+   ADMIN V10.3: CIENKI ZNAK X
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-close::before{
+  font-family:var(--close-symbol-font)!important;
+  font-weight:var(--close-symbol-weight)!important;
+  -webkit-font-smoothing:antialiased!important;
+  text-rendering:geometricPrecision!important;
+}
+/* KONIEC ADMIN V10.3 */
+
+
+/* ==========================================================
+   ADMIN V10.4: X BEZ KOLA, KOLKO TYLKO HOVER
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-close{
+  background:var(--close-background)!important;
+  border-color:var(--close-border-color)!important;
+  box-shadow:none!important;
+  border-radius:50%!important;
+  transition:
+    background-color var(--button-animation-time) ease,
+    border-color var(--button-animation-time) ease,
+    transform var(--button-animation-time) ease!important;
+}
+#appointmentDetailsModal .crm-safe-close:hover,
+#appointmentDetailsModal .crm-safe-close:focus-visible{
+  background:var(--close-hover-background)!important;
+  border-color:var(--close-hover-border-color)!important;
+  transform:translateY(var(--close-hover-lift))!important;
+  box-shadow:none!important;
+  outline:none!important;
+}
+/* KONIEC ADMIN V10.4 */
+
+
+/* ==========================================================
+   ADMIN V10.5: POPRAWNE NACHODZENIE KARTY KLIENTA
+   ==========================================================
+   Przyczyna wcześniejszego obcinania:
+   crm-safe-body miał overflow:auto, więc karta z ujemnym margin-top
+   była obcinana na górnej krawędzi białej części.
+
+   Teraz do góry przesuwa się CAŁA biała część panelu, a karta klienta
+   pozostaje wewnątrz niej. Dzięki temu karta jest nad zielonym nagłówkiem
+   i nie jest przez niego zakrywana.
+   ========================================================== */
+
+/* Zielony nagłówek jest dolną warstwą. */
+#appointmentDetailsModal .crm-safe-header{
+  position:relative!important;
+  z-index:1!important;
+  overflow:visible!important;
+}
+
+/* Biała część razem z kartą klienta wchodzi na zielony nagłówek. */
+#appointmentDetailsModal .crm-safe-body{
+  position:relative!important;
+  z-index:2!important;
+  margin-top:calc(-1 * var(--client-overlap))!important;
+  height:calc(100% - var(--header-height) + var(--client-overlap))!important;
+  padding-top:0!important;
+  overflow-x:visible!important;
+  overflow-y:auto!important;
+  box-sizing:border-box!important;
+}
+
+/* Karta nie wychodzi już poza własny kontener, więc nie jest obcinana. */
+#appointmentDetailsModal .crm-safe-client-card{
+  position:relative!important;
+  z-index:20!important;
+  width:calc(100% - (var(--client-side-gap) * 2))!important;
+  margin:0 var(--client-side-gap) 9px!important;
+}
+/* KONIEC ADMIN V10.5 */
+
+
+/* ==========================================================
+   ADMIN V10.6: DOLNE ROGI ZIELONEGO I ZAKLADKA INFORMACJE
+   ========================================================== */
+
+/* Osobna regulacja dolnych rogów zielonego nagłówka. */
+#appointmentDetailsModal .crm-safe-header{
+  border-radius:
+    var(--header-radius)
+    var(--header-radius)
+    var(--header-bottom-right-radius)
+    var(--header-bottom-left-radius)!important;
+}
+
+/* Cała zawartość zakładki INFORMACJE. */
+#appointmentDetailsModal .crm-safe-info{
+  padding:
+    var(--info-padding-top)
+    var(--info-padding-right)
+    var(--info-padding-bottom)
+    var(--info-padding-left)!important;
+  transform:translate(var(--info-row-move-x),var(--info-row-move-y))!important;
+}
+
+/* Każdy osobny punkt w zakładce INFORMACJE. */
+#appointmentDetailsModal .crm-safe-info > div{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:var(--info-row-gap)!important;
+  min-height:var(--info-row-height)!important;
+  padding:var(--info-row-padding-y) var(--info-row-padding-x)!important;
+  border-bottom:1px solid var(--info-row-border-color)!important;
+  box-sizing:border-box!important;
+}
+
+/* Nazwy punktów po lewej: Klient, Usługa, Data i godzina, Źródło. */
+#appointmentDetailsModal .crm-safe-info > div > span{
+  color:var(--info-label-color)!important;
+  font-size:var(--info-label-size)!important;
+  line-height:1.3!important;
+}
+
+/* Wartości punktów po prawej. */
+#appointmentDetailsModal .crm-safe-info > div > strong{
+  width:auto!important;
+  max-width:var(--info-value-width)!important;
+  color:var(--info-value-color)!important;
+  font-size:var(--info-value-size)!important;
+  line-height:1.3!important;
+  text-align:var(--info-text-align)!important;
+  overflow-wrap:anywhere!important;
+}
+/* KONIEC ADMIN V10.6 */
+
+
+/* ==========================================================
+   ADMIN V10.7: STATYCZNY PANEL PRAWEJ STRONY KALENDARZA
+   ========================================================== */
+
+/* Kalendarz ponownie ma stale trzy kolumny:
+   1) mini-kalendarz i filtry,
+   2) terminarz,
+   3) statyczne podsumowanie po prawej. */
+#tab-kalendarz .calendar-three-columns{
+  display:grid!important;
+  grid-template-columns:
+    var(--crm-calendar-side, 235px)
+    minmax(600px,1fr)
+    var(--crm-insights-width, 350px)!important;
+  gap:14px!important;
+  align-items:start!important;
+  padding-right:0!important;
+}
+
+/* Statyczny prawy panel jest zawsze widoczny w Kalendarzu. */
+#tab-kalendarz .crm-calendar-insights{
+  display:block!important;
+  position:sticky!important;
+  top:14px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-height:calc(100vh - 28px)!important;
+  overflow:auto!important;
+  z-index:4!important;
+}
+
+/* Panel klienta jest warstwą prawej kolumny tylko podczas oglądania Kalendarza. */
+body:not(.crm-v3-details-open) #appointmentDetailsModal{
+  display:none!important;
+}
+body.crm-v3-details-open #appointmentDetailsModal.crm-safe-visit-panel{
+  display:flex!important;
+}
+
+/* Gdy zakładka Kalendarz nie jest aktywna, panel klienta nie może zostać na ekranie. */
+body.crm-v3-details-open #tab-kalendarz[style*="display: none"] ~ #appointmentDetailsModal,
+#tab-kalendarz[style*="display: none"] #appointmentDetailsModal{
+  display:none!important;
+}
+
+/* Panel klienta pozostaje w granicach wysokości obszaru Kalendarza / ekranu. */
+#appointmentDetailsModal.crm-safe-visit-panel{
+  max-height:calc(100vh - var(--panel-top) - var(--panel-bottom))!important;
+  overflow:hidden!important;
+}
+#appointmentDetailsModal .crm-safe-visit-surface{
+  max-height:100%!important;
+  overflow:hidden!important;
+}
+
+/* Przy mniejszym ekranie prawa kolumna nadal istnieje, ale może być węższa. */
+@media(max-width:1450px){
+  #tab-kalendarz .calendar-three-columns{
+    grid-template-columns:210px minmax(560px,1fr) 320px!important;
+  }
+}
+
+/* Dopiero na bardzo wąskim ekranie podsumowanie przechodzi pod terminarz,
+   zamiast znikać całkowicie. */
+@media(max-width:1100px){
+  #tab-kalendarz .calendar-three-columns{
+    grid-template-columns:205px minmax(540px,1fr)!important;
+  }
+  #tab-kalendarz .crm-calendar-insights{
+    grid-column:1 / -1!important;
+    position:relative!important;
+    top:auto!important;
+    max-height:none!important;
+  }
+}
+/* KONIEC ADMIN V10.7 */
+
+
+/* ==========================================================
+   ADMIN V10.8: BIALY PLUS W DODAJ WIZYTE
+   Bez zmian parametrow bocznego panelu informacji o wizycie.
+   ========================================================== */
+#tab-kalendarz .crm-add-appointment-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;}
+#tab-kalendarz .crm-add-appointment-plus{display:inline-block!important;color:#fff!important;font-family:Arial,sans-serif!important;font-size:19px!important;font-weight:400!important;line-height:1!important;transform:translateY(-1px)!important;}
+#tab-kalendarz .crm-insights-calendar-icon{display:none!important;}
+/* KONIEC ADMIN V10.8 */
+
+/* ==========================================================
+   ADMIN V10.9: GORNY PASEK I PANEL PODSUMOWANIA JAK WE WZORZE
+   - prawy panel zaczyna sie przy gornej krawedzi,
+   - gorny pasek konczy sie przed prawa kolumna,
+   - przyciski przesuwaja sie w lewo razem z paskiem,
+   - bez zmian parametrow panelu informacji o wizycie.
+   ========================================================== */
+#tab-kalendarz{
+  --crm-topbar-height:70px;
+  --crm-topbar-gap:10px;
+}
+
+/* Mniejszy odstep od gornej krawedzi ekranu. */
+.main-content{
+  padding-top:4px!important;
+}
+
+/* Pasek Dzien / Tydzien / Miesiac oraz przyciski nie wchodza pod prawy panel. */
+#tab-kalendarz .calendar-layout-header{
+  margin-right:calc(var(--crm-insights-width) + 14px)!important;
+  min-height:var(--crm-topbar-height)!important;
+}
+
+/* Prawy panel podnosimy o wysokosc gornego paska i jego dolny odstep. */
+#tab-kalendarz .crm-calendar-insights{
+  margin-top:calc(-1 * (var(--crm-topbar-height) + var(--crm-topbar-gap)))!important;
+  top:4px!important;
+  min-height:calc(100vh - 8px)!important;
+}
+
+/* Przy mniejszych ekranach nie stosujemy podnoszenia, gdy prawa kolumna znika. */
+@media(max-width:1250px){
+  #tab-kalendarz .calendar-layout-header{
+    margin-right:0!important;
+  }
+  #tab-kalendarz .crm-calendar-insights{
+    margin-top:0!important;
+    top:auto!important;
+    min-height:auto!important;
+  }
+}
+/* KONIEC ADMIN V10.9 */
+
+/* ==========================================================
+   ADMIN V10.10: GORNY PASEK BEZ ZMIANY PO OTWARCIU WIZYTY
+   Panel szczegolow nie moze przywracac starej szerokosci paska.
+   Nie zmienia zadnych parametrow wygladu panelu wizyty.
+   ========================================================== */
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
+  margin-right:calc(var(--crm-insights-width) + 14px)!important;
+  min-height:var(--crm-topbar-height,70px)!important;
+}
+
+/* Przyciski pozostaja widoczne w skroconym pasku. */
+body.crm-v3-details-open #tab-kalendarz .calendar-layout-header > div:last-child{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+
+/* Na ekranie bez stalej prawej kolumny pasek ponownie zajmuje cala szerokosc. */
+@media(max-width:1250px){
+  body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{
+    margin-right:0!important;
+  }
+}
+/* KONIEC ADMIN V10.10 */
+
+/* ==========================================================
+   ADMIN V10.11: MIESIAC BEZ OBCINANIA KOLUMN
+   Tylko szerokosc siatki miesiaca. Panel wizyty bez zmian.
+   ========================================================== */
+#tab-kalendarz .calendar-main-schedule{
+  min-width:0!important;
+}
+#tab-kalendarz #booksy-grid[data-calendar-view="month"]{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow-x:hidden!important;
+}
+#tab-kalendarz #booksy-grid[data-calendar-view="month"] > *{
+  min-width:0!important;
+}
+#tab-kalendarz #booksy-grid[data-calendar-view="month"] .calendar-month-day{
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  overflow:hidden!important;
+}
+#tab-kalendarz #booksy-grid[data-calendar-view="month"] .calendar-compact-event{
+  min-width:0!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+/* KONIEC ADMIN V10.11 */
+
+
+/* ==========================================================
+   ADMIN V10.13: SPOJNY UKLAD KALENDARZA 100%
+   Poprawia wyłącznie główny układ Kalendarza.
+   Nie zmienia ręcznych parametrów panelu informacji o wizycie.
+   ========================================================== */
+
+@media (min-width: 1251px) {
+  :root {
+    --crm-sidebar: 185px;
+    --crm-calendar-side: 230px;
+    --crm-insights-width: 330px;
+    --crm-layout-gap: 10px;
+  }
+
+  .sidebar {
+    width: var(--crm-sidebar) !important;
+  }
+
+  .main-content {
+    width: calc(100% - var(--crm-sidebar)) !important;
+    margin-left: var(--crm-sidebar) !important;
+    padding: 10px !important;
+    min-width: 0 !important;
+  }
+
+  #tab-kalendarz {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #tab-kalendarz .calendar-layout-header {
+    display: grid !important;
+    grid-template-columns: max-content minmax(280px, 1fr) max-content !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-bottom: 10px !important;
+    padding: 8px 10px !important;
+  }
+
+  #tab-kalendarz .calendar-view-toggle,
+  #tab-kalendarz .calendar-date-scroller,
+  #tab-kalendarz .calendar-layout-header > div:last-child {
+    min-width: 0 !important;
+    flex-wrap: nowrap !important;
+  }
+
+  #tab-kalendarz .calendar-date-scroller {
+    width: auto !important;
+    justify-self: stretch !important;
+  }
+
+  #tab-kalendarz .calendar-date-scroller h3 {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  #tab-kalendarz .calendar-layout-header > div:last-child {
+    justify-self: end !important;
+  }
+
+  #tab-kalendarz .calendar-layout-header > div:last-child button {
+    white-space: nowrap !important;
+  }
+
+  #tab-kalendarz .calendar-three-columns {
+    display: grid !important;
+    grid-template-columns:
+      var(--crm-calendar-side)
+      minmax(0, 1fr)
+      var(--crm-insights-width) !important;
+    gap: var(--crm-layout-gap) !important;
+    align-items: start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #tab-kalendarz .calendar-sidebar {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 14px !important;
+  }
+
+  #tab-kalendarz .calendar-main-schedule {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #tab-kalendarz .crm-calendar-insights {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 16px !important;
+  }
+
+  /* Terminarz: trzy równe dni, bez minimalnej szerokości wypychającej panel. */
+  #tab-kalendarz .crm-three-day-calendar {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  #tab-kalendarz .crm-3day-shell {
+    display: grid !important;
+    grid-template-columns: 48px repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #tab-kalendarz .crm-3day-labels,
+  #tab-kalendarz .crm-3day-column,
+  #tab-kalendarz .crm-3day-canvas,
+  #tab-kalendarz .crm-3day-events {
+    min-width: 0 !important;
+  }
+
+  /* Tydzień i miesiąc mieszczą się w środkowej kolumnie przy skali 100%. */
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"],
+  #tab-kalendarz #booksy-grid[data-calendar-view="month"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  }
+
+  #tab-kalendarz #booksy-grid[data-calendar-view="month"] {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  }
+
+  #tab-kalendarz .calendar-week-day,
+  #tab-kalendarz .calendar-month-day {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.crm-v3-details-open #tab-kalendarz .calendar-three-columns {
+    padding-right: 0 !important;
+  }
+
+  body.crm-v3-details-open #tab-kalendarz .calendar-layout-header {
+    margin-right: 0 !important;
+  }
+}
+
+@media (min-width: 1251px) and (max-width: 1500px) {
+  :root {
+    --crm-sidebar: 175px;
+    --crm-calendar-side: 205px;
+    --crm-insights-width: 300px;
+    --crm-layout-gap: 8px;
+  }
+
+  #tab-kalendarz .btn-toggle {
+    padding-inline: 10px !important;
+  }
+
+  #tab-kalendarz .calendar-layout-header > div:last-child .btn-primary {
+    padding-inline: 10px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* KONIEC ADMIN V10.13 */
+
+
+/* ==========================================================
+   ADMIN V10.14: TYDZIEN 7 DNI BEZ PRZEWIJANIA
+   Wszystkie dni od Pon do Ndz zawsze mieszczą się w środkowej kolumnie.
+   Nie zmienia ręcznych parametrów prawego panelu wizyty.
+   ========================================================== */
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+  align-items: stretch !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-week-day {
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 7px !important;
+  overflow: hidden !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-week-day > button:first-child {
+  min-width: 0 !important;
+  padding: 5px 2px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-compact-event {
+  min-width: 0 !important;
+  width: 100% !important;
+  margin: 4px 0 !important;
+  padding: 5px 5px 5px 8px !important;
+  overflow: hidden !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .crm-compact-time,
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .crm-compact-client,
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-compact-event strong {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-compact-event strong {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-height: 1.15 !important;
+  font-size: 10.5px !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .crm-compact-time {
+  white-space: nowrap !important;
+  font-size: 9px !important;
+}
+
+#tab-kalendarz #booksy-grid[data-calendar-view="week"] .crm-compact-client {
+  white-space: nowrap !important;
+  font-size: 9px !important;
+}
+
+@media (min-width: 1251px) and (max-width: 1500px) {
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] {
+    gap: 4px !important;
+  }
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-week-day {
+    padding: 5px !important;
+  }
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] .calendar-week-day > button:first-child {
+    font-size: 10px !important;
+  }
+}
+/* KONIEC ADMIN V10.14 */
+
+
+/* ==========================================================
+   ADMIN V11: TYDZIEN DYNAMICZNY I LISTA WIZYT DNIA
+   Nie zmienia parametrow prawego panelu wizyty.
+   ========================================================== */
+#booksy-grid.crm-week-grid,
+#booksy-grid[data-calendar-view="week"]{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:7px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:visible!important;
+  align-items:stretch!important;
+}
+#booksy-grid .crm-week-column{
+  min-width:0!important;
+  height:calc(100vh - 190px)!important;
+  min-height:430px!important;
+  padding:0 6px 7px!important;
+  overflow:hidden!important;
+  border:1px solid #eadfe4!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.94)!important;
+}
+#booksy-grid .crm-week-column.is-today{
+  border-color:#d691aa!important;
+  box-shadow:0 0 0 2px rgba(187,111,143,.10)!important;
+}
+.crm-week-day-header{
+  height:58px;
+  display:grid;
+  align-items:center;
+  border-bottom:1px solid #f0e8ec;
+}
+.crm-week-day-header button{
+  width:100%;
+  min-width:0;
+  padding:6px 2px;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:#453c44;
+  cursor:pointer;
+  text-align:center;
+}
+.crm-week-day-header button:hover{background:#fdf4f8;color:#9f5877;}
+.crm-week-day-header strong,
+.crm-week-day-header span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.crm-week-day-header strong{font-size:12px;}
+.crm-week-day-header span{margin-top:3px;color:#9d929a;font-size:9px;font-weight:600;}
+.crm-week-events{display:flex;flex-direction:column;gap:6px;padding-top:7px;min-width:0;}
+.crm-week-visit-card{
+  --crm-event-color:#b05c75;
+  --crm-event-soft:rgba(176,92,117,.14);
+  position:relative;
+  width:100%;
+  min-width:0;
+  min-height:66px;
+  padding:7px 6px 7px 10px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.72);
+  border-left:4px solid var(--crm-event-color);
+  border-radius:9px;
+  background:linear-gradient(135deg,var(--crm-event-soft),rgba(255,255,255,.84));
+  color:#453c44;
+  cursor:pointer;
+  text-align:left;
+  box-shadow:0 4px 12px rgba(90,63,76,.055);
+  transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease;
+}
+.crm-week-visit-card:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(90,63,76,.10);}
+.crm-week-visit-time{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.crm-week-visit-time i{display:grid;place-items:center;flex:0 0 14px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.84);font-style:normal;font-size:8px;}
+.crm-week-visit-card strong{display:-webkit-box;margin-top:3px;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:10px;line-height:1.16;}
+.crm-week-visit-card small{display:block;margin-top:3px;overflow:hidden;color:#746a72;font-size:9px;text-overflow:ellipsis;white-space:nowrap;}
+.crm-week-more{
+  width:100%;
+  min-height:30px;
+  border:1px dashed #d9b5c4;
+  border-radius:9px;
+  background:#fff8fb;
+  color:#9f5877;
+  cursor:pointer;
+  font-size:10px;
+  font-weight:750;
+}
+.crm-week-more:hover{background:#f9eaf1;border-color:#c989a3;}
+
+.crm-day-list-overlay[hidden]{display:none!important;}
+.crm-day-list-overlay{
+  position:fixed;
+  inset:0;
+  z-index:9700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px calc(var(--panel-width,370px) + 28px) 24px 24px;
+  background:rgba(42,31,37,.20);
+  backdrop-filter:blur(3px);
+}
+.crm-day-list-panel{
+  width:min(560px,calc(100vw - var(--panel-width,370px) - 70px));
+  max-height:min(78vh,760px);
+  overflow:hidden;
+  border:1px solid #eadfe4;
+  border-radius:18px;
+  background:#fffdfd;
+  box-shadow:0 24px 62px rgba(65,43,54,.20);
+}
+.crm-day-list-panel>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px 15px;border-bottom:1px solid #eee5e9;background:linear-gradient(145deg,#fff,#fdf7fa);}
+.crm-day-list-panel>header span{color:#ad5577;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
+.crm-day-list-panel>header h3{margin:3px 0 0;color:#342d34;font-size:17px;text-transform:capitalize;}
+.crm-day-list-close{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:#f7edf2;color:#9f5877;cursor:pointer;font-size:24px;font-weight:300;}
+.crm-day-list-close:hover{background:#ead3dd;transform:translateY(-1px);}
+.crm-day-list-body{display:flex;flex-direction:column;gap:8px;max-height:calc(min(78vh,760px) - 78px);padding:14px 16px 18px;overflow:auto;}
+.crm-day-list-item{
+  --crm-event-color:#b05c75;
+  --crm-event-soft:rgba(176,92,117,.14);
+  display:grid;
+  grid-template-columns:86px minmax(0,1fr) 28px;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  min-height:66px;
+  padding:10px 12px;
+  border:1px solid #eadfe4;
+  border-left:5px solid var(--crm-event-color);
+  border-radius:12px;
+  background:linear-gradient(100deg,var(--crm-event-soft),#fff 54%);
+  color:#413840;
+  cursor:pointer;
+  text-align:left;
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.crm-day-list-item:hover{transform:translateY(-1px);border-color:#d7bdc8;box-shadow:0 7px 18px rgba(80,54,67,.08);}
+.crm-day-list-item.is-selected{border-color:#b65b7e;box-shadow:0 0 0 3px rgba(182,91,126,.12);}
+.crm-day-list-time{font-size:11px;font-weight:760;white-space:nowrap;}
+.crm-day-list-copy{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.crm-day-list-copy strong,.crm-day-list-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.crm-day-list-copy strong{font-size:12px;}.crm-day-list-copy small{color:#7b7078;font-size:10px;}
+.crm-day-list-status{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff;color:#31966b;font-size:11px;box-shadow:0 2px 7px rgba(75,54,64,.08);}
+.crm-day-list-empty{margin:20px;padding:22px;text-align:center;color:#8c828a;background:#faf6f8;border-radius:12px;}
+
+@media(max-width:1250px){
+  #booksy-grid .crm-week-column{padding-inline:4px!important;}
+  .crm-week-visit-card{padding-left:7px;}
+  .crm-week-visit-card small{display:none;}
+  .crm-day-list-overlay{padding-right:24px;}
+  .crm-day-list-panel{width:min(560px,94vw);}
+}
+@media(max-width:820px){
+  #booksy-grid.crm-week-grid,#booksy-grid[data-calendar-view="week"]{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory;}
+  #booksy-grid .crm-week-column{flex:0 0:min(82vw,360px);height:auto!important;min-height:420px!important;scroll-snap-align:start;}
+  .crm-day-list-overlay{padding:10px;align-items:flex-end;}
+  .crm-day-list-panel{width:100%;max-height:88vh;border-radius:20px 20px 0 0;}
+}
+/* KONIEC ADMIN V11 */
+
+
+
+/* ==========================================================
+   ADMIN V11.1: ZMIEN STATUS BEZ STRZALKI
+   Usuwa wyłącznie dekoracyjną strzałkę z przycisku statusu.
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-status-btn::before,
+#appointmentDetailsModal .crm-safe-status-btn::after,
+#appointmentDetailsModal .crm-status-button::before,
+#appointmentDetailsModal .crm-status-button::after {
+  content: none !important;
+  display: none !important;
+}
+/* KONIEC ADMIN V11.1 */
+
+/* ==========================================================
+   ADMIN: PRZYCISK "ZMIEN STATUS" BEZ STRZALKI
+   Tylko usuniecie dekoracyjnej strzalki. Bez zmian wymiarow
+   i recznych parametrow prawego panelu wizyty.
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-status-btn,
+#appointmentDetailsModal .crm-status-button,
+#appointmentDetailsModal #crmVisitStatusButton {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: none !important;
+  padding-right: 7px !important;
+}
+
+#appointmentDetailsModal .crm-safe-status-btn::before,
+#appointmentDetailsModal .crm-safe-status-btn::after,
+#appointmentDetailsModal .crm-status-button::before,
+#appointmentDetailsModal .crm-status-button::after,
+#appointmentDetailsModal #crmVisitStatusButton::before,
+#appointmentDetailsModal #crmVisitStatusButton::after {
+  content: none !important;
+  display: none !important;
+}
+/* KONIEC: PRZYCISK "ZMIEN STATUS" BEZ STRZALKI */
+
+/* ==========================================================
+   ADMIN V12: MIESIAC KOMPAKTOWY JAK BOOKSY
+   Nie zmienia parametrow prawego panelu wizyty.
+   ========================================================== */
+#booksy-grid.crm-month-grid,
+#booksy-grid[data-calendar-view="month"] {
+  --crm-month-weeks: 6;
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  grid-template-rows:38px repeat(var(--crm-month-weeks),minmax(110px,1fr))!important;
+  gap:6px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:calc(100vh - 178px)!important;
+  min-height:650px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  align-items:stretch!important;
+}
+
+.crm-month-weekday {
+  display:grid;
+  place-items:center;
+  min-width:0;
+  color:#5e535b;
+  font-size:12px;
+  font-weight:800;
+}
+
+#booksy-grid .crm-month-cell {
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:7px!important;
+  overflow:hidden!important;
+  border:1px solid #e9e1e5!important;
+  border-radius:11px!important;
+  background:rgba(255,255,255,.94)!important;
+  opacity:1!important;
+  box-shadow:none!important;
+}
+
+#booksy-grid .crm-month-cell.is-outside {
+  background:#faf7f8!important;
+  opacity:.58!important;
+}
+
+#booksy-grid .crm-month-cell.is-today {
+  border-color:#c67796!important;
+  box-shadow:0 0 0 2px rgba(182,91,126,.11)!important;
+}
+
+#booksy-grid .crm-month-cell.is-selected {
+  background:#fff9fb!important;
+}
+
+.crm-month-cell-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:5px;
+  min-width:0;
+  margin-bottom:4px;
+}
+
+.crm-month-day-number {
+  display:grid;
+  place-items:center;
+  flex:0 0 26px;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#332c31;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+}
+
+.crm-month-day-number:hover { background:#f7e9ef; color:#9f4e70; }
+.crm-month-cell.is-today .crm-month-day-number { background:#bd6686; color:#fff; }
+
+.crm-month-count {
+  min-width:0;
+  padding:2px 4px;
+  overflow:hidden;
+  border:0;
+  border-radius:6px;
+  background:transparent;
+  color:#9a8e96;
+  cursor:pointer;
+  font-size:8.5px;
+  font-weight:700;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.crm-month-count:hover { color:#9f4e70; background:#fff2f7; }
+
+.crm-month-shift {
+  display:flex;
+  flex-wrap:wrap;
+  gap:3px;
+  min-width:0;
+  margin-bottom:4px;
+}
+.crm-month-shift[hidden] { display:none!important; }
+.crm-month-shift span {
+  display:block;
+  max-width:100%;
+  padding:2px 5px;
+  overflow:hidden;
+  border:1px solid #ead58a;
+  border-radius:6px;
+  background:#fff4c7;
+  color:#6d5819;
+  font-size:8px;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.crm-month-events {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+
+.crm-month-visit-card {
+  --crm-event-color:#b05c75;
+  --crm-event-soft:rgba(176,92,117,.14);
+  position:relative;
+  display:block;
+  width:100%;
+  min-width:0;
+  height:31px;
+  padding:5px 5px 5px 8px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.76);
+  border-left:4px solid var(--crm-event-color);
+  border-radius:7px;
+  background:linear-gradient(100deg,var(--crm-event-soft),rgba(255,255,255,.88));
+  color:#443b42;
+  cursor:pointer;
+  text-align:left;
+  box-shadow:0 2px 7px rgba(80,55,67,.045);
+  transition:transform .13s ease,box-shadow .13s ease;
+}
+.crm-month-visit-card:hover {
+  z-index:2;
+  transform:translateY(-1px);
+  box-shadow:0 6px 14px rgba(80,55,67,.09);
+}
+
+.crm-month-visit-main {
+  display:grid;
+  grid-template-columns:12px 31px minmax(0,1fr);
+  align-items:center;
+  gap:3px;
+  min-width:0;
+  height:100%;
+}
+.crm-month-visit-main i {
+  display:grid;
+  place-items:center;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:rgba(255,255,255,.84);
+  color:#39956d;
+  font-size:7px;
+  font-style:normal;
+  line-height:1;
+}
+.crm-month-visit-main b {
+  overflow:hidden;
+  font-size:8.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.crm-month-visit-main span {
+  overflow:hidden;
+  font-size:8.5px;
+  font-weight:700;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.crm-month-more {
+  width:100%;
+  min-height:25px;
+  padding:3px 5px;
+  border:1px dashed #d8b2c2;
+  border-radius:7px;
+  background:#fff7fa;
+  color:#9f5877;
+  cursor:pointer;
+  font-size:8.5px;
+  font-weight:800;
+}
+.crm-month-more:hover { background:#f9e9f0; border-color:#c9829f; }
+
+@media (max-width:1450px) {
+  #booksy-grid.crm-month-grid,
+  #booksy-grid[data-calendar-view="month"] {
+    gap:4px!important;
+    min-height:610px!important;
+  }
+  #booksy-grid .crm-month-cell { padding:5px!important; }
+  .crm-month-visit-main { grid-template-columns:11px 28px minmax(0,1fr); }
+  .crm-month-visit-main b,
+  .crm-month-visit-main span { font-size:8px; }
+}
+
+@media (max-width:820px) {
+  #booksy-grid.crm-month-grid,
+  #booksy-grid[data-calendar-view="month"] {
+    grid-template-columns:repeat(7,minmax(118px,1fr))!important;
+    width:max-content!important;
+    min-width:826px!important;
+    height:auto!important;
+    min-height:620px!important;
+    overflow:visible!important;
+  }
+  .calendar-main-schedule { overflow-x:auto!important; }
+}
+/* KONIEC ADMIN V12 */
+
+/* ==========================================================
+   ADMIN V13: SPOJNE KOLORY I PELNE KARTY TYGODNIA
+   Nie zmienia recznych parametrow prawego panelu wizyty.
+   ========================================================== */
+#booksy-grid.crm-week-grid,
+#booksy-grid[data-calendar-view="week"] {
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:6px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  align-items:stretch!important;
+}
+
+#booksy-grid .crm-week-column {
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  height:calc(100vh - 178px)!important;
+  min-height:520px!important;
+  padding:0 6px 7px!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+
+#booksy-grid .crm-week-day-header {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 58px;
+  width:100%;
+  min-width:0;
+  padding:6px 2px;
+  border:0;
+  border-bottom:1px solid #eee7eb;
+  background:transparent;
+  color:#403840;
+  cursor:pointer;
+}
+#booksy-grid .crm-week-day-header strong,
+#booksy-grid .crm-week-day-header span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#booksy-grid .crm-week-day-header strong {font-size:11px;}
+#booksy-grid .crm-week-day-header span {margin-top:3px;color:#9b9098;font-size:8.5px;font-weight:700;}
+
+#booksy-grid .crm-week-events {
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+  min-height:0;
+  padding-top:7px;
+  overflow:hidden;
+}
+
+.crm-week-visit-card {
+  position:relative;
+  display:block;
+  flex:0 0 64px;
+  width:100%;
+  min-width:0;
+  height:64px;
+  padding:6px 5px 6px 8px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.78)!important;
+  border-left:4px solid var(--event-stripe)!important;
+  border-radius:8px;
+  background:var(--event-fill)!important;
+  color:#403840!important;
+  filter:none!important;
+  cursor:pointer;
+  text-align:left;
+  box-shadow:0 3px 10px rgba(82,55,68,.055)!important;
+}
+.crm-week-visit-card:hover {filter:none!important;transform:none!important;box-shadow:0 6px 14px rgba(82,55,68,.09)!important;}
+.crm-week-visit-time {display:flex;align-items:center;gap:3px;min-width:0;font-size:8.5px;font-weight:800;white-space:nowrap;}
+.crm-week-visit-time i {display:grid;place-items:center;flex:0 0 13px;width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.88);font-size:7px;font-style:normal;}
+.crm-week-visit-card strong {display:-webkit-box;margin-top:3px;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:9px;line-height:1.13;}
+.crm-week-visit-card small {display:block;margin-top:3px;overflow:hidden;color:#6e646c;font-size:8px;text-overflow:ellipsis;white-space:nowrap;}
+.crm-week-more {flex:0 0 28px;width:100%;height:28px;padding:3px;border:1px dashed #d8a9bb;border-radius:8px;background:#fff7fa;color:#a14f71;cursor:pointer;font-size:9px;font-weight:800;}
+
+/* Kolor kategorii nie jest juz wyplukiwany przez stare filtry. */
+.crm-3day-event,
+.crm-day-event,
+.calendar-compact-event.crm-category-event,
+.crm-week-visit-card,
+.crm-month-visit-card,
+.crm-day-list-item {
+  filter:none!important;
+  border-left-color:var(--event-stripe,var(--crm-event-color,#b05c75))!important;
+}
+
+.crm-3day-event,
+.crm-day-event,
+.calendar-compact-event.crm-category-event,
+.crm-week-visit-card,
+.crm-month-visit-card {
+  background:var(--event-fill,var(--crm-event-soft,rgba(176,92,117,.16)))!important;
+}
+
+.crm-3day-event:hover,
+.crm-day-event:hover,
+.calendar-compact-event.crm-category-event:hover,
+.crm-week-visit-card:hover,
+.crm-month-visit-card:hover {filter:none!important;}
+
+@media(max-width:1450px) {
+  #booksy-grid.crm-week-grid,#booksy-grid[data-calendar-view="week"] {gap:4px!important;}
+  #booksy-grid .crm-week-column {padding-inline:4px!important;}
+  .crm-week-visit-card {padding-left:6px;}
+  .crm-week-visit-card small {display:none;}
+}
+/* KONIEC ADMIN V13 */
+
+/* ==========================================================
+   ADMIN V13.2: GEOMETRIA KROTKICH WIZYT I PELNE KARTY
+   Zmienia tylko Dzien, Tydzien i pojemnosc Miesiaca.
+   Parametry prawego panelu wizyty pozostaja bez zmian.
+   ========================================================== */
+.crm-3day-event {
+  min-height:0!important;
+  box-sizing:border-box!important;
+}
+.crm-3day-event.is-short {
+  justify-content:flex-start!important;
+  padding:3px 6px 3px 8px!important;
+  border-radius:6px!important;
+}
+.crm-3day-event.is-short .crm-3day-event__time {
+  font-size:9px!important;
+}
+.crm-3day-event.is-short strong {
+  font-size:9px!important;
+  line-height:1.05!important;
+  -webkit-line-clamp:1!important;
+}
+.crm-3day-event.is-short > span:last-child {
+  display:none!important;
+}
+.crm-3day-event.is-very-short {
+  display:block!important;
+  min-height:0!important;
+  padding:1px 5px 1px 8px!important;
+  border-radius:5px!important;
+}
+.crm-3day-event.is-very-short .crm-3day-event__time {
+  display:block!important;
+  width:100%!important;
+  overflow:hidden!important;
+  font-size:8px!important;
+  line-height:1!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.crm-3day-event.is-very-short .crm-3day-event__time i,
+.crm-3day-event.is-very-short strong,
+.crm-3day-event.is-very-short > span:last-child {
+  display:none!important;
+}
+#booksy-grid .crm-week-events {
+  padding-bottom:0!important;
+}
+#booksy-grid .crm-week-visit-card {
+  flex:0 0 64px!important;
+  height:64px!important;
+  min-height:64px!important;
+  max-height:64px!important;
+}
+#booksy-grid .crm-week-more {
+  flex:0 0 28px!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+}
+/* KONIEC ADMIN V13.2 */
+
+
+/* ==========================================================
+   ADMIN V13.3: CZYTELNA TRESC KROTKICH WIZYT
+   Nie zmienia prawego panelu wizyty ani kolorow kategorii.
+   ========================================================== */
+.crm-3day-event.is-very-short {
+  display:flex!important;
+  align-items:center!important;
+  min-height:0!important;
+  padding:0 7px 0 8px!important;
+  overflow:hidden!important;
+  border-radius:5px!important;
+}
+.crm-3day-event.is-very-short .crm-3day-event__single {
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  color:#403840!important;
+  font-size:8px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.crm-3day-event.is-very-short .crm-3day-event__single i {
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 11px!important;
+  width:11px!important;
+  height:11px!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.88)!important;
+  font-size:6px!important;
+  font-style:normal!important;
+}
+.crm-3day-event.is-very-short .crm-3day-event__single b {
+  flex:0 0 auto!important;
+  font-size:8px!important;
+  font-weight:800!important;
+}
+.crm-3day-event.is-very-short .crm-3day-event__single > span {
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.crm-3day-event.is-short {
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  gap:1px!important;
+  min-height:0!important;
+  padding:2px 7px 2px 8px!important;
+  overflow:hidden!important;
+  border-radius:6px!important;
+}
+.crm-3day-event.is-short .crm-3day-event__time {
+  flex:0 0 auto!important;
+  min-width:0!important;
+  font-size:8px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.crm-3day-event.is-short .crm-3day-event__time i {
+  width:11px!important;
+  height:11px!important;
+  font-size:6px!important;
+}
+.crm-3day-event.is-short strong {
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  font-size:8.5px!important;
+  line-height:1.05!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* Przycisk pozostalych wizyt zawsze zajmuje zarezerwowane miejsce. */
+#booksy-grid .crm-week-events {
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+#booksy-grid .crm-week-more {
+  display:block!important;
+  flex:0 0 28px!important;
+  width:100%!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  margin:0!important;
+}
+/* KONIEC ADMIN V13.3 */
+
+/* ==========================================================================
+   ADMIN V14.0: BOCZNY PANEL LISTY WIZYT DNIA
+   Zakres: wyłącznie lista otwierana przez +N pozostałe / liczbę wizyt.
+   Nie zmienia parametrów zielonego panelu szczegółów wizyty.
+   ========================================================================== */
+
+/* CDL.1. Warstwa techniczna bez przyciemniania i bez blokowania kalendarza. */
+.crm-day-list-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9650 !important;
+  display: block !important;
+  padding: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  pointer-events: none !important;
+}
+.crm-day-list-overlay[hidden] {
+  display: none !important;
+}
+
+/* CDL.2. Lista zastępuje wizualnie prawy panel podsumowania. */
+.crm-day-list-panel {
+  position: fixed !important;
+  top: 14px !important;
+  right: 4px !important;
+  bottom: 2px !important;
+  width: min(390px, calc(100vw - 24px)) !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  border: 1px solid #eadfe4 !important;
+  border-radius: 18px !important;
+  background: #fffdfd !important;
+  box-shadow: 0 18px 44px rgba(65,43,54,.16) !important;
+  transition: right .18s ease, box-shadow .18s ease !important;
+}
+
+/* CDL.3. Po otwarciu zielonych szczegółów lista zostaje obok, po ich lewej stronie. */
+body.crm-v3-details-open .crm-day-list-panel {
+  right: calc(var(--panel-width, 370px) + 14px) !important;
+  box-shadow: 0 18px 44px rgba(65,43,54,.20) !important;
+}
+
+/* CDL.4. Nagłówek i przewijana treść panelu. */
+.crm-day-list-panel > header {
+  flex: 0 0 auto !important;
+  padding: 17px 18px 14px !important;
+  background: linear-gradient(145deg,#fff,#fdf7fa) !important;
+}
+.crm-day-list-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 14px 14px 18px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #b9b1b5 transparent;
+}
+
+/* CDL.5. Każda pozycja używa dokładnie koloru kategorii z kalendarza. */
+.crm-day-list-item {
+  --crm-event-color: #b05c75;
+  --crm-event-soft: rgba(176,92,117,.14);
+  border-left-color: var(--crm-event-color) !important;
+  background: linear-gradient(100deg,var(--crm-event-soft),#fff 62%) !important;
+  filter: none !important;
+}
+.crm-day-list-item:hover {
+  border-color: var(--crm-event-color) !important;
+  border-left-color: var(--crm-event-color) !important;
+  background: linear-gradient(100deg,var(--crm-event-soft),#fff 72%) !important;
+}
+.crm-day-list-item.is-selected {
+  border-color: var(--crm-event-color) !important;
+  border-left: 6px solid var(--crm-event-color) !important;
+  background: linear-gradient(100deg,var(--crm-event-soft),#fff 78%) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-event-color) 18%, transparent) !important;
+}
+
+/* CDL.6. Lista pozostaje aktywna, a wszystkie elementy wyraźnie reagują na kursor. */
+.crm-day-list-item,
+.crm-day-list-close {
+  cursor: pointer !important;
+}
+.crm-day-list-item:focus-visible,
+.crm-day-list-close:focus-visible {
+  outline: 3px solid rgba(176,92,117,.20) !important;
+  outline-offset: 2px !important;
+}
+
+/* CDL.7. Na węższym komputerze lista nachodzi na kalendarz zamiast go ściskać. */
+@media (max-width: 1450px) and (min-width: 821px) {
+  .crm-day-list-panel {
+    width: min(360px, calc(100vw - 24px)) !important;
+  }
+  body.crm-v3-details-open .crm-day-list-panel {
+    right: calc(min(var(--panel-width, 370px), 38vw) + 12px) !important;
+  }
+}
+
+/* CDL.8. Telefon i mały tablet: lista jako wysoki panel od dołu. */
+@media (max-width: 820px) {
+  .crm-day-list-overlay {
+    display: flex !important;
+    align-items: flex-end !important;
+    padding: 8px 0 0 !important;
+    background: rgba(35,28,31,.22) !important;
+    pointer-events: auto !important;
+  }
+  .crm-day-list-overlay[hidden] {
+    display: none !important;
+  }
+  .crm-day-list-panel,
+  body.crm-v3-details-open .crm-day-list-panel {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: min(92vh, 820px) !important;
+    max-height: min(92vh, 820px) !important;
+    border-radius: 22px 22px 0 0 !important;
+  }
+}
+/* KONIEC ADMIN V14.0 */

@@ -1,0 +1,689 @@
+/* Prawy panel wizyty zajmuje dokładnie stałą prawą kolumnę. */
+#appointmentDetailsModal.modal-overlay{right:14px!important;top:82px!important;bottom:10px!important;width:var(--crm-insights-width)!important;}
+#appointmentDetailsModal .crm-visit-panel__surface{border-radius:18px!important;}
+/* Przywrócona kompaktowa karta klienta, bez strzałki. */
+#appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 28px)!important;min-height:57px!important;margin:-15px 14px 8px!important;padding:9px 10px!important;}
+#appointmentDetailsModal .crm-client-avatar{width:34px!important;height:34px!important;font-size:14px!important;}
+#appointmentDetailsModal .crm-client-card__copy strong{font-size:11px!important;}
+#appointmentDetailsModal .crm-client-card__copy span{font-size:9.5px!important;}
+#appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
+/* Usługa: białe wypełnienie, pasek ma kolor kategorii. */
+#appointmentDetailsModal .crm-service-card{background:#fff!important;}
+@media(max-width:1450px){:root{--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:210px minmax(630px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:50px repeat(3,minmax(195px,1fr))!important;}}
+@media(max-width:1200px){.calendar-three-columns{grid-template-columns:205px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}#appointmentDetailsModal.modal-overlay{right:0!important;top:0!important;bottom:0!important;width:min(390px,96vw)!important;}}
+/* KONIEC ADMIN V8.1 */
+
+/* ==========================================================
+   ADMIN V8.2: HARMONIJNE PROPORCJE FINALNE
+   ========================================================== */
+:root{--crm-sidebar:175px;--crm-insights-width:360px;}
+.main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;padding:14px!important;}
+.calendar-three-columns{grid-template-columns:220px minmax(690px,1fr) var(--crm-insights-width)!important;gap:14px!important;}
+.calendar-sidebar,.calendar-main-schedule,.crm-calendar-insights{border-radius:18px!important;}
+.calendar-main-schedule{padding:0!important;overflow:hidden!important;}
+.crm-three-day-calendar{border-radius:18px!important;overflow:auto!important;}
+.crm-3day-shell{grid-template-columns:52px repeat(3,minmax(215px,1fr))!important;min-width:745px!important;}
+.crm-3day-corner,.crm-3day-header{height:42px!important;}
+.crm-3day-header{gap:7px!important;font-size:12px!important;}
+.crm-3day-header b{width:24px!important;height:24px!important;font-size:11px!important;}
+.crm-3day-labels>span{right:9px!important;font-size:11px!important;}
+.crm-3day-event{left:8px!important;width:calc(100% - 16px)!important;min-height:60px!important;padding:8px 9px 8px 11px!important;border-left:4px solid var(--event-stripe)!important;border-radius:10px!important;background:var(--event-fill)!important;}
+.crm-3day-event__time{font-size:11px!important;}.crm-3day-event strong{font-size:12px!important;line-height:1.28!important;}.crm-3day-event>span:last-child{font-size:11px!important;}
+.calendar-sidebar{padding:17px!important;}.mini-month-header{font-size:15px!important;}.mini-date-cell{font-size:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}.crm-left-filters label,.crm-left-quick-buttons button{font-size:12px!important;}
+.crm-calendar-insights{padding:20px!important;min-height:calc(100vh - 94px)!important;}.crm-insights-header span{font-size:11px!important;}.crm-insights-header h3{font-size:17px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;font-size:17px!important;}.crm-insights-metrics>div{min-height:50px!important;grid-template-columns:24px minmax(0,1fr) auto!important;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-next h4{font-size:12px!important;}.crm-insights-next button{padding:13px!important;grid-template-columns:52px 1fr!important;}.crm-insights-next button strong{font-size:13px!important;}.crm-insights-next button span,.crm-insights-actions p{font-size:11px!important;}
+body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!important;}body.crm-v3-details-open #tab-kalendarz .calendar-layout-header{margin-right:0!important;}
+#appointmentDetailsModal.modal-overlay{left:auto!important;right:14px!important;top:82px!important;bottom:10px!important;width:var(--crm-insights-width)!important;height:auto!important;padding:0!important;}
+#appointmentDetailsModal .crm-visit-panel__surface{width:100%!important;height:100%!important;max-height:100%!important;border-radius:18px!important;}
+#appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 28px)!important;min-height:57px!important;margin:-15px 14px 8px!important;padding:9px 10px!important;}
+#appointmentDetailsModal .crm-client-avatar{width:34px!important;height:34px!important;font-size:14px!important;}#appointmentDetailsModal .crm-client-card__copy strong{font-size:11px!important;}#appointmentDetailsModal .crm-client-card__copy span{font-size:9.5px!important;}#appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
+#appointmentDetailsModal .crm-service-card{background:#fff!important;}
+@media(max-width:1450px){:root{--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:210px minmax(630px,1fr) var(--crm-insights-width)!important;}.crm-3day-shell{grid-template-columns:50px repeat(3,minmax(195px,1fr))!important;}}
+@media(max-width:1200px){.calendar-three-columns{grid-template-columns:205px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}#appointmentDetailsModal.modal-overlay{right:0!important;top:0!important;bottom:0!important;width:min(390px,96vw)!important;}}
+/* KONIEC ADMIN V8.2 */
+
+
+/* ==========================================================
+   ADMIN V9: ZEBRANE POPRAWKI WIZUALNE
+   ========================================================== */
+:root{
+  --crm-sidebar:205px;
+  --crm-calendar-side:255px;
+  --crm-insights-width:360px;
+  --crm-hour-height:74px;
+}
+.main-content{width:calc(100% - var(--crm-sidebar))!important;margin-left:var(--crm-sidebar)!important;}
+/* Główny pasek CRM: większa typografia i liniowe ikony. */
+.sidebar{width:var(--crm-sidebar)!important;}
+.sidebar-header{display:grid!important;grid-template-columns:28px minmax(0,1fr);gap:8px;min-height:103px;padding:24px 18px 17px!important;}
+.crm-brand-mark{font-size:22px!important;}.sidebar-header h2{font-size:22px!important;white-space:nowrap;}.sidebar-header p{font-size:12px!important;}
+.crm-dev-link-wrap{padding:14px 16px 9px!important;}.crm-dev-link{font-size:11px!important;min-height:32px!important;padding:6px 11px!important;}
+.sidebar-nav{gap:6px!important;padding:10px 12px!important;}.nav-btn{grid-template-columns:20px minmax(0,1fr)!important;gap:10px!important;min-height:45px!important;padding:10px 12px!important;border-radius:11px!important;font-size:13px!important;}.nav-btn svg{width:18px!important;height:18px!important;}
+.crm-logout-btn{min-height:38px!important;padding:9px 12px!important;border-radius:7px!important;font-size:11px!important;font-weight:600!important;background:#c35c77!important;box-shadow:none!important;}.crm-logout-btn svg{width:14px!important;height:14px!important;stroke:#fff!important;}
+/* Układ: bardziej kwadratowy lewy panel, 3 dni, stały panel informacji. */
+.calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(660px,1fr) var(--crm-insights-width)!important;gap:14px!important;}
+.calendar-sidebar{width:var(--crm-calendar-side)!important;min-height:355px!important;padding:19px!important;border-radius:20px!important;}
+.mini-month-days-grid,.mini-month-weekdays{gap:6px!important;}.mini-date-cell{min-height:31px!important;font-size:12px!important;}.crm-left-section{margin-top:12px!important;padding-top:12px!important;}.crm-left-section__heading,.crm-left-section>summary{font-size:13px!important;}
+.calendar-main-schedule,.crm-three-day-calendar,.crm-calendar-insights{border-radius:20px!important;}
+.crm-3day-shell{grid-template-columns:52px repeat(3,minmax(205px,1fr))!important;}
+.crm-3day-corner,.crm-3day-header{height:40px!important;}.crm-3day-header{font-size:12px!important;}.crm-3day-header b{width:23px!important;height:23px!important;}
+/* 74 px/h niezależnie od wcześniejszej wysokości wygenerowanej inline. */
+.crm-3day-canvas{height:calc((var(--crm-hour-height) / 60) * 780)!important;min-height:962px!important;}
+.crm-3day-labels{height:1002px!important;}
+.crm-3day-event{min-height:54px!important;left:8px!important;width:calc(100% - 16px)!important;padding:7px 9px 7px 11px!important;border-radius:10px!important;background:var(--event-fill)!important;border-left:4px solid var(--event-stripe)!important;}
+/* Tydzień i miesiąc: ta sama logika kategorii, nie statusu. */
+.calendar-week-day,.calendar-month-day{border-radius:14px!important;background:#fff!important;}
+.calendar-compact-event.crm-category-event{display:flex!important;flex-direction:column!important;gap:2px!important;width:100%!important;margin:5px 0!important;padding:6px 6px 6px 9px!important;color:#403740!important;background:var(--event-fill)!important;border:1px solid rgba(255,255,255,.7)!important;border-left:4px solid var(--event-stripe)!important;border-radius:9px!important;box-shadow:0 4px 11px rgba(82,55,68,.06)!important;text-align:left!important;}
+.crm-compact-time{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:750;}.crm-compact-time i{display:grid;place-items:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.78);font-style:normal;font-size:9px;}.calendar-compact-event strong{font-size:10.5px;line-height:1.2;}.crm-compact-client{font-size:9.5px;color:#655b64;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.crm-schedule-info{margin:5px 0;padding:6px 8px;color:#6e5a1d;background:#fff2bd;border:1px solid #efd06d;border-radius:9px;font-size:10px;font-weight:700;text-align:center;}
+/* Prawy panel: większe napisy, bez metryki wolnych terminów i bez dolnego przycisku. */
+.crm-calendar-insights{width:var(--crm-insights-width)!important;padding:20px!important;}.crm-insights-header h3{font-size:18px!important;}.crm-insights-header>div>span{font-size:11px!important;}.crm-insights-calendar-icon{width:40px!important;height:40px!important;}.crm-insights-calendar-icon svg{width:18px;height:18px;fill:none;stroke:#b14f73;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.crm-insights-metrics>div{min-height:51px!important;grid-template-columns:25px minmax(0,1fr) auto!important;}.crm-insights-metrics i svg{width:16px;height:16px;fill:none;stroke:#bb5579;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}.crm-insights-metrics span{font-size:12px!important;}.crm-insights-metrics strong{font-size:13px!important;}.crm-insights-actions button{display:none!important;}.crm-insights-actions p{margin-top:13px!important;font-size:11px!important;text-align:left!important;}
+/* Górne działania. */
+.calendar-layout-header .btn-primary{font-size:13px!important;font-weight:700!important;}.crm-action-symbol{color:#fff!important;font-size:16px!important;line-height:1;}
+/* Panel wizyty: karta klienta szersza, ale zachowuje poprzednią wysokość. */
+#appointmentDetailsModal .crm-client-card{grid-template-columns:36px minmax(0,1fr) 29px!important;width:calc(100% - 18px)!important;min-height:57px!important;margin:-15px 9px 8px!important;padding:9px 10px!important;}
+#appointmentDetailsModal .crm-client-card__arrow{display:none!important;}
+#appointmentDetailsModal .crm-client-card__copy strong{font-size:12px!important;}#appointmentDetailsModal .crm-client-card__copy span{font-size:10px!important;}
+#appointmentDetailsModal .crm-status-button{font-size:10px!important;min-width:92px!important;}
+@media(max-width:1500px){:root{--crm-sidebar:190px;--crm-calendar-side:235px;--crm-insights-width:330px}.calendar-three-columns{grid-template-columns:var(--crm-calendar-side) minmax(600px,1fr) var(--crm-insights-width)!important;}}
+@media(max-width:1250px){.calendar-three-columns{grid-template-columns:225px minmax(560px,1fr)!important;}.crm-calendar-insights{display:none!important;}}
+/* KONIEC ADMIN V9 */
+
+/* ==========================================================
+   ADMIN V9.1: BIAŁY PLUS I PRECYZYJNE USTAWIENIE WIZYT
+   ========================================================== */
+/* Jeden wygląd znaku plus we wszystkich malinowych akcjach. */
+.crm-white-plus,
+.crm-action-symbol{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  color:#fff!important;
+  font-family:Arial,sans-serif!important;
+  font-size:17px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  vertical-align:-1px!important;
+}
+.btn-primary .crm-white-plus,
+.crm-add-service-button .crm-white-plus{
+  color:#fff!important;
+}
+/* Karta zaczyna się dokładnie na linii godziny. Brak przesunięcia na hover. */
+.crm-3day-event{
+  transform:none!important;
+  margin-top:0!important;
+  box-sizing:border-box!important;
+  justify-content:center!important;
+}
+.crm-3day-event:hover{
+  transform:none!important;
+}
+.crm-3day-event__time{
+  width:100%!important;
+  align-items:center!important;
+}
+/* Linia godziny pozostaje dokładnie pod górną krawędzią karty. */
+.crm-3day-line.is-hour{z-index:0!important;}
+.crm-3day-events{z-index:1!important;}
+/* KONIEC ADMIN V9.1 */
+
+
+/* ==========================================================
+   ADMIN V10-SAFE: PRAWY PANEL BEZ ZMIANY HTML
+   ========================================================== */
+#appointmentDetailsModal.crm-safe-visit-panel{position:fixed!important;inset:76px 12px 10px auto!important;width:352px!important;height:auto!important;padding:0!important;background:transparent!important;z-index:10020!important;}
+#appointmentDetailsModal .crm-safe-visit-surface{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fffdfd!important;border:1px solid #eadfe4!important;border-radius:18px!important;box-shadow:0 18px 44px rgba(65,43,54,.16)!important;}
+#appointmentDetailsModal .crm-safe-header{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr) 92px;gap:9px;align-items:start;height:88px;padding:14px 13px 25px;color:#fff;background:linear-gradient(135deg,#69c6a0,#51b98d);border-radius:17px 17px 13px 13px;box-sizing:border-box;}
+#appointmentDetailsModal .crm-safe-close{display:grid;place-items:center;width:28px;height:28px;padding:0;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.46);border-radius:50%;font-size:19px;line-height:1;}
+#appointmentDetailsModal .crm-safe-status-copy{min-width:0;padding-top:4px;}#appointmentDetailsModal .crm-safe-status-copy h4{margin:0;color:#fff;font-size:14px;line-height:1.15;white-space:nowrap;}#appointmentDetailsModal .crm-safe-status-copy small{display:none;}
+#appointmentDetailsModal .crm-safe-status-btn{height:30px;padding:5px 7px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.42);border-radius:8px;font-size:9px;font-weight:800;}
+#appointmentDetailsModal .crm-safe-status-menu{position:absolute;z-index:5;right:12px;top:49px;width:190px;padding:6px;background:#fff;border:1px solid #eadfe4;border-radius:11px;box-shadow:0 12px 28px rgba(60,39,50,.18);}#appointmentDetailsModal .crm-safe-status-menu button{display:block;width:100%;padding:8px;border:0;border-radius:7px;background:#fff;color:#3d353d;text-align:left;font-size:10px;}
+#appointmentDetailsModal .crm-safe-body{height:calc(100% - 88px);padding-bottom:12px;overflow:auto;box-sizing:border-box;}
+#appointmentDetailsModal .crm-safe-client-card{position:relative;z-index:2;display:grid;grid-template-columns:36px minmax(0,1fr) 29px;align-items:center;gap:9px;width:calc(100% - 18px);min-height:58px;margin:-16px 9px 8px;padding:9px 10px;background:#fff;border:1px solid #ebe1e6;border-radius:14px;box-shadow:0 9px 22px rgba(80,54,67,.11);box-sizing:border-box;}
+#appointmentDetailsModal .crm-safe-avatar{display:grid;place-items:center;width:34px;height:34px;color:#fff;background:#bd6686;border-radius:50%;font-size:14px;font-weight:800;}#appointmentDetailsModal .crm-safe-client-copy{display:flex;flex-direction:column;gap:3px;min-width:0;}#appointmentDetailsModal .crm-safe-client-copy strong{color:#312b31;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}#appointmentDetailsModal .crm-safe-client-copy span{color:#7c727a;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}#appointmentDetailsModal .crm-safe-edit{display:grid;place-items:center;width:29px;height:29px;padding:0;color:#a95073;background:#fff7fa;border:1px solid #eadce2;border-radius:8px;font-size:14px;}
+#appointmentDetailsModal .crm-safe-tabs{display:flex;gap:24px;height:40px;margin:0 14px;border-bottom:1px solid #eee6ea;}#appointmentDetailsModal .crm-safe-tabs button{position:relative;padding:0 1px;color:#958b93;background:transparent;border:0;font-size:10px;font-weight:800;}#appointmentDetailsModal .crm-safe-tabs button.active{color:#423942;}#appointmentDetailsModal .crm-safe-tabs button.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:#ad5577;border-radius:3px;}
+#appointmentDetailsModal .crm-safe-tab-content,#appointmentDetailsModal .crm-safe-info{padding:14px 14px 0;}#appointmentDetailsModal .crm-safe-date{display:block;margin-bottom:10px;color:#4b424a;font-size:12px;}
+#appointmentDetailsModal .crm-safe-service-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center;min-height:88px;margin-bottom:13px;padding:13px 12px 13px 17px;background:#fff;border:1px solid #ebe2e6;border-radius:13px;box-shadow:0 5px 15px rgba(80,54,67,.05);overflow:hidden;box-sizing:border-box;}#appointmentDetailsModal .crm-safe-service-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;}#appointmentDetailsModal .crm-safe-service-copy{display:flex;flex-direction:column;gap:4px;min-width:0;}#appointmentDetailsModal .crm-safe-service-copy strong{color:#302a30;font-size:12px;}#appointmentDetailsModal .crm-safe-service-copy span,#appointmentDetailsModal .crm-safe-service-copy small{color:#776d75;font-size:10px;}#appointmentDetailsModal .crm-safe-price{align-self:start;color:#312b31;font-size:11px;white-space:nowrap;}
+#appointmentDetailsModal .crm-safe-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;}#appointmentDetailsModal .crm-safe-time-grid>div{display:flex;flex-direction:column;gap:4px;padding:10px 11px;background:#faf7f8;border:1px solid #eee5e9;border-radius:11px;}#appointmentDetailsModal .crm-safe-time-grid span{color:#8d838b;font-size:9px;text-transform:uppercase;}#appointmentDetailsModal .crm-safe-time-grid strong{color:#352f35;font-size:12px;}
+#appointmentDetailsModal .crm-safe-add-service{display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 10px;color:#a34d70;background:#fff;border:1px dashed #d8a9bb;border-radius:10px;font-size:10px;font-weight:800;}#appointmentDetailsModal .crm-safe-add-service b{display:grid;place-items:center;width:20px;height:20px;color:#fff;background:#b65b7e;border-radius:50%;font-size:15px;}
+#appointmentDetailsModal .crm-safe-repeat{width:100%;height:38px;margin-top:10px;color:#fff;background:#b65b7e;border:0;border-radius:10px;font-size:10px;font-weight:800;}
+#appointmentDetailsModal .crm-safe-info>div{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #f0e9ec;}#appointmentDetailsModal .crm-safe-info span{color:#8c828a;font-size:10px;}#appointmentDetailsModal .crm-safe-info strong{max-width:65%;color:#3b343b;font-size:10px;text-align:right;}
+#appointmentDetailsModal #crm-lifecycle-actions,#appointmentDetailsModal #crm-external-actions{display:none!important;}
+@media(max-width:900px){#appointmentDetailsModal.crm-safe-visit-panel{inset:0 0 0 auto!important;width:min(365px,96vw)!important;}}
+/* KONIEC ADMIN V10-SAFE */
+
+
+/* ==========================================================
+   ADMIN V10.1: REGULACJA PANELU I REAKCJE PRZYCISKOW
+   ========================================================== */
+
+/* ----------------------------------------------------------
+   REGULACJA KARTY KLIENTA
+   Te wartości można zmieniać samodzielnie.
+
+   --crm-client-card-overlap: jak wysoko karta nachodzi na zielony nagłówek.
+     Większa wartość = karta idzie wyżej. Przykład: 28px.
+
+   --crm-client-card-side: odstęp karty od lewej i prawej krawędzi.
+     Mniejsza wartość = karta jest szersza. Przykład: 4px.
+
+   --crm-client-card-height: minimalna wysokość karty klienta.
+     Większa wartość = wyższa karta. Przykład: 68px.
+
+   --crm-client-card-padding-y: wewnętrzny odstęp góra/dół.
+   --crm-client-card-padding-x: wewnętrzny odstęp lewo/prawo.
+   ---------------------------------------------------------- */
+#appointmentDetailsModal{
+  --crm-client-card-overlap:24px;
+  --crm-client-card-side:6px;
+  --crm-client-card-height:64px;
+  --crm-client-card-padding-y:11px;
+  --crm-client-card-padding-x:12px;
+}
+
+#appointmentDetailsModal .crm-safe-client-card{
+  width:calc(100% - (var(--crm-client-card-side) * 2))!important;
+  min-height:var(--crm-client-card-height)!important;
+  margin:calc(-1 * var(--crm-client-card-overlap)) var(--crm-client-card-side) 9px!important;
+  padding:var(--crm-client-card-padding-y) var(--crm-client-card-padding-x)!important;
+  cursor:pointer!important;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background-color .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-client-card:hover,
+#appointmentDetailsModal .crm-safe-client-card:focus-visible{
+  transform:translateY(-2px)!important;
+  background:#fffafd!important;
+  border-color:#dca9bc!important;
+  box-shadow:0 13px 28px rgba(80,54,67,.16)!important;
+  outline:none!important;
+}
+
+/* Krzyżyk jest wyśrodkowany i podniesiony do górnej linii nagłówka. */
+#appointmentDetailsModal .crm-safe-close{
+  align-self:start!important;
+  margin-top:-2px!important;
+  padding:0!important;
+  line-height:1!important;
+  cursor:pointer!important;
+  transition:background-color .16s ease,transform .16s ease,border-color .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-close:hover,
+#appointmentDetailsModal .crm-safe-close:focus-visible{
+  background:rgba(255,255,255,.28)!important;
+  border-color:#fff!important;
+  transform:scale(1.06)!important;
+  outline:none!important;
+}
+
+/* Wszystkie elementy interaktywne panelu pokazują rękę i reakcję hover. */
+#appointmentDetailsModal button,
+.sidebar button,
+.sidebar a,
+.calendar-layout-header button,
+.calendar-view-toggle button{
+  cursor:pointer!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn,
+#appointmentDetailsModal .crm-safe-edit,
+#appointmentDetailsModal .crm-safe-add-service,
+#appointmentDetailsModal .crm-safe-repeat,
+#appointmentDetailsModal .crm-safe-tabs button,
+#appointmentDetailsModal .crm-safe-status-menu button{
+  transition:background-color .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn:hover,
+#appointmentDetailsModal .crm-safe-status-btn:focus-visible{
+  background:rgba(255,255,255,.27)!important;
+  border-color:#fff!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-edit:hover,
+#appointmentDetailsModal .crm-safe-edit:focus-visible{
+  color:#fff!important;
+  background:#b65b7e!important;
+  border-color:#b65b7e!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-tabs button:hover,
+#appointmentDetailsModal .crm-safe-tabs button:focus-visible{
+  color:#a34d70!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-add-service:hover,
+#appointmentDetailsModal .crm-safe-add-service:focus-visible{
+  color:#913d60!important;
+  background:#fff5f9!important;
+  border-color:#b65b7e!important;
+  box-shadow:0 6px 15px rgba(182,91,126,.12)!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-repeat{
+  border:1px solid #b65b7e!important;
+  box-shadow:0 4px 12px rgba(182,91,126,.14)!important;
+}
+#appointmentDetailsModal .crm-safe-repeat:hover,
+#appointmentDetailsModal .crm-safe-repeat:focus-visible{
+  background:#9f4669!important;
+  border-color:#9f4669!important;
+  box-shadow:0 8px 18px rgba(159,70,105,.24)!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-status-menu button:hover,
+#appointmentDetailsModal .crm-safe-status-menu button:focus-visible{
+  color:#963f62!important;
+  background:#fff1f6!important;
+  outline:none!important;
+}
+
+/* Plus jest idealnie wyśrodkowany w swoim kole. */
+#appointmentDetailsModal .crm-safe-add-service b{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  line-height:20px!important;
+  font-family:Arial,sans-serif!important;
+  font-size:15px!important;
+  font-weight:700!important;
+  text-align:center!important;
+  transform:none!important;
+}
+
+/* Statyczny panel: nie przemieszcza się i ma stałą wysokość ekranu. */
+#appointmentDetailsModal.crm-safe-visit-panel{
+  position:fixed!important;
+  transform:none!important;
+}
+
+/* Techniczne stare przyciski nie mogą przebić się przez wcześniejsze style. */
+#appointmentDetailsModal [hidden],
+#appointmentDetailsModal #deleteAppointmentBtn,
+#appointmentDetailsModal #editAppointmentBtn,
+#appointmentDetailsModal #crmSettleVisitBtn,
+#appointmentDetailsModal #crm-lifecycle-actions,
+#appointmentDetailsModal #crm-external-actions{
+  display:none!important;
+}
+
+/* Reakcje bocznego menu ADMIN. */
+.sidebar .nav-btn,
+.sidebar .crm-dev-link,
+.sidebar .crm-logout-btn{
+  transition:background-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease!important;
+}
+.sidebar .nav-btn:hover,
+.sidebar .nav-btn:focus-visible{
+  background:#f8eaf0!important;
+  color:#a24368!important;
+  transform:translateX(2px)!important;
+  outline:none!important;
+}
+.sidebar .nav-btn.active:hover{background:#b44770!important;color:#fff!important;}
+.sidebar .crm-dev-link:hover,
+.sidebar .crm-dev-link:focus-visible{
+  background:#fff3f7!important;
+  border-color:#b65b7e!important;
+  color:#a24368!important;
+  outline:none!important;
+}
+.sidebar .crm-logout-btn:hover,
+.sidebar .crm-logout-btn:focus-visible{
+  background:#a84768!important;
+  box-shadow:0 7px 16px rgba(168,71,104,.22)!important;
+  transform:translateY(-1px)!important;
+  outline:none!important;
+}
+/* KONIEC ADMIN V10.1 */
+
+/* ============================================================================
+   PANEL PRAWEJ WIZYTY - CENTRUM SAMODZIELNEJ REGULACJI
+   ============================================================================
+   ZMIENIAJ TYLKO WARTOSCI W TYM BLOKU.
+   CALY BLOK JEST NA KONCU PLIKU, WIEC MA PIERWSZENSTWO NAD STARSZYMI STYLAMI.
+
+   SZYBKA ZASADA:
+   - wiecej px = zwykle wiekszy element / wiekszy odstep,
+   - mniej px = zwykle mniejszy element / mniejszy odstep,
+   - wartosc ujemna, np. -4px = przesuniecie do gory lub w lewo,
+   - kolory zapisane jako #RRGGBB,
+   - 1 oznacza 100% widocznosci, 0.5 oznacza 50%.
+   ============================================================================ */
+
+#appointmentDetailsModal {
+  /* ===== 1. CALY PRAWY PANEL ===== */
+  --panel-width: 370px;                 /* szerokosc calego prawego panelu */
+  --panel-top: 14px;                    /* odleglosc panelu od gornej krawedzi ekranu */
+  --panel-right: 4px;                  /* odleglosc panelu od prawej krawedzi ekranu */
+  --panel-bottom: 2px;                 /* odleglosc panelu od dolnej krawedzi ekranu */
+  --panel-radius: 18px;                 /* zaokraglenie zewnetrznych rogow panelu */
+  --panel-background: #fffdfd;          /* kolor tla calego panelu */
+  --panel-border-color: #eadfe4;        /* kolor cienkiej ramki panelu */
+  --panel-shadow: 0 18px 44px rgba(65,43,54,.16); /* cien calego panelu */
+
+  /* ===== 2. ZIELONY NAGLOWEK ===== */
+  --header-height: 88px;                /* wysokosc zielonego naglowka */
+  --header-padding-top: 14px;           /* odstep zawartosci od gornej krawedzi naglowka */
+  --header-padding-right: 13px;         /* odstep zawartosci od prawej krawedzi */
+  --header-padding-bottom: 25px;        /* miejsce na nachodzaca karte klienta */
+  --header-padding-left: 13px;          /* odstep zawartosci od lewej krawedzi */
+  --header-gap: 9px;                    /* odstep miedzy krzyzykiem, statusem i przyciskiem */
+  --header-green-start: #348124;        /* pierwszy kolor zielonego gradientu */
+  --header-green-end: #348124;          /* drugi kolor zielonego gradientu */
+  --header-radius: 17px;                /* zaokraglenie GORNYCH rogow zielonej czesci */
+  --header-bottom-left-radius: 13px;     /* zaokraglenie DOLNEGO LEWEGO rogu zielonej czesci */
+  --header-bottom-right-radius: 13px;    /* zaokraglenie DOLNEGO PRAWEGO rogu zielonej czesci */
+
+  /* ===== 3. KRZYZYK ZAMKNIECIA ===== */
+  --close-size: 28px;                   /* szerokosc i wysokosc kola z krzyzykiem */
+  --close-font-size: 28px;              /* wielkosc samego znaku X */
+  --close-move-up: 0px;                /* pozycja pionowa: bardziej ujemna = wyzej */
+  --close-move-left: -10px;               /* pozycja pozioma: ujemna = w lewo, dodatnia = w prawo */
+  --close-background: transparent;        /* normalnie bez kola i bez tla */
+  --close-border-color: transparent;      /* normalnie bez obwodki kola */
+  --close-hover-background: rgba(255,255,255,.18); /* delikatne kolo dopiero po najechaniu */
+  --close-hover-border-color: rgba(255,255,255,.55); /* obwodka kola po najechaniu */
+  --close-hover-lift: -2px;               /* podniesienie calego X po najechaniu; bardziej ujemna = wyzej */
+  --close-symbol-move-x: 0px;           /* TYLKO znak X: ujemna = w lewo, dodatnia = w prawo */
+  --close-symbol-move-y: 0px;           /* TYLKO znak X: ujemna = w gore, dodatnia = w dol */
+  --close-symbol-weight: 200;            /* grubosc samego X: 200 cienki, 300 lekki, 400 normalny */
+  --close-symbol-font: "Segoe UI Light", "Segoe UI", Arial, sans-serif; /* kroj cienkiego X */
+
+  /* ===== 4. NAPIS STATUSU POTWIERDZONO ===== */
+  --status-title-size: 18px;             /* wielkosc napisu POTWIERDZONO */
+  --status-title-move-up: 5px;           /* przesuniecie napisu: ujemna wartosc = wyzej */
+  --status-title-color: #ffffff;         /* kolor napisu statusu */
+
+  /* ===== 5. PRZYCISK ZMIEN STATUS ===== */
+  --status-button-width: 92px;           /* szerokosc przycisku Zmien status */
+  --status-button-height: 30px;          /* wysokosc przycisku */
+  --status-button-font-size: 9px;        /* wielkosc tekstu */
+  --status-button-move-up: 0px;          /* przesuniecie pionowe: ujemna = wyzej */
+  --status-button-background: rgba(255,255,255,.14); /* tlo normalne */
+  --status-button-hover: rgba(255,255,255,.28);      /* tlo po najechaniu */
+
+  /* ===== 6. KARTA KLIENTA - NAJWAZNIEJSZA REGULACJA ===== */
+  --client-overlap: 40px;                /* jak mocno karta nachodzi na zielony naglowek; wiecej = wyzej */
+  --client-side-gap: 2px;                /* odstep od bokow; mniej = karta szersza */
+  --client-height: 64px;                 /* minimalna wysokosc karty klienta */
+  --client-padding-y: 11px;              /* wewnetrzny odstep gora/dol */
+  --client-padding-x: 12px;              /* wewnetrzny odstep lewo/prawo */
+  --client-radius: 14px;                 /* zaokraglenie karty klienta */
+  --client-background: #ffffff;          /* kolor tla karty klienta */
+  --client-border: #ebe1e6;              /* kolor ramki karty klienta */
+  --client-hover-border: #dca9bc;        /* kolor ramki po najechaniu */
+  --client-shadow: 0 9px 22px rgba(80,54,67,.11);  /* cien normalny */
+  --client-hover-shadow: 0 13px 28px rgba(80,54,67,.16); /* cien po najechaniu */
+  --client-hover-lift: -2px;             /* podniesienie po najechaniu */
+
+  /* ===== 7. AVATAR KLIENTA ===== */
+  --avatar-size: 34px;                   /* srednica kola z litera */
+  --avatar-font-size: 14px;              /* wielkosc litery w avatarze */
+  --avatar-background: #bd6686;          /* kolor kola avatara */
+  --avatar-color: #ffffff;               /* kolor litery */
+
+  /* ===== 8. IMIE I TELEFON KLIENTA ===== */
+  --client-name-size: 12px;              /* wielkosc imienia klienta */
+  --client-phone-size: 10px;             /* wielkosc numeru telefonu */
+  --client-name-color: #312b31;          /* kolor imienia */
+  --client-phone-color: #7c727a;         /* kolor telefonu */
+  --client-text-gap: 3px;                /* odstep miedzy imieniem i telefonem */
+
+  /* ===== 9. PRZYCISK EDYCJI KLIENTA ===== */
+  --edit-size: 29px;                     /* rozmiar przycisku z olowkiem */
+  --edit-icon-size: 14px;                /* wielkosc ikony olowka */
+  --edit-color: #a95073;                 /* kolor ikony */
+  --edit-background: #fff7fa;            /* tlo przycisku */
+  --edit-hover-background: #b65b7e;      /* tlo po najechaniu */
+
+  /* ===== 10. ZAKLADKI WIZYTA / INFORMACJE ===== */
+  --tabs-height: 40px;                   /* wysokosc paska zakladek */
+  --tabs-side-gap: 14px;                 /* odstep zakladek od bokow panelu */
+  --tabs-between-gap: 24px;              /* odstep miedzy WIZYTA i INFORMACJE */
+  --tabs-font-size: 10px;                /* wielkosc tekstu zakladek */
+  --tabs-color: #958b93;                 /* kolor nieaktywnej zakladki */
+  --tabs-active-color: #423942;          /* kolor aktywnej zakladki */
+  --tabs-line-color: #ad5577;            /* kolor kreski pod aktywna zakladka */
+
+  /* ===== 10A. ZAKLADKA INFORMACJE - REczna REGULACJA PUNKTOW ===== */
+  --info-padding-top: 14px;             /* odstep calej listy INFORMACJE od zakladek */
+  --info-padding-right: 14px;           /* odstep listy od prawej krawedzi panelu */
+  --info-padding-bottom: 0px;           /* odstep pod ostatnim punktem */
+  --info-padding-left: 14px;            /* odstep listy od lewej krawedzi panelu */
+  --info-row-height: 42px;              /* minimalna wysokosc jednego punktu informacji */
+  --info-row-padding-y: 11px;           /* odstep wewnatrz punktu gora/dol */
+  --info-row-padding-x: 0px;            /* odstep wewnatrz punktu lewo/prawo */
+  --info-row-gap: 12px;                 /* odstep miedzy nazwa punktu a jego wartoscia */
+  --info-row-border-color: #f0e9ec;     /* kolor linii oddzielajacej punkty */
+  --info-label-size: 10px;              /* wielkosc nazw: Klient, Usluga, Data, Zrodlo */
+  --info-label-color: #8c828a;          /* kolor nazw punktow po lewej */
+  --info-value-size: 10px;              /* wielkosc wartosci po prawej */
+  --info-value-color: #3b343b;          /* kolor wartosci po prawej */
+  --info-value-width: 65%;               /* maksymalna szerokosc wartosci po prawej */
+  --info-text-align: right;              /* ustawienie wartosci: left, center albo right */
+  --info-row-move-x: 0px;               /* przesuniecie wszystkich punktow: ujemna = w lewo, dodatnia = w prawo */
+  --info-row-move-y: 0px;               /* przesuniecie wszystkich punktow: ujemna = w gore, dodatnia = w dol */
+
+  /* ===== 11. GLOWNA TRESC PANELU ===== */
+  --content-side-padding: 14px;           /* odstep tresci od bokow panelu */
+  --content-top-padding: 14px;            /* odstep tresci od zakladek */
+  --visit-date-size: 12px;               /* wielkosc daty, np. Pon., 20 lip */
+  --visit-date-color: #4b424a;           /* kolor daty */
+
+  /* ===== 12. KARTA USLUGI ===== */
+  --service-card-height: 88px;            /* minimalna wysokosc karty uslugi */
+  --service-card-radius: 13px;            /* zaokraglenie karty uslugi */
+  --service-card-background: #ffffff;     /* tlo karty uslugi */
+  --service-card-border: #ebe2e6;         /* ramka karty uslugi */
+  --service-card-padding-top: 13px;        /* odstep wewnetrzny od gory */
+  --service-card-padding-right: 12px;      /* odstep wewnetrzny od prawej */
+  --service-card-padding-bottom: 13px;     /* odstep wewnetrzny od dolu */
+  --service-card-padding-left: 17px;       /* odstep od lewej, razem z kolorowym paskiem */
+  --service-stripe-width: 5px;             /* szerokosc kolorowego paska kategorii */
+  --service-name-size: 12px;               /* wielkosc nazwy uslugi */
+  --service-description-size: 10px;        /* wielkosc opisu uslugi */
+  --service-price-size: 11px;              /* wielkosc ceny */
+  --service-name-color: #302a30;           /* kolor nazwy */
+  --service-description-color: #776d75;   /* kolor opisu i czasu */
+
+  /* ===== 13. POLA POCZATEK / KONIEC ===== */
+  --time-box-gap: 9px;                     /* odstep miedzy dwoma polami */
+  --time-box-padding-y: 10px;              /* pionowy odstep wewnatrz pola */
+  --time-box-padding-x: 11px;              /* poziomy odstep wewnatrz pola */
+  --time-box-radius: 11px;                 /* zaokraglenie pola */
+  --time-box-background: #faf7f8;          /* tlo pola */
+  --time-label-size: 9px;                  /* wielkosc napisu POCZATEK / KONIEC */
+  --time-value-size: 12px;                 /* wielkosc godziny */
+  --time-value-color: #352f35;             /* kolor godziny */
+
+  /* ===== 14. PRZYCISK DODAJ KOLEJNA USLUGE ===== */
+  --add-service-height: 40px;              /* minimalna wysokosc przycisku */
+  --add-service-font-size: 10px;           /* wielkosc tekstu */
+  --add-service-radius: 10px;              /* zaokraglenie przycisku */
+  --add-service-color: #a34d70;            /* kolor tekstu */
+  --add-service-border: #d8a9bb;           /* kolor przerywanej ramki */
+  --add-service-hover-background: #fff5f9; /* tlo po najechaniu */
+  --plus-circle-size: 20px;                /* srednica kola z plusem */
+  --plus-font-size: 15px;                  /* wielkosc znaku plus */
+  --plus-background: #b65b7e;             /* kolor kola z plusem */
+  --plus-move-up: 0px;                     /* przesuwa CALE KOLO plusa: ujemna wartosc podnosi kolo */
+  --plus-symbol-move-x: 0px;             /* TYLKO znak +: ujemna = w lewo, dodatnia = w prawo */
+  --plus-symbol-move-y: 0px;             /* TYLKO znak +: ujemna = w gore, dodatnia = w dol */
+
+  /* ===== 15. PRZYCISK UMOW PONOWNIE ===== */
+  --repeat-width: 100%;                    /* szerokosc: 100% = cala szerokosc */
+  --repeat-height: 38px;                   /* wysokosc przycisku */
+  --repeat-margin-top: 10px;               /* odstep od przycisku powyzej */
+  --repeat-radius: 10px;                   /* zaokraglenie */
+  --repeat-font-size: 10px;                /* wielkosc tekstu */
+  --repeat-background: #b65b7e;            /* kolor normalny */
+  --repeat-hover-background: #9f4669;      /* kolor po najechaniu */
+  --repeat-text-color: #ffffff;             /* kolor tekstu */
+
+  /* ===== 16. ANIMACJE I REAKCJE ===== */
+  --button-animation-time: .16s;           /* szybkosc reakcji przyciskow */
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: CALY PANEL ===== */
+#appointmentDetailsModal.crm-safe-visit-panel{
+  top:var(--panel-top)!important;
+  right:var(--panel-right)!important;
+  bottom:var(--panel-bottom)!important;
+  left:auto!important;
+  width:var(--panel-width)!important;
+}
+#appointmentDetailsModal .crm-safe-visit-surface{
+  background:var(--panel-background)!important;
+  border-color:var(--panel-border-color)!important;
+  border-radius:var(--panel-radius)!important;
+  box-shadow:var(--panel-shadow)!important;
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: ZIELONY NAGLOWEK ===== */
+#appointmentDetailsModal .crm-safe-header{
+  height:var(--header-height)!important;
+  padding:var(--header-padding-top) var(--header-padding-right) var(--header-padding-bottom) var(--header-padding-left)!important;
+  gap:var(--header-gap)!important;
+  grid-template-columns:var(--close-size) minmax(0,1fr) var(--status-button-width)!important;
+  background:linear-gradient(135deg,var(--header-green-start),var(--header-green-end))!important;
+  border-radius:
+    var(--header-radius)
+    var(--header-radius)
+    var(--header-bottom-right-radius)
+    var(--header-bottom-left-radius)!important;
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: KRZYZYK ===== */
+#appointmentDetailsModal .crm-safe-close{
+  width:var(--close-size)!important;
+  height:var(--close-size)!important;
+  font-size:var(--close-font-size)!important;
+  margin-top:var(--close-move-up)!important;
+  margin-left:var(--close-move-left)!important;
+  background:var(--close-background)!important;
+}
+#appointmentDetailsModal .crm-safe-close:hover{background:var(--close-hover-background)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: STATUS ===== */
+#appointmentDetailsModal .crm-safe-status-copy{
+  transform:translateY(var(--status-title-move-up))!important;
+}
+#appointmentDetailsModal .crm-safe-status-copy h4{
+  font-size:var(--status-title-size)!important;
+  color:var(--status-title-color)!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn{
+  width:var(--status-button-width)!important;
+  height:var(--status-button-height)!important;
+  font-size:var(--status-button-font-size)!important;
+  transform:translateY(var(--status-button-move-up))!important;
+  background:var(--status-button-background)!important;
+}
+#appointmentDetailsModal .crm-safe-status-btn:hover{background:var(--status-button-hover)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: KARTA KLIENTA ===== */
+#appointmentDetailsModal .crm-safe-client-card{
+  width:calc(100% - (var(--client-side-gap) * 2))!important;
+  min-height:var(--client-height)!important;
+  margin:calc(-1 * var(--client-overlap)) var(--client-side-gap) 9px!important;
+  padding:var(--client-padding-y) var(--client-padding-x)!important;
+  border-radius:var(--client-radius)!important;
+  background:var(--client-background)!important;
+  border-color:var(--client-border)!important;
+  box-shadow:var(--client-shadow)!important;
+}
+#appointmentDetailsModal .crm-safe-client-card:hover{
+  transform:translateY(var(--client-hover-lift))!important;
+  border-color:var(--client-hover-border)!important;
+  box-shadow:var(--client-hover-shadow)!important;
+}
+#appointmentDetailsModal .crm-safe-avatar{
+  width:var(--avatar-size)!important;
+  height:var(--avatar-size)!important;
+  font-size:var(--avatar-font-size)!important;
+  background:var(--avatar-background)!important;
+  color:var(--avatar-color)!important;
+}
+#appointmentDetailsModal .crm-safe-client-copy{gap:var(--client-text-gap)!important;}
+#appointmentDetailsModal .crm-safe-client-copy strong{font-size:var(--client-name-size)!important;color:var(--client-name-color)!important;}
+#appointmentDetailsModal .crm-safe-client-copy span{font-size:var(--client-phone-size)!important;color:var(--client-phone-color)!important;}
+#appointmentDetailsModal .crm-safe-edit{
+  width:var(--edit-size)!important;height:var(--edit-size)!important;font-size:var(--edit-icon-size)!important;
+  color:var(--edit-color)!important;background:var(--edit-background)!important;
+}
+#appointmentDetailsModal .crm-safe-edit:hover{background:var(--edit-hover-background)!important;color:#fff!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: ZAKLADKI ===== */
+#appointmentDetailsModal .crm-safe-tabs{
+  height:var(--tabs-height)!important;
+  margin-left:var(--tabs-side-gap)!important;
+  margin-right:var(--tabs-side-gap)!important;
+  gap:var(--tabs-between-gap)!important;
+}
+#appointmentDetailsModal .crm-safe-tabs button{font-size:var(--tabs-font-size)!important;color:var(--tabs-color)!important;}
+#appointmentDetailsModal .crm-safe-tabs button.active{color:var(--tabs-active-color)!important;}
+#appointmentDetailsModal .crm-safe-tabs button.active:after{background:var(--tabs-line-color)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: TRESC I KARTA USLUGI ===== */
+#appointmentDetailsModal .crm-safe-tab-content,
+#appointmentDetailsModal .crm-safe-info{
+  padding:var(--content-top-padding) var(--content-side-padding) 0!important;
+}
+#appointmentDetailsModal .crm-safe-date{font-size:var(--visit-date-size)!important;color:var(--visit-date-color)!important;}
+#appointmentDetailsModal .crm-safe-service-card{
+  min-height:var(--service-card-height)!important;
+  border-radius:var(--service-card-radius)!important;
+  background:var(--service-card-background)!important;
+  border-color:var(--service-card-border)!important;
+  padding:var(--service-card-padding-top) var(--service-card-padding-right) var(--service-card-padding-bottom) var(--service-card-padding-left)!important;
+}
+#appointmentDetailsModal .crm-safe-service-stripe{width:var(--service-stripe-width)!important;}
+#appointmentDetailsModal .crm-safe-service-copy strong{font-size:var(--service-name-size)!important;color:var(--service-name-color)!important;}
+#appointmentDetailsModal .crm-safe-service-copy span,
+#appointmentDetailsModal .crm-safe-service-copy small{font-size:var(--service-description-size)!important;color:var(--service-description-color)!important;}
+#appointmentDetailsModal .crm-safe-price{font-size:var(--service-price-size)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: GODZINY ===== */
+#appointmentDetailsModal .crm-safe-time-grid{gap:var(--time-box-gap)!important;}
+#appointmentDetailsModal .crm-safe-time-grid>div{
+  padding:var(--time-box-padding-y) var(--time-box-padding-x)!important;
+  border-radius:var(--time-box-radius)!important;
+  background:var(--time-box-background)!important;
+}
+#appointmentDetailsModal .crm-safe-time-grid span{font-size:var(--time-label-size)!important;}
+#appointmentDetailsModal .crm-safe-time-grid strong{font-size:var(--time-value-size)!important;color:var(--time-value-color)!important;}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: DODAJ USLUGE ===== */
+#appointmentDetailsModal .crm-safe-add-service{
+  min-height:var(--add-service-height)!important;
+  font-size:var(--add-service-font-size)!important;
+  border-radius:var(--add-service-radius)!important;
+  color:var(--add-service-color)!important;
+  border-color:var(--add-service-border)!important;
+}
+#appointmentDetailsModal .crm-safe-add-service:hover{background:var(--add-service-hover-background)!important;}
+#appointmentDetailsModal .crm-safe-add-service b{
+  width:var(--plus-circle-size)!important;
+  height:var(--plus-circle-size)!important;
+  line-height:var(--plus-circle-size)!important;
+  font-size:var(--plus-font-size)!important;
+  background:var(--plus-background)!important;
+  transform:translateY(var(--plus-move-up))!important;
+}
+
+/* ===== ZASTOSOWANIE ZMIENNYCH: UMOW PONOWNIE ===== */
+#appointmentDetailsModal .crm-safe-repeat{
+  width:var(--repeat-width)!important;
+  height:var(--repeat-height)!important;
+  margin-top:var(--repeat-margin-top)!important;
+  border-radius:var(--repeat-radius)!important;
+  font-size:var(--repeat-font-size)!important;
+  color:var(--repeat-text-color)!important;
+  background:var(--repeat-background)!important;
+}
+#appointmentDetailsModal .crm-safe-repeat:hover{background:var(--repeat-hover-background)!important;}
+
