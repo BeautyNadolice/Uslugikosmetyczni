@@ -1382,6 +1382,7 @@ async function crmVisitStatusAction(action) {
 /* ----- VIS.51. crmPopulateNewVisitPanel (oryginalna linia 5754) ----- */
 function crmPopulateNewVisitPanel(app) {
     const isAppointment = app?.eventType === "appointment";
+    const isExternal = app?.eventType === "external";
     const date = crmParseVisitDate(app?.date);
     const duration = Math.max(0, Number(app?.duration) || 0);
     const end = date ? new Date(date.getTime() + duration * 60000) : null;
@@ -1403,8 +1404,11 @@ function crmPopulateNewVisitPanel(app) {
     setText("crmVisitEnd", crmFormatVisitTime(end));
     setText("crmVisitWorker", crmGetVisitWorker(app));
     setText("crmVisitEquipment", crmGetVisitEquipment(app));
-    setText("crmServiceDescription", crmEscapePanelValue(app?.serviceDescription || service?.description, "Usługa salonowa"));
-    setText("crmServicePrice", crmGetServicePriceText(app));
+    const serviceDescription = isExternal
+        ? "Wydarzenie zewnętrzne z Google Calendar"
+        : crmEscapePanelValue(app?.serviceDescription || service?.description, "Usługa salonowa");
+    setText("crmServiceDescription", serviceDescription);
+    setText("crmServicePrice", isExternal ? "—" : crmGetServicePriceText(app));
 
     const stripe = document.getElementById("crmServiceStripe");
     if (stripe) stripe.style.background = app?.color || service?.color || "#d6df73";
@@ -1418,6 +1422,24 @@ function crmPopulateNewVisitPanel(app) {
     if (statusButton) statusButton.hidden = !isAppointment;
     if (repeatButton) repeatButton.hidden = !isAppointment;
     if (settleButton) settleButton.hidden = !isAppointment;
+
+    const addServiceButton = document.querySelector("#appointmentDetailsModal .crm-safe-add-service");
+    if (addServiceButton) addServiceButton.hidden = !isAppointment;
+
+    const clientCard = document.querySelector("#appointmentDetailsModal .crm-safe-client-card");
+    if (clientCard) {
+        clientCard.classList.toggle("is-readonly", isExternal);
+        clientCard.title = isExternal ? "Wydarzenie zewnętrzne z Google Calendar" : "Otwórz edycję wizyty";
+        clientCard.onclick = isExternal ? null : () => openEditAppointmentModal();
+        clientCard.onkeydown = isExternal ? null : event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openEditAppointmentModal();
+            }
+        };
+        clientCard.tabIndex = isExternal ? -1 : 0;
+    }
+
     crmSwitchVisitPanelTab("visit");
     crmToggleVisitStatusMenu(false);
 }
