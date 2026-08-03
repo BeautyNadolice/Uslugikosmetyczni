@@ -687,3 +687,220 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
 }
 #appointmentDetailsModal .crm-safe-repeat:hover{background:var(--repeat-hover-background)!important;}
 
+/* ========================================================================== 
+   ETAP 1. KALENDARZ: DZIEN, TYDZIEN I LISTA WSZYSTKICH WIZYT
+   ========================================================================== */
+
+/* DZIEN: wysokosc wynika z JavaScript. Usuwamy stare sztywne minimum kart. */
+.crm-3day-canvas {
+  height: auto;
+  min-height: 0 !important;
+}
+.crm-3day-labels {
+  height: auto;
+}
+.crm-3day-event.crm-day-card-adaptive {
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 4px 7px 4px 9px !important;
+  justify-content: flex-start !important;
+  gap: 1px !important;
+}
+.crm-day-card-adaptive .crm-3day-event__time,
+.crm-day-card-adaptive strong,
+.crm-day-card-adaptive .crm-day-card-client {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crm-day-card-adaptive .crm-3day-event__time {
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+.crm-day-card-adaptive strong {
+  font-size: 11px !important;
+  line-height: 1.18 !important;
+}
+.crm-day-card-adaptive .crm-day-card-client {
+  color: #302b30;
+  font-size: 10px !important;
+  font-weight: 650;
+  line-height: 1.15;
+}
+.crm-day-card-adaptive.has-one-row {
+  display: block !important;
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+.crm-day-card-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.crm-day-card-line b { flex: 0 0 auto; }
+.crm-day-card-line span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crm-day-card-adaptive.has-two-rows {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+}
+.crm-day-card-adaptive.has-two-rows .crm-day-card-client-inline {
+  position: absolute;
+  right: 7px;
+  bottom: 2px;
+  max-width: 43%;
+  overflow: hidden;
+  color: #302b30;
+  font-size: 9px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crm-3day-labels > span.is-workday-end {
+  color: #51474f;
+  font-weight: 800;
+}
+
+/* TYDZIEN: klient ma byc szybki do odczytania. */
+.crm-week-visit-card small {
+  color: #242124 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crm-week-visit-card strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #352f35;
+  font-size: 11px !important;
+  line-height: 1.18 !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* WSZYSTKIE WIZYTY: dwie linie uslugi bez zwiekszania karty. */
+.crm-day-list-item {
+  grid-template-columns: 82px minmax(0, 1fr) 22px !important;
+  grid-template-areas:
+    "time service status"
+    "client service status" !important;
+  column-gap: 8px !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+.crm-day-list-time {
+  grid-area: time;
+  align-self: end;
+  min-width: 0;
+  font-size: 10px !important;
+  white-space: nowrap;
+}
+.crm-day-list-service {
+  grid-area: service;
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: #342e34;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: left;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.crm-day-list-client {
+  grid-area: client;
+  align-self: start;
+  min-width: 0;
+  overflow: hidden;
+  color: #252125 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.15;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crm-day-list-status {
+  grid-area: status;
+  align-self: center;
+}
+
+/* ETAP 1.1.1. Bardzo niska karta: czas, klient i fragment nazwy zabiegu. */
+.crm-day-card-line__client {
+  flex: 0 1 auto;
+  max-width: 28%;
+  min-width: 0;
+  overflow: hidden;
+  color: #302b30;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crm-day-card-line__service {
+  flex: 1 1 70px;
+  min-width: 28px;
+  overflow: hidden;
+  color: #403740;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================
+   ADMIN V14.3: CZYSTA KARTA KLIENTA I MENU STATUSU NAD KARTA
+   - usunieto osobny przycisk olowka
+   - cala karta klienta nadal otwiera edycje
+   - menu statusu nie chowa sie pod karta klienta
+   ========================================================== */
+#appointmentDetailsModal .crm-safe-header {
+  position: relative !important;
+  z-index: 60 !important;
+  overflow: visible !important;
+}
+
+#appointmentDetailsModal .crm-safe-status-btn {
+  position: relative !important;
+  z-index: 62 !important;
+}
+
+#appointmentDetailsModal .crm-safe-status-menu {
+  z-index: 100 !important;
+  top: 50px !important;
+  right: 12px !important;
+  max-height: min(240px, calc(100vh - 90px)) !important;
+  overflow-y: auto !important;
+  isolation: isolate !important;
+}
+
+#appointmentDetailsModal .crm-safe-body {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+#appointmentDetailsModal .crm-safe-client-card {
+  grid-template-columns: var(--avatar-size) minmax(0, 1fr) !important;
+  cursor: pointer !important;
+}
+
+#appointmentDetailsModal .crm-safe-edit {
+  display: none !important;
+}
+/* KONIEC ADMIN V14.3 */
+
