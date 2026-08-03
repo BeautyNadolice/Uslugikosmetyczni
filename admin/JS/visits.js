@@ -1524,13 +1524,12 @@ function crmInstallSafeRightVisitPanel() {
         </div>
       </header>
       <div id="appointment-details-view" class="crm-safe-body">
-        <section class="crm-safe-client-card" role="button" tabindex="0" title="Edytuj wizytę" onclick="openEditAppointmentModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditAppointmentModal();}">
+        <section class="crm-safe-client-card" role="button" tabindex="0" title="Otwórz edycję wizyty" onclick="openEditAppointmentModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEditAppointmentModal();}">
           <div id="crmClientAvatar" class="crm-safe-avatar">K</div>
           <div class="crm-safe-client-copy">
             <strong id="details-name">Klient</strong>
             <span id="details-phone-row">☎ <span id="details-phone">—</span></span>
           </div>
-          <button type="button" class="crm-safe-edit" onclick="openEditAppointmentModal()" aria-label="Edytuj wizytę">✎</button>
         </section>
         <nav class="crm-safe-tabs">
           <button id="crmVisitTabVisit" type="button" class="active" onclick="crmSwitchVisitPanelTab('visit')">WIZYTA</button>
@@ -1618,7 +1617,7 @@ function crmVisitCategoryColor(item) {
         value.name.trim().toLowerCase() === item.service.trim().toLowerCase()
     );
     const category = item?.category || service?.category || "";
-    return item?.categoryColor || globalColors?.[category] || "#b05c75";
+    return item?.categoryColor || service?.categoryColor || globalColors?.[category] || item?.color || service?.color || "#b05c75";
 }
 
 /* ----- VIS.66. crmEnsureDayVisitsList (oryginalna linia 6616) ----- */
@@ -1684,12 +1683,15 @@ function crmRenderDayVisitsList() {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "crm-day-list-item" + (key === crmOpenDayListSelectedKey ? " is-selected" : "");
-        const color = crmVisitCategoryColor(item);
+        const palette = typeof crmCategoryPalette === "function" ? crmCategoryPalette(item) : null;
+        const color = palette?.stripe || crmVisitCategoryColor(item);
+        const softColor = palette?.fill || crmHexToSoftBackground(color);
         button.style.setProperty("--crm-event-color", color);
-        button.style.setProperty("--crm-event-soft", crmHexToSoftBackground(color));
+        button.style.setProperty("--crm-event-soft", softColor);
         button.innerHTML = `
           <span class="crm-day-list-time">${crmEscapeText(crmVisitEndTime(item))}</span>
-          <span class="crm-day-list-copy"><strong>${crmEscapeText(crmVisitService(item))}</strong><small>${crmEscapeText(crmVisitClient(item))}</small></span>
+          <strong class="crm-day-list-service">${crmEscapeText(crmVisitService(item))}</strong>
+          <small class="crm-day-list-client">${crmEscapeText(crmVisitClient(item))}</small>
           <span class="crm-day-list-status">${crmEscapeText(crmStatusIcon(item))}</span>`;
         button.addEventListener("click", () => {
             crmOpenDayListSelectedKey = key;

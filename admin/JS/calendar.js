@@ -44,7 +44,25 @@ function getFormattedISOBlockDate(dateObj){
 
 function setCalendarView(mode){
 
-    calendarViewMode = mode;
+    const normalizedMode = ["day", "week", "month"].includes(mode) ? mode : "day";
+    const viewChanged = calendarViewMode !== normalizedMode;
+
+    /* CAL.6.1. Zmiana Dzien / Tydzien / Miesiac zamyka kontekst
+       poprzedniego widoku: liste dnia, szczegoly wizyty i menu statusu. */
+    if (viewChanged) {
+        if (typeof crmCloseDayVisitsList === "function") crmCloseDayVisitsList();
+        if (typeof crmToggleVisitStatusMenu === "function") crmToggleVisitStatusMenu(false);
+        if (typeof closeAppointmentModal === "function") closeAppointmentModal();
+        else {
+            const detailsPanel = document.getElementById("appointmentDetailsModal");
+            if (detailsPanel) detailsPanel.style.display = "none";
+            document.body.classList.remove("crm-v3-details-open");
+        }
+        currentEditingAppointment = null;
+    }
+
+    calendarViewMode = normalizedMode;
+    mode = normalizedMode;
 
     document
         .querySelectorAll(
@@ -1739,33 +1757,259 @@ crmRenderWeekColumnEvents = function(column, date, events) {
     const list = column.querySelector(".crm-week-events");
     if (!list) return;
     list.innerHTML = "";
+    if (!events.length) return;
 
-    const styles = getComputedStyle(list);
-    const gap = parseFloat(styles.rowGap || styles.gap) || 6;
-    const available = Math.max(0, list.clientHeight);
-    const cardHeight = 64;
-    const moreHeight = 28;
-    const allCardsHeight = events.length > 0 ? events.length * cardHeight + Math.max(0, events.length - 1) * gap : 0;
+    /* CAL.91.1. Pomiar rzeczywistego miejsca do dolnej krawędzi kolumny. */
+    const columnRect = column.getBoundingClientRect();
+    const listRect = list.getBoundingClientRect();
+    const listStyles = getComputedStyle(list);
+    const paddingBottom = parseFloat(listStyles.paddingBottom) || 0;
+    const originalGap = parseFloat(listStyles.rowGap || listStyles.gap) || 6;
+    const gap = Math.min(originalGap, 3);
+    list.style.setProperty("row-gap", `${gap}px`, "important");
+
+    /* CAL.91.1. Wysokość kolumny nie może wynikać z jej obecnej zawartości.
+       Liczymy do dolnej krawędzi widocznego obszaru roboczego przeglądarki.
+       To obejmuje wolne miejsce pod białą kolumną widoczne na ekranie. */
+    const viewportBottom = window.innerHeight - 18;
+    const available = Math.max(0, viewportBottom - listRect.top - paddingBottom);
+    const fullColumnHeight = Math.max(columnRect.height, viewportBottom - columnRect.top);
+    column.style.height = `${fullColumnHeight}px`;
+    column.style.minHeight = `${fullColumnHeight}px`;
+
+    /* CAL.91.2. Tworzenie i pomiar prawdziwych kart. */
+    const fragment = document.createDocumentFragment();
+    const cards = events.map(item => {
+        const card = crmCreateWeekVisitCard(item);
+        fragment.appendChild(card);
+        return card;
+    });
+    list.appendChild(fragment);
+
+    const probeMore = document.createElement("button");
+    probeMore.type = "button";
+    probeMore.className = "crm-week-more";
+    probeMore.textContent = "+99 pozostałych";
+    probeMore.style.visibility = "hidden";
+    list.appendChild(probeMore);
+    const moreHeight = Math.ceil(probeMore.getBoundingClientRect().height || 28);
+    probeMore.remove();
+
+    const heights = cards.map(card => Math.ceil(card.getBoundingClientRect().height || 64));
+    const allCardsHeight = heights.reduce((sum, height) => sum + height, 0)
+        + gap * Math.max(0, heights.length - 1);
 
     let visibleCount = events.length;
     if (allCardsHeight > available) {
-        visibleCount = Math.max(0, Math.floor((available - moreHeight) / (cardHeight + gap)));
-        while (visibleCount > 0) {
-            const used = visibleCount * cardHeight + Math.max(0, visibleCount - 1) * gap + gap + moreHeight;
-            if (used <= available) break;
-            visibleCount -= 1;
+        visibleCount = 0;
+        let used = moreHeight;
+        for (let index = 0; index < heights.length; index += 1) {
+            /* Rezerwujemy przerwę między ostatnią kartą i przyciskiem +N. */
+            const cardGap = visibleCount > 0 ? gap : 0;
+            const moreGap = gap;
+            const nextUsed = used + cardGap + heights[index] + moreGap;
+            if (nextUsed > available) break;
+            used += cardGap + heights[index];
+            visibleCount += 1;
         }
     }
 
-    events.slice(0, visibleCount).forEach(item => list.appendChild(crmCreateWeekVisitCard(item)));
-    const hidden = Math.max(0, events.length - visibleCount);
-    if (hidden > 0) {
+    /* hidden bywa nadpisywane przez display:flex!important, dlatego używamy
+       jawnego display:none z priorytetem important. */
+    cards.forEach((card, index) => {
+        if (index >= visibleCount) card.style.setProperty("display", "none", "important");
+        else card.style.removeProperty("display");
+    });
+
+    const hiddenCount = Math.max(0, events.length - visibleCount);
+    if (hiddenCount > 0) {
         const more = document.createElement("button");
         more.type = "button";
         more.className = "crm-week-more";
-        const ending = hidden === 1 ? "pozostała" : (hidden >= 2 && hidden <= 4 ? "pozostałe" : "pozostałych");
-        more.textContent = `+${hidden} ${ending}`;
+        const ending = hiddenCount === 1 ? "pozostała" : (hiddenCount >= 2 && hiddenCount <= 4 ? "pozostałe" : "pozostałych");
+        more.textContent = `+${hiddenCount} ${ending}`;
         more.addEventListener("click", () => crmOpenDayVisitsList(date));
         list.appendChild(more);
+
+        /* CAL.91.3. Odstęp pozostaje kompaktowy. Wolnego miejsca nie
+           rozciągamy, ponieważ ma służyć do zmieszczenia kolejnej karty. */
     }
 };
+
+/* ==========================================================
+   CAL.92. ETAP 1: DYNAMICZNY WIDOK DNIA I TRESC KART
+   - skala czasu wynika z miejsca na ekranie i godzin pracy
+   - godzina koncowa jest zawsze widoczna
+   - tresc zalezy od faktycznej wysokosci karty, nie od minut
+   ========================================================== */
+function crmEtap1Clamp(value, minimum, maximum) {
+    return Math.min(maximum, Math.max(minimum, value));
+}
+
+function crmEtap1EventEndMinute(item, date) {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const startDate = new Date(item?.date || item?.start || "");
+    if (Number.isNaN(startDate.getTime())) return 0;
+    const explicitEnd = new Date(item?.endDate || item?.end || "");
+    const duration = Math.max(1, Number(item?.duration) || 45);
+    const endDate = Number.isNaN(explicitEnd.getTime())
+        ? new Date(startDate.getTime() + duration * 60000)
+        : explicitEnd;
+    return Math.ceil((endDate.getTime() - dayStart.getTime()) / 60000);
+}
+
+function crmEtap1DisplayRange(configuredStart, configuredEnd) {
+    let latestEnd = configuredEnd;
+    for (let dayIndex = 0; dayIndex < CRM_THREE_DAY_COUNT; dayIndex += 1) {
+        const date = new Date(selectedCalendarDate);
+        date.setDate(date.getDate() + dayIndex);
+        getCalendarEventsForDate(date)
+            .filter(item => item.eventType !== "work_shift")
+            .forEach(item => {
+                latestEnd = Math.max(latestEnd, crmEtap1EventEndMinute(item, date));
+            });
+    }
+    const displayEnd = latestEnd > configuredEnd
+        ? Math.ceil(latestEnd / 30) * 30
+        : configuredEnd;
+    return { start: configuredStart, end: displayEnd };
+}
+
+function crmEtap1DayScale(grid, rangeStart, rangeEnd) {
+    const totalMinutes = Math.max(60, rangeEnd - rangeStart);
+    const totalHours = totalMinutes / 60;
+    const rect = grid.getBoundingClientRect();
+    const viewportSpace = Math.max(520, window.innerHeight - rect.top - 18);
+    const headerHeight = 42;
+    const usableHeight = Math.max(420, viewportSpace - headerHeight);
+    const minimumHourHeight = 62;
+    const maximumHourHeight = 88;
+    const hourHeight = crmEtap1Clamp(usableHeight / totalHours, minimumHourHeight, maximumHourHeight);
+    return { hourHeight, pixelsPerMinute: hourHeight / 60, totalMinutes };
+}
+
+crmRenderThreeDayEvent = function(entry, layer, rangeStart, pixelsPerMinute) {
+    const item = entry.item;
+    const palette = crmCategoryPalette(item);
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "crm-3day-event crm-day-card-adaptive";
+
+    const exactTop = Math.round((entry.start - rangeStart) * pixelsPerMinute);
+    const durationMinutes = Math.max(5, entry.end - entry.start);
+    const exactHeight = Math.max(8, Math.round(durationMinutes * pixelsPerMinute) - 2);
+    card.style.top = `${exactTop}px`;
+    card.style.height = `${exactHeight}px`;
+    card.dataset.durationMinutes = String(durationMinutes);
+    card.dataset.renderedHeight = String(exactHeight);
+    card.style.setProperty("--event-stripe", palette.stripe);
+    card.style.setProperty("--event-fill", palette.fill);
+
+    const statusKey = typeof crmV3NormalizeStatus === "function" ? crmV3NormalizeStatus(item) : "CONFIRMED";
+    const meta = typeof CRM_V3_STATUS_META !== "undefined" ? CRM_V3_STATUS_META[statusKey] : null;
+    const timeText = `${crmFormatVisitTime(entry.date)} – ${crmFormatVisitTime(entry.endDate)}`;
+    const serviceText = String(item.service || item.name || "Wpis");
+    const clientText = item.eventType === "appointment" ? String(item.name || "") : "";
+    const iconHtml = meta ? `<i>${crmSafeText(meta.icon)}</i>` : "";
+
+    if (exactHeight < 30) {
+        card.classList.add("has-one-row");
+        card.innerHTML = `<span class="crm-day-card-line">${iconHtml}<b>${crmSafeText(timeText)}</b>${clientText ? `<span class="crm-day-card-line__client">${crmSafeText(clientText)}</span>` : ""}<span class="crm-day-card-line__service">${crmSafeText(serviceText)}</span></span>`;
+    } else if (exactHeight < 52) {
+        card.classList.add("has-two-rows");
+        card.innerHTML = `<span class="crm-3day-event__time">${iconHtml}${crmSafeText(timeText)}</span><strong>${crmSafeText(serviceText)}</strong>${clientText ? `<span class="crm-day-card-client-inline">${crmSafeText(clientText)}</span>` : ""}`;
+    } else {
+        card.classList.add("has-full-content");
+        card.innerHTML = `<span class="crm-3day-event__time">${iconHtml}${crmSafeText(timeText)}</span><strong>${crmSafeText(serviceText)}</strong>${clientText ? `<span class="crm-day-card-client">${crmSafeText(clientText)}</span>` : ""}`;
+    }
+
+    card.title = `${timeText} ${clientText} ${serviceText}`.trim();
+    if (item.eventType !== "work_shift") card.onclick = () => openAppointmentDetailsModal(item);
+    else card.disabled = true;
+    layer.appendChild(card);
+};
+
+crmRenderThreeDayCalendar = function(grid) {
+    const configuredRange = crmDaySettingsRange();
+    const {start, end} = crmEtap1DisplayRange(configuredRange.start, configuredRange.end);
+    const scale = crmEtap1DayScale(grid, start, end);
+    const ppm = scale.pixelsPerMinute;
+    const timelineHeight = scale.totalMinutes * ppm;
+    const bottomVisualPadding = 20;
+    const height = timelineHeight + bottomVisualPadding;
+
+    document.documentElement.style.setProperty("--crm-hour-height", `${scale.hourHeight.toFixed(2)}px`);
+    grid.innerHTML = "";
+    grid.className = "crm-three-day-calendar";
+    grid.dataset.calendarView = "day";
+    grid.dataset.extendedAfterHours = end > configuredRange.end ? "true" : "false";
+
+    const shell = document.createElement("div");
+    shell.className = "crm-3day-shell";
+    const labels = document.createElement("div");
+    labels.className = "crm-3day-labels";
+    labels.style.height = `${height + 42}px`;
+    const spacer = document.createElement("div");
+    spacer.className = "crm-3day-corner";
+    labels.appendChild(spacer);
+
+    for (let minute = start; minute <= end; minute += 60) {
+        const label = document.createElement("span");
+        label.style.top = `${42 + (minute - start) * ppm}px`;
+        label.textContent = `${String(Math.floor(minute / 60)).padStart(2, "0")}:00`;
+        labels.appendChild(label);
+    }
+    if ((end - start) % 60 !== 0) {
+        const finalLabel = document.createElement("span");
+        finalLabel.className = "is-workday-end";
+        finalLabel.style.top = `${42 + (end - start) * ppm}px`;
+        finalLabel.textContent = `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
+        labels.appendChild(finalLabel);
+    }
+    shell.appendChild(labels);
+
+    for (let dayIndex = 0; dayIndex < CRM_THREE_DAY_COUNT; dayIndex++) {
+        const date = new Date(selectedCalendarDate);
+        date.setDate(date.getDate() + dayIndex);
+        const column = document.createElement("section");
+        column.className = "crm-3day-column";
+        const header = document.createElement("button");
+        header.type = "button";
+        header.className = "crm-3day-header";
+        header.innerHTML = `<b>${date.getDate()}</b><span>${date.toLocaleDateString("pl-PL", {weekday:"short", month:"short"})}</span>`;
+        if (date.toDateString() === new Date().toDateString()) header.classList.add("is-today");
+        header.onclick = () => {
+            selectedCalendarDate = new Date(date);
+            crmRenderCalendarInsights();
+            renderMiniMonthCalendar();
+        };
+
+        const canvas = document.createElement("div");
+        canvas.className = "crm-3day-canvas";
+        canvas.style.setProperty("height", `${height}px`, "important");
+        canvas.style.setProperty("min-height", `${height}px`, "important");
+        for (let minute = start; minute <= end; minute += 30) {
+            const line = document.createElement("div");
+            line.className = minute % 60 === 0 ? "crm-3day-line is-hour" : "crm-3day-line";
+            line.style.top = `${(minute - start) * ppm}px`;
+            canvas.appendChild(line);
+        }
+
+        const layer = document.createElement("div");
+        layer.className = "crm-3day-events";
+        getCalendarEventsForDate(date)
+            .filter(item => item.eventType !== "work_shift")
+            .map(item => crmVisitEntry(item, start, end))
+            .filter(Boolean)
+            .forEach(entry => crmRenderThreeDayEvent(entry, layer, start, ppm));
+        crmRenderCurrentTimeLine(layer, date, start, end, ppm);
+        canvas.appendChild(layer);
+        column.append(header, canvas);
+        shell.appendChild(column);
+    }
+
+    grid.appendChild(shell);
+    crmRenderCalendarInsights();
+};
+
