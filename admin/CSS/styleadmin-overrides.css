@@ -1496,3 +1496,71 @@ body.crm-v3-details-open .crm-day-list-panel {
   }
 }
 /* KONIEC ADMIN V14.0 */
+
+/* ==========================================================
+   ADMIN V14.1: TYDZIEN WYKORZYSTUJE PELNA WYSOKOSC ROBOCZA
+   Przyczyna: starsze V11/V13 wymuszaly height: calc(100vh - 178px),
+   przez co dolna czesc srodkowego panelu nie nalezala do kolumn tygodnia.
+   Nie zmienia prawego panelu wizyty ani widokow Dzien i Miesiac.
+   ========================================================== */
+@media (min-width: 821px) {
+  #tab-kalendarz #booksy-grid.crm-week-grid,
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] {
+    height: calc(100vh - 88px) !important;
+    min-height: 620px !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] .crm-week-column,
+  #tab-kalendarz #booksy-grid.crm-week-grid .crm-week-column {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    align-self: stretch !important;
+    overflow: hidden !important;
+  }
+
+  #tab-kalendarz #booksy-grid[data-calendar-view="week"] .crm-week-events,
+  #tab-kalendarz #booksy-grid.crm-week-grid .crm-week-events {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+}
+/* KONIEC ADMIN V14.1 */
+
+/* ==========================================================
+   ADMIN V14.2: KOLORY KATEGORII W LISCIE WSZYSTKIE WIZYTY
+   Pelne pastelowe tlo jest zgodne z kartami widoku Tydzien.
+   Status CRM pozostaje osobnym symbolem po prawej stronie.
+   ========================================================== */
+.crm-day-list-item {
+  background: var(--crm-event-soft, rgba(176,92,117,.14)) !important;
+  border-color: rgba(255,255,255,.78) !important;
+  border-left: 5px solid var(--crm-event-color, #b05c75) !important;
+  box-shadow: 0 3px 10px rgba(82,55,68,.055) !important;
+  filter: none !important;
+}
+
+.crm-day-list-item:hover {
+  background: var(--crm-event-soft, rgba(176,92,117,.14)) !important;
+  border-color: rgba(255,255,255,.92) !important;
+  border-left-color: var(--crm-event-color, #b05c75) !important;
+  box-shadow: 0 7px 16px rgba(82,55,68,.10) !important;
+}
+
+.crm-day-list-item.is-selected {
+  background: var(--crm-event-soft, rgba(176,92,117,.14)) !important;
+  border-color: var(--crm-event-color, #b05c75) !important;
+  border-left: 6px solid var(--crm-event-color, #b05c75) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-event-color, #b05c75) 18%, transparent) !important;
+}
+
+.crm-day-list-time,
+.crm-day-list-service,
+.crm-day-list-client {
+  color: #302a30 !important;
+}
+/* KONIEC ADMIN V14.2 */
+
