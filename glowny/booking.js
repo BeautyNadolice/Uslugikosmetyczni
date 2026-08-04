@@ -1045,3 +1045,71 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 // KONIEC INDEX V4
 
+// ==========================================================
+// INDEX V5: STABILNA WERYFIKACJA TELEFONU PRZY KOLEJNEJ REZERWACJI
+// ==========================================================
+let crmVerifiedPhoneTokenV5 = "";
+
+function crmNormalizePhoneTokenV5() {
+  const phone = document.getElementById("clientPhone");
+  try {
+    if (iti && iti.isValidNumber()) return iti.getNumber().replace(/\D/g, "");
+  } catch (ignore) {}
+  return String(phone?.value || "").replace(/\D/g, "");
+}
+
+function crmClearVerifiedPhoneV5() {
+  crmVerifiedPhoneTokenV5 = "";
+  isClientApproved = false;
+}
+
+const _checkExistingClientBeforeV5 = checkExistingClient;
+checkExistingClient = async function() {
+  await _checkExistingClientBeforeV5();
+  if (isClientApproved) crmVerifiedPhoneTokenV5 = crmNormalizePhoneTokenV5();
+  else crmVerifiedPhoneTokenV5 = "";
+};
+
+const _submitFormBeforeV5 = submitForm;
+submitForm = async function(event) {
+  const currentPhoneToken = crmNormalizePhoneTokenV5();
+  if (crmVerifiedPhoneTokenV5 && currentPhoneToken === crmVerifiedPhoneTokenV5) {
+    isClientApproved = true;
+  }
+  return _submitFormBeforeV5(event);
+};
+
+/* Starsze anonimowe listenery mogą wyzerować flagę po technicznym
+   formatowaniu numeru przez intl-tel-input. Po zdarzeniu przywracamy
+   zatwierdzenie tylko wtedy, gdy numer faktycznie się nie zmienił. */
+document.addEventListener("DOMContentLoaded", () => {
+  const phone = document.getElementById("clientPhone");
+  if (!phone) return;
+  phone.addEventListener("input", () => {
+    window.setTimeout(() => {
+      const currentPhoneToken = crmNormalizePhoneTokenV5();
+      if (crmVerifiedPhoneTokenV5 && currentPhoneToken === crmVerifiedPhoneTokenV5) {
+        isClientApproved = true;
+      } else if (crmVerifiedPhoneTokenV5 && currentPhoneToken !== crmVerifiedPhoneTokenV5) {
+        crmClearVerifiedPhoneV5();
+      }
+    }, 0);
+  });
+});
+
+/* Nowe otwarcie albo zamknięcie formularza wymaga nowej świadomej
+   weryfikacji, ale wybór usługi i terminu nie może kasować tokenu. */
+const _openBookingModalBeforeV5 = openBookingModal;
+openBookingModal = function() {
+  crmClearVerifiedPhoneV5();
+  return _openBookingModalBeforeV5();
+};
+
+const _closeBookingModalBeforeV5 = closeBookingModal;
+closeBookingModal = function() {
+  const result = _closeBookingModalBeforeV5();
+  crmClearVerifiedPhoneV5();
+  return result;
+};
+// KONIEC INDEX V5
+
