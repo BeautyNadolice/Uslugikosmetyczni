@@ -845,3 +845,98 @@ displayTimeSlots = function(dateStr) {
 
   _displayTimeSlotsWithDisabledDays(dateStr);
 };
+
+// ==========================================================
+// INDEX V3: RESET PO WERYFIKACJI I ZWYKLY TERMIN ALTERNATYWNY
+// ==========================================================
+const _checkExistingClientBeforeStateFix = checkExistingClient;
+const _submitFormBeforeAlternativeFix = submitForm;
+
+function resetBookingDependentStateV3() {
+  isClientApproved = false;
+  selectedSlotPolicy = null;
+  ["clientName","calendarInput","finalDateTime","alternativeCalendarInput","alternativeDateTime"].forEach(id => {
+    const node = document.getElementById(id);
+    if (node) node.value = "";
+  });
+  const service = document.getElementById("serviceType");
+  if (service) service.innerHTML = '<option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>';
+  const altSlots = document.getElementById("alternativeTimeSlotsContainer");
+  if (altSlots) altSlots.innerHTML = "";
+  const altSection = document.getElementById("alternativeBookingSection");
+  if (altSection) altSection.style.display = "none";
+  const notice = document.getElementById("bookingPolicyNotice");
+  if (notice) { notice.style.display = "none"; notice.textContent = ""; }
+  const price = document.getElementById("priceDisplay");
+  if (price) price.textContent = "";
+  const consent = document.getElementById("rodoConsent");
+  if (consent) consent.checked = false;
+  if (flatpickrInstance) flatpickrInstance.clear();
+  if (alternativeFlatpickr) { alternativeFlatpickr.destroy(); alternativeFlatpickr = null; }
+  toggleFormState(false);
+}
+
+let phoneVerificationInProgressV3 = false;
+checkExistingClient = async function() {
+  if (phoneVerificationInProgressV3) return;
+  phoneVerificationInProgressV3 = true;
+  resetBookingDependentStateV3();
+  try { await _checkExistingClientBeforeStateFix(); }
+  finally { phoneVerificationInProgressV3 = false; }
+};
+
+renderAlternativeSlots = function(dateStr) {
+  const container = document.getElementById("alternativeTimeSlotsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  document.getElementById("alternativeDateTime").value = "";
+  const duration = parseInt(document.getElementById("selectedDuration").value, 10) || 45;
+  getFreeSlotsForService(dateStr).forEach(time => {
+    const value = `${dateStr}T${time}`;
+    if (value === document.getElementById("finalDateTime").value) return;
+    if (classifyFamilySlot(dateStr, time, duration).mode !== "STANDARD") return;
+    const slot = document.createElement("div");
+    slot.className = "time-slot";
+    slot.textContent = time;
+    slot.onclick = () => {
+      container.querySelectorAll(".time-slot").forEach(node => node.classList.remove("selected"));
+      slot.classList.add("selected");
+      document.getElementById("alternativeDateTime").value = value;
+    };
+    container.appendChild(slot);
+  });
+  if (!container.children.length) {
+    container.innerHTML = "<p>Brak zwykłego terminu alternatywnego w tym dniu. Wybierz inną datę.</p>";
+  }
+};
+
+submitForm = async function(event) {
+  const main = document.getElementById("finalDateTime").value;
+  const alt = document.getElementById("alternativeDateTime").value;
+  const requires = selectedSlotPolicy && selectedSlotPolicy.mode === "CONFIRM";
+  if (requires && alt) {
+    const duration = parseInt(document.getElementById("selectedDuration").value, 10) || 45;
+    const policy = classifyFamilySlot(alt.slice(0,10), alt.slice(11,16), duration);
+    if (main === alt || policy.mode !== "STANDARD") {
+      event.preventDefault();
+      document.getElementById("alternativeDateTime").value = "";
+      alert("Termin alternatywny musi być innym, zwykłym terminem bez gwiazdki.");
+      return;
+    }
+  }
+  return _submitFormBeforeAlternativeFix(event);
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  const phone = document.getElementById("clientPhone");
+  const verify = document.getElementById("verifyPhoneBtn");
+  if (phone) {
+    phone.removeEventListener("blur", _checkExistingClientBeforeStateFix);
+    phone.addEventListener("input", resetBookingDependentStateV3);
+  }
+  if (verify) {
+    verify.removeEventListener("click", _checkExistingClientBeforeStateFix);
+    verify.addEventListener("click", checkExistingClient);
+  }
+});
+// KONIEC INDEX V3
