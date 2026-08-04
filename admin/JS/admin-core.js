@@ -417,9 +417,40 @@ document.addEventListener("DOMContentLoaded", () => setTimeout(crmReplaceService
 // ==========================================================
 async function loadBookingRequests(){
   const box=document.getElementById('bookingRequestsList');if(!box)return;box.innerHTML='Ładowanie...';
-  try{const r=await crmPost({action:'getBookingRequests'});const rows=r.requests||[];box.innerHTML=rows.length?'':'Brak oczekujących próśb.';
-    rows.forEach(x=>{const d=document.createElement('div');d.className='dashboard-card';d.innerHTML=`<strong>${x.client}</strong><br>${x.service}<br>Główny: ${x.main}<br>Alternatywny: ${x.alternative}<br><small>${x.reason||''}</small><div style="margin-top:10px"><button class="btn-primary" data-choice="MAIN">Potwierdź główny</button> <button class="btn-secondary" data-choice="ALT">Potwierdź alternatywny</button> <button class="btn-danger" data-choice="REJECT">Odrzuć oba</button></div>`;d.querySelectorAll('button').forEach(b=>b.onclick=async()=>{if(b.disabled)return;d.querySelectorAll('button').forEach(z=>z.disabled=true);const res=await crmPost({action:'decideBookingRequest',requestId:x.id,choice:b.dataset.choice});if(!res.success)alert(res.error||'Błąd');await loadBookingRequests();await loadSystem();});box.appendChild(d);});
-  }catch(e){box.textContent='Błąd pobierania próśb.';}
+  try{
+    const r=await crmPost({action:'getBookingRequests'});
+    if(!r || r.success !== true) throw new Error(r?.error || 'Nieprawidłowa odpowiedź API');
+    const rows=Array.isArray(r.requests) ? r.requests : [];
+    box.innerHTML=rows.length ? '' : 'Brak oczekujących próśb.';
+    rows.forEach(x=>{
+      const d=document.createElement('div');
+      d.className='dashboard-card';
+      d.dataset.requestId=String(x.id||'');
+      d.innerHTML=`<strong>${x.client}</strong><br>${x.service}<br>Główny: ${x.main}<br>Alternatywny: ${x.alternative}<br><small>${x.reason||''}</small><div style="margin-top:10px"><button class="btn-primary" data-choice="MAIN">Potwierdź główny</button> <button class="btn-secondary" data-choice="ALT">Potwierdź alternatywny</button> <button class="btn-danger" data-choice="REJECT">Odrzuć oba</button></div>`;
+      d.querySelectorAll('button').forEach(b=>b.onclick=async()=>{
+        if(b.disabled)return;
+        const chosenLabel=b.dataset.choice==='ALT'?x.alternative:(b.dataset.choice==='MAIN'?x.main:'oba terminy');
+        if(b.dataset.choice!=='REJECT' && !window.confirm(`Potwierdzić termin ${chosenLabel}?`)) return;
+        d.querySelectorAll('button').forEach(z=>z.disabled=true);
+        try{
+          const res=await crmPost({action:'decideBookingRequest',requestId:x.id,choice:b.dataset.choice});
+          if(!res.success)throw new Error(res.error||'Błąd decyzji');
+          await loadSystem();
+          if(typeof renderBooksyCalendar==='function')renderBooksyCalendar();
+          await loadBookingRequests();
+          if(typeof crmToast==='function')crmToast(b.dataset.choice==='REJECT'?'Prośba została odrzucona.':'Wizyta została potwierdzona i kalendarz odświeżony.');
+        }catch(error){
+          console.error('Decyzja dotycząca prośby:',error);
+          alert(error.message||'Błąd');
+          d.querySelectorAll('button').forEach(z=>z.disabled=false);
+        }
+      });
+      box.appendChild(d);
+    });
+  }catch(e){
+    console.error('Pobieranie próśb o wizytę:', e);
+    box.textContent='Błąd pobierania próśb.';
+  }
 }
 
 /* ----- CORE.44. CRM_V3_STATUS_META (oryginalna linia 5573) ----- */
@@ -578,3 +609,128 @@ window.addEventListener("resize", () => {
         if (calendarViewMode === "week") renderBooksyCalendar();
     }, 140);
 });
+
+/* ----- CORE.66. Powiadomienia o nowych prosbach INDEX ----- */
+let crmRequestNoticeBusy = false;
+let crmKnownRequestIds = null;
+let crmRequestNoticeTimer = null;
+const CRM_REQUEST_NOTICE_INTERVAL_MS = 30000;
+const CRM_REQUEST_HIGHLIGHT_MS = 65000;
+
+function crmEnsureRequestNoticeDialog() {
+    let dialog = document.getElementById("crmNewRequestsDialog");
+    if (dialog) return dialog;
+    dialog = document.createElement("div");
+    dialog.id = "crmNewRequestsDialog";
+    dialog.className = "crm-request-notice-overlay";
+    dialog.hidden = true;
+    dialog.innerHTML = `
+      <section class="crm-request-notice-card" role="dialog" aria-modal="true" aria-labelledby="crmNewRequestsTitle">
+        <button type="button" class="crm-request-notice-close" aria-label="Zamknij">×</button>
+        <span class="crm-request-notice-eyebrow">Nowa rezerwacja</span>
+        <h2 id="crmNewRequestsTitle">Masz nową prośbę o wizytę</h2>
+        <div id="crmNewRequestsList" class="crm-request-notice-list"></div>
+        <div class="crm-request-notice-actions">
+          <button type="button" class="btn-secondary" data-request-action="ok">OK</button>
+          <button type="button" class="btn-primary" data-request-action="details">Przejdź do szczegółów</button>
+        </div>
+      </section>`;
+    document.body.appendChild(dialog);
+    const close = () => { dialog.hidden = true; };
+    dialog.querySelector(".crm-request-notice-close").onclick = close;
+    dialog.querySelector('[data-request-action="ok"]').onclick = close;
+    dialog.querySelector('[data-request-action="details"]').onclick = async () => {
+        dialog.hidden = true;
+        if (typeof switchTab === "function") switchTab("kalendarz");
+        await loadBookingRequests();
+        const panel = document.getElementById("booking-requests-panel");
+        if (panel) {
+            panel.open = true;
+            panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    };
+    dialog.addEventListener("click", event => { if (event.target === dialog) close(); });
+    return dialog;
+}
+
+function crmShowNewRequestsDialog(rows) {
+    const dialog = crmEnsureRequestNoticeDialog();
+    const list = dialog.querySelector("#crmNewRequestsList");
+    const title = dialog.querySelector("#crmNewRequestsTitle");
+    title.textContent = rows.length === 1
+        ? "Masz nową prośbę o wizytę"
+        : `Masz ${rows.length} nowe prośby o wizytę`;
+    list.innerHTML = "";
+    rows.forEach(item => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "crm-request-notice-item";
+        row.innerHTML = `<strong></strong><span></span><small></small>`;
+        row.querySelector("strong").textContent = item.client || "Klient";
+        row.querySelector("span").textContent = item.service || "Usługa";
+        row.querySelector("small").textContent = `Główny: ${item.main || "—"} | Alternatywny: ${item.alternative || "—"}`;
+        row.onclick = async () => {
+            dialog.hidden = true;
+            if (typeof switchTab === "function") switchTab("kalendarz");
+            await loadBookingRequests();
+            const card = document.querySelector(`[data-request-id="${CSS.escape(String(item.id || ""))}"]`);
+            const panel = document.getElementById("booking-requests-panel");
+            if (panel) panel.open = true;
+            if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+        };
+        list.appendChild(row);
+    });
+    dialog.hidden = false;
+}
+
+function crmHighlightNewRequestCards(ids) {
+    window.setTimeout(() => {
+        ids.forEach(id => {
+            const card = document.querySelector(`[data-request-id="${CSS.escape(String(id))}"]`);
+            if (!card) return;
+            card.classList.add("crm-request-is-new");
+            window.setTimeout(() => card.classList.remove("crm-request-is-new"), CRM_REQUEST_HIGHLIGHT_MS);
+        });
+    }, 80);
+}
+
+async function crmCheckNewBookingRequests(options = {}) {
+    if (crmRequestNoticeBusy || document.hidden) return;
+    crmRequestNoticeBusy = true;
+    try {
+        const response = await crmPost({ action: "getBookingRequests" });
+        if (!response || response.success !== true) throw new Error(response?.error || "Błąd API");
+        const rows = Array.isArray(response.requests) ? response.requests : [];
+        const currentIds = new Set(rows.map(item => String(item.id || "")).filter(Boolean));
+        if (crmKnownRequestIds === null) {
+            crmKnownRequestIds = currentIds;
+            if (options.render === true) await loadBookingRequests();
+            return;
+        }
+        const newRows = rows.filter(item => !crmKnownRequestIds.has(String(item.id || "")));
+        crmKnownRequestIds = currentIds;
+        if (!newRows.length) return;
+        await loadBookingRequests();
+        crmHighlightNewRequestCards(newRows.map(item => item.id));
+        crmShowNewRequestsDialog(newRows);
+        if (typeof crmToast === "function") crmToast(newRows.length === 1 ? "Nowa prośba o wizytę." : `${newRows.length} nowe prośby o wizytę.`);
+    } catch (error) {
+        console.error("Sprawdzanie nowych próśb:", error);
+    } finally {
+        crmRequestNoticeBusy = false;
+    }
+}
+
+function crmStartRequestNoticeWatch() {
+    if (crmRequestNoticeTimer) window.clearInterval(crmRequestNoticeTimer);
+    crmCheckNewBookingRequests({ render: true });
+    crmRequestNoticeTimer = window.setInterval(crmCheckNewBookingRequests, CRM_REQUEST_NOTICE_INTERVAL_MS);
+}
+
+document.addEventListener("DOMContentLoaded", () => setTimeout(crmStartRequestNoticeWatch, 1200));
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) crmCheckNewBookingRequests({ render: true });
+});
+window.addEventListener("focus", () => crmCheckNewBookingRequests({ render: true }));
+/* KONIEC CORE.66 */
+

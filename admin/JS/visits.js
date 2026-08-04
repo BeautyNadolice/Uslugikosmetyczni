@@ -1234,10 +1234,21 @@ openAppointmentDetailsModal = function(app) {
 /* ----- VIS.32. crmRunLifecycleOperation (oryginalna linia 4084) ----- */
 async function crmRunLifecycleOperation(operation, initiator, deleteCalendarEvent, successText, button) {
     if (crmUiOperationLock || !currentEditingAppointment || currentEditingAppointment.eventType !== "appointment") return;
+    const affectedAppointment = currentEditingAppointment;
     crmUiOperationLock = true;
     crmSetActionGroupBusy(true, button, "Zapisywanie...");
     try {
-        await recordAppointmentLifecycle({operation, eventId:currentEditingAppointment.eventId||"", phone:currentEditingAppointment.phone||"", clientName:currentEditingAppointment.name||"", service:currentEditingAppointment.service||"", oldDate:currentEditingAppointment.date||"", initiator:initiator||"MISTRZYNI", deleteCalendarEvent:Boolean(deleteCalendarEvent)});
+        await recordAppointmentLifecycle({operation, eventId:affectedAppointment.eventId||"", phone:affectedAppointment.phone||"", clientName:affectedAppointment.name||"", service:affectedAppointment.service||"", oldDate:affectedAppointment.date||"", initiator:initiator||"MISTRZYNI", deleteCalendarEvent:Boolean(deleteCalendarEvent)});
+        if (deleteCalendarEvent) {
+            const affectedEventId = affectedAppointment.eventId || "";
+            const affectedDate = affectedAppointment.date || "";
+            const affectedName = affectedAppointment.name || "";
+            appointmentsData = (appointmentsData || []).filter(item => {
+                if (affectedEventId && item.eventId === affectedEventId) return false;
+                return !(!affectedEventId && item.date === affectedDate && item.name === affectedName);
+            });
+        }
+        currentEditingAppointment = null;
         closeAppointmentModal();
         await crmRefreshAllViews();
         crmToast(successText);

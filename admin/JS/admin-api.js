@@ -56,3 +56,13 @@ async function crmTestPost(payload) {
     try { return JSON.parse(text); }
     catch (error) { throw new Error("API nie zwrocilo JSON: " + text.substring(0, 500)); }
 }
+
+/* ----- API.5. crmPost: zgodny punkt wejscia dla starszych modulow ----- */
+async function crmPost(payload) {
+    const result = await crmTestPost(payload || {});
+    if (!result || typeof result !== "object") {
+        throw new Error("API zwrocilo nieprawidlowa odpowiedz");
+    }
+    return result;
+}
+
