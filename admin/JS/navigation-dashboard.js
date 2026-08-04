@@ -186,6 +186,21 @@ const crmV11SwitchTabOriginal = switchTab;
 
 /* ----- NAV.7. switchTab (oryginalna linia 6707) ----- */
 switchTab = function(tabName) {
-    if (tabName !== "kalendarz") crmCloseDayVisitsList();
+    if (tabName !== "kalendarz") {
+        /* NAV.7.1. Wyjscie z Kalendarza zamyka caly kontekst kalendarzowy:
+           liste dnia, szczegoly wizyty i menu statusu. */
+        if (typeof crmCloseDayVisitsList === "function") crmCloseDayVisitsList();
+        if (typeof crmToggleVisitStatusMenu === "function") crmToggleVisitStatusMenu(false);
+
+        const detailsPanel = document.getElementById("appointmentDetailsModal");
+        if (detailsPanel) detailsPanel.style.display = "none";
+
+        document.body.classList.remove("crm-v3-details-open");
+        currentEditingAppointment = null;
+    }
     return crmV11SwitchTabOriginal(tabName);
 };
+
+/* ADMIN FINAL: OCHRONA ZMIANY ZAKLADKI */
+const crmFinalSwitchTabOriginal=switchTab;
+switchTab=async function(tabName){if(crmHasUnsavedChanges){const ok=await crmConfirmUnsavedNavigation();if(!ok)return;crmSetUnsavedChanges(false);}return crmFinalSwitchTabOriginal(tabName);};

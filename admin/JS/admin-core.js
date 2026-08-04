@@ -459,13 +459,13 @@ async function loadBookingRequests(){
    Warstwa interfejsu. Nie zmienia endpointów Google Apps Script.
    ========================================================== */
 const CRM_V3_STATUS_META = {
-    CONFIRMED: { icon: "✅", label: "POTWIERDZONO", css: "confirmed" },
+    CONFIRMED: { icon: "●", label: "POTWIERDZONO", css: "confirmed" },
     PENDING: { icon: "⏳", label: "OCZEKUJE POTWIERDZENIA", css: "pending" },
     ALTERNATIVE: { icon: "🔄", label: "TERMIN ALTERNATYWNY", css: "alternative" },
     CONTACT: { icon: "📞", label: "WYMAGA KONTAKTU", css: "contact" },
     CANCELLED_CLIENT: { icon: "🚫", label: "ANULOWANA PRZEZ KLIENTA", css: "cancelled-client" },
     CANCELLED_SALON: { icon: "⛔", label: "ANULOWANA PRZEZ SALON", css: "cancelled-salon" },
-    COMPLETED: { icon: "⭐", label: "ZREALIZOWANA", css: "completed" }
+    COMPLETED: { icon: "✓", label: "ZREALIZOWANA", css: "completed" }
 };
 
 /* ----- CORE.45. crmV3ApplyStatusToElement (oryginalna linia 5598) ----- */
@@ -586,12 +586,17 @@ document.addEventListener("DOMContentLoaded", crmInstallSafeRightVisitPanel);
 /* ----- CORE.63. crmStatusIcon (oryginalna linia 6522) ----- */
 function crmStatusIcon(item) {
     const status = String(item?.crmStatus || item?.status || "").toUpperCase();
-    if (/COMPLET|ZREALIZ/.test(status)) return "★";
+    if (/COMPLET|ZREALIZ/.test(status)) return "✓";
     if (/PENDING|OCZEK/.test(status)) return "⌛";
     if (/CANCEL|ANUL/.test(status)) return "×";
     if (/NO_SHOW|NIEOBEC/.test(status)) return "!";
     if (item?.eventType === "block") return "■";
-    return "✓";
+    const start = new Date(item?.date);
+    const duration = Math.max(5, Number(item?.duration) || 45);
+    const end = new Date(start.getTime() + duration * 60000);
+    const now = new Date();
+    if (!isNaN(start.getTime()) && start <= now && now < end) return "▶";
+    return "●";
 }
 
 /* ----- CORE.64. blok z linii 6692 (oryginalna linia 6692) ----- */
@@ -734,3 +739,41 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("focus", () => crmCheckNewBookingRequests({ render: true }));
 /* KONIEC CORE.66 */
 
+
+/* ========================================================================== 
+   ADMIN FINAL 2026-08-04: ZEGAREK I NIEBLOKUJACE POWIADOMIENIA
+   ========================================================================== */
+const CRM_ADMIN_TIME_ZONE="Europe/Warsaw";
+let crmNoticeRequests=[];
+function crmInstallAdminClock(){
+  if(document.getElementById("crmAdminClock")) return;
+  const header=document.querySelector("#tab-kalendarz .calendar-layout-header"); if(!header) return;
+  const box=document.createElement("div"); box.id="crmAdminClock"; box.className="crm-admin-clock";
+  box.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span><strong></strong><small></small></span>';
+  const scroller=header.querySelector(".calendar-date-scroller");
+  if(scroller) header.insertBefore(box,scroller); else header.appendChild(box);
+  const tick=()=>{const now=new Date();box.querySelector("strong").textContent=new Intl.DateTimeFormat("pl-PL",{timeZone:CRM_ADMIN_TIME_ZONE,hour:"2-digit",minute:"2-digit"}).format(now);box.querySelector("small").textContent=new Intl.DateTimeFormat("pl-PL",{timeZone:CRM_ADMIN_TIME_ZONE,weekday:"long",day:"numeric",month:"long"}).format(now);};
+  tick(); setInterval(tick,60000);
+}
+function crmRequestKey(r){return String(r.requestId||r.id||[r.phone,r.mainDate||r.date,r.service].join("|"));}
+function crmNoticeStorePosition(box){localStorage.setItem("crmNoticePosition",JSON.stringify({left:box.style.left,top:box.style.top}));}
+function crmMakeNoticeDraggable(box,handle){
+  let active=false,dx=0,dy=0;
+  handle.addEventListener("pointerdown",e=>{if(e.target.closest("button"))return;active=true;dx=e.clientX-box.offsetLeft;dy=e.clientY-box.offsetTop;handle.setPointerCapture(e.pointerId);});
+  handle.addEventListener("pointermove",e=>{if(!active)return;const maxX=Math.max(0,innerWidth-box.offsetWidth),maxY=Math.max(0,innerHeight-box.offsetHeight);box.style.left=Math.max(0,Math.min(maxX,e.clientX-dx))+"px";box.style.top=Math.max(0,Math.min(maxY,e.clientY-dy))+"px";box.style.right="auto";box.style.bottom="auto";});
+  handle.addEventListener("pointerup",()=>{active=false;crmNoticeStorePosition(box);});
+}
+function crmRenderRequestNotice(requests){
+  crmNoticeRequests=requests||[]; let box=document.getElementById("crmRequestNoticeFinal");
+  if(!crmNoticeRequests.length){box?.remove();return;}
+  if(!box){box=document.createElement("aside");box.id="crmRequestNoticeFinal";box.className="crm-request-notice-final";document.body.appendChild(box);const saved=JSON.parse(localStorage.getItem("crmNoticePosition")||"null");if(saved){box.style.left=saved.left;box.style.top=saved.top;box.style.right="auto";}}
+  box.innerHTML='<header><span class="crm-notice-grip">⋮⋮</span><strong>'+(crmNoticeRequests.length===1?'Nowa prośba o wizytę':'Nowe prośby: '+crmNoticeRequests.length)+'</strong><button type="button" aria-label="Odłóż">×</button></header><div class="crm-notice-list"></div><footer><button type="button" class="btn-secondary" data-later>Później</button><button type="button" class="btn-primary" data-show>Pokaż wszystkie</button></footer>';
+  const list=box.querySelector(".crm-notice-list");crmNoticeRequests.slice(0,5).forEach(r=>{const b=document.createElement("button");b.type="button";b.className="crm-notice-row";b.innerHTML='<strong>'+crmSafeText(r.name||"Klient")+'</strong><span>'+crmSafeText(r.service||"Wizyta")+'</span><small>'+crmSafeText(r.mainDate||r.date||"")+(r.alternativeDate?' • alternatywa: '+crmSafeText(r.alternativeDate):'')+'</small>';b.onclick=()=>{box.classList.add("is-minimized");document.getElementById("booking-requests-panel")?.scrollIntoView({behavior:"smooth",block:"nearest"});};list.appendChild(b);});
+  const later=()=>box.classList.add("is-minimized");box.querySelector("header button").onclick=later;box.querySelector("[data-later]").onclick=later;box.querySelector("[data-show]").onclick=()=>{box.classList.add("is-minimized");document.getElementById("booking-requests-panel")?.scrollIntoView({behavior:"smooth",block:"nearest"});};crmMakeNoticeDraggable(box,box.querySelector("header"));
+}
+const crmOriginalShowNewRequestNotification=typeof crmShowNewRequestNotification==="function"?crmShowNewRequestNotification:null;
+crmShowNewRequestNotification=function(requests){crmRenderRequestNotice(requests);};
+const crmOriginalInitializeWorkspaceFinal=typeof crmV3InitializeWorkspace==="function"?crmV3InitializeWorkspace:null;
+if(crmOriginalInitializeWorkspaceFinal) crmV3InitializeWorkspace=function(){const r=crmOriginalInitializeWorkspaceFinal.apply(this,arguments);setTimeout(crmInstallAdminClock,0);return r;};
+document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallAdminClock,200));
+/* KONIEC ADMIN FINAL: ZEGAREK I POWIADOMIENIA */

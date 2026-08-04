@@ -109,3 +109,26 @@ function crmHexToSoftBackground(color) {
     const b = number & 255;
     return `rgba(${r},${g},${b},.14)`;
 }
+
+/* ========================================================================== 
+   ADMIN FINAL 2026-08-04: STAN FORMULARZY I BEZPIECZNE OPERACJE
+   ========================================================================== */
+let crmHasUnsavedChanges = false;
+let crmActiveFormContext = "";
+const crmBusyOperations = new Set();
+function crmSetUnsavedChanges(value, context) {
+  crmHasUnsavedChanges = Boolean(value);
+  crmActiveFormContext = crmHasUnsavedChanges ? String(context || crmActiveFormContext || "formularz") : "";
+  document.body.classList.toggle("crm-has-unsaved-changes", crmHasUnsavedChanges);
+}
+function crmOperationStart(key) { const k=String(key||"default"); if(crmBusyOperations.has(k)) return false; crmBusyOperations.add(k); return true; }
+function crmOperationEnd(key) { crmBusyOperations.delete(String(key||"default")); }
+async function crmConfirmUnsavedNavigation() {
+  if(!crmHasUnsavedChanges) return true;
+  return crmConfirm("Masz niezapisane zmiany w: " + (crmActiveFormContext||"formularzu") + ". Odrzucić zmiany?", "Odrzuć zmiany");
+}
+document.addEventListener("input", event => {
+  if(event.target.closest("#appointmentModal,#clientModal,#serviceModal,#blockTimeModal")) crmSetUnsavedChanges(true, "aktywnym formularzu");
+}, true);
+window.addEventListener("beforeunload", event => { if(crmHasUnsavedChanges){ event.preventDefault(); event.returnValue=""; } });
+/* KONIEC ADMIN FINAL: STAN FORMULARZY */

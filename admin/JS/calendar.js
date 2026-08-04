@@ -472,7 +472,7 @@ function renderWeekCalendar(grid) {
     grid.style.overflowX = "hidden";
 
     const monday = getMondayOfWeek(selectedCalendarDate);
-    const dayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
+    const dayNames = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
     for (let index = 0; index < 7; index++) {
         const date = new Date(monday);
@@ -1501,7 +1501,10 @@ function renderWeekCalendar(grid) {
         header.className = "crm-week-day-header";
         const dateButton = document.createElement("button");
         dateButton.type = "button";
-        dateButton.innerHTML = `<strong>${dayNames[index]} ${date.getDate()}.${date.getMonth()+1}</strong><span>${events.length} ${events.length === 1 ? "wizyta" : "wizyt"}</span>`;
+        const monthName = date.toLocaleDateString("pl-PL", {month:"long"});
+        const visitCount = events.filter(item => item.eventType === "appointment").length;
+        const visitLabel = visitCount === 0 ? "Brak wizyt" : `${visitCount} ${visitCount === 1 ? "wizyta" : visitCount < 5 ? "wizyty" : "wizyt"}`;
+        dateButton.innerHTML = `<strong>${dayNames[index]}, ${date.getDate()} ${monthName}</strong><span>${visitLabel}</span>`;
         dateButton.addEventListener("click", () => crmOpenDayVisitsList(date));
         header.appendChild(dateButton);
         column.appendChild(header);
@@ -1585,15 +1588,14 @@ function crmRenderMonthCellEvents(cell, date, events, workShifts) {
     const shift = cell.querySelector(".crm-month-shift");
     if (!body || !count || !shift) return;
 
-    count.textContent = events.length
-        ? `${events.length} ${events.length === 1 ? "wizyta" : events.length < 5 ? "wizyty" : "wizyt"}`
-        : "";
-    count.hidden = !events.length;
+    const crmVisitCount = events.filter(item => item.eventType === "appointment").length;
+    count.textContent = crmVisitCount ? `${crmVisitCount} ${crmVisitCount === 1 ? "wizyta" : crmVisitCount < 5 ? "wizyty" : "wizyt"}` : "";
+    count.hidden = !crmVisitCount;
 
     shift.innerHTML = "";
     workShifts.forEach(item => {
         const badge = document.createElement("span");
-        badge.textContent = String(item?.name || "Brak");
+        badge.textContent = String(item?.name || "BRAK").toUpperCase();
         badge.title = "Informacyjny wpis grafiku";
         shift.appendChild(badge);
     });
@@ -1679,16 +1681,20 @@ function renderMonthCalendar(grid) {
         count.hidden = true;
         count.addEventListener("click", () => crmOpenDayVisitsList(date));
 
-        top.append(dayButton, count);
-
         const shift = document.createElement("div");
         shift.className = "crm-month-shift";
         shift.hidden = true;
+        top.append(dayButton, shift, count);
 
+        /* shift utworzony w górnym wierszu obok numeru dnia */
+        const shiftPlaceholder = null;
+
+        /* */
+        
         const body = document.createElement("div");
         body.className = "crm-month-events";
 
-        cell.append(top, shift, body);
+        cell.append(top, body);
         grid.appendChild(cell);
         cells.push({ cell, date, events, workShifts });
     }
@@ -2013,3 +2019,457 @@ crmRenderThreeDayCalendar = function(grid) {
     crmRenderCalendarInsights();
 };
 
+
+
+/* ========================================================================== 
+   ADMIN FINAL V3: JEDEN PAS, WYBRANY DZIEN I IKONY PODSUMOWANIA
+   ========================================================================== */
+function crmFinalV3FormatDuration(totalMinutes){
+    const minutes=Math.max(0,Number(totalMinutes)||0);
+    const hours=Math.floor(minutes/60),rest=minutes%60;
+    if(!hours)return `${rest} min`;
+    if(!rest)return `${hours} godz.`;
+    return `${hours} godz. ${rest} min`;
+}
+function crmFinalV3Icon(kind){
+    const paths={
+      visits:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18M8 14h3M8 17h5"></path>',
+      clock:'<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
+      revenue:'<path d="M4 19V9M9 19v-6M14 19V5M3 20h18"></path><path d="m5 8 5-4 4 3 6-5"></path>',
+      pending:'<path d="M7 3h10M7 21h10M8 3c0 5 2 6 4 9-2 3-4 4-4 9M16 3c0 5-2 6-4 9 2 3 4 4 4 9"></path>',
+      cancelled:'<circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path>',
+      next:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path><circle cx="15.5" cy="15.5" r="2.5"></circle><path d="M15.5 14v1.7l1 .6"></path>'
+    };
+    return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[kind]||paths.visits}</svg>`;
+}
+function crmFinalV3SelectedDayRows(){
+    const start=new Date(selectedCalendarDate);start.setHours(0,0,0,0);
+    const end=new Date(start);end.setHours(23,59,59,999);
+    return (appointmentsData||[]).filter(item=>item.eventType==="appointment").filter(item=>{const date=crmDayEventDate(item);return date&&date>=start&&date<=end;});
+}
+function crmFinalV3RenderInsights(){
+    const panel=crmEnsureCalendarInsights();if(!panel)return;
+    const rows=crmFinalV3SelectedDayRows();
+    const totalMinutes=rows.reduce((sum,item)=>sum+(Number(item.duration)||45),0);
+    const revenue=rows.reduce((sum,item)=>{const service=(currentServices||[]).find(x=>x.name&&item.service&&x.name.trim().toLowerCase()===item.service.trim().toLowerCase());return sum+(Number(item.price??service?.price)||0);},0);
+    const cancelled=rows.filter(item=>/ANUL|CANCEL/.test(String(item.status||item.crmStatus||"").toUpperCase())).length;
+    const pending=rows.filter(item=>/OCZEK|PENDING/.test(String(item.status||item.crmStatus||"").toUpperCase())).length;
+    const title=new Intl.DateTimeFormat('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(selectedCalendarDate);
+    const eyebrow=document.getElementById('crmInsightsEyebrow'),heading=document.getElementById('crmInsightsTitle');
+    if(eyebrow)eyebrow.textContent='WYBRANY DZIEŃ';if(heading)heading.textContent=title.charAt(0).toUpperCase()+title.slice(1);
+    const metric=(kind,label,value,extra='')=>`<div class="crm-insight-metric ${extra}"><i>${crmFinalV3Icon(kind)}</i><span>${label}</span><strong>${value}</strong></div>`;
+    const metrics=[metric('visits','Liczba wizyt',rows.length),metric('clock','Łączny czas',crmFinalV3FormatDuration(totalMinutes)),metric('revenue','Przewidywany obrót',`${revenue.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})} zł`)];
+    if(pending>0)metrics.push(metric('pending','Oczekujące prośby',pending,'is-clickable'));
+    metrics.push(metric('cancelled','Anulowane wizyty',cancelled));
+    const target=document.getElementById('crmInsightsMetrics');if(target)target.innerHTML=metrics.join('');
+    const ordered=[...rows].filter(item=>!/ANUL|CANCEL/.test(String(item.status||item.crmStatus||'').toUpperCase())).sort((a,b)=>crmDayEventDate(a)-crmDayEventDate(b));
+    const now=new Date();const next=ordered.find(item=>crmDayEventDate(item)>=now)||ordered[0];
+    const nextBox=document.getElementById('crmInsightsNext');
+    if(nextBox){nextBox.innerHTML=next?`<h4><i>${crmFinalV3Icon('next')}</i>Następna wizyta</h4><button type="button"><b>${crmFormatVisitTime(crmDayEventDate(next))}</b><span><strong>${crmSafeText(next.service||'Wizyta')}</strong>${crmSafeText(next.name||'')}</span></button>`:'<h4>Brak wizyt w wybranym dniu</h4>';const btn=nextBox.querySelector('button');if(btn){const palette=crmCategoryPalette(next);btn.style.borderLeftColor=palette.stripe;btn.onclick=()=>openAppointmentDetailsModal(next);}}
+    const actions=panel.querySelector('.crm-insights-actions');if(actions)actions.hidden=Boolean(next);
+    const pendingRow=target?.querySelector('.is-clickable');if(pendingRow)pendingRow.onclick=()=>crmFocusPendingRequests();
+}
+const crmFinalV3RenderOriginal=renderBooksyCalendar;
+renderBooksyCalendar=function(){const result=crmFinalV3RenderOriginal.apply(this,arguments);requestAnimationFrame(crmFinalV3RenderInsights);return result;};
+function crmFinalV3SelectDate(date){selectedCalendarDate=new Date(date);miniMonthDate=new Date(date);renderMiniMonthCalendar();renderBooksyCalendar();}
+document.addEventListener('click',event=>{
+    const cell=event.target.closest('.crm-month-cell');
+    if(cell&&!event.target.closest('.crm-month-visit-card,.crm-month-more,.crm-month-count,.crm-month-day-number')&&cell.dataset.date){crmFinalV3SelectDate(new Date(cell.dataset.date+'T12:00:00'));return;}
+    const number=event.target.closest('.crm-month-day-number');
+    if(number){const selectedCell=number.closest('.crm-month-cell');if(selectedCell?.dataset.date){event.preventDefault();event.stopImmediatePropagation();crmFinalV3SelectDate(new Date(selectedCell.dataset.date+'T12:00:00'));}}
+},true);
+function crmFinalV3InstallToolbar(){
+    const header=document.querySelector('#tab-kalendarz .calendar-layout-header');if(!header)return;
+    const actions=header.querySelector('.crm-calendar-toolbar-actions')||Array.from(header.children).find(child=>child.querySelector('.crm-add-appointment-btn,#openBlockTimeBtn'));
+    if(actions)actions.classList.add('crm-calendar-toolbar-actions');
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(crmFinalV3InstallToolbar,250));
+/* KONIEC ADMIN FINAL V3 */
+
+
+/* ========================================================================== 
+   ADMIN FINAL V4: SYNCHRONIZACJA MINI KALENDARZA I DATA PODSUMOWANIA
+   ========================================================================== */
+const crmFinalV4MiniRenderOriginal = renderMiniMonthCalendar;
+renderMiniMonthCalendar = function(){
+    crmFinalV4MiniRenderOriginal.apply(this, arguments);
+    const grid=document.getElementById('mini-month-days-grid');
+    if(!grid)return;
+    const year=miniMonthDate.getFullYear(),month=miniMonthDate.getMonth();
+    const cells=[...grid.querySelectorAll('.mini-date-cell')];
+    cells.forEach((cell,index)=>{
+        const day=Number(cell.textContent||0);if(!day)return;
+        const date=new Date(year,month,day,12,0,0,0);
+        cell.dataset.date=getFormattedISOBlockDate(date);
+        cell.onclick=event=>{
+            event.preventDefault();event.stopPropagation();
+            selectedCalendarDate=new Date(date);
+            miniMonthDate=new Date(date);
+            renderMiniMonthCalendar();
+            renderBooksyCalendar();
+        };
+    });
+};
+function crmFinalV4EnsureInsightsHeader(){
+    const panel=crmEnsureCalendarInsights();if(!panel)return;
+    let header=panel.querySelector('.crm-insights-header');
+    if(!header){
+        header=document.createElement('header');header.className='crm-insights-header';
+        header.innerHTML='<div><span id="crmInsightsEyebrow">WYBRANY DZIEŃ</span><h3 id="crmInsightsTitle">—</h3></div>';
+        panel.prepend(header);
+    }
+    const title=header.querySelector('#crmInsightsTitle');
+    const eyebrow=header.querySelector('#crmInsightsEyebrow');
+    const value=new Intl.DateTimeFormat('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(selectedCalendarDate);
+    if(eyebrow)eyebrow.textContent='WYBRANY DZIEŃ';
+    if(title)title.textContent=value.charAt(0).toUpperCase()+value.slice(1);
+}
+const crmFinalV4InsightsOriginal=crmFinalV3RenderInsights;
+crmFinalV3RenderInsights=function(){crmFinalV4InsightsOriginal.apply(this,arguments);crmFinalV4EnsureInsightsHeader();renderMiniMonthCalendar();};
+function crmFinalV4FitToolbar(){
+    const header=document.querySelector('#tab-kalendarz .calendar-layout-header');
+    const actions=header?.querySelector('.crm-calendar-toolbar-actions');
+    const insights=document.getElementById('crmCalendarInsights');
+    if(!header||!actions)return;
+    actions.classList.add('crm-toolbar-before-insights');
+    if(insights)insights.classList.add('crm-insights-has-own-header');
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{crmFinalV4FitToolbar();renderMiniMonthCalendar();crmFinalV4EnsureInsightsHeader();},350));
+/* KONIEC ADMIN FINAL V4 */
+
+/* ========================================================================== 
+   ADMIN FINAL V6 SAFE: PELNE DATY, SWIETO, WOLNE I SYNCHRONIZACJA
+   Zmiana bez zastępowania rendererów Kalendarza.
+   ========================================================================== */
+function crmV6SameCalendarDay(first, second) {
+    return first instanceof Date && second instanceof Date &&
+        first.getFullYear() === second.getFullYear() &&
+        first.getMonth() === second.getMonth() &&
+        first.getDate() === second.getDate();
+}
+
+function crmV6PolishDate(date, includeYear = false) {
+    return new Intl.DateTimeFormat("pl-PL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        ...(includeYear ? { year: "numeric" } : {})
+    }).format(date);
+}
+
+function crmV6EasterSunday(year) {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month, day);
+}
+
+function crmV6HolidayName(date) {
+    const fixed = new Map([
+        ["1-1", "Nowy Rok"],
+        ["1-6", "Święto Trzech Króli"],
+        ["5-1", "Święto Pracy"],
+        ["5-3", "Święto Konstytucji 3 Maja"],
+        ["8-15", "Wniebowzięcie Najświętszej Maryi Panny"],
+        ["11-1", "Wszystkich Świętych"],
+        ["11-11", "Narodowe Święto Niepodległości"],
+        ["12-24", "Wigilia Bożego Narodzenia"],
+        ["12-25", "Boże Narodzenie"],
+        ["12-26", "Drugi dzień Bożego Narodzenia"]
+    ]);
+    const key = `${date.getMonth() + 1}-${date.getDate()}`;
+    if (fixed.has(key)) return fixed.get(key);
+
+    const easter = crmV6EasterSunday(date.getFullYear());
+    const current = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const offset = Math.round((current.getTime() - easter.getTime()) / 86400000);
+    if (offset === 0) return "Wielkanoc";
+    if (offset === 1) return "Poniedziałek Wielkanocny";
+    if (offset === 49) return "Zielone Świątki";
+    if (offset === 60) return "Boże Ciało";
+    return "";
+}
+
+function crmV6IsFullDayBlock(item) {
+    if (String(item?.eventType || "") !== "block") return false;
+    if (String(item?.blockType || "").toLowerCase() === "full_day") return true;
+    const start = crmDayEventDate(item);
+    const end = item?.endDate ? new Date(item.endDate) : null;
+    if (!(start instanceof Date) || Number.isNaN(start.getTime())) return false;
+    if (!(end instanceof Date) || Number.isNaN(end.getTime())) return false;
+    return end.getTime() - start.getTime() >= 23 * 60 * 60 * 1000;
+}
+
+function crmV6DayPresentation(date) {
+    const items = getCalendarEventsForDate(date) || [];
+    const shifts = items.filter(item => item?.eventType === "work_shift");
+    const entries = items.filter(item => item?.eventType !== "work_shift");
+    const hasBrak = shifts.some(item => /^brak$/i.test(String(item?.name || item?.code || "").trim()));
+    const hasFullDayBlock = entries.some(crmV6IsFullDayBlock);
+    const hasVisitOrExternal = entries.some(item => item?.eventType !== "block");
+    return {
+        hasBrak,
+        isDayOff: hasFullDayBlock && !hasVisitOrExternal,
+        holidayName: crmV6HolidayName(date)
+    };
+}
+
+function crmV6Badge(text, variant, title = "") {
+    const badge = document.createElement("span");
+    badge.className = `crm-v6-calendar-badge is-${variant}`;
+    badge.textContent = text;
+    if (title) badge.title = title;
+    return badge;
+}
+
+function crmV6EnhanceMiniCalendar() {
+    const grid = document.getElementById("mini-month-days-grid");
+    if (!grid) return;
+    const year = miniMonthDate.getFullYear();
+    const month = miniMonthDate.getMonth();
+    grid.querySelectorAll(".mini-date-cell").forEach(cell => {
+        const day = Number(cell.textContent || 0);
+        if (!day) return;
+        const date = new Date(year, month, day, 12, 0, 0, 0);
+        cell.classList.toggle("today", crmV6SameCalendarDay(date, new Date()));
+        cell.classList.toggle("selected", crmV6SameCalendarDay(date, selectedCalendarDate));
+        cell.classList.remove("has-day-off", "has-holiday");
+        const presentation = crmV6DayPresentation(date);
+        if (presentation.holidayName) cell.classList.add("has-holiday");
+        else if (presentation.isDayOff) cell.classList.add("has-day-off");
+    });
+}
+
+function crmV6EnhanceMonthCells() {
+    document.querySelectorAll(".crm-month-cell[data-date]").forEach(cell => {
+        const date = new Date(`${cell.dataset.date}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return;
+        const presentation = crmV6DayPresentation(date);
+        const shift = cell.querySelector(".crm-month-shift");
+        if (!shift) return;
+
+        shift.querySelectorAll(".crm-v6-calendar-badge").forEach(node => node.remove());
+        shift.querySelectorAll("span").forEach(node => {
+            if (/^brak$/i.test(String(node.textContent || "").trim())) {
+                node.textContent = "BRAK";
+                node.classList.add("crm-v6-existing-brak");
+            }
+        });
+        if (presentation.holidayName) {
+            shift.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
+        }
+        if (presentation.isDayOff) {
+            shift.appendChild(crmV6Badge("WOLNE", "off", "Cały dzień zablokowany i bez wizyt"));
+        }
+        shift.hidden = !shift.children.length;
+    });
+}
+
+function crmV6EnhanceThreeDayHeaders() {
+    if (calendarViewMode !== "day") return;
+    document.querySelectorAll(".crm-3day-column").forEach((column, index) => {
+        const date = new Date(selectedCalendarDate);
+        date.setDate(date.getDate() + index);
+        const header = column.querySelector(".crm-3day-header");
+        if (!header) return;
+        const dayNumber = header.querySelector("b");
+        const details = header.querySelector("span");
+        if (dayNumber) dayNumber.textContent = date.toLocaleDateString("pl-PL", { weekday: "long" });
+        if (details) details.textContent = date.toLocaleDateString("pl-PL", { day: "numeric", month: "long" });
+
+        let badges = header.querySelector(".crm-v6-header-badges");
+        if (!badges) {
+            badges = document.createElement("span");
+            badges.className = "crm-v6-header-badges";
+            header.appendChild(badges);
+        }
+        badges.innerHTML = "";
+        const presentation = crmV6DayPresentation(date);
+        if (presentation.hasBrak) badges.appendChild(crmV6Badge("BRAK", "brak"));
+        if (presentation.holidayName) badges.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
+        if (presentation.isDayOff) badges.appendChild(crmV6Badge("WOLNE", "off"));
+    });
+}
+
+function crmV6EnhanceRangeTitle() {
+    const title = document.getElementById("calendar-current-date-title");
+    if (!title) return;
+    if (calendarViewMode === "month") {
+        title.textContent = selectedCalendarDate.toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+        return;
+    }
+    const start = calendarViewMode === "week" ? getMondayOfWeek(selectedCalendarDate) : new Date(selectedCalendarDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + (calendarViewMode === "week" ? 6 : 2));
+    title.textContent = `${crmV6PolishDate(start)} – ${crmV6PolishDate(end, true)}`;
+}
+
+function crmV6ApplySafeCalendarEnhancements() {
+    crmV6EnhanceMiniCalendar();
+    crmV6EnhanceMonthCells();
+    crmV6EnhanceThreeDayHeaders();
+    crmV6EnhanceRangeTitle();
+}
+
+const crmV6RenderBooksyCalendarOriginal = renderBooksyCalendar;
+renderBooksyCalendar = function() {
+    const result = crmV6RenderBooksyCalendarOriginal.apply(this, arguments);
+    requestAnimationFrame(crmV6ApplySafeCalendarEnhancements);
+    return result;
+};
+
+const crmV6RenderMiniMonthOriginal = renderMiniMonthCalendar;
+renderMiniMonthCalendar = function() {
+    const result = crmV6RenderMiniMonthOriginal.apply(this, arguments);
+    crmV6EnhanceMiniCalendar();
+    return result;
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(crmV6ApplySafeCalendarEnhancements, 450);
+});
+/* KONIEC ADMIN FINAL V6 SAFE */
+
+/* ========================================================================== 
+   ADMIN FINAL V7: CZYTELNE NAGLOWKI, DATA PANELU I PAS NARZEDZI
+   ========================================================================== */
+function crmV7CapitalizeFirst(text) {
+    const value = String(text || "");
+    return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+}
+function crmV7RenderDayHeaders() {
+    if (calendarViewMode !== "day") return;
+    document.querySelectorAll(".crm-3day-column").forEach((column, index) => {
+        const date = new Date(selectedCalendarDate);
+        date.setDate(date.getDate() + index);
+        const header = column.querySelector(".crm-3day-header");
+        if (!header) return;
+        const presentation = crmV6DayPresentation(date);
+        header.classList.toggle("is-selected", crmV6SameCalendarDay(date, selectedCalendarDate));
+        header.classList.toggle("is-today", crmV6SameCalendarDay(date, new Date()));
+        header.innerHTML = "";
+
+        const label = document.createElement("span");
+        label.className = "crm-v7-day-label";
+        label.textContent = crmV7CapitalizeFirst(new Intl.DateTimeFormat("pl-PL", {
+            weekday: "long", day: "numeric", month: "long"
+        }).format(date));
+
+        const badges = document.createElement("span");
+        badges.className = "crm-v7-day-badges";
+        if (presentation.hasBrak) badges.appendChild(crmV6Badge("BRAK", "brak"));
+        if (presentation.holidayName) badges.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
+        if (presentation.isDayOff) badges.appendChild(crmV6Badge("WOLNE", "off"));
+        header.append(label, badges);
+    });
+}
+
+function crmV7RenderRangeTitle() {
+    const title = document.getElementById("calendar-current-date-title");
+    if (!title) return;
+    if (calendarViewMode === "month") {
+        title.textContent = crmV7CapitalizeFirst(selectedCalendarDate.toLocaleDateString("pl-PL", { month: "long", year: "numeric" }));
+        return;
+    }
+    const start = calendarViewMode === "week" ? getMondayOfWeek(selectedCalendarDate) : new Date(selectedCalendarDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + (calendarViewMode === "week" ? 6 : 2));
+    const first = new Intl.DateTimeFormat("pl-PL", { weekday: "long", day: "numeric", month: "long" }).format(start);
+    const second = new Intl.DateTimeFormat("pl-PL", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(end);
+    title.textContent = `${crmV7CapitalizeFirst(first)} – ${second}`;
+}
+
+function crmV7Apply() {
+    crmV7RenderDayHeaders();
+    crmV7RenderSelectedDateHeader();
+    crmV7RenderRangeTitle();
+    crmV6EnhanceMiniCalendar();
+    crmV6EnhanceMonthCells();
+}
+
+const crmV7RenderCalendarOriginal = renderBooksyCalendar;
+renderBooksyCalendar = function() {
+    const result = crmV7RenderCalendarOriginal.apply(this, arguments);
+    requestAnimationFrame(crmV7Apply);
+    return result;
+};
+
+document.addEventListener("DOMContentLoaded", () => setTimeout(crmV7Apply, 550));
+/* KONIEC ADMIN FINAL V7 */
+
+
+/* ========================================================================== 
+   ADMIN FINAL V8: TRWALA DATA PANELU I ODSUNIECIE PRZYCISKOW
+   ========================================================================== */
+function crmV8RenderSelectedDateHeader() {
+    const panel = document.getElementById("crmCalendarInsights") || crmEnsureCalendarInsights();
+    if (!panel) return;
+
+    let box = panel.querySelector(".crm-v8-selected-date");
+    if (!box) {
+        box = document.createElement("div");
+        box.className = "crm-v8-selected-date";
+    }
+
+    const value = new Intl.DateTimeFormat("pl-PL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    }).format(selectedCalendarDate);
+
+    box.innerHTML = `<span>WYBRANY DZIEŃ</span><strong>${crmV7CapitalizeFirst(value)}</strong>`;
+
+    const firstContent = panel.querySelector(".crm-insights-metrics, #crmInsightsMetrics");
+    if (firstContent) panel.insertBefore(box, firstContent);
+    else panel.prepend(box);
+
+    panel.querySelectorAll(".crm-insights-header").forEach(header => {
+        header.hidden = true;
+        header.setAttribute("aria-hidden", "true");
+    });
+}
+
+const crmV8InsightsOriginal = crmRenderCalendarInsights;
+crmRenderCalendarInsights = function() {
+    const result = crmV8InsightsOriginal.apply(this, arguments);
+    crmV8RenderSelectedDateHeader();
+    requestAnimationFrame(crmV8RenderSelectedDateHeader);
+    return result;
+};
+
+function crmV8FixCalendarToolbarWidth() {
+    const tab = document.getElementById("tab-kalendarz");
+    const header = tab?.querySelector(".calendar-layout-header");
+    const insights = document.getElementById("crmCalendarInsights");
+    if (!tab || !header) return;
+
+    if (window.innerWidth >= 1121) {
+        const panelWidth = insights ? Math.ceil(insights.getBoundingClientRect().width) : 330;
+        header.style.setProperty("--crm-v8-panel-width", `${panelWidth}px`);
+        header.classList.add("crm-v8-toolbar-constrained");
+    } else {
+        header.classList.remove("crm-v8-toolbar-constrained");
+        header.style.removeProperty("--crm-v8-panel-width");
+    }
+}
+
+window.addEventListener("resize", crmV8FixCalendarToolbarWidth);
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        crmV8RenderSelectedDateHeader();
+        crmV8FixCalendarToolbarWidth();
+    }, 700);
+});
+/* KONIEC ADMIN FINAL V8 */
