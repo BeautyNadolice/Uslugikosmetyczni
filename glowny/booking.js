@@ -940,3 +940,108 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 // KONIEC INDEX V3
+
+// ==========================================================
+// INDEX V4: CZYSTY STAN DRUGIEJ REZERWACJI W TEJ SAMEJ SESJI
+// ==========================================================
+function resetBookingSessionV4(options = {}) {
+  const keepPhone = options.keepPhone === true;
+  const phone = document.getElementById("clientPhone");
+  const currentPhone = keepPhone && phone ? phone.value : "";
+
+  isClientApproved = false;
+  selectedSlotPolicy = null;
+  bookingSubmissionLocked = false;
+  phoneVerificationInProgressV3 = false;
+
+  const form = document.getElementById("bookingForm");
+  if (form) form.reset();
+  if (phone) phone.value = currentPhone;
+
+  ["clientName", "calendarInput", "finalDateTime", "alternativeCalendarInput", "alternativeDateTime", "selectedDuration"].forEach(id => {
+    const node = document.getElementById(id);
+    if (node) node.value = "";
+  });
+
+  const status = document.getElementById("clientStatus");
+  if (status) {
+    status.textContent = "";
+    status.style.display = "none";
+  }
+
+  const service = document.getElementById("serviceType");
+  if (service) {
+    service.innerHTML = '<option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>';
+    service.value = "";
+  }
+
+  const slots = document.getElementById("timeSlotsContainer");
+  if (slots) slots.innerHTML = '<div class="no-slots">Najpierw zweryfikuj numer telefonu...</div>';
+
+  const alternativeSlots = document.getElementById("alternativeTimeSlotsContainer");
+  if (alternativeSlots) alternativeSlots.innerHTML = "";
+
+  const alternativeSection = document.getElementById("alternativeBookingSection");
+  if (alternativeSection) alternativeSection.style.display = "none";
+
+  const notice = document.getElementById("bookingPolicyNotice");
+  if (notice) {
+    notice.style.display = "none";
+    notice.textContent = "";
+  }
+
+  const price = document.getElementById("priceDisplay");
+  if (price) price.textContent = "";
+
+  const submit = document.getElementById("submitBookingBtn");
+  if (submit) {
+    submit.disabled = false;
+    submit.textContent = "Zarezerwuj wizytę";
+  }
+
+  if (flatpickrInstance) {
+    flatpickrInstance.destroy();
+    flatpickrInstance = null;
+  }
+  if (alternativeFlatpickr) {
+    alternativeFlatpickr.destroy();
+    alternativeFlatpickr = null;
+  }
+
+  toggleFormState(false);
+}
+
+const _openBookingModalBeforeSessionV4 = openBookingModal;
+openBookingModal = function() {
+  resetBookingSessionV4();
+  _openBookingModalBeforeSessionV4();
+};
+
+const _closeBookingModalBeforeSessionV4 = closeBookingModal;
+closeBookingModal = function() {
+  _closeBookingModalBeforeSessionV4();
+  resetBookingSessionV4();
+};
+
+/* Jedno stabilne podpiecie przycisku. Wczesniejsze referencje funkcji mogly
+   pozostac po nadpisaniu checkExistingClient i blokowac druga weryfikacje. */
+document.addEventListener("DOMContentLoaded", () => {
+  const verifyButton = document.getElementById("verifyPhoneBtn");
+  const phone = document.getElementById("clientPhone");
+
+  if (verifyButton) {
+    const cleanButton = verifyButton.cloneNode(true);
+    verifyButton.replaceWith(cleanButton);
+    cleanButton.addEventListener("click", event => {
+      event.preventDefault();
+      checkExistingClient();
+    });
+  }
+
+  if (phone) {
+    phone.onblur = null;
+    phone.addEventListener("input", () => resetBookingSessionV4({ keepPhone: true }));
+  }
+});
+// KONIEC INDEX V4
+
