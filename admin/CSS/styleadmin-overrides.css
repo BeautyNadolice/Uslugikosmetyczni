@@ -1675,3 +1675,38 @@ body.crm-v3-details-open .crm-day-list-panel {
 }
 /* KONIEC ADMIN V14.6 */
 
+/* ==========================================================
+   ADMIN V14.7: NOWA PROSBA O WIZYTE
+   ========================================================== */
+.crm-request-notice-overlay[hidden] { display: none !important; }
+.crm-request-notice-overlay {
+  position: fixed; inset: 0; z-index: 100000;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(39, 28, 34, .42); backdrop-filter: blur(4px);
+}
+.crm-request-notice-card {
+  position: relative; width: min(520px, 100%); max-height: min(680px, 88vh);
+  overflow: auto; padding: 26px; border-radius: 24px; background: #fff;
+  box-shadow: 0 24px 70px rgba(65, 35, 49, .28);
+  border: 2px solid #d83752;
+}
+.crm-request-notice-close { position:absolute; top:12px; right:14px; border:0; background:transparent; font-size:28px; cursor:pointer; }
+.crm-request-notice-eyebrow { color:#c92846; font-weight:800; text-transform:uppercase; letter-spacing:.08em; font-size:12px; }
+.crm-request-notice-card h2 { margin:7px 34px 18px 0; }
+.crm-request-notice-list { display:grid; gap:10px; }
+.crm-request-notice-item {
+  display:grid; gap:4px; width:100%; padding:14px; text-align:left; cursor:pointer;
+  border:1px solid #ead9df; border-left:5px solid #d83752; border-radius:14px; background:#fff8fa;
+}
+.crm-request-notice-item strong { font-size:15px; }
+.crm-request-notice-item span { color:#473b41; }
+.crm-request-notice-item small { color:#786b72; line-height:1.4; }
+.crm-request-notice-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+#bookingRequestsList .crm-request-is-new {
+  border:2px solid #d83752 !important;
+  box-shadow:0 0 0 4px rgba(216,55,82,.13), 0 12px 28px rgba(108,36,57,.15) !important;
+  animation:crmNewRequestPulse 1.25s ease-in-out 3;
+}
+@keyframes crmNewRequestPulse { 50% { transform:translateY(-2px); box-shadow:0 0 0 7px rgba(216,55,82,.10),0 14px 30px rgba(108,36,57,.18); } }
+/* KONIEC ADMIN V14.7 */
+
