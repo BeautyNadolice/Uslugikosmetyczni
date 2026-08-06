@@ -2497,3 +2497,101 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 700);
 });
 /* KONIEC ADMIN FINAL V8 */
+
+/* ==========================================================================
+   CAL.93. LEKKA SYNCHRONIZACJA CRM + GOOGLE CALENDAR
+   - bez loadSystem()
+   - bez pobierania klientów, cennika i finansów
+   - po zmianie widoku lub zakresu
+   - zachowuje selectedCalendarDate i aktualny wygląd
+   ========================================================================== */
+let crmCalendarLightSyncPromise = null;
+let crmCalendarLightSyncQueued = false;
+let crmCalendarLightSyncSequence = 0;
+
+async function crmLightSyncCalendarData(reason) {
+    if (crmCalendarLightSyncPromise) {
+        crmCalendarLightSyncQueued = true;
+        return crmCalendarLightSyncPromise;
+    }
+
+    const sequence = ++crmCalendarLightSyncSequence;
+    const selectedSnapshot = new Date(selectedCalendarDate);
+    const displayedSnapshot = new Date(displayedCalendarMonth || selectedCalendarDate);
+    const miniSnapshot = new Date(miniMonthDate || displayedSnapshot);
+    const viewSnapshot = calendarViewMode;
+
+    crmCalendarLightSyncPromise = (async () => {
+        const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+        const response = await fetch(
+            `${APPS_SCRIPT_URL}${separator}checkBusy=true&_crmSync=${Date.now()}`,
+            { method: "GET", cache: "no-store" }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Błąd synchronizacji Kalendarza: HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload || !Array.isArray(payload.appointments)) {
+            throw new Error(payload?.error || "Backend nie zwrócił listy wizyt");
+        }
+
+        /* Starsza odpowiedź nie może nadpisać nowszej. */
+        if (sequence !== crmCalendarLightSyncSequence) return payload;
+
+        appointmentsData = payload.appointments;
+
+        /* Synchronizacja danych nie zmienia świadomie wybranej daty ani widoku. */
+        selectedCalendarDate = selectedSnapshot;
+        displayedCalendarMonth = displayedSnapshot;
+        miniMonthDate = miniSnapshot;
+        calendarViewMode = viewSnapshot;
+
+        if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+        if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
+        if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+
+        return payload;
+    })().finally(() => {
+        crmCalendarLightSyncPromise = null;
+        if (crmCalendarLightSyncQueued) {
+            crmCalendarLightSyncQueued = false;
+            setTimeout(() => crmLightSyncCalendarData("kolejka").catch(console.error), 0);
+        }
+    });
+
+    return crmCalendarLightSyncPromise;
+}
+
+function crmScheduleCalendarLightSync(reason) {
+    clearTimeout(crmScheduleCalendarLightSync.timer);
+    crmScheduleCalendarLightSync.timer = setTimeout(() => {
+        crmLightSyncCalendarData(reason).catch(error => {
+            console.error("Lekka synchronizacja Kalendarza nie powiodła się:", error);
+        });
+    }, 80);
+}
+crmScheduleCalendarLightSync.timer = null;
+
+const crmCalendarSyncSetViewOriginal = setCalendarView;
+setCalendarView = function(mode) {
+    const result = crmCalendarSyncSetViewOriginal.apply(this, arguments);
+    crmScheduleCalendarLightSync(`widok:${mode}`);
+    return result;
+};
+
+const crmCalendarSyncChangeDateOriginal = changeSelectedDate;
+changeSelectedDate = function(days) {
+    const result = crmCalendarSyncChangeDateOriginal.apply(this, arguments);
+    crmScheduleCalendarLightSync(`zakres:${days}`);
+    return result;
+};
+
+/* Po powrocie do karty odświeżamy tylko Kalendarz. */
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) crmScheduleCalendarLightSync("powrot-do-karty");
+});
+
+/* KONIEC CAL.93 */
+

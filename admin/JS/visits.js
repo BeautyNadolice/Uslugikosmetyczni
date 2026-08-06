@@ -1082,7 +1082,13 @@ async function recordAppointmentLifecycle(options) {
     if (!response || !response.success) {
         throw new Error(response && response.error ? response.error : "Nie udało się zapisać historii wizyty");
     }
-    await loadSystem();
+
+    /*
+     * Nie odświeżamy tutaj całego CRM. Funkcja jest używana przez kilka
+     * operacji cyklu życia wizyty, a ciężkie loadSystem() powodowało
+     * podwójne pobieranie danych i ponad 30 sekund oczekiwania.
+     * Widok odświeża funkcja wywołująca, zależnie od rodzaju operacji.
+     */
     return response;
 }
 
@@ -1250,8 +1256,33 @@ async function crmRunLifecycleOperation(operation, initiator, deleteCalendarEven
         }
         currentEditingAppointment = null;
         closeAppointmentModal();
-        await crmRefreshAllViews();
-        crmToast(successText);
+
+        if (deleteCalendarEvent) {
+            /*
+             * Anulowana wizyta znika natychmiast z lokalnego widoku.
+             * Pełna synchronizacja z backendem odbywa się później w tle,
+             * więc użytkownik nie czeka na loadSystem(), klientów i grafik.
+             */
+            if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+            if (typeof renderDashboard === "function") renderDashboard();
+            if (typeof calculateFinanceReport === "function") calculateFinanceReport();
+            crmToast(successText);
+
+            Promise.resolve()
+                .then(() => {
+                    if (typeof crmLightSyncCalendarData === "function") {
+                        return crmLightSyncCalendarData("anulowanie-wizyty");
+                    }
+                    return crmRefreshAllViews();
+                })
+                .catch(error => {
+                    console.error("Synchronizacja po anulowaniu wizyty nie powiodła się:", error);
+                });
+        } else {
+            /* Pozostałe operacje nadal czekają na pełne, pewne odświeżenie. */
+            await crmRefreshAllViews();
+            crmToast(successText);
+        }
     } catch (error) {
         crmToast(error.message || String(error), "error");
     } finally {
