@@ -695,19 +695,7 @@ submitForm=async function(event){
     const result=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(r=>r.json());
     if(!result.success)throw new Error(result.error||'Nie udało się zapisać');
     alert(requires?'Prośba z terminem głównym i alternatywnym została wysłana.':'Wizyta została zarezerwowana.'); closeBookingModal(); await loadFreeSlots();
-  }catch(e){
-    const message=String(e&&e.message?e.message:e||'');
-    if(message==='SLOT_TAKEN'||message.includes('nie jest już dostępny')){
-      alert('Wybrany termin nie jest już dostępny. Prosimy wybrać inną godzinę.');
-      await loadFreeSlots();
-      const selectedDate=document.getElementById('calendarInput')?.value||'';
-      if(selectedDate){initCalendar(selectedDate);displayTimeSlots(selectedDate);}
-    }else if(message==='SYSTEM_BUSY'){
-      alert('Trwa zapisywanie innej rezerwacji. Prosimy spróbować ponownie.');
-    }else{
-      alert(message||'Wystąpił błąd.');
-    }
-  }finally{bookingSubmissionLocked=false;btn.disabled=false;btn.textContent='Zarezerwuj wizytę';}
+  }catch(e){alert(e.message||'Wystąpił błąd.');}finally{bookingSubmissionLocked=false;btn.disabled=false;btn.textContent='Zarezerwuj wizytę';}
 };
 
 
