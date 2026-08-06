@@ -10,6 +10,9 @@ let globalColors = {};
 /* ----- CAL.2. selectedCalendarDate (oryginalna linia 32) ----- */
 let selectedCalendarDate = new Date();
 
+/* Miesiac ogladany niezaleznie od swiadomie wybranego dnia. */
+let displayedCalendarMonth = new Date(selectedCalendarDate);
+
 /* ----- CAL.3. miniMonthDate (oryginalna linia 33) ----- */
 let miniMonthDate = new Date();
 
@@ -63,6 +66,10 @@ function setCalendarView(mode){
 
     calendarViewMode = normalizedMode;
     mode = normalizedMode;
+    if (viewChanged && mode === "month") {
+        displayedCalendarMonth = new Date(selectedCalendarDate);
+        miniMonthDate = new Date(displayedCalendarMonth);
+    }
 
     document
         .querySelectorAll(
@@ -527,8 +534,9 @@ function renderMonthCalendar(grid) {
     grid.style.gap = "6px";
     grid.style.overflowX = "hidden";
 
-    const year = selectedCalendarDate.getFullYear();
-    const month = selectedCalendarDate.getMonth();
+    const monthContext = displayedCalendarMonth || selectedCalendarDate;
+    const year = monthContext.getFullYear();
+    const month = monthContext.getMonth();
     const weekdayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
 
     weekdayNames.forEach(name => {
@@ -1288,6 +1296,14 @@ changeSelectedDate=function(days){
         selectedCalendarDate.setDate(selectedCalendarDate.getDate()+days*CRM_THREE_DAY_COUNT);
         miniMonthDate=new Date(selectedCalendarDate);renderMiniMonthCalendar();renderBooksyCalendar();return;
     }
+    if(calendarViewMode==="month"){
+        displayedCalendarMonth.setDate(1);
+        displayedCalendarMonth.setMonth(displayedCalendarMonth.getMonth()+days);
+        miniMonthDate=new Date(displayedCalendarMonth);
+        renderMiniMonthCalendar();
+        renderBooksyCalendar();
+        return;
+    }
     crmChangeSelectedDateV8(days);
 };
 
@@ -1507,6 +1523,13 @@ function renderWeekCalendar(grid) {
         dateButton.innerHTML = `<strong>${dayNames[index]}, ${date.getDate()} ${monthName}</strong><span>${visitLabel}</span>`;
         dateButton.addEventListener("click", () => crmOpenDayVisitsList(date));
         header.appendChild(dateButton);
+        const presentation = crmV6DayPresentation(date);
+        const weekBadges = document.createElement("span");
+        weekBadges.className = "crm-week-header-badges";
+        if (presentation.hasBrak) weekBadges.appendChild(crmV6Badge("BRAK", "brak"));
+        if (presentation.holidayName) weekBadges.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
+        if (presentation.isDayOff) weekBadges.appendChild(crmV6Badge("WOLNE", "off"));
+        if (weekBadges.children.length) header.appendChild(weekBadges);
         column.appendChild(header);
 
         const list = document.createElement("div");
@@ -1631,8 +1654,9 @@ function renderMonthCalendar(grid) {
     grid.style.cssText = "";
     grid.scrollLeft = 0;
 
-    const year = selectedCalendarDate.getFullYear();
-    const month = selectedCalendarDate.getMonth();
+    const monthContext = displayedCalendarMonth || selectedCalendarDate;
+    const year = monthContext.getFullYear();
+    const month = monthContext.getMonth();
     const weekdayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
 
     weekdayNames.forEach(name => {
@@ -2071,7 +2095,7 @@ function crmFinalV3RenderInsights(){
 }
 const crmFinalV3RenderOriginal=renderBooksyCalendar;
 renderBooksyCalendar=function(){const result=crmFinalV3RenderOriginal.apply(this,arguments);requestAnimationFrame(crmFinalV3RenderInsights);return result;};
-function crmFinalV3SelectDate(date){selectedCalendarDate=new Date(date);miniMonthDate=new Date(date);renderMiniMonthCalendar();renderBooksyCalendar();}
+function crmFinalV3SelectDate(date){selectedCalendarDate=new Date(date);displayedCalendarMonth=new Date(date);miniMonthDate=new Date(date);renderMiniMonthCalendar();renderBooksyCalendar();}
 document.addEventListener('click',event=>{
     const cell=event.target.closest('.crm-month-cell');
     if(cell&&!event.target.closest('.crm-month-visit-card,.crm-month-more,.crm-month-count,.crm-month-day-number')&&cell.dataset.date){crmFinalV3SelectDate(new Date(cell.dataset.date+'T12:00:00'));return;}
@@ -2104,6 +2128,7 @@ renderMiniMonthCalendar = function(){
         cell.onclick=event=>{
             event.preventDefault();event.stopPropagation();
             selectedCalendarDate=new Date(date);
+            displayedCalendarMonth=new Date(date);
             miniMonthDate=new Date(date);
             renderMiniMonthCalendar();
             renderBooksyCalendar();
@@ -2306,7 +2331,7 @@ function crmV6EnhanceRangeTitle() {
     const title = document.getElementById("calendar-current-date-title");
     if (!title) return;
     if (calendarViewMode === "month") {
-        title.textContent = selectedCalendarDate.toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+        title.textContent = (displayedCalendarMonth || selectedCalendarDate).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
         return;
     }
     const start = calendarViewMode === "week" ? getMondayOfWeek(selectedCalendarDate) : new Date(selectedCalendarDate);
@@ -2379,7 +2404,7 @@ function crmV7RenderRangeTitle() {
     const title = document.getElementById("calendar-current-date-title");
     if (!title) return;
     if (calendarViewMode === "month") {
-        title.textContent = crmV7CapitalizeFirst(selectedCalendarDate.toLocaleDateString("pl-PL", { month: "long", year: "numeric" }));
+        title.textContent = crmV7CapitalizeFirst((displayedCalendarMonth || selectedCalendarDate).toLocaleDateString("pl-PL", { month: "long", year: "numeric" }));
         return;
     }
     const start = calendarViewMode === "week" ? getMondayOfWeek(selectedCalendarDate) : new Date(selectedCalendarDate);
@@ -2392,7 +2417,6 @@ function crmV7RenderRangeTitle() {
 
 function crmV7Apply() {
     crmV7RenderDayHeaders();
-    crmV7RenderSelectedDateHeader();
     crmV7RenderRangeTitle();
     crmV6EnhanceMiniCalendar();
     crmV6EnhanceMonthCells();

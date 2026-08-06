@@ -1390,6 +1390,20 @@ async function crmVisitStatusAction(action) {
     if (action === "CANCEL_SALON") return cancelAppointmentWithHistory("MISTRZYNI", "");
 }
 
+function crmToggleVisitTrashMenu(force) {
+    const menu = document.getElementById("crmVisitTrashMenu");
+    if (!menu) return;
+    const shouldOpen = typeof force === "boolean" ? force : menu.hidden;
+    const statusMenu = document.getElementById("crmVisitStatusMenu");
+    if (statusMenu) statusMenu.hidden = true;
+    menu.hidden = !shouldOpen;
+}
+
+async function crmVisitTrashAction(initiator) {
+    crmToggleVisitTrashMenu(false);
+    return cancelAppointmentWithHistory(initiator === "KLIENT" ? "KLIENT" : "MISTRZYNI");
+}
+
 /* ----- VIS.51. crmPopulateNewVisitPanel (oryginalna linia 5754) ----- */
 function crmPopulateNewVisitPanel(app) {
     const isAppointment = app?.eventType === "appointment";
@@ -1401,7 +1415,7 @@ function crmPopulateNewVisitPanel(app) {
     const name = crmEscapePanelValue(app?.name, isAppointment ? "Klient" : "Wydarzenie");
 
     setText("details-name", name);
-    setText("details-phone", crmEscapePanelValue(app?.phone || app?.phoneNumber || app?.clientPhone, isAppointment ? "Brak numeru telefonu" : "Dane kontaktowe niedostępne"));
+    setText("details-phone", crmEscapePanelValue(app?.phone, "Numer telefonu jest ukryty"));
     setText("details-service", crmEscapePanelValue(app?.service, "Brak usługi"));
     setText("details-duration", duration || 0);
     setText("details-datetime", crmFormatDateTime(app?.date));
@@ -1436,6 +1450,11 @@ function crmPopulateNewVisitPanel(app) {
 
     const addServiceButton = document.querySelector("#appointmentDetailsModal .crm-safe-add-service");
     if (addServiceButton) addServiceButton.hidden = !isAppointment;
+
+    const trashButton = document.getElementById("crmVisitTrashButton");
+    if (trashButton) trashButton.hidden = !isAppointment;
+    const trashMenu = document.getElementById("crmVisitTrashMenu");
+    if (trashMenu) trashMenu.hidden = true;
 
     const clientCard = document.querySelector("#appointmentDetailsModal .crm-safe-client-card");
     if (clientCard) {
@@ -1552,8 +1571,13 @@ function crmInstallSafeRightVisitPanel() {
         <div id="crmVisitStatusMenu" class="crm-safe-status-menu" hidden>
           <button type="button" onclick="crmVisitStatusAction('COMPLETED')">Zrealizowana</button>
           <button type="button" onclick="crmVisitStatusAction('NO_SHOW')">Nieobecność</button>
-          <button type="button" onclick="crmVisitStatusAction('CANCEL_CLIENT')">Anulowana przez klienta</button>
-          <button type="button" onclick="crmVisitStatusAction('CANCEL_SALON')">Anulowana przez salon</button>
+        </div>
+        <button id="crmVisitTrashButton" type="button" class="crm-final-trash" onclick="crmToggleVisitTrashMenu()" aria-label="Anuluj wizytę" title="Anuluj wizytę">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
+        </button>
+        <div id="crmVisitTrashMenu" class="crm-final-trash-menu" hidden>
+          <button type="button" onclick="crmVisitTrashAction('KLIENT')">Anulowana przez klienta</button>
+          <button type="button" onclick="crmVisitTrashAction('MISTRZYNI')">Anulowana przez salon</button>
         </div>
       </header>
       <div id="appointment-details-view" class="crm-safe-body">
@@ -1588,10 +1612,10 @@ function crmInstallSafeRightVisitPanel() {
           <button id="crmRepeatVisitBtn" type="button" class="crm-safe-repeat" onclick="planNextVisitFromCurrentAppointment()">UMÓW PONOWNIE</button>
         </section>
         <section id="crmInfoTabContent" class="crm-safe-info" hidden>
-          <div><i class="crm-info-icon" data-icon="client" aria-hidden="true"></i><span>KLIENT</span><strong id="crmInfoClient">—</strong></div>
-          <div><i class="crm-info-icon" data-icon="service" aria-hidden="true"></i><span>USŁUGA</span><strong id="crmInfoService">—</strong></div>
-          <div><i class="crm-info-icon" data-icon="date" aria-hidden="true"></i><span>DATA I GODZINA</span><strong id="details-datetime">—</strong></div>
-          <div><i id="crmInfoSourceIcon" class="crm-info-icon" data-icon="online" aria-hidden="true"></i><span>ŹRÓDŁO REZERWACJI</span><strong id="crmInfoSource" class="crm-info-source-pill">—</strong></div>
+          <div><span>Klient</span><strong id="crmInfoClient">—</strong></div>
+          <div><span>Usługa</span><strong id="crmInfoService">—</strong></div>
+          <div><span>Data i godzina</span><strong id="details-datetime">—</strong></div>
+          <div><span>Źródło</span><strong id="crmInfoSource">—</strong></div>
         </section>
         <button id="deleteAppointmentBtn" type="button" hidden onclick="deleteSelectedCalendarItemFromAdmin()"></button>
         <button id="editAppointmentBtn" type="button" hidden onclick="openEditAppointmentModal()"></button>
@@ -1737,49 +1761,31 @@ function crmRenderDayVisitsList() {
 }
 
 /* ========================================================================== 
-   ADMIN FINAL 2026-08-04: STATUS WIZYTY, KOSZ I BLOKADY
+   ADMIN: ZAMYKANIE MENU STATUSU I KOSZA
    ========================================================================== */
-function crmFinalTrashSvg(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path></svg>';}
-function crmFinalCloseMenus(){document.querySelectorAll(".crm-final-trash-menu").forEach(x=>x.remove());}
-async function crmFinalLifecycle(operation,initiator,deleteCalendarEvent){
-  const a=currentEditingAppointment;if(!a||a.eventType!=="appointment")return;
-  const key="lifecycle:"+(a.eventId||a.date)+":"+operation+":"+initiator;if(!crmOperationStart(key))return;
-  try{const ok=await crmConfirm(operation==="ANULOWANIE"?"Potwierdzić anulowanie tej wizyty?":"Potwierdzić zmianę statusu wizyty?","Potwierdź");if(!ok)return;
-    const r=await crmExtendedPost("recordAppointmentLifecycle",{eventId:a.eventId,phone:a.phone,clientName:a.name,service:a.service,operation,initiator,oldDate:a.date,newDate:"",reason:"",deleteCalendarEvent:Boolean(deleteCalendarEvent)});if(!r||!r.success)throw new Error(r?.error||"Operacja nie została zapisana");crmToast("Operacja została zapisana.");crmSetUnsavedChanges(false);closeAppointmentModal();await loadSettings();}
-  catch(e){crmToast(e.message||String(e),"error");}finally{crmOperationEnd(key);}
-}
-function crmFinalOpenTrashMenu(button,item){crmFinalCloseMenus();const menu=document.createElement("div");menu.className="crm-final-trash-menu";
-  if(item.eventType==="appointment")menu.innerHTML='<button type="button" data-client>Anulowana przez klienta</button><button type="button" data-salon>Anulowana przez salon</button>';
-  else if(item.eventType==="block")menu.innerHTML='<button type="button" data-block>Usuń blokadę</button>';
-  button.parentElement.appendChild(menu);menu.querySelector("[data-client]")?.addEventListener("click",()=>crmFinalLifecycle("ANULOWANIE","KLIENT",true));menu.querySelector("[data-salon]")?.addEventListener("click",()=>crmFinalLifecycle("ANULOWANIE","SALON",true));menu.querySelector("[data-block]")?.addEventListener("click",()=>crmFinalDeleteBlockOnce());
-}
-function crmFinalDecorateVisitPanel(item){
-  const header=document.querySelector("#appointmentDetailsModal .crm-safe-header,#appointmentDetailsModal .crm-visit-panel__header");if(!header||!item)return;
-  header.querySelector(".crm-final-trash")?.remove();crmFinalCloseMenus();
-  const statusBtn=header.querySelector("#crmVisitStatusButton,.crm-safe-status-btn,.crm-status-button");
-  if(item.eventType==="appointment"&&statusBtn){statusBtn.textContent="Status wizyty";const menu=header.querySelector(".crm-safe-status-menu,.crm-status-menu");if(menu){menu.innerHTML='<button type="button" data-noshow>Nieobecność</button><button type="button" data-move>Przenieś na inny termin</button>';menu.querySelector("[data-noshow]").onclick=()=>crmFinalLifecycle("NIEOBECNOSC","SALON",false);menu.querySelector("[data-move]").onclick=()=>{closeAppointmentModal();openCreateAppointmentModal();setTimeout(()=>{document.getElementById("appointmentName").value=item.name||"";document.getElementById("appointmentPhone").value=item.phone||"";document.getElementById("appointmentService").value=item.service||"";crmSetUnsavedChanges(true,"przenoszeniu wizyty");crmToast("Wybierz nowy termin. Stary termin pozostanie bez zmian do zapisu.");},0);};}}
-  if(item.eventType!=="appointment"&&statusBtn)statusBtn.hidden=true;
-  if(item.eventType==="appointment"||item.eventType==="block"){const b=document.createElement("button");b.type="button";b.className="crm-final-trash";b.setAttribute("aria-label",item.eventType==="block"?"Usuń blokadę":"Anuluj wizytę");b.innerHTML=crmFinalTrashSvg();b.onclick=()=>crmFinalOpenTrashMenu(b,item);header.appendChild(b);}
-  document.querySelector("#appointmentDetailsModal .crm-safe-add-service")?.setAttribute("hidden","");
-}
-const crmFinalOpenAppointmentDetailsOriginal=openAppointmentDetailsModal;
-openAppointmentDetailsModal=function(item){const r=crmFinalOpenAppointmentDetailsOriginal.apply(this,arguments);setTimeout(()=>crmFinalDecorateVisitPanel(item),0);return r;};
-/* KONIEC ADMIN FINAL: STATUS WIZYTY, KOSZ I BLOKADY */
-
-
-/* ========================================================================== ADMIN FINAL V2: KOREKTY PO TESTACH ========================================================================== */
-async function crmFinalDeleteBlockOnce(){
-  const block=currentEditingAppointment;if(!block||block.eventType!=="block")return;
-  crmFinalCloseMenus();const key="delete-block:"+(block.eventId||block.date);if(!crmOperationStart(key))return;
-  try{const ok=await crmConfirm(`Usunąć blokadę czasu ${crmFormatVisitTime(crmParseVisitDate(block.date))}–${crmFormatVisitTime(crmParseVisitDate(block.endDate))}?`,"Usuń blokadę");if(!ok)return;
-    const response=await fetch(APPS_SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"deleteBlockTime",eventId:block.eventId||"",start:block.date||"",end:block.endDate||"",title:block.name||""})});
-    const data=await response.json();if(!data.success)throw new Error(data.error||"Nieznany błąd");appointmentsData=appointmentsData.filter(x=>!(block.eventId&&x.eventId===block.eventId));currentEditingAppointment=null;closeAppointmentModal();crmToast("Blokada czasu została usunięta.");await loadSettings();
-  }catch(error){crmToast("Błąd usuwania blokady: "+(error.message||error),"error");}finally{crmOperationEnd(key);}
-}
-function crmFinalInfoIconSvg(kind){const paths={client:'<circle cx="12" cy="8" r="3"></circle><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6"></path><path d="m17 10 1.7 1.7L22 8.5"></path>',service:'<path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2z"></path><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8zM19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z"></path>',date:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path><circle cx="15.5" cy="15.5" r="2.5"></circle><path d="M15.5 14v1.7l1 .6"></path>',online:'<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"></path>',admin:'<circle cx="9" cy="8" r="3"></circle><path d="M3 20c.7-4 2.7-6 6-6 2 0 3.5.7 4.5 2"></path><path d="m15 18 2 2 4-5"></path>',google:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18M15 15h4M17 13v4"></path>',booksy:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path><path d="M12 18s-3-1.7-3-3.7c0-2 2.5-2.5 3-.7.5-1.8 3-1.3 3 .7 0 2-3 3.7-3 3.7z"></path>'};return `<svg viewBox="0 0 24 24">${paths[kind]||paths.online}</svg>`;}
-function crmFinalEnhanceInfoTab(app){document.querySelectorAll("#crmInfoTabContent .crm-info-icon").forEach(i=>i.innerHTML=crmFinalInfoIconSvg(i.dataset.icon));const source=crmVisitSourceInfo(app);const icon=document.getElementById("crmInfoSourceIcon");if(icon){icon.dataset.icon=source.code==="BOOKSY"?"booksy":source.code==="GOOGLE"?"google":source.code==="ADMIN"?"admin":"online";icon.innerHTML=crmFinalInfoIconSvg(icon.dataset.icon);}const date=document.getElementById("details-datetime");const d=crmParseVisitDate(app?.date);if(date&&d)date.textContent=new Intl.DateTimeFormat("pl-PL",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}).format(d);}
-const crmFinalOpenAfterTests=openAppointmentDetailsModal;
-openAppointmentDetailsModal=function(item){const r=crmFinalOpenAfterTests.apply(this,arguments);setTimeout(()=>crmFinalEnhanceInfoTab(item),0);return r;};
-document.addEventListener("pointerdown",event=>{const status=document.getElementById("crmVisitStatusMenu");const statusBtn=document.getElementById("crmVisitStatusButton");if(status&&!status.hidden&&!status.contains(event.target)&&!statusBtn?.contains(event.target))status.hidden=true;const trash=document.querySelector(".crm-final-trash-menu");if(trash&&!trash.contains(event.target)&&!event.target.closest(".crm-final-trash"))trash.remove();},true);
-document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;crmToggleVisitStatusMenu(false);crmFinalCloseMenus();});
-/* KONIEC ADMIN FINAL V2 */
+(function crmInstallVisitMenuCloseBehavior() {
+    document.addEventListener("click", event => {
+        if (!event.target.closest("#crmVisitStatusButton, #crmVisitStatusMenu")) {
+            const statusMenu = document.getElementById("crmVisitStatusMenu");
+            if (statusMenu) statusMenu.hidden = true;
+        }
+        if (!event.target.closest("#crmVisitTrashButton, #crmVisitTrashMenu")) {
+            const trashMenu = document.getElementById("crmVisitTrashMenu");
+            if (trashMenu) trashMenu.hidden = true;
+        }
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        const statusMenu = document.getElementById("crmVisitStatusMenu");
+        const trashMenu = document.getElementById("crmVisitTrashMenu");
+        if (statusMenu && !statusMenu.hidden) {
+            event.stopImmediatePropagation();
+            statusMenu.hidden = true;
+        }
+        if (trashMenu && !trashMenu.hidden) {
+            event.stopImmediatePropagation();
+            trashMenu.hidden = true;
+        }
+    }, true);
+})();
+/* KONIEC: ZAMYKANIE MENU STATUSU I KOSZA */

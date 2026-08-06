@@ -421,6 +421,9 @@ async function loadBookingRequests(){
     const r=await crmPost({action:'getBookingRequests'});
     if(!r || r.success !== true) throw new Error(r?.error || 'Nieprawidłowa odpowiedź API');
     const rows=Array.isArray(r.requests) ? r.requests : [];
+    window.crmPendingRequestsCountFromApi = rows.length;
+    if (typeof crmV3SetPendingCount === "function") crmV3SetPendingCount(rows.length);
+    if (typeof crmUpdateLeftPendingBadge === "function") crmUpdateLeftPendingBadge();
     box.innerHTML=rows.length ? '' : 'Brak oczekujących próśb.';
     rows.forEach(x=>{
       const d=document.createElement('div');
@@ -508,9 +511,7 @@ const crmV3LoadBookingRequestsOriginal = loadBookingRequests;
 /* ----- CORE.51. loadBookingRequests (oryginalna linia 5665) ----- */
 loadBookingRequests = async function() {
     await crmV3LoadBookingRequestsOriginal();
-    const list = document.getElementById("bookingRequestsList");
-    const cards = list ? list.querySelectorAll(":scope > .dashboard-card").length : 0;
-    crmV3SetPendingCount(cards);
+    crmV3SetPendingCount(window.crmPendingRequestsCountFromApi || 0);
 };
 
 /* ----- CORE.52. blok z linii 5683 (oryginalna linia 5683) ----- */
@@ -777,3 +778,39 @@ const crmOriginalInitializeWorkspaceFinal=typeof crmV3InitializeWorkspace==="fun
 if(crmOriginalInitializeWorkspaceFinal) crmV3InitializeWorkspace=function(){const r=crmOriginalInitializeWorkspaceFinal.apply(this,arguments);setTimeout(crmInstallAdminClock,0);return r;};
 document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallAdminClock,200));
 /* KONIEC ADMIN FINAL: ZEGAREK I POWIADOMIENIA */
+
+
+/* ========================================================================== 
+   ADMIN SAFE 2026-08-06: PROSBY API, POWIADOMIENIA I NIEZAPISANE FORMULARZE
+   ========================================================================== */
+if (typeof crmShowNewRequestsDialog === "function") {
+    crmShowNewRequestsDialog = function(requests) {
+        if (typeof crmRenderRequestNotice === "function") crmRenderRequestNotice(requests || []);
+    };
+}
+(function crmInstallUnsavedFormGuard(){
+    let dirty = false;
+    const selector = "#appointment-form, #block-time-form, #settings-form, form[data-crm-guard]";
+    document.addEventListener("input", event => {
+        if (event.target.closest(selector)) dirty = true;
+    }, true);
+    document.addEventListener("change", event => {
+        if (event.target.closest(selector)) dirty = true;
+    }, true);
+    document.addEventListener("submit", event => {
+        if (event.target.matches(selector)) dirty = false;
+    }, true);
+    document.addEventListener("click", event => {
+        if (event.target.closest("[data-crm-saved], .btn-save, button[type='submit']")) {
+            setTimeout(() => { dirty = false; }, 500);
+        }
+    }, true);
+    window.crmHasUnsavedChanges = () => dirty;
+    window.crmMarkFormsSaved = () => { dirty = false; };
+    window.addEventListener("beforeunload", event => {
+        if (!dirty) return;
+        event.preventDefault();
+        event.returnValue = "";
+    });
+})();
+/* KONIEC ADMIN SAFE 2026-08-06 */
