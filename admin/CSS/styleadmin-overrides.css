@@ -2062,5 +2062,45 @@ body.crm-v3-details-open .crm-day-list-panel {
 /* Karty wizyt pozostają nad czerwoną linią */
 #tab-kalendarz .crm-3day-event {
     z-index: 60 !important;
-}}
+}
 /* KONIEC ADMIN V8.1 *//* KONIEC ADMIN FINAL V8 */
+
+
+/* POPRAWKA KONTROLOWANA: oznaczenia Tygodnia i kosz wizyty */
+/* Cała kolumna dnia jest punktem odniesienia dla etykiety BRAK. */
+#tab-kalendarz .crm-week-column {
+    position: relative !important;
+}
+
+/* Nagłówek nie ogranicza już pozycjonowania etykiety do pola daty. */
+#tab-kalendarz .crm-week-day-header {
+    position: static !important;
+}
+
+/* BRAK / WOLNE / ŚWIĘTO są przy prawej krawędzi całej kolumny. */
+#tab-kalendarz .crm-week-header-badges {
+    position: absolute !important;
+    top: 7px !important;
+    right: 7px !important;
+    z-index: 6 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 3px !important;
+    width: auto !important;
+    max-width: calc(100% - 14px) !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+}
+
+#tab-kalendarz .crm-week-header-badges .crm-v6-calendar-badge {
+    margin: 0 !important;
+    padding: 2px 5px !important;
+    font-size: 7px !important;
+    line-height: 1 !important;
+}
+
+#appointmentDetailsModal .crm-final-trash[hidden],
+#appointmentDetailsModal .crm-final-trash-menu[hidden] {
+    display: none !important;
+}
