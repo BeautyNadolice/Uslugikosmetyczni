@@ -414,16 +414,19 @@ async function saveAppointment() {
             data.success
         ) {
 
-            alert(
+            const successMessage =
                 currentEditingAppointment
                     ? "Wizyta została zaktualizowana."
-                    : "Wizyta została dodana."
-            );
+                    : "Wizyta została dodana.";
 
             currentEditingAppointment =
                 null;
 
             closeCreateAppointmentModal();
+
+            if (typeof crmToast === "function") {
+                crmToast(successMessage);
+            }
 
             await loadSettings();
 
@@ -470,6 +473,11 @@ async function saveAppointment() {
 function openEditAppointmentModal() {
 
     if (isDeletingAppointment) {
+        return;
+    }
+
+    if (currentEditingAppointment && currentEditingAppointment.eventType === "block") {
+        openEditBlockTimeModal(currentEditingAppointment);
         return;
     }
 
@@ -524,13 +532,51 @@ function openEditAppointmentModal() {
 }
 
 /* ----- VIS.13. closeCreateAppointmentModal (oryginalna linia 1728) ----- */
-function closeCreateAppointmentModal(){
+function crmAppointmentFormHasUnsavedChanges() {
+    const value = id => {
+        const element = document.getElementById(id);
+        return element ? String(element.value || "").trim() : "";
+    };
 
-    document.getElementById(
-        "appointmentModal"
-    ).style.display =
-        "none";
+    /* Pola tekstowe i data oznaczaja rzeczywiste rozpoczecie formularza. */
+    if (value("appointmentName")) return true;
+    if (value("appointmentPhone")) return true;
+    if (value("appointmentService")) return true;
+    if (value("appointmentDateTime")) return true;
+    if (value("appointmentDate")) return true;
 
+    /* Domyslny czas trwania nowej wizyty to 45 minut. */
+    const duration = value("appointmentDuration");
+    if (duration && duration !== "45") return true;
+
+    /* W rozdzielonym wyborze godziny domyslne wartosci to 12:00. */
+    const hour = value("appointmentHour");
+    const minute = value("appointmentMinute");
+    if (hour && hour !== "12") return true;
+    if (minute && minute !== "00" && minute !== "0") return true;
+
+    return false;
+}
+
+async function closeCreateAppointmentModal(forceClose) {
+    const modal = document.getElementById("appointmentModal");
+    if (!modal || modal.style.display === "none") return;
+
+    const mayCloseImmediately =
+        forceClose === true ||
+        isSavingAppointment ||
+        isDeletingAppointment ||
+        !crmAppointmentFormHasUnsavedChanges();
+
+    if (!mayCloseImmediately) {
+        const message = "Masz niezapisane zmiany. Czy na pewno chcesz zamknąć formularz?";
+        const confirmed = typeof crmConfirm === "function"
+            ? await crmConfirm(message, "Niezapisane zmiany")
+            : window.confirm(message);
+        if (!confirmed) return;
+    }
+
+    modal.style.display = "none";
 }
 
 /* ----- VIS.14. openAppointmentDetailsModal (oryginalna linia 1741) ----- */
@@ -559,7 +605,10 @@ function openAppointmentDetailsModal(app){
         deleteBtn.style.display = (isExternal || isWorkShift) ? "none" : "inline-block";
         deleteBtn.innerText = isBlock ? "Usuń blokadę 🗑️" : "Usuń wizytę 🗑️";
     }
-    if (editBtn) editBtn.style.display = (isBlock || isExternal || isWorkShift) ? "none" : "inline-block";
+    if (editBtn) {
+        editBtn.style.display = (isExternal || isWorkShift) ? "none" : "inline-block";
+        editBtn.innerText = isBlock ? "Edytuj blokadę" : "Edytuj wizytę";
+    }
     document.getElementById("appointmentDetailsModal").style.display = "flex";
 }
 
@@ -873,6 +922,39 @@ function openBlockTimeModal() {
 
 }
 
+function crmLocalBlockParts(value) {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return {date:"", time:""};
+    const pad = number => String(number).padStart(2, "0");
+    return {
+        date: date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()),
+        time: pad(date.getHours()) + ":" + pad(date.getMinutes())
+    };
+}
+
+function openEditBlockTimeModal(block) {
+    if (!block || block.eventType !== "block") return;
+    const start = crmLocalBlockParts(block.date);
+    const end = crmLocalBlockParts(block.endDate || new Date(new Date(block.date).getTime() + Number(block.duration || 60) * 60000));
+
+    closeAppointmentModal();
+    const dateInput = document.getElementById("block-date");
+    const typeInput = document.getElementById("block-type");
+    const startInput = document.getElementById("block-start-time");
+    const endInput = document.getElementById("block-end-time");
+    const titleInput = document.getElementById("block-title");
+    const submitBtn = document.getElementById("blockTimeSubmitBtn");
+
+    if (dateInput) dateInput.value = start.date;
+    if (typeInput) typeInput.value = "hours";
+    if (startInput) startInput.value = start.time;
+    if (endInput) endInput.value = end.time;
+    if (titleInput) titleInput.value = block.name || "Zablokowane";
+    if (submitBtn) submitBtn.innerText = "Zapisz blokadę";
+    toggleBlockTimeFields();
+    document.getElementById("blockTimeModal").style.display = "flex";
+}
+
 /* ----- VIS.19. closeBlockTimeModal (oryginalna linia 2082) ----- */
 function closeBlockTimeModal() {
 
@@ -1019,7 +1101,13 @@ async function submitBlockTime() {
                     body:
                     JSON.stringify({
                         action:
-                        "blockTime",
+                        currentEditingAppointment && currentEditingAppointment.eventType === "block"
+                            ? "updateBlockTime"
+                            : "blockTime",
+                        eventId:
+                        currentEditingAppointment && currentEditingAppointment.eventType === "block"
+                            ? (currentEditingAppointment.eventId || "")
+                            : "",
                         blockType:
                         blockType,
                         date:
@@ -1038,10 +1126,11 @@ async function submitBlockTime() {
             await response.json();
 
         if (data.success) {
-            alert(
-                "Czas został zablokowany."
-            );
-
+            const wasEditingBlock = currentEditingAppointment && currentEditingAppointment.eventType === "block";
+            if (typeof crmToast === "function") {
+                crmToast(wasEditingBlock ? "Blokada została zaktualizowana." : "Czas został zablokowany.");
+            }
+            currentEditingAppointment = null;
             closeBlockTimeModal();
 
             await loadSettings();
@@ -1273,7 +1362,9 @@ async function crmRunLifecycleOperation(operation, initiator, deleteCalendarEven
                     if (typeof crmLightSyncCalendarData === "function") {
                         return crmLightSyncCalendarData("anulowanie-wizyty");
                     }
-                    return crmRefreshAllViews();
+                    return typeof crmRefreshAllViews === "function"
+                        ? crmRefreshAllViews()
+                        : null;
                 })
                 .catch(error => {
                     console.error("Synchronizacja po anulowaniu wizyty nie powiodła się:", error);
@@ -1438,6 +1529,7 @@ async function crmVisitTrashAction(initiator) {
 /* ----- VIS.51. crmPopulateNewVisitPanel (oryginalna linia 5754) ----- */
 function crmPopulateNewVisitPanel(app) {
     const isAppointment = app?.eventType === "appointment";
+    const isBlock = app?.eventType === "block";
     const isExternal = app?.eventType === "external";
     const date = crmParseVisitDate(app?.date);
     const duration = Math.max(0, Number(app?.duration) || 0);
@@ -1483,7 +1575,22 @@ function crmPopulateNewVisitPanel(app) {
     if (addServiceButton) addServiceButton.hidden = !isAppointment;
 
     const trashButton = document.getElementById("crmVisitTrashButton");
-    if (trashButton) trashButton.hidden = !isAppointment;
+    if (trashButton) {
+        trashButton.hidden = !(isAppointment || isBlock);
+        trashButton.title = isBlock ? "Usuń blokadę" : "Anuluj wizytę";
+        trashButton.setAttribute("aria-label", isBlock ? "Usuń blokadę" : "Anuluj wizytę");
+        trashButton.onclick = isBlock
+            ? function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                deleteBlockTimeFromAdmin();
+            }
+            : function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                crmToggleVisitTrashMenu();
+            };
+    }
     const trashMenu = document.getElementById("crmVisitTrashMenu");
     if (trashMenu) trashMenu.hidden = true;
 
@@ -1665,12 +1772,59 @@ function crmSafeVisitCategoryColor(app) {
 const crmSafeOpenAppointmentOriginal = openAppointmentDetailsModal;
 
 /* ----- VIS.61. openAppointmentDetailsModal (oryginalna linia 6446) ----- */
+function crmVisitReadableStatus(app) {
+    const raw = String(app?.crmStatus || app?.status || "").trim().toUpperCase();
+
+    if (/NO_SHOW|NIEOBEC/.test(raw)) {
+        return {key:"no-show", icon:"!", label:"KLIENT NIE PRZYSZEDŁ", info:"Klient nie przyszedł"};
+    }
+    if (/COMPLET|ZREALIZ/.test(raw)) {
+        return {key:"completed", icon:"✓", label:"ZREALIZOWANA", info:"Zrealizowana"};
+    }
+    if (/CANCEL|ANUL/.test(raw)) {
+        return {key:"cancelled", icon:"×", label:"ANULOWANA", info:"Anulowana"};
+    }
+    if (/PENDING|OCZEK/.test(raw)) {
+        return {key:"pending", icon:"⌛", label:"OCZEKUJE", info:"Oczekuje"};
+    }
+    return {key:"confirmed", icon:"●", label:"POTWIERDZONO", info:"Potwierdzono"};
+}
+
+function crmApplyReadableVisitStatus(app) {
+    if (!app || app.eventType !== "appointment") return;
+
+    const status = crmVisitReadableStatus(app);
+    const modal = document.getElementById("appointmentDetailsModal");
+    const title = document.getElementById("appointmentDetailsTitle");
+
+    if (modal) modal.dataset.crmStatus = status.key;
+    if (title) title.textContent = status.icon + " " + status.label;
+
+    const info = document.getElementById("crmInfoTabContent");
+    if (!info) return;
+
+    let row = document.getElementById("crmInfoVisitStatusRow");
+    if (!row) {
+        row = document.createElement("div");
+        row.id = "crmInfoVisitStatusRow";
+        row.innerHTML = '<span>Status</span><strong id="crmInfoVisitStatus">—</strong>';
+        info.appendChild(row);
+    }
+
+    const value = document.getElementById("crmInfoVisitStatus");
+    if (value) value.textContent = status.info;
+}
+
 openAppointmentDetailsModal = function(app) {
     const calendarTab = document.getElementById("tab-kalendarz");
     if (!calendarTab || getComputedStyle(calendarTab).display === "none") return;
     crmInstallSafeRightVisitPanel();
     crmSafeOpenAppointmentOriginal(app);
     if (typeof crmPopulateNewVisitPanel === "function") crmPopulateNewVisitPanel(app);
+
+    /* Status nakladamy jako ostatni krok, po zbudowaniu i wypelnieniu panelu. */
+    crmApplyReadableVisitStatus(app);
+
     const stripe = document.getElementById("crmServiceStripe");
     if (stripe) stripe.style.background = crmSafeVisitCategoryColor(app);
 };
@@ -1820,3 +1974,223 @@ function crmRenderDayVisitsList() {
     }, true);
 })();
 /* KONIEC: ZAMYKANIE MENU STATUSU I KOSZA */
+
+/* ==========================================================================
+   ADMIN FINAL 2026-08-07: UMOW PONOWNIE, KOSZ BLOKADY I TOASTY
+   ========================================================================== */
+
+/* Otwiera istniejacy formularz nowej wizyty z danymi poprzedniej wizyty. */
+planNextVisitFromCurrentAppointment = function() {
+    if (crmUiOperationLock || !currentEditingAppointment || currentEditingAppointment.eventType !== "appointment") return;
+
+    const sourceVisit = currentEditingAppointment;
+    const service = typeof crmFindServiceForVisit === "function"
+        ? crmFindServiceForVisit(sourceVisit)
+        : null;
+
+    const clientName = String(sourceVisit.name || "").trim();
+    const clientPhone = String(
+        sourceVisit.phone ||
+        sourceVisit.phoneNumber ||
+        sourceVisit.clientPhone ||
+        ""
+    ).trim();
+    const serviceName = String(sourceVisit.service || service?.name || "").trim();
+    const duration = Math.max(5, Number(sourceVisit.duration || service?.duration || 45));
+
+    /* Nowa wizyta nie moze odziedziczyc Event ID ani starego statusu. */
+    currentEditingAppointment = null;
+
+    if (typeof populateAppointmentDropdowns === "function") {
+        populateAppointmentDropdowns();
+    }
+
+    const title = document.getElementById("modalTitleAppointment");
+    const nameInput = document.getElementById("appointmentName");
+    const phoneInput = document.getElementById("appointmentPhone");
+    const serviceInput = document.getElementById("appointmentService");
+    const durationInput = document.getElementById("appointmentDuration");
+    const dateTimeInput = document.getElementById("appointmentDateTime");
+    const modal = document.getElementById("appointmentModal");
+
+    if (title) title.textContent = "Umów ponownie";
+    if (nameInput) {
+        nameInput.value = clientName;
+        nameInput.readOnly = true;
+        nameInput.setAttribute("aria-readonly", "true");
+        nameInput.title = "Klient przypisany do poprzedniej wizyty";
+    }
+    if (phoneInput) {
+        phoneInput.value = clientPhone;
+        phoneInput.readOnly = true;
+        phoneInput.setAttribute("aria-readonly", "true");
+        phoneInput.title = "Numer telefonu klienta z poprzedniej wizyty";
+    }
+    if (serviceInput) serviceInput.value = serviceName;
+    if (durationInput) durationInput.value = String(duration);
+    if (dateTimeInput) dateTimeInput.value = "";
+
+    closeAppointmentModal();
+
+    if (modal) modal.style.display = "flex";
+
+    /* Odswiezenie kontrolki daty co 5 minut bez kopiowania starego terminu. */
+    if (typeof crmSyncFiveMinuteControlsFromHidden === "function") {
+        window.setTimeout(crmSyncFiveMinuteControlsFromHidden, 0);
+    }
+
+    if (dateTimeInput) {
+        window.setTimeout(() => dateTimeInput.focus(), 0);
+    }
+};
+
+/* Anulowanie zachowuje jedno potwierdzenie, a sukces pokazuje tylko toast. */
+cancelAppointmentWithHistory = async function(initiator) {
+    const title = initiator === "KLIENT" ? "Anuluj przez klienta" : "Anuluj przez salon";
+    const ok = typeof crmConfirm === "function"
+        ? await crmConfirm("Czy na pewno anulować tę wizytę?", title)
+        : window.confirm("Czy na pewno anulować tę wizytę?");
+    if (!ok) return;
+
+    return crmRunLifecycleOperation(
+        "ANULOWANIE",
+        initiator || "MISTRZYNI",
+        true,
+        "Wizyta została anulowana.",
+        document.activeElement
+    );
+};
+
+/* Blokada korzysta z tego samego kosza w naglowku co wizyta klienta. */
+const crmPopulatePanelBeforeBlockTrashPosition = crmPopulateNewVisitPanel;
+crmPopulateNewVisitPanel = function(app) {
+    crmPopulatePanelBeforeBlockTrashPosition.apply(this, arguments);
+
+    const modal = document.getElementById("appointmentDetailsModal");
+    const trashButton = document.getElementById("crmVisitTrashButton");
+    const statusButton = document.getElementById("crmVisitStatusButton");
+    const isBlock = app?.eventType === "block";
+
+    if (modal) modal.classList.toggle("crm-panel-is-block", isBlock);
+
+    if (statusButton && isBlock) statusButton.hidden = true;
+
+    if (trashButton) {
+        trashButton.style.gridColumn = "4";
+        trashButton.style.gridRow = "1";
+        trashButton.style.justifySelf = "end";
+        trashButton.style.alignSelf = "center";
+    }
+};
+
+/* Usuniecie blokady: jedno potwierdzenie i informacja w rogu, bez okna OK. */
+deleteBlockTimeFromAdmin = async function() {
+    if (!currentEditingAppointment || currentEditingAppointment.eventType !== "block") {
+        if (typeof crmToast === "function") crmToast("Nie wybrano blokady czasu.", "error");
+        return;
+    }
+    if (isDeletingAppointment) return;
+
+    const confirmed = typeof crmConfirm === "function"
+        ? await crmConfirm("Usunąć wybraną blokadę czasu?", "Usuń blokadę")
+        : window.confirm("Usunąć wybraną blokadę czasu?");
+    if (!confirmed) return;
+
+    const block = currentEditingAppointment;
+    const trashButton = document.getElementById("crmVisitTrashButton");
+    isDeletingAppointment = true;
+    if (trashButton) trashButton.disabled = true;
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                action: "deleteBlockTime",
+                eventId: block.eventId || "",
+                start: block.date || "",
+                end: block.endDate || "",
+                title: block.name || ""
+            })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || "Nieznany błąd");
+
+        const eventId = String(block.eventId || "");
+        const blockDate = String(block.date || "");
+        const blockName = String(block.name || "");
+
+        appointmentsData = (appointmentsData || []).filter(item => {
+            if (eventId && String(item.eventId || "") === eventId) return false;
+            return !(!eventId && String(item.date || "") === blockDate && String(item.name || "") === blockName);
+        });
+
+        currentEditingAppointment = null;
+        closeAppointmentModal();
+
+        if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+        if (typeof renderDashboard === "function") renderDashboard();
+        if (typeof calculateFinanceReport === "function") calculateFinanceReport();
+        if (typeof crmToast === "function") crmToast("Blokada czasu została usunięta.");
+
+        Promise.resolve()
+            .then(() => typeof loadSettings === "function" ? loadSettings() : null)
+            .then(() => {
+                if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+            })
+            .catch(error => console.error("Synchronizacja po usunięciu blokady:", error));
+    } catch (error) {
+        console.error(error);
+        if (typeof crmToast === "function") {
+            crmToast("Błąd usuwania blokady czasu: " + (error.message || error), "error");
+        }
+    } finally {
+        isDeletingAppointment = false;
+        if (trashButton) trashButton.disabled = false;
+    }
+};
+
+/* KONIEC ADMIN FINAL 2026-08-07 */
+
+/* ==========================================================================
+   ADMIN FINAL 2026-08-07: BLOKADA KLIENTA W TRYBIE UMOW PONOWNIE
+   ========================================================================== */
+function crmSetRebookClientFieldsReadonly(enabled) {
+    const nameInput = document.getElementById("appointmentName");
+    const phoneInput = document.getElementById("appointmentPhone");
+
+    [nameInput, phoneInput].forEach(input => {
+        if (!input) return;
+        input.readOnly = Boolean(enabled);
+        if (enabled) {
+            input.setAttribute("aria-readonly", "true");
+            input.classList.add("crm-rebook-readonly");
+        } else {
+            input.removeAttribute("aria-readonly");
+            input.classList.remove("crm-rebook-readonly");
+            input.removeAttribute("title");
+        }
+    });
+}
+
+/* Edycja zwyklej wizyty zawsze przywraca mozliwosc edycji danych klienta. */
+const crmOpenEditAppointmentBeforeRebookLock = openEditAppointmentModal;
+openEditAppointmentModal = function() {
+    crmSetRebookClientFieldsReadonly(false);
+    return crmOpenEditAppointmentBeforeRebookLock.apply(this, arguments);
+};
+
+/* Po rzeczywistym zamknieciu formularza zdejmujemy blokade dla kolejnego
+   zwyklego uzycia przycisku Dodaj wizyte. */
+const crmCloseCreateAppointmentBeforeRebookLock = closeCreateAppointmentModal;
+closeCreateAppointmentModal = async function() {
+    const result = await crmCloseCreateAppointmentBeforeRebookLock.apply(this, arguments);
+    const modal = document.getElementById("appointmentModal");
+    if (!modal || modal.style.display === "none") {
+        crmSetRebookClientFieldsReadonly(false);
+    }
+    return result;
+};
+
+/* KONIEC: BLOKADA KLIENTA W TRYBIE UMOW PONOWNIE */
+

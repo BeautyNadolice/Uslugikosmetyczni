@@ -2104,3 +2104,200 @@ body.crm-v3-details-open .crm-day-list-panel {
 #appointmentDetailsModal .crm-final-trash-menu[hidden] {
     display: none !important;
 }
+
+/* ========================================================================== 
+   ADMIN FINAL: CENTRALNE POWIADOMIENIE O NOWEJ PROSBIE
+   ========================================================================== */
+.crm-request-notice-final.crm-request-notice-simple {
+    position: fixed !important;
+    left: 50% !important;
+    top: 42% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 100050 !important;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 18px !important;
+
+    width: min(390px, calc(100vw - 32px)) !important;
+    min-height: 118px !important;
+    padding: 24px 24px 18px !important;
+    overflow: visible !important;
+
+    border: 1px solid #e8cbd6 !important;
+    border-left: 5px solid #d83752 !important;
+    border-radius: 18px !important;
+    background: #fffafb !important;
+    box-shadow: 0 22px 58px rgba(65, 43, 54, .24) !important;
+}
+
+.crm-request-notice-simple p {
+    grid-column: 1 / -1 !important;
+    margin: 0 !important;
+    padding-right: 28px !important;
+    color: #3e353a !important;
+    font-size: 16px !important;
+    font-weight: 750 !important;
+    line-height: 1.35 !important;
+}
+
+.crm-request-notice-simple-close {
+    position: absolute !important;
+    top: 10px !important;
+    right: 12px !important;
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    color: #4d4147 !important;
+    cursor: pointer !important;
+    font-size: 22px !important;
+    line-height: 30px !important;
+}
+
+.crm-request-notice-simple-close:hover,
+.crm-request-notice-simple-close:focus-visible {
+    background: #f7e8ee !important;
+    outline: none !important;
+}
+
+.crm-request-notice-simple-ok {
+    grid-column: 2 !important;
+    justify-self: end !important;
+    min-width: 82px !important;
+    min-height: 38px !important;
+    padding: 8px 18px !important;
+}
+
+#booking-requests-panel[open] #bookingRequestsList .crm-request-is-new {
+    border: 2px solid #d83752 !important;
+    box-shadow: 0 0 0 4px rgba(216, 55, 82, .12), 0 10px 22px rgba(108, 36, 57, .12) !important;
+}
+
+@media (max-width: 820px) {
+    .crm-request-notice-final.crm-request-notice-simple {
+        left: 50% !important;
+        top: 42% !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: min(390px, calc(100vw - 24px)) !important;
+        border-radius: 18px !important;
+        transform: translate(-50%, -50%) !important;
+    }
+}
+/* KONIEC ADMIN FINAL: CENTRALNE POWIADOMIENIE O NOWEJ PROSBIE */
+
+
+/* ========================================================================== 
+   ADMIN FINAL: OZNACZENIA DNI Z OCZEKUJACA PROSBA
+   ========================================================================== */
+.crm-month-cell.has-pending-request .crm-month-day-number,
+.mini-date-cell.has-pending-request,
+.crm-week-column.has-pending-request .crm-week-day-header button,
+.crm-3day-column.has-pending-request .crm-3day-header {
+    color: #c62846 !important;
+}
+
+.crm-month-cell.has-pending-request .crm-month-day-number,
+.mini-date-cell.has-pending-request {
+    background: #fff0f3 !important;
+    border-color: #df3655 !important;
+    box-shadow: 0 0 0 2px rgba(223, 54, 85, .16) !important;
+    font-weight: 850 !important;
+}
+
+.crm-week-column.has-pending-request .crm-week-day-header,
+.crm-3day-column.has-pending-request .crm-3day-header {
+    box-shadow: inset 0 -3px 0 #df3655 !important;
+}
+
+.crm-month-cell.has-pending-request .crm-month-day-number::after,
+.mini-date-cell.has-pending-request::before {
+    content: attr(data-pending-request-count);
+    position: absolute;
+    display: grid;
+    place-items: center;
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: #d92748;
+    color: #fff;
+    font-size: 7px;
+    font-weight: 850;
+    line-height: 1;
+    box-sizing: border-box;
+}
+
+.crm-month-cell.has-pending-request .crm-month-day-number {
+    position: relative !important;
+}
+.crm-month-cell.has-pending-request .crm-month-day-number::after {
+    top: -6px;
+    right: -8px;
+}
+.mini-date-cell.has-pending-request::before {
+    top: -5px;
+    right: -5px;
+}
+
+.crm-month-cell.is-selected.has-pending-request .crm-month-day-number,
+.mini-date-cell.selected.has-pending-request {
+    background: #c96388 !important;
+    color: #fff !important;
+}
+/* KONIEC ADMIN FINAL: OZNACZENIA DNI Z OCZEKUJACA PROSBA */
+/* ==========================================================
+   STATUS WIZYTY: KLIENT NIE PRZYSZEDŁ
+   ========================================================== */
+
+#appointmentDetailsModal.crm-safe-visit-panel[data-crm-status="no-show"]
+.crm-safe-header {
+    background: #fde8e8 !important;
+    background-color: #fde8e8 !important;
+    border-color: #dc2626 !important;
+}
+
+#appointmentDetailsModal.crm-safe-visit-panel[data-crm-status="no-show"]
+#appointmentDetailsTitle {
+    color: #b91c1c !important;
+    font-weight: 800 !important;
+}
+
+#appointmentDetailsModal.crm-safe-visit-panel[data-crm-status="no-show"]
+#crmInfoVisitStatus {
+    color: #b91c1c !important;
+    font-weight: 800 !important;
+}
+/* ==========================================================
+   STATUS NIEOBECNOŚCI: WIDOCZNE PRZYCISKI
+   ========================================================== */
+
+#appointmentDetailsModal.crm-safe-visit-panel[data-crm-status="no-show"]
+#crmVisitStatusButton {
+    color: #991b1b !important;
+    background: #ffffff !important;
+    border: 1px solid #dc2626 !important;
+    opacity: 1 !important;
+}
+
+#appointmentDetailsModal.crm-safe-visit-panel[data-crm-status="no-show"]
+#crmVisitTrashButton {
+    color: #991b1b !important;
+    background: #ffffff !important;
+    border: 1px solid #dc2626 !important;
+    opacity: 1 !important;
+}
+
+#appointmentDetailsModal.crm-safe-visit-panel[data-crm-status="no-show"]
+#crmVisitTrashButton svg {
+    stroke: #991b1b !important;
+    color: #991b1b !important;
+    opacity: 1 !important;
+}

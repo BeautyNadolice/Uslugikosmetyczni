@@ -1291,22 +1291,45 @@ renderBooksyCalendar=function(){
 const crmChangeSelectedDateV8=changeSelectedDate;
 
 /* ----- CAL.65. changeSelectedDate (oryginalna linia 6241) ----- */
-changeSelectedDate=function(days){
-    if(calendarViewMode==="day"){
-        selectedCalendarDate.setDate(selectedCalendarDate.getDate()+days*CRM_THREE_DAY_COUNT);
-        miniMonthDate=new Date(selectedCalendarDate);renderMiniMonthCalendar();renderBooksyCalendar();return;
-    }
-    if(calendarViewMode==="month"){
-        displayedCalendarMonth.setDate(1);
-        displayedCalendarMonth.setMonth(displayedCalendarMonth.getMonth()+days);
-        miniMonthDate=new Date(displayedCalendarMonth);
-        renderMiniMonthCalendar();
+changeSelectedDate = function(days) {
+    const direction = Number(days) || 0;
+
+    // Duzy kalendarz dzienny porusza sie niezaleznie od mini-kalendarza.
+    if (calendarViewMode === "day") {
+        selectedCalendarDate = new Date(selectedCalendarDate);
+        selectedCalendarDate.setDate(
+            selectedCalendarDate.getDate() + direction * CRM_THREE_DAY_COUNT
+        );
+        updateCalendarRangeTitle();
         renderBooksyCalendar();
         return;
     }
-    crmChangeSelectedDateV8(days);
-};
 
+    // Duzy kalendarz tygodniowy porusza sie niezaleznie od mini-kalendarza.
+    if (calendarViewMode === "week") {
+        selectedCalendarDate = new Date(selectedCalendarDate);
+        selectedCalendarDate.setDate(
+            selectedCalendarDate.getDate() + direction * 7
+        );
+        updateCalendarRangeTitle();
+        renderBooksyCalendar();
+        return;
+    }
+
+    // Duzy kalendarz miesieczny zmienia tylko wlasny miesiac.
+    if (calendarViewMode === "month") {
+        displayedCalendarMonth = new Date(displayedCalendarMonth);
+        displayedCalendarMonth.setDate(1);
+        displayedCalendarMonth.setMonth(
+            displayedCalendarMonth.getMonth() + direction
+        );
+        updateCalendarRangeTitle();
+        renderBooksyCalendar();
+        return;
+    }
+
+    crmChangeSelectedDateV8(direction);
+};
 /* ----- CAL.66. crmUpdateCalendarRangeTitleV8 (oryginalna linia 6248) ----- */
 const crmUpdateCalendarRangeTitleV8=updateCalendarRangeTitle;
 
@@ -1526,7 +1549,8 @@ function renderWeekCalendar(grid) {
         const presentation = crmV6DayPresentation(date);
         const weekBadges = document.createElement("span");
         weekBadges.className = "crm-week-header-badges";
-        if (presentation.hasBrak) weekBadges.appendChild(crmV6Badge("BRAK", "brak"));
+        if (presentation.hasFirstShiftBrak) weekBadges.appendChild(crmV6Badge("Brak", "brak first-shift"));
+        if (presentation.hasNightShiftBrak) weekBadges.appendChild(crmV6Badge("BRAK", "brak night-shift"));
         if (presentation.holidayName) weekBadges.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
         if (presentation.isDayOff) weekBadges.appendChild(crmV6Badge("WOLNE", "off"));
         if (weekBadges.children.length) header.appendChild(weekBadges);
@@ -1618,7 +1642,15 @@ function crmRenderMonthCellEvents(cell, date, events, workShifts) {
     shift.innerHTML = "";
     workShifts.forEach(item => {
         const badge = document.createElement("span");
-        badge.textContent = String(item?.name || "BRAK").toUpperCase();
+        const exactShiftLabel = String(item?.name || "").trim();
+        badge.textContent = exactShiftLabel;
+        badge.classList.toggle("is-first-shift", exactShiftLabel === "Brak");
+        badge.classList.toggle("is-night-shift", exactShiftLabel === "BRAK");
+        /* CSS starszej warstwy wymusza uppercase dla wszystkich wpisów miesiąca.
+         * Nadpisujemy to tylko dla kodów grafiku, aby zachować znaczenie:
+         * Brak = pierwsza zmiana, BRAK = nocna zmiana.
+         */
+        badge.style.setProperty("text-transform", "none", "important");
         badge.title = "Informacyjny wpis grafiku";
         shift.appendChild(badge);
     });
@@ -2240,11 +2272,24 @@ function crmV6DayPresentation(date) {
     const items = getCalendarEventsForDate(date) || [];
     const shifts = items.filter(item => item?.eventType === "work_shift");
     const entries = items.filter(item => item?.eventType !== "work_shift");
-    const hasBrak = shifts.some(item => /^brak$/i.test(String(item?.name || item?.code || "").trim()));
+
+    /*
+     * Wielkość liter jest częścią kodu grafiku:
+     * Brak = pierwsza zmiana (dniówka)
+     * BRAK = druga zmiana (nocka)
+     * Brak obu wpisów = dzień bez oznaczenia.
+     */
+    const shiftLabels = shifts.map(item =>
+        String(item?.name || item?.code || "").trim()
+    );
+    const hasFirstShiftBrak = shiftLabels.includes("Brak");
+    const hasNightShiftBrak = shiftLabels.includes("BRAK");
+
     const hasFullDayBlock = entries.some(crmV6IsFullDayBlock);
     const hasVisitOrExternal = entries.some(item => item?.eventType !== "block");
     return {
-        hasBrak,
+        hasFirstShiftBrak,
+        hasNightShiftBrak,
         isDayOff: hasFullDayBlock && !hasVisitOrExternal,
         holidayName: crmV6HolidayName(date)
     };
@@ -2286,9 +2331,20 @@ function crmV6EnhanceMonthCells() {
 
         shift.querySelectorAll(".crm-v6-calendar-badge").forEach(node => node.remove());
         shift.querySelectorAll("span").forEach(node => {
-            if (/^brak$/i.test(String(node.textContent || "").trim())) {
+            const label = String(node.textContent || "").trim();
+            node.classList.remove(
+                "crm-v6-existing-brak",
+                "is-first-shift",
+                "is-night-shift"
+            );
+            if (label === "Brak") {
+                node.textContent = "Brak";
+                node.classList.add("crm-v6-existing-brak", "is-first-shift");
+                node.style.setProperty("text-transform", "none", "important");
+            } else if (label === "BRAK") {
                 node.textContent = "BRAK";
-                node.classList.add("crm-v6-existing-brak");
+                node.classList.add("crm-v6-existing-brak", "is-night-shift");
+                node.style.setProperty("text-transform", "none", "important");
             }
         });
         if (presentation.holidayName) {
@@ -2321,7 +2377,8 @@ function crmV6EnhanceThreeDayHeaders() {
         }
         badges.innerHTML = "";
         const presentation = crmV6DayPresentation(date);
-        if (presentation.hasBrak) badges.appendChild(crmV6Badge("BRAK", "brak"));
+        if (presentation.hasFirstShiftBrak) badges.appendChild(crmV6Badge("Brak", "brak first-shift"));
+        if (presentation.hasNightShiftBrak) badges.appendChild(crmV6Badge("BRAK", "brak night-shift"));
         if (presentation.holidayName) badges.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
         if (presentation.isDayOff) badges.appendChild(crmV6Badge("WOLNE", "off"));
     });
@@ -2393,7 +2450,8 @@ function crmV7RenderDayHeaders() {
 
         const badges = document.createElement("span");
         badges.className = "crm-v7-day-badges";
-        if (presentation.hasBrak) badges.appendChild(crmV6Badge("BRAK", "brak"));
+        if (presentation.hasFirstShiftBrak) badges.appendChild(crmV6Badge("Brak", "brak first-shift"));
+        if (presentation.hasNightShiftBrak) badges.appendChild(crmV6Badge("BRAK", "brak night-shift"));
         if (presentation.holidayName) badges.appendChild(crmV6Badge("ŚWIĘTO", "holiday", presentation.holidayName));
         if (presentation.isDayOff) badges.appendChild(crmV6Badge("WOLNE", "off"));
         header.append(label, badges);
@@ -2509,6 +2567,29 @@ let crmCalendarLightSyncPromise = null;
 let crmCalendarLightSyncQueued = false;
 let crmCalendarLightSyncSequence = 0;
 
+function crmCalendarVisibleRange() {
+    const start = new Date(selectedCalendarDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    if (calendarViewMode === "month") {
+        const visibleMonth = displayedCalendarMonth instanceof Date
+            ? displayedCalendarMonth
+            : selectedCalendarDate;
+        start.setFullYear(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+        end.setFullYear(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0);
+    } else if (calendarViewMode === "week") {
+        const monday = getMondayOfWeek(selectedCalendarDate);
+        start.setTime(monday.getTime());
+        end.setTime(monday.getTime());
+        end.setDate(end.getDate() + 6);
+    } else {
+        end.setDate(end.getDate() + Math.max(0, Number(CRM_THREE_DAY_COUNT || 3) - 1));
+    }
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+}
+
 async function crmLightSyncCalendarData(reason) {
     if (crmCalendarLightSyncPromise) {
         crmCalendarLightSyncQueued = true;
@@ -2516,15 +2597,18 @@ async function crmLightSyncCalendarData(reason) {
     }
 
     const sequence = ++crmCalendarLightSyncSequence;
-    const selectedSnapshot = new Date(selectedCalendarDate);
-    const displayedSnapshot = new Date(displayedCalendarMonth || selectedCalendarDate);
-    const miniSnapshot = new Date(miniMonthDate || displayedSnapshot);
-    const viewSnapshot = calendarViewMode;
 
     crmCalendarLightSyncPromise = (async () => {
+        const range = crmCalendarVisibleRange();
         const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+        const query = [
+            "checkBusy=true",
+            `rangeStart=${encodeURIComponent(getFormattedISOBlockDate(range.start))}`,
+            `rangeEnd=${encodeURIComponent(getFormattedISOBlockDate(range.end))}`,
+            `_crmSync=${Date.now()}`
+        ].join("&");
         const response = await fetch(
-            `${APPS_SCRIPT_URL}${separator}checkBusy=true&_crmSync=${Date.now()}`,
+            `${APPS_SCRIPT_URL}${separator}${query}`,
             { method: "GET", cache: "no-store" }
         );
 
@@ -2542,12 +2626,11 @@ async function crmLightSyncCalendarData(reason) {
 
         appointmentsData = payload.appointments;
 
-        /* Synchronizacja danych nie zmienia świadomie wybranej daty ani widoku. */
-        selectedCalendarDate = selectedSnapshot;
-        displayedCalendarMonth = displayedSnapshot;
-        miniMonthDate = miniSnapshot;
-        calendarViewMode = viewSnapshot;
-
+        /*
+         * Synchronizacja aktualizuje wyłącznie dane. Nie przywraca snapshotu
+         * widoku ani daty, ponieważ użytkownik mógł w międzyczasie wybrać
+         * Dzień, Tydzień, Miesiąc lub inny zakres.
+         */
         if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
         if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
         if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
@@ -2595,3 +2678,116 @@ document.addEventListener("visibilitychange", () => {
 
 /* KONIEC CAL.93 */
 
+
+
+
+/* ========================================================================== 
+   ADMIN FINAL: LOKALNY CACHE PROSB, WYBRANY DZIEN, OZNACZENIA I ANULOWANIA
+   ========================================================================== */
+function crmRequestDateKey(value) {
+    const text = String(value || "").trim();
+    let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+    match = text.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+    if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+    const date = new Date(text);
+    return Number.isNaN(date.getTime()) ? "" : getFormattedISOBlockDate(date);
+}
+
+function crmRequestKeys(request) {
+    return new Set([
+        crmRequestDateKey(request?.mainIso || request?.main),
+        crmRequestDateKey(request?.alternativeIso || request?.alternative)
+    ].filter(Boolean));
+}
+
+function crmPendingRequestsForDate(date) {
+    const key = getFormattedISOBlockDate(date);
+    return (Array.isArray(window.crmPendingRequestsData) ? window.crmPendingRequestsData : [])
+        .filter(request => crmRequestKeys(request).has(key));
+}
+
+function crmPendingRequestDateCounts() {
+    const counts = new Map();
+    (Array.isArray(window.crmPendingRequestsData) ? window.crmPendingRequestsData : []).forEach(request => {
+        crmRequestKeys(request).forEach(key => counts.set(key, (counts.get(key) || 0) + 1));
+    });
+    return counts;
+}
+
+function crmApplyPendingRequestDayMarkers() {
+    const counts = crmPendingRequestDateCounts();
+    document.querySelectorAll(".crm-month-cell[data-date], .crm-week-column[data-date], .mini-date-cell[data-date]").forEach(element => {
+        const count = counts.get(element.dataset.date) || 0;
+        element.classList.toggle("has-pending-request", count > 0);
+        const number = element.querySelector?.(".crm-month-day-number");
+        if (count > 0) {
+            element.dataset.pendingRequestCount = String(count);
+            if (number) number.dataset.pendingRequestCount = String(count);
+        } else {
+            delete element.dataset.pendingRequestCount;
+            if (number) delete number.dataset.pendingRequestCount;
+        }
+    });
+
+    if (calendarViewMode === "day") {
+        document.querySelectorAll(".crm-3day-column").forEach((column, index) => {
+            const date = new Date(selectedCalendarDate);
+            date.setDate(date.getDate() + index);
+            const count = counts.get(getFormattedISOBlockDate(date)) || 0;
+            column.classList.toggle("has-pending-request", count > 0);
+            if (count > 0) column.dataset.pendingRequestCount = String(count);
+            else delete column.dataset.pendingRequestCount;
+        });
+    }
+}
+
+function crmFindInsightMetricByLabel(label) {
+    return Array.from(document.querySelectorAll("#crmInsightsMetrics .crm-insight-metric, #crmInsightsMetrics > div"))
+        .find(row => String(row.querySelector("span")?.textContent || "").trim() === label) || null;
+}
+
+function crmApplyDayRequestAndCancellationMetrics() {
+    const metrics = document.getElementById("crmInsightsMetrics");
+    if (!metrics) return;
+
+    Array.from(metrics.children).forEach(row => {
+        if (String(row.querySelector("span")?.textContent || "").trim() === "Oczekujące prośby") row.remove();
+    });
+
+    const selectedKey = getFormattedISOBlockDate(selectedCalendarDate);
+    const pendingCount = crmPendingRequestsForDate(selectedCalendarDate).length;
+    const cancelledCount = Math.max(0, Number(window.crmCancelledCountsByDate?.[selectedKey]) || 0);
+    const cancelledRow = crmFindInsightMetricByLabel("Anulowane wizyty");
+
+    if (cancelledRow) {
+        const value = cancelledRow.querySelector("strong");
+        if (value) value.textContent = String(cancelledCount);
+    }
+
+    if (pendingCount > 0) {
+        const row = document.createElement("div");
+        row.className = "crm-insight-metric is-clickable crm-pending-day-metric";
+        row.innerHTML = `<i>${crmFinalV3Icon("pending")}</i><span>Oczekujące prośby</span><strong>${pendingCount}</strong>`;
+        row.onclick = () => crmFocusPendingRequests();
+        metrics.insertBefore(row, cancelledRow || null);
+    }
+
+    crmApplyPendingRequestDayMarkers();
+}
+
+const crmPendingDayRenderInsightsOriginal = crmRenderCalendarInsights;
+crmRenderCalendarInsights = function() {
+    const result = crmPendingDayRenderInsightsOriginal.apply(this, arguments);
+    crmApplyDayRequestAndCancellationMetrics();
+    requestAnimationFrame(crmApplyDayRequestAndCancellationMetrics);
+    return result;
+};
+
+const crmPendingDayRenderCalendarOriginal = renderBooksyCalendar;
+renderBooksyCalendar = function() {
+    const result = crmPendingDayRenderCalendarOriginal.apply(this, arguments);
+    requestAnimationFrame(crmApplyPendingRequestDayMarkers);
+    return result;
+};
+/* KONIEC ADMIN FINAL: LOKALNY CACHE PROSB, WYBRANY DZIEN, OZNACZENIA I ANULOWANIA */

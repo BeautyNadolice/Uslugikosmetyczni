@@ -421,6 +421,8 @@ async function loadBookingRequests(){
     const r=await crmPost({action:'getBookingRequests'});
     if(!r || r.success !== true) throw new Error(r?.error || 'Nieprawidłowa odpowiedź API');
     const rows=Array.isArray(r.requests) ? r.requests : [];
+    window.crmPendingRequestsData = rows;
+    window.crmCancelledCountsByDate = (r.cancelledByDate && typeof r.cancelledByDate === "object") ? r.cancelledByDate : {};
     window.crmPendingRequestsCountFromApi = rows.length;
     if (typeof crmV3SetPendingCount === "function") crmV3SetPendingCount(rows.length);
     if (typeof crmUpdateLeftPendingBadge === "function") crmUpdateLeftPendingBadge();
@@ -814,3 +816,145 @@ if (typeof crmShowNewRequestsDialog === "function") {
     });
 })();
 /* KONIEC ADMIN SAFE 2026-08-06 */
+
+/* ========================================================================== 
+   ADMIN FINAL: PROSTE POWIADOMIENIE I AUTOMATYCZNA LISTA PROSB
+   ========================================================================== */
+function crmOpenPendingRequestsPanel(newRequestIds = []) {
+    const panel = document.getElementById("booking-requests-panel");
+    if (panel) panel.open = true;
+
+    window.setTimeout(() => {
+        newRequestIds.forEach(requestId => {
+            const safeId = typeof CSS !== "undefined" && CSS.escape
+                ? CSS.escape(String(requestId || ""))
+                : String(requestId || "").replace(/["\\]/g, "\\$&");
+            const card = document.querySelector(`[data-request-id="${safeId}"]`);
+            if (!card) return;
+            card.classList.add("crm-request-is-new");
+            window.setTimeout(() => card.classList.remove("crm-request-is-new"), CRM_REQUEST_HIGHLIGHT_MS);
+        });
+    }, 80);
+}
+
+function crmRenderRequestNotice(requests) {
+    const rows = Array.isArray(requests) ? requests : [];
+    let box = document.getElementById("crmRequestNoticeFinal");
+
+    if (!rows.length) {
+        if (box) box.remove();
+        return;
+    }
+
+    if (!box) {
+        box = document.createElement("aside");
+        box.id = "crmRequestNoticeFinal";
+        box.className = "crm-request-notice-final crm-request-notice-simple";
+        box.setAttribute("role", "status");
+        box.setAttribute("aria-live", "polite");
+        document.body.appendChild(box);
+    }
+
+    box.className = "crm-request-notice-final crm-request-notice-simple";
+    box.innerHTML = `
+      <button type="button" class="crm-request-notice-simple-close" aria-label="Zamknij">×</button>
+      <p>Otrzymano nową prośbę.</p>
+      <button type="button" class="btn-primary crm-request-notice-simple-ok">OK</button>`;
+
+    const close = () => box.remove();
+    box.querySelector(".crm-request-notice-simple-close").onclick = close;
+    box.querySelector(".crm-request-notice-simple-ok").onclick = close;
+}
+
+if (typeof crmShowNewRequestsDialog === "function") {
+    crmShowNewRequestsDialog = function(requests) {
+        crmRenderRequestNotice(requests || []);
+    };
+}
+
+const crmRequestSimpleCheckOriginal = crmCheckNewBookingRequests;
+crmCheckNewBookingRequests = async function(options = {}) {
+    if (crmRequestNoticeBusy || document.hidden) return;
+    crmRequestNoticeBusy = true;
+    try {
+        const response = await crmPost({ action: "getBookingRequests" });
+        if (!response || response.success !== true) throw new Error(response?.error || "Błąd API");
+
+        const rows = Array.isArray(response.requests) ? response.requests : [];
+        const count = rows.length;
+        window.crmPendingRequestsData = rows;
+        window.crmCancelledCountsByDate = (response.cancelledByDate && typeof response.cancelledByDate === "object") ? response.cancelledByDate : {};
+        window.crmPendingRequestsCountFromApi = count;
+        const currentIds = new Set(rows.map(item => String(item.id || "")).filter(Boolean));
+
+        window.crmPendingRequestsCountFromApi = count;
+        if (typeof crmV3SetPendingCount === "function") crmV3SetPendingCount(count);
+
+        if (crmKnownRequestIds === null) {
+            crmKnownRequestIds = currentIds;
+            if (options.render === true) {
+                await loadBookingRequests();
+                if (count > 0) crmOpenPendingRequestsPanel([]);
+            }
+            if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+            return;
+        }
+
+        const newRows = rows.filter(item => !crmKnownRequestIds.has(String(item.id || "")));
+        crmKnownRequestIds = currentIds;
+
+        if (options.render === true || newRows.length) await loadBookingRequests();
+        if (newRows.length) {
+            const newIds = newRows.map(item => item.id);
+            crmOpenPendingRequestsPanel(newIds);
+            crmRenderRequestNotice(newRows);
+        }
+
+        if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+    } catch (error) {
+        console.error("Sprawdzanie nowych próśb:", error);
+    } finally {
+        crmRequestNoticeBusy = false;
+    }
+};
+/* KONIEC ADMIN FINAL: PROSTE POWIADOMIENIE I AUTOMATYCZNA LISTA PROSB */
+
+
+/* ========================================================================== 
+   ADMIN FINAL: JEDNO ZRODLO PROSB I AUTOMATYCZNIE OTWARTA LISTA
+   ========================================================================== */
+function crmPendingRequestsAfterApiRender() {
+    const rows = Array.isArray(window.crmPendingRequestsData) ? window.crmPendingRequestsData : [];
+    const count = rows.length;
+    window.crmPendingRequestsCountFromApi = count;
+
+    const panel = document.getElementById("booking-requests-panel");
+    if (panel && count > 0) panel.open = true;
+
+    const badge = document.getElementById("crmLeftPendingBadge");
+    if (badge) {
+        badge.textContent = String(count);
+        badge.hidden = count === 0;
+        badge.classList.toggle("has-items", count > 0);
+    }
+
+    const topCount = document.getElementById("crmPendingRequestsCount");
+    if (topCount) topCount.textContent = String(count);
+
+    if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+    if (typeof crmApplyPendingRequestDayMarkers === "function") {
+        requestAnimationFrame(crmApplyPendingRequestDayMarkers);
+    }
+}
+
+const crmPendingLoadBookingRequestsOriginal = loadBookingRequests;
+loadBookingRequests = async function() {
+    const result = await crmPendingLoadBookingRequestsOriginal.apply(this, arguments);
+    crmPendingRequestsAfterApiRender();
+    return result;
+};
+
+crmUpdateLeftPendingBadge = function() {
+    crmPendingRequestsAfterApiRender();
+};
+/* KONIEC ADMIN FINAL: JEDNO ZRODLO PROSB I AUTOMATYCZNIE OTWARTA LISTA */
