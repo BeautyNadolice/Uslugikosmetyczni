@@ -777,7 +777,7 @@ async function checkExistingClient() {
   } catch (error) {
     console.error("Błąd:", error);
     statusEl.style.color = "red";
-    statusEl.innerHTML = "Rejestracja niemożliwa. Skontaktuj się z administratorem.";
+    statusEl.innerHTML = "Nie udało się połączyć z systemem. Kliknij „Sprawdź” ponownie.";
     isClientApproved = false;
     toggleFormState(false);
   }
@@ -1481,3 +1481,241 @@ closeBookingModal = function() {
 };
 // KONIEC INDEX V5
 
+// ==========================================================
+// INDEX V6: STABILNE SPRAWDZANIE TELEFONU + LIMIT CYFR
+// ==========================================================
+function crmFetchJSONPAttemptV6(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const callbackName = "jsonp_callback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    const separator = url.includes("?") ? "&" : "?";
+    const script = document.createElement("script");
+    let settled = false;
+
+    const cleanup = () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+      try { delete window[callbackName]; } catch (ignore) { window[callbackName] = undefined; }
+    };
+
+    const finish = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cleanup();
+      handler(value);
+    };
+
+    window[callbackName] = data => finish(resolve, data);
+    script.async = true;
+    script.src = `${url}${separator}callback=${encodeURIComponent(callbackName)}&_crmts=${Date.now()}`;
+    script.onerror = () => finish(reject, new Error("JSONP_NETWORK_ERROR"));
+
+    const timer = window.setTimeout(
+      () => finish(reject, new Error("JSONP_TIMEOUT")),
+      Math.max(4000, Number(timeoutMs) || 9000)
+    );
+
+    document.body.appendChild(script);
+  });
+}
+
+fetchJSONP = async function(url) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await crmFetchJSONPAttemptV6(url, 9000);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) await new Promise(resolve => window.setTimeout(resolve, 350));
+    }
+  }
+  throw lastError || new Error("JSONP_FAILED");
+};
+
+function crmPhoneCountryV6() {
+  try {
+    return iti && typeof iti.getSelectedCountryData === "function"
+      ? (iti.getSelectedCountryData() || {})
+      : {};
+  } catch (ignore) {
+    return {};
+  }
+}
+
+function crmPhoneNationalDigitsV6() {
+  const phone = document.getElementById("clientPhone");
+  if (!phone) return "";
+
+  const country = crmPhoneCountryV6();
+  const dialCode = String(country.dialCode || "").replace(/\D/g, "");
+  const raw = String(phone.value || "").trim();
+  let digits = raw.replace(/\D/g, "");
+
+  if (raw.startsWith("+") && dialCode && digits.startsWith(dialCode)) {
+    digits = digits.slice(dialCode.length);
+  }
+  return digits;
+}
+
+function crmPhoneExpectedDigitsV6() {
+  const phone = document.getElementById("clientPhone");
+  const country = crmPhoneCountryV6();
+  const iso2 = String(country.iso2 || "pl").toLowerCase();
+
+  // Najczęściej używane kraje w tym formularzu.
+  if (["pl", "ua", "by"].includes(iso2)) return 9;
+
+  try {
+    if (window.intlTelInputUtils && typeof window.intlTelInputUtils.getExampleNumber === "function") {
+      const type = window.intlTelInputUtils.numberType &&
+                   window.intlTelInputUtils.numberType.MOBILE !== undefined
+        ? window.intlTelInputUtils.numberType.MOBILE
+        : 1;
+      const example = window.intlTelInputUtils.getExampleNumber(iso2, true, type);
+      const count = String(example || "").replace(/\D/g, "").length;
+      if (count >= 5 && count <= 15) return count;
+    }
+  } catch (ignore) {}
+
+  const placeholderCount = String(phone?.getAttribute("placeholder") || "")
+    .replace(/\D/g, "").length;
+  return placeholderCount >= 5 && placeholderCount <= 15 ? placeholderCount : 15;
+}
+
+function crmPhoneSlotsV6(current, expected) {
+  const count = Math.max(1, Number(expected) || 9);
+  const filled = Math.min(count, Math.max(0, Number(current) || 0));
+  const chars = Array.from({ length: count }, (_, i) => i < filled ? "●" : "_");
+
+  if (count === 9) {
+    return `${chars.slice(0,3).join("")} ${chars.slice(3,6).join("")} ${chars.slice(6,9).join("")}`;
+  }
+  return chars.join("");
+}
+
+function crmEnsurePhoneLengthHintV6() {
+  const phone = document.getElementById("clientPhone");
+  if (!phone) return null;
+
+  let hint = document.getElementById("crmPhoneLengthHintV6");
+  if (hint) return hint;
+
+  hint = document.createElement("div");
+  hint.id = "crmPhoneLengthHintV6";
+  hint.setAttribute("aria-live", "polite");
+  hint.style.cssText =
+    "margin-top:6px;font-size:12px;line-height:1.35;color:#777;" +
+    "display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;";
+
+  const group = phone.closest(".form-group");
+  const status = group?.querySelector("#clientStatus");
+  if (group && status) group.insertBefore(hint, status);
+  else if (group) group.appendChild(hint);
+  else phone.insertAdjacentElement("afterend", hint);
+
+  return hint;
+}
+
+function crmUpdatePhoneLengthHintV6() {
+  const hint = crmEnsurePhoneLengthHintV6();
+  if (!hint) return;
+
+  const current = crmPhoneNationalDigitsV6().length;
+  const expected = crmPhoneExpectedDigitsV6();
+  const remaining = Math.max(0, expected - current);
+  const complete = current === expected;
+
+  let message = "";
+  if (remaining === 0) message = "Numer kompletny";
+  else if (remaining === 1) message = "Pozostała 1 cyfra";
+  else if (remaining >= 2 && remaining <= 4) message = `Pozostały ${remaining} cyfry`;
+  else message = `Pozostało ${remaining} cyfr`;
+
+  hint.style.color = complete ? "#26823a" : "#777";
+  hint.innerHTML =
+    `<span>${current}/${expected} cyfr · ${message}</span>` +
+    `<span style="font-family:monospace;letter-spacing:1px;font-weight:700;">` +
+    `${crmPhoneSlotsV6(current, expected)}${complete ? " ✓" : ""}</span>`;
+}
+
+function crmLimitPhoneDigitsV6() {
+  const phone = document.getElementById("clientPhone");
+  if (!phone) return;
+
+  const expected = crmPhoneExpectedDigitsV6();
+  let digits = crmPhoneNationalDigitsV6();
+
+  if (digits.length > expected) {
+    digits = digits.slice(0, expected);
+    const country = crmPhoneCountryV6();
+    const dialCode = String(country.dialCode || "").replace(/\D/g, "");
+
+    try {
+      if (iti && dialCode && typeof iti.setNumber === "function") {
+        iti.setNumber("+" + dialCode + digits);
+      } else {
+        phone.value = digits;
+      }
+    } catch (ignore) {
+      phone.value = digits;
+    }
+  }
+
+  crmUpdatePhoneLengthHintV6();
+}
+
+function crmShowIncompletePhoneV6() {
+  const status = document.getElementById("clientStatus");
+  if (!status) return;
+
+  const current = crmPhoneNationalDigitsV6().length;
+  const expected = crmPhoneExpectedDigitsV6();
+  const remaining = Math.max(0, expected - current);
+
+  status.style.display = "block";
+  status.style.color = "#b3261e";
+  status.textContent = remaining === 1
+    ? "Brakuje jeszcze 1 cyfry numeru telefonu."
+    : `Brakuje jeszcze ${remaining} cyfr numeru telefonu.`;
+
+  isClientApproved = false;
+  if (typeof crmClearVerifiedPhoneV5 === "function") crmClearVerifiedPhoneV5();
+  toggleFormState(false);
+}
+
+const _checkExistingClientBeforeV6 = checkExistingClient;
+checkExistingClient = async function() {
+  crmLimitPhoneDigitsV6();
+
+  const current = crmPhoneNationalDigitsV6().length;
+  const expected = crmPhoneExpectedDigitsV6();
+
+  if (current !== expected) {
+    crmShowIncompletePhoneV6();
+    return;
+  }
+
+  return _checkExistingClientBeforeV6();
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  const phone = document.getElementById("clientPhone");
+  if (!phone || phone.dataset.crmPhoneLimitV6 === "1") return;
+
+  phone.dataset.crmPhoneLimitV6 = "1";
+  phone.setAttribute("inputmode", "numeric");
+  phone.setAttribute("autocomplete", "tel");
+
+  crmEnsurePhoneLengthHintV6();
+  crmUpdatePhoneLengthHintV6();
+
+  phone.addEventListener("input", crmLimitPhoneDigitsV6);
+  phone.addEventListener("paste", () => window.setTimeout(crmLimitPhoneDigitsV6, 0));
+
+  phone.addEventListener("countrychange", () => {
+    if (typeof crmClearVerifiedPhoneV5 === "function") crmClearVerifiedPhoneV5();
+    if (typeof resetBookingSessionV4 === "function") resetBookingSessionV4({ keepPhone: true });
+    crmLimitPhoneDigitsV6();
+  });
+});
+
+// KONIEC INDEX V6
