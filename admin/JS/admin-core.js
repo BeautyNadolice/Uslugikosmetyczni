@@ -2668,7 +2668,7 @@ crmRenderUnifiedInbox=function(){
         card.classList.add("crm-first-visit-inbox-card");
         const proposals=crmFirstVisitNormalizeProposalsV8(item);
         const oldMain=Array.from(card.querySelectorAll("div")).find(node=>node.textContent?.includes("Termin główny:"));
-        if(oldMain?.parentElement)oldMain.parentElement.remove();
+        if(oldMain)oldMain.remove();
         let info=card.querySelector(".crm-first-visit-inbox-info");
         if(!info){info=document.createElement("div");info.className="crm-first-visit-inbox-info";const actions=card.querySelector(".crm-inbox-actions");if(actions)card.insertBefore(info,actions);else card.appendChild(info);}
         const proposalHtml=proposals.length?proposals.map(row=>`
