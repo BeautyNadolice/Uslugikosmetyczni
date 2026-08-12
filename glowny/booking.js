@@ -22,6 +22,62 @@ const CONTACT_FORM_ENTRY_NAME = "entry.565415087";
 const CONTACT_FORM_ENTRY_PHONE = "entry.165109377";
 const CONTACT_FORM_ENTRY_QUESTION = "entry.1372241831";
 
+let contactFormAutoCloseTimer = null;
+
+function crmResetContactFormIframe() {
+  const modal = document.getElementById("contact-form-modal");
+  const iframe = modal ? modal.querySelector("iframe") : null;
+  if (!iframe) return;
+
+  // Po zamknięciu przygotowujemy świeży formularz na następne otwarcie.
+  iframe.dataset.contactFormAwaitingInitialLoad = "1";
+  iframe.src = `${CONTACT_FORM_PUBLIC_URL}?embedded=true`;
+}
+
+function crmCloseContactFormModal({ resetIframe = true } = {}) {
+  const modal = document.getElementById("contact-form-modal");
+  if (modal) modal.style.display = "none";
+
+  if (contactFormAutoCloseTimer) {
+    clearTimeout(contactFormAutoCloseTimer);
+    contactFormAutoCloseTimer = null;
+  }
+
+  if (resetIframe) {
+    // Minimalne opóźnienie: najpierw chowamy modal, potem odświeżamy iframe w tle.
+    setTimeout(crmResetContactFormIframe, 50);
+  }
+}
+
+function crmInstallContactFormAutoClose() {
+  const modal = document.getElementById("contact-form-modal");
+  const iframe = modal ? modal.querySelector("iframe") : null;
+  if (!modal || !iframe || iframe.dataset.contactFormAutoCloseInstalled === "1") return;
+
+  iframe.dataset.contactFormAutoCloseInstalled = "1";
+
+  iframe.addEventListener("load", () => {
+    const modalVisible = window.getComputedStyle(modal).display !== "none";
+    if (!modalVisible) return;
+
+    // Gdy sami ustawiamy adres formularza (np. z wypełnionym telefonem),
+    // pierwsze załadowanie NIE oznacza wysłania odpowiedzi.
+    if (iframe.dataset.contactFormAwaitingInitialLoad === "1") {
+      iframe.dataset.contactFormAwaitingInitialLoad = "0";
+      return;
+    }
+
+    // Kolejna nawigacja iframe podczas otwartego formularza to strona
+    // potwierdzenia Google po wysłaniu odpowiedzi. Pozostawiamy ją na 3 s.
+    if (contactFormAutoCloseTimer) clearTimeout(contactFormAutoCloseTimer);
+    contactFormAutoCloseTimer = setTimeout(() => {
+      crmCloseContactFormModal({ resetIframe: true });
+    }, 3000);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", crmInstallContactFormAutoClose);
+
 function openContactFormPrefilled(phone = "", name = "", question = "") {
   const modal = document.getElementById("contact-form-modal");
   const iframe = modal ? modal.querySelector("iframe") : null;
@@ -34,6 +90,9 @@ function openContactFormPrefilled(phone = "", name = "", question = "") {
   if (phone) params.set(CONTACT_FORM_ENTRY_PHONE, phone);
   if (question) params.set(CONTACT_FORM_ENTRY_QUESTION, question);
 
+  // Oznaczamy pierwsze załadowanie nowego URL jako zwykłe otwarcie formularza,
+  // a nie jako potwierdzenie wysłania.
+  iframe.dataset.contactFormAwaitingInitialLoad = "1";
   iframe.src = `${CONTACT_FORM_PUBLIC_URL}?${params.toString()}`;
 
   // Najpierw zamykamy i resetujemy modal rezerwacji,
