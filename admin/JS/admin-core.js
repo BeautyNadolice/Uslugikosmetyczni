@@ -199,8 +199,9 @@ async function initializeExtendedCRM() {
 
 /* ----- CORE.16. blok z linii 3797 (oryginalna linia 3797) ----- */
 document.addEventListener("DOMContentLoaded", function () {
+    // V12: przy starcie tylko lokalne przygotowanie UI.
+    // initializeCRMExtensions pozostaje dostępne ręcznie, ale nie obciąża startu ADMIN.
     ensureAppointmentLifecycleButtons();
-    initializeExtendedCRM().catch(error => console.error("Inicjalizacja rozszerzonego CRM:", error));
 });
 
 /* ----- CORE.17. blok z linii 3953 (oryginalna linia 3953) ----- */
@@ -209,9 +210,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (dt) dt.step = "300";
     ensureSchedulePanel();
     ensureScheduleCalendarUnderMainCalendar();
-    syncCategoryColorsAndRefresh().catch(console.error);
-    refreshSchedulePanel().catch(console.error);
-    renderWorkScheduleCalendar().catch(console.error);
+    // V12: żadnych zapytań sieciowych grafiku/kolorów przy starcie.
+    // Dane grafiku są pobierane dopiero po wejściu do Ustawień.
 });
 
 /* ----- CORE.18. crmUiOperationLock (oryginalna linia 3991) ----- */
@@ -470,6 +470,8 @@ const CRM_V3_STATUS_META = {
     CONTACT: { icon: "📞", label: "WYMAGA KONTAKTU", css: "contact" },
     CANCELLED_CLIENT: { icon: "🚫", label: "ANULOWANA PRZEZ KLIENTA", css: "cancelled-client" },
     CANCELLED_SALON: { icon: "⛔", label: "ANULOWANA PRZEZ SALON", css: "cancelled-salon" },
+    NO_SHOW: { icon: "❗", label: "NIEOBECNOŚĆ", css: "no-show" },
+    IN_PROGRESS: { icon: "▶", label: "W TRAKCIE", css: "in-progress" },
     COMPLETED: { icon: "✓", label: "ZREALIZOWANA", css: "completed" }
 };
 
@@ -730,16 +732,12 @@ async function crmCheckNewBookingRequests(options = {}) {
 }
 
 function crmStartRequestNoticeWatch() {
-    if (crmRequestNoticeTimer) window.clearInterval(crmRequestNoticeTimer);
+    /* Bez pollingu: jedno sprawdzenie przy uruchomieniu. Kolejne tylko po zdarzeniach UI. */
+    if (crmRequestNoticeTimer) { window.clearInterval(crmRequestNoticeTimer); crmRequestNoticeTimer = null; }
     crmCheckNewBookingRequests({ render: true });
-    crmRequestNoticeTimer = window.setInterval(crmCheckNewBookingRequests, CRM_REQUEST_NOTICE_INTERVAL_MS);
 }
 
-document.addEventListener("DOMContentLoaded", () => setTimeout(crmStartRequestNoticeWatch, 1200));
-document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) crmCheckNewBookingRequests({ render: true });
-});
-window.addEventListener("focus", () => crmCheckNewBookingRequests({ render: true }));
+/* Event-driven: właściwe listenery skrzynki są instalowane w końcowym bloku ADMIN EVENT-DRIVEN. */
 /* KONIEC CORE.66 */
 
 
@@ -958,3 +956,2405 @@ crmUpdateLeftPendingBadge = function() {
     crmPendingRequestsAfterApiRender();
 };
 /* KONIEC ADMIN FINAL: JEDNO ZRODLO PROSB I AUTOMATYCZNIE OTWARTA LISTA */
+
+
+/* ========================================================================== 
+   ADMIN EVENT-DRIVEN: FORMULARZ KONTAKTOWY, NOWE WIZYTY I STATUS CZASOWY
+   ========================================================================== */
+const CRM_CONTACT_SEEN_KEY = "crmSeenContactRequestsV1";
+const CRM_BOOKING_REQUEST_SEEN_KEY = "crmSeenBookingRequestsV1";
+const CRM_APPOINTMENT_SEEN_KEY = "crmSeenAppointmentsV1";
+let crmEventInboxBusy = false;
+let crmEventInboxLastCheck = 0;
+let crmVisitEndTimer = null;
+window.crmContactRequestsData = window.crmContactRequestsData || [];
+
+function crmReadSeenSet(key) {
+    try { return new Set(JSON.parse(localStorage.getItem(key) || "[]").map(String)); }
+    catch (_) { return new Set(); }
+}
+function crmWriteSeenSet(key, set) {
+    try { localStorage.setItem(key, JSON.stringify(Array.from(set).slice(-2000))); } catch (_) {}
+}
+function crmNewRowsFromSeen(key, rows, getId) {
+    const hasState = localStorage.getItem(key) !== null;
+    const seen = crmReadSeenSet(key);
+    const currentIds = rows.map(getId).map(String).filter(Boolean);
+    if (!hasState) {
+        currentIds.forEach(id => seen.add(id));
+        crmWriteSeenSet(key, seen);
+        return [];
+    }
+    const fresh = rows.filter(row => {
+        const id = String(getId(row) || "");
+        return id && !seen.has(id);
+    });
+    currentIds.forEach(id => seen.add(id));
+    crmWriteSeenSet(key, seen);
+    return fresh;
+}
+
+function crmShowSimpleAdminNotice(message, actionLabel, action) {
+    let box = document.getElementById("crmRequestNoticeFinal");
+    if (!box) {
+        box = document.createElement("aside");
+        box.id = "crmRequestNoticeFinal";
+        box.className = "crm-request-notice-final crm-request-notice-simple";
+        box.setAttribute("role", "status");
+        box.setAttribute("aria-live", "polite");
+        document.body.appendChild(box);
+    }
+    box.innerHTML = `<button type="button" class="crm-request-notice-simple-close" aria-label="Zamknij">×</button><p></p><button type="button" class="btn-primary crm-request-notice-simple-ok"></button>`;
+    box.querySelector("p").textContent = message;
+    const btn = box.querySelector(".crm-request-notice-simple-ok");
+    btn.textContent = actionLabel || "OK";
+    const close = () => box.remove();
+    box.querySelector(".crm-request-notice-simple-close").onclick = close;
+    btn.onclick = () => { close(); if (typeof action === "function") action(); };
+}
+
+/* Ostateczna wersja sprawdzania próśb INDEX: bez interval i z trwałą pamięcią ID. */
+crmCheckNewBookingRequests = async function(options = {}) {
+    if (crmRequestNoticeBusy || document.hidden) return;
+    crmRequestNoticeBusy = true;
+    try {
+        /* loadBookingRequests wykonuje dokładnie jedno żądanie i od razu renderuje listę. */
+        await loadBookingRequests();
+        const rows = Array.isArray(window.crmPendingRequestsData) ? window.crmPendingRequestsData : [];
+        if (typeof crmV3SetPendingCount === "function") crmV3SetPendingCount(rows.length);
+        const fresh = crmNewRowsFromSeen(CRM_BOOKING_REQUEST_SEEN_KEY, rows, row => row.id);
+        if (fresh.length) {
+            crmOpenPendingRequestsPanel(fresh.map(row => row.id));
+            crmShowSimpleAdminNotice(
+                fresh.length === 1 ? `Nowa prośba o wizytę: ${fresh[0].client || "Klient"}` : `Nowe prośby o wizytę: ${fresh.length}`,
+                "Pokaż",
+                () => { const panel=document.getElementById("booking-requests-panel"); if(panel){panel.open=true;panel.scrollIntoView({behavior:"smooth",block:"nearest"});} }
+            );
+        }
+        if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+    } catch (error) {
+        console.error("Sprawdzanie nowych próśb:", error);
+    } finally {
+        crmRequestNoticeBusy = false;
+    }
+};
+
+function crmEnsureContactRequestsPanel() {
+    let panel = document.getElementById("contact-form-requests-panel");
+    if (!panel) {
+        panel = document.createElement("details");
+        panel.id = "contact-form-requests-panel";
+        panel.style.marginTop = "12px";
+        panel.innerHTML = `<summary style="cursor:pointer;pointer-events:auto;user-select:none;"><strong>Zapytania nowych klientów</strong> <span id="crmContactRequestsCount" style="display:none;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:#b05c75;color:#fff;font-size:11px;">0</span></summary><div id="contactFormRequestsList" style="margin-top:14px;"></div>`;
+    }
+
+    const summary = panel.querySelector("summary");
+    if (summary && summary.dataset.crmToggleBound !== "1") {
+        summary.dataset.crmToggleBound = "1";
+        summary.setAttribute("role", "button");
+        summary.setAttribute("aria-controls", "contactFormRequestsList");
+        summary.tabIndex = 0;
+        const togglePanel = (event) => {
+            if (event) event.preventDefault();
+            panel.open = !panel.open;
+            summary.setAttribute("aria-expanded", panel.open ? "true" : "false");
+
+            // Bez pollingu: po ręcznym otwarciu skrzynki pobierz aktualny stan.
+            if (panel.open && typeof crmLoadContactFormRequests === "function") {
+                crmLoadContactFormRequests({ notify: false }).catch(error => {
+                    console.error("Odświeżanie zapytań formularza:", error);
+                    const list = document.getElementById("contactFormRequestsList");
+                    if (list) list.innerHTML = '<div style="padding:10px;color:#b3261e;">Nie udało się pobrać zapytań. Sprawdź uprawnienia Google Form.</div>';
+                });
+            }
+        };
+        summary.addEventListener("click", togglePanel);
+        summary.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                togglePanel();
+            }
+        });
+        summary.setAttribute("aria-expanded", panel.open ? "true" : "false");
+    }
+
+    const sidebar = document.querySelector("#tab-kalendarz .calendar-sidebar");
+    const bookingPanel = document.getElementById("booking-requests-panel");
+    if (sidebar && panel.parentNode !== sidebar) {
+        if (bookingPanel && bookingPanel.parentNode === sidebar) bookingPanel.insertAdjacentElement("afterend", panel);
+        else sidebar.appendChild(panel);
+    }
+    return panel;
+}
+
+function crmOpenAppointmentForContact(request) {
+    if (!request) return;
+    currentEditingAppointment = null;
+    if (typeof populateAppointmentDropdowns === "function") populateAppointmentDropdowns();
+    const modal = document.getElementById("appointmentModal");
+    const title = document.getElementById("modalTitleAppointment");
+    const name = document.getElementById("appointmentName");
+    const phone = document.getElementById("appointmentPhone");
+    const service = document.getElementById("appointmentService");
+    const date = document.getElementById("appointmentDateTime");
+    if (title) title.textContent = "Nowa wizyta z zapytania";
+    if (name) { name.value = request.name || ""; name.readOnly = false; }
+    if (phone) { phone.value = request.phone || ""; phone.readOnly = false; }
+    if (service) service.value = "";
+    if (date) date.value = "";
+    if (modal) modal.style.display = "flex";
+    if (service) setTimeout(() => service.focus(), 0);
+}
+
+async function crmHandleContactRequest(request, action) {
+    if (!request?.id) return;
+    try {
+        const response = await crmPost({ action: "decideContactFormRequest", requestId: request.id, decision: action });
+        if (!response?.success) throw new Error(response?.error || "Nie udało się obsłużyć zapytania");
+        if (action === "ADD_CLIENT") {
+            if (typeof loadClients === "function") await loadClients();
+            crmToast(response.added ? "Klient został dodany do bazy." : "Klient już znajduje się w bazie.");
+            crmOpenAppointmentForContact(request);
+        } else {
+            crmToast("Zapytanie oznaczono jako obsłużone.");
+        }
+        await crmLoadContactFormRequests({ notify: false });
+    } catch (error) { crmToast(error.message || String(error), "error"); }
+}
+
+function crmRenderContactFormRequests(rows) {
+    const panel = crmEnsureContactRequestsPanel();
+    const list = document.getElementById("contactFormRequestsList");
+    const count = document.getElementById("crmContactRequestsCount");
+    const data = Array.isArray(rows) ? rows : [];
+    window.crmContactRequestsData = data;
+    if (count) {
+        count.textContent = String(data.length);
+        count.style.display = data.length > 0 ? "inline-grid" : "none";
+        count.hidden = data.length === 0;
+    }
+    if (!list) return;
+    list.innerHTML = data.length ? "" : '<div style="padding:10px;color:#777;">Brak nowych zapytań.</div>';
+    if (panel && data.length === 0) {
+        panel.open = false;
+        const summary = panel.querySelector("summary");
+        if (summary) summary.setAttribute("aria-expanded", "false");
+    }
+    data.forEach(request => {
+        const card = document.createElement("div");
+        card.className = "dashboard-card";
+        card.style.marginBottom = "10px";
+        const title = document.createElement("strong"); title.textContent = request.name || "Nowy klient";
+        const phone = document.createElement("div"); phone.textContent = request.phone || "Brak numeru telefonu"; phone.style.marginTop = "4px";
+        const question = document.createElement("div"); question.textContent = request.question || "—"; question.style.cssText = "margin-top:8px;white-space:pre-wrap;color:#555;";
+        const meta = document.createElement("small"); meta.textContent = `${request.createdAt || ""} • ${String(request.status||"NOWE").replaceAll("_"," ")}`; meta.style.cssText="display:block;margin-top:8px;";
+        const actions = document.createElement("div"); actions.style.cssText="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;";
+        const add = document.createElement("button"); add.type="button"; add.className="btn-primary"; add.textContent="Dodaj klienta i umów"; add.onclick=()=>crmHandleContactRequest(request,"ADD_CLIENT");
+        const done = document.createElement("button"); done.type="button"; done.className="btn-secondary"; done.textContent="Obsłużone"; done.onclick=()=>crmHandleContactRequest(request,"DONE");
+        actions.append(add,done); card.append(title,phone,question,meta,actions); list.appendChild(card);
+    });
+    if (panel && data.length > 0 && panel.dataset.autoOpened !== "1") { panel.dataset.autoOpened="1"; panel.open=true; }
+}
+
+async function crmLoadContactFormRequests(options = {}) {
+    const response = await crmPost({ action: "getContactFormRequests" });
+    if (!response?.success) throw new Error(response?.error || "Błąd pobierania zapytań z formularza");
+    const rows = Array.isArray(response.requests) ? response.requests : [];
+    crmRenderContactFormRequests(rows);
+    const fresh = crmNewRowsFromSeen(CRM_CONTACT_SEEN_KEY, rows, row => row.id);
+    if (options.notify !== false && fresh.length) {
+        crmShowSimpleAdminNotice(
+            fresh.length === 1 ? `Nowe zapytanie od: ${fresh[0].name || "klienta"}` : `Nowe zapytania z formularza: ${fresh.length}`,
+            "Pokaż",
+            () => { const panel=crmEnsureContactRequestsPanel();panel.open=true;panel.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+        );
+    }
+    return rows;
+}
+
+async function crmCheckEventDrivenInbox(options = {}) {
+    const now = Date.now();
+    if (crmEventInboxBusy) return;
+    if (!options.force && now - crmEventInboxLastCheck < 8000) return;
+    crmEventInboxBusy = true; crmEventInboxLastCheck = now;
+    try { await Promise.allSettled([crmCheckNewBookingRequests({render:true}), crmLoadContactFormRequests({notify:true})]); }
+    finally { crmEventInboxBusy = false; }
+}
+
+function crmAppointmentNoticeKey(item) {
+    if (!item || item.eventType !== "appointment") return "";
+    return String(item.appointmentId || item.eventId || [item.date,item.phone,item.name,item.service].join("|"));
+}
+function crmRememberAppointmentsAsSeen() {
+    const seen=crmReadSeenSet(CRM_APPOINTMENT_SEEN_KEY);
+    (appointmentsData||[]).filter(x=>x?.eventType==="appointment").forEach(x=>{const k=crmAppointmentNoticeKey(x);if(k)seen.add(k);});
+    crmWriteSeenSet(CRM_APPOINTMENT_SEEN_KEY,seen);
+}
+window.crmRememberAppointmentsAsSeen=crmRememberAppointmentsAsSeen;
+function crmDetectNewAppointments() {
+    const rows=(appointmentsData||[]).filter(x=>x?.eventType==="appointment");
+    const fresh=crmNewRowsFromSeen(CRM_APPOINTMENT_SEEN_KEY,rows,crmAppointmentNoticeKey);
+    if(!fresh.length)return;
+    const first=fresh[0];
+    crmShowSimpleAdminNotice(fresh.length===1?`Nowa wizyta: ${first.name||"Klient"}`:`Nowe wizyty: ${fresh.length}`,"Pokaż kalendarz",()=>{if(typeof switchTab==="function")switchTab("kalendarz");});
+}
+
+function crmVisitTransitionTimes(item) {
+    if(!item||item.eventType!=="appointment")return [];
+    const raw=String(item.crmStatus||item.status||"POTWIERDZONA").toUpperCase();
+    if(/ANUL|CANCEL|NIEOBEC|NO_SHOW|ODRZUC|REJECT|COMPLET|ZREALIZ/.test(raw))return [];
+    const start=new Date(item.date||"");if(Number.isNaN(start.getTime()))return [];
+    const explicit=item.endDate?new Date(item.endDate):null;
+    const end=(explicit&&!Number.isNaN(explicit.getTime()))?explicit:new Date(start.getTime()+Math.max(5,Number(item.duration)||45)*60000);
+    return [start.getTime(),end.getTime()];
+}
+function crmScheduleNextVisitEndStatusRefresh() {
+    if(crmVisitEndTimer){clearTimeout(crmVisitEndTimer);crmVisitEndTimer=null;}
+    const now=Date.now();
+    const transitions=(appointmentsData||[]).flatMap(crmVisitTransitionTimes).filter(t=>t>now).sort((a,b)=>a-b);
+    if(!transitions.length)return;
+    crmVisitEndTimer=setTimeout(()=>{crmVisitEndTimer=null;if(typeof renderBooksyCalendar==="function")renderBooksyCalendar();if(typeof renderDashboard==="function")renderDashboard();if(typeof calculateFinanceReport==="function")calculateFinanceReport();if(currentEditingAppointment&&typeof crmApplyReadableVisitStatus==="function")crmApplyReadableVisitStatus(currentEditingAppointment);crmScheduleNextVisitEndStatusRefresh();},Math.min(2147483000,Math.max(50,transitions[0]-now+120)));
+}
+window.crmScheduleNextVisitEndStatusRefresh=crmScheduleNextVisitEndStatusRefresh;
+
+if(typeof renderBooksyCalendar==="function"){
+    const crmEventRenderCalendarOriginal=renderBooksyCalendar;
+    renderBooksyCalendar=function(){const result=crmEventRenderCalendarOriginal.apply(this,arguments);crmScheduleNextVisitEndStatusRefresh();return result;};
+}
+if(typeof crmLightSyncCalendarData==="function"){
+    const crmEventLightSyncOriginal=crmLightSyncCalendarData;
+    crmLightSyncCalendarData=async function(){const result=await crmEventLightSyncOriginal.apply(this,arguments);crmDetectNewAppointments();crmScheduleNextVisitEndStatusRefresh();return result;};
+}
+if(typeof switchTab==="function"){
+    const crmEventSwitchTabOriginal=switchTab;
+    switchTab=async function(tabName){
+        const result=await crmEventSwitchTabOriginal.apply(this,arguments);
+        if(tabName==="kalendarz"){
+            crmCheckEventDrivenInbox().catch(console.error);
+            if(typeof crmLightSyncCalendarData==="function") crmLightSyncCalendarData("wejscie-kalendarz").catch(console.error);
+        }
+        return result;
+    };
+}
+
+document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{crmEnsureContactRequestsPanel();crmCheckEventDrivenInbox({force:true}).catch(console.error);crmDetectNewAppointments();crmScheduleNextVisitEndStatusRefresh();},1500));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)crmCheckEventDrivenInbox().catch(console.error);});
+window.addEventListener("focus",()=>crmCheckEventDrivenInbox().catch(console.error));
+/* KONIEC ADMIN EVENT-DRIVEN */
+
+/* ==========================================================================
+   ADMIN INBOX V1 2026-08-12
+   Jedna szybka skrzynka w Kalendarzu. Bez pollingu i bez skanowania Forms
+   podczas zwykłego otwierania.
+   ========================================================================== */
+let crmUnifiedInboxBusy = false;
+let crmUnifiedInboxItems = [];
+let crmUnifiedInboxFilter = "ALL";
+
+function crmInboxEscape(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    })[char]);
+}
+
+function crmInboxStatusLabel(state) {
+    const raw = String(state || "NOWE").toUpperCase();
+    if (raw === "PRZECZYTANE") return "PRZECZYTANE";
+    if (raw === "OBSŁUŻONE" || raw === "OBSLUZONE") return "OBSŁUŻONE";
+    return "NOWE";
+}
+
+function crmInboxStatusColor(state) {
+    const raw = crmInboxStatusLabel(state);
+    if (raw === "NOWE") return "#b3261e";
+    if (raw === "PRZECZYTANE") return "#8a6a00";
+    return "#2e7d32";
+}
+
+function crmEnsureUnifiedInboxButton() {
+    let button = document.getElementById("crmUnifiedInboxButton");
+    if (button) return button;
+
+    button = document.createElement("button");
+    button.type = "button";
+    button.id = "crmUnifiedInboxButton";
+    button.className = "btn-secondary";
+    button.style.cssText =
+        "width:100%;margin:0 0 12px;padding:11px 12px;display:flex;" +
+        "align-items:center;justify-content:space-between;gap:10px;font-weight:700;";
+    button.innerHTML =
+        '<span>📥 Skrzynka</span>' +
+        '<span id="crmUnifiedInboxBadge" style="display:none;min-width:22px;height:22px;' +
+        'padding:0 7px;border-radius:999px;background:#b3261e;color:#fff;' +
+        'align-items:center;justify-content:center;font-size:11px;">0</span>';
+    button.onclick = () => crmOpenUnifiedInbox();
+
+    const sidebar = document.querySelector("#tab-kalendarz .calendar-sidebar");
+    const bookingPanel = document.getElementById("booking-requests-panel");
+    if (sidebar) {
+        if (bookingPanel && bookingPanel.parentNode === sidebar) {
+            sidebar.insertBefore(button, bookingPanel);
+        } else {
+            sidebar.prepend(button);
+        }
+    }
+
+    return button;
+}
+
+function crmEnsureUnifiedInboxModal() {
+    let modal = document.getElementById("crmUnifiedInboxModal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "crmUnifiedInboxModal";
+    modal.style.cssText =
+        "display:none;position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.45);" +
+        "align-items:center;justify-content:center;padding:18px;";
+
+    modal.innerHTML = `
+      <section style="width:min(760px,96vw);max-height:88vh;background:#fff;border-radius:16px;
+                      box-shadow:0 18px 60px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;">
+        <header style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
+          <div style="flex:1">
+            <h2 style="margin:0;font-size:22px;">📥 Skrzynka ADMIN</h2>
+            <div id="crmUnifiedInboxSummary" style="margin-top:4px;color:#777;font-size:13px;"></div>
+          </div>
+          <button type="button" id="crmUnifiedInboxSyncForm" class="btn-secondary"
+                  title="Awaryjnie pobierz odpowiedzi bezpośrednio z Google Form">↻ Google Form</button>
+          <button type="button" id="crmUnifiedInboxRefresh" class="btn-secondary">Odśwież</button>
+          <button type="button" id="crmUnifiedInboxClose" style="border:0;background:transparent;font-size:26px;cursor:pointer;">×</button>
+        </header>
+
+        <nav style="padding:10px 20px;border-bottom:1px solid #eee;display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" data-inbox-filter="ALL" class="btn-secondary">Wszystkie</button>
+          <button type="button" data-inbox-filter="NOWE" class="btn-secondary">Nowe</button>
+          <button type="button" data-inbox-filter="PRZECZYTANE" class="btn-secondary">Przeczytane</button>
+          <button type="button" data-inbox-filter="OBSŁUŻONE" class="btn-secondary">Obsłużone</button>
+        </nav>
+
+        <div id="crmUnifiedInboxBody" style="padding:16px 20px;overflow:auto;min-height:180px;">
+          <div style="padding:20px;color:#777;">Ładowanie…</div>
+        </div>
+      </section>`;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector("#crmUnifiedInboxClose").onclick = () => { modal.style.display = "none"; };
+    modal.addEventListener("click", event => { if (event.target === modal) modal.style.display = "none"; });
+    modal.querySelector("#crmUnifiedInboxRefresh").onclick = () => crmLoadUnifiedInbox({force:true});
+    modal.querySelector("#crmUnifiedInboxSyncForm").onclick = () => crmManualSyncContactFormInbox();
+
+    modal.querySelectorAll("[data-inbox-filter]").forEach(button => {
+        button.onclick = () => {
+            crmUnifiedInboxFilter = button.dataset.inboxFilter || "ALL";
+            crmRenderUnifiedInbox();
+        };
+    });
+
+    return modal;
+}
+
+function crmUpdateUnifiedInboxBadge(counts) {
+    crmEnsureUnifiedInboxButton();
+    const badge = document.getElementById("crmUnifiedInboxBadge");
+    const fresh = Math.max(0, Number(counts?.new) || 0);
+    if (!badge) return;
+    badge.textContent = String(fresh);
+    badge.style.display = fresh > 0 ? "inline-flex" : "none";
+}
+
+function crmRenderUnifiedInbox() {
+    const body = document.getElementById("crmUnifiedInboxBody");
+    const summary = document.getElementById("crmUnifiedInboxSummary");
+    if (!body) return;
+
+    const all = Array.isArray(crmUnifiedInboxItems) ? crmUnifiedInboxItems : [];
+    const rows = crmUnifiedInboxFilter === "ALL"
+        ? all
+        : all.filter(item => crmInboxStatusLabel(item.readState) === crmUnifiedInboxFilter);
+
+    const counts = { total: all.length, new:0, read:0, handled:0 };
+    all.forEach(item => {
+        const state = crmInboxStatusLabel(item.readState);
+        if (state === "NOWE") counts.new++;
+        else if (state === "PRZECZYTANE") counts.read++;
+        else counts.handled++;
+    });
+
+    crmUpdateUnifiedInboxBadge(counts);
+    if (summary) {
+        summary.textContent =
+            `${counts.new} nowe • ${counts.read} przeczytane • ${counts.handled} obsłużone`;
+    }
+
+    if (!rows.length) {
+        body.innerHTML = '<div style="padding:22px;text-align:center;color:#777;">Brak wpisów w tym filtrze.</div>';
+        return;
+    }
+
+    body.innerHTML = "";
+
+    rows.forEach(item => {
+        const state = crmInboxStatusLabel(item.readState);
+        const card = document.createElement("article");
+        card.style.cssText =
+            "border:1px solid #e7e1e3;border-left:4px solid " + crmInboxStatusColor(state) +
+            ";border-radius:12px;padding:14px 15px;margin-bottom:10px;background:#fff;";
+
+        const kind = item.type === "CONTACT_FORM"
+            ? "Pierwsza wizyta – formularz"
+            : "Prośba o termin przez stronę";
+
+        const businessStatus = item.type === "BOOKING_REQUEST" && item.status
+            ? ` • ${crmInboxEscape(String(item.status).replaceAll("_"," "))}`
+            : "";
+
+        let extra = "";
+        if (item.type === "BOOKING_REQUEST") {
+            extra = `
+              <div style="margin-top:8px;font-size:13px;color:#555;">
+                <div><b>Termin główny:</b> ${crmInboxEscape(item.main || "—")}</div>
+                <div><b>Alternatywny:</b> ${crmInboxEscape(item.alternative || "—")}</div>
+              </div>`;
+        }
+
+        card.innerHTML = `
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;color:#777;">${crmInboxEscape(kind)} • ${crmInboxEscape(item.createdAt || "")}</div>
+              <strong style="display:block;margin-top:3px;font-size:16px;">${crmInboxEscape(item.name || "Klient")}</strong>
+              <div style="font-size:13px;color:#555;margin-top:2px;">${crmInboxEscape(item.phone || "")}</div>
+            </div>
+            <span style="background:${crmInboxStatusColor(state)};color:#fff;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800;">
+              ${crmInboxEscape(state)}
+            </span>
+          </div>
+          <div style="margin-top:9px;white-space:pre-wrap;">${crmInboxEscape(item.message || item.title || "—")}</div>
+          ${extra}
+          <div style="margin-top:8px;font-size:11px;color:#888;">${crmInboxEscape(item.status || "")}${businessStatus}</div>
+          <div class="crm-inbox-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"></div>`;
+
+        const actions = card.querySelector(".crm-inbox-actions");
+
+        if (state === "NOWE") {
+            const read = document.createElement("button");
+            read.type = "button";
+            read.className = "btn-secondary";
+            read.textContent = "Oznacz jako przeczytane";
+            read.onclick = async () => {
+                await crmMarkUnifiedInboxItemRead(item);
+            };
+            actions.appendChild(read);
+        }
+
+        if (item.type === "CONTACT_FORM" && state !== "OBSŁUŻONE") {
+            const schedule = document.createElement("button");
+            schedule.type = "button";
+            schedule.className = "btn-primary";
+            schedule.textContent = "Dodaj klienta i umów";
+            schedule.onclick = async () => {
+                await crmMarkUnifiedInboxItemRead(item, false);
+                await crmHandleContactRequest(item, "ADD_CLIENT");
+                await crmLoadUnifiedInbox({force:true});
+            };
+
+            const done = document.createElement("button");
+            done.type = "button";
+            done.className = "btn-secondary";
+            done.textContent = "Obsłużone";
+            done.onclick = async () => {
+                await crmHandleContactRequest(item, "DONE");
+                await crmLoadUnifiedInbox({force:true});
+            };
+
+            actions.append(schedule, done);
+        }
+
+        if (item.type === "BOOKING_REQUEST" && item.status === "OCZEKUJE") {
+            const open = document.createElement("button");
+            open.type = "button";
+            open.className = "btn-primary";
+            open.textContent = "Otwórz prośbę";
+            open.onclick = async () => {
+                await crmMarkUnifiedInboxItemRead(item, false);
+                modal = document.getElementById("crmUnifiedInboxModal");
+                if (modal) modal.style.display = "none";
+                const panel = document.getElementById("booking-requests-panel");
+                if (panel) panel.open = true;
+                await loadBookingRequests();
+                const cardNode = document.querySelector(`[data-request-id="${CSS.escape(String(item.id || ""))}"]`);
+                if (cardNode) cardNode.scrollIntoView({behavior:"smooth",block:"center"});
+            };
+            actions.appendChild(open);
+        }
+
+        body.appendChild(card);
+    });
+}
+
+async function crmLoadUnifiedInbox(options = {}) {
+    if (crmUnifiedInboxBusy) return;
+    crmUnifiedInboxBusy = true;
+
+    const body = document.getElementById("crmUnifiedInboxBody");
+    if (body && options.silent !== true) {
+        body.innerHTML = '<div style="padding:20px;color:#777;">Ładowanie skrzynki…</div>';
+    }
+
+    try {
+        const response = await crmPost({ action: "getAdminInbox" });
+        if (!response?.success) throw new Error(response?.error || "Nie udało się pobrać skrzynki");
+        crmUnifiedInboxItems = Array.isArray(response.items) ? response.items : [];
+        crmRenderUnifiedInbox();
+        return crmUnifiedInboxItems;
+    } catch (error) {
+        if (body) {
+            body.innerHTML =
+                `<div style="padding:14px;color:#b3261e;">
+                   ${crmInboxEscape(error.message || String(error))}
+                   <div style="margin-top:10px;"><button type="button" class="btn-secondary" id="crmInboxRetry">Spróbuj ponownie</button></div>
+                 </div>`;
+            document.getElementById("crmInboxRetry")?.addEventListener("click", () => crmLoadUnifiedInbox({force:true}));
+        }
+        throw error;
+    } finally {
+        crmUnifiedInboxBusy = false;
+    }
+}
+
+async function crmOpenUnifiedInbox() {
+    const modal = crmEnsureUnifiedInboxModal();
+    modal.style.display = "flex";
+    await crmLoadUnifiedInbox({force:true}).catch(console.error);
+}
+
+async function crmMarkUnifiedInboxItemRead(item, reload = true) {
+    if (!item?.id) return;
+    const response = await crmPost({
+        action: "markAdminInboxRead",
+        inboxType: item.type,
+        requestId: item.id
+    });
+    if (!response?.success) throw new Error(response?.error || "Nie udało się oznaczyć jako przeczytane");
+    item.readState = response.status || "PRZECZYTANE";
+    if (reload) crmRenderUnifiedInbox();
+}
+
+async function crmManualSyncContactFormInbox() {
+    const button = document.getElementById("crmUnifiedInboxSyncForm");
+    if (button) { button.disabled = true; button.textContent = "Synchronizacja…"; }
+
+    try {
+        const response = await crmPost({ action: "syncContactFormInbox" });
+        if (!response?.success) throw new Error(response?.error || "Synchronizacja nie powiodła się");
+        if (typeof crmToast === "function") {
+            crmToast(
+                response.imported > 0
+                    ? `Zaimportowano ${response.imported} odpowiedzi z Google Form.`
+                    : "Google Form jest zsynchronizowany. Brak nowych odpowiedzi."
+            );
+        }
+        await crmLoadUnifiedInbox({force:true});
+    } catch (error) {
+        if (typeof crmToast === "function") crmToast(error.message || String(error), "error");
+    } finally {
+        if (button) { button.disabled = false; button.textContent = "↻ Google Form"; }
+    }
+}
+
+/* Stary panel Google Form korzysta z szybkiego arkusza, więc nie wisi na FormApp. */
+const crmLoadContactFormRequestsBeforeInboxV1 = crmLoadContactFormRequests;
+crmLoadContactFormRequests = async function(options = {}) {
+    const response = await crmPost({ action: "getContactFormRequests" });
+    if (!response?.success) throw new Error(response?.error || "Błąd pobierania zapytań z formularza");
+    const rows = Array.isArray(response.requests) ? response.requests : [];
+    crmRenderContactFormRequests(rows);
+    return rows;
+};
+
+/* Otwarta karta nie jest odpytywana cyklicznie.
+   Licznik skrzynki odświeżamy przy uruchomieniu, focusie i wejściu do Kalendarza. */
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmEnsureUnifiedInboxButton();
+        crmEnsureUnifiedInboxModal();
+        crmLoadUnifiedInbox({silent:true}).catch(console.error);
+    }, 1700);
+});
+
+window.addEventListener("focus", () => crmLoadUnifiedInbox({silent:true}).catch(console.error));
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) crmLoadUnifiedInbox({silent:true}).catch(console.error);
+});
+
+if (typeof switchTab === "function") {
+    const crmInboxSwitchTabOriginal = switchTab;
+    switchTab = async function(tabName) {
+        const result = await crmInboxSwitchTabOriginal.apply(this, arguments);
+        if (tabName === "kalendarz") {
+            crmEnsureUnifiedInboxButton();
+            crmLoadUnifiedInbox({silent:true}).catch(console.error);
+        }
+        return result;
+    };
+}
+
+/* KONIEC ADMIN INBOX V1 */
+
+/* ==========================================================================
+   ADMIN INBOX V2 2026-08-12
+   - potwierdzenie/poprawa danych klienta przed umawianiem,
+   - brak przedwczesnego dodawania klienta,
+   - stare panele ukryte,
+   - prośby o wizytę obsługiwane bezpośrednio w Skrzynce,
+   - odświeżanie nowych wizyt przy powrocie do karty (bez pollingu).
+   ========================================================================== */
+
+window.crmPendingContactRequestForBooking = window.crmPendingContactRequestForBooking || null;
+
+function crmHideLegacyInboxPanelsV2() {
+    const bookingPanel = document.getElementById("booking-requests-panel");
+    const contactPanel = document.getElementById("contact-form-requests-panel");
+
+    if (bookingPanel) bookingPanel.style.display = "none";
+    if (contactPanel) contactPanel.style.display = "none";
+}
+
+function crmEnsureContactDataConfirmModalV2() {
+    let modal = document.getElementById("crmContactDataConfirmModalV2");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "crmContactDataConfirmModalV2";
+    modal.style.cssText =
+        "display:none;position:fixed;inset:0;z-index:100003;background:rgba(0,0,0,.46);" +
+        "align-items:center;justify-content:center;padding:18px;";
+
+    modal.innerHTML = `
+      <section style="width:min(470px,96vw);background:#fff;border-radius:16px;
+                      box-shadow:0 18px 60px rgba(0,0,0,.28);padding:22px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="flex:1">
+            <h3 style="margin:0;font-size:20px;">Sprawdź dane klienta</h3>
+            <p style="margin:7px 0 0;color:#666;font-size:13px;line-height:1.45;">
+              Czy dane są poprawne? Jeśli nie — popraw je tutaj przed utworzeniem wizyty.
+            </p>
+          </div>
+          <button type="button" data-close style="border:0;background:transparent;font-size:25px;cursor:pointer;">×</button>
+        </div>
+
+        <label style="display:block;margin-top:18px;font-weight:700;font-size:13px;">Imię i nazwisko</label>
+        <input id="crmContactConfirmNameV2" type="text"
+               style="width:100%;box-sizing:border-box;margin-top:6px;padding:11px 12px;border:1px solid #ddd;border-radius:9px;">
+
+        <label style="display:block;margin-top:14px;font-weight:700;font-size:13px;">Telefon</label>
+        <input id="crmContactConfirmPhoneV2" type="tel"
+               style="width:100%;box-sizing:border-box;margin-top:6px;padding:11px 12px;border:1px solid #ddd;border-radius:9px;">
+
+        <div id="crmContactConfirmQuestionV2"
+             style="margin-top:15px;padding:11px 12px;background:#faf7f8;border-radius:9px;color:#555;
+                    white-space:pre-wrap;font-size:13px;"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:19px;">
+          <button type="button" class="btn-secondary" data-cancel>Anuluj</button>
+          <button type="button" class="btn-primary" data-confirm>Dane poprawne — przejdź do wizyty</button>
+        </div>
+      </section>`;
+
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.style.display = "none";
+        modal._crmRequest = null;
+    };
+
+    modal.querySelector("[data-close]").onclick = close;
+    modal.querySelector("[data-cancel]").onclick = close;
+    modal.addEventListener("click", event => {
+        if (event.target === modal) close();
+    });
+
+    modal.querySelector("[data-confirm]").onclick = () => {
+        const original = modal._crmRequest;
+        if (!original) return;
+
+        const name = String(document.getElementById("crmContactConfirmNameV2")?.value || "").trim();
+        const phone = String(document.getElementById("crmContactConfirmPhoneV2")?.value || "").trim();
+
+        if (!name || !phone) {
+            if (typeof crmToast === "function") crmToast("Uzupełnij imię i numer telefonu.", "error");
+            return;
+        }
+
+        const request = Object.assign({}, original, { name, phone });
+        window.crmPendingContactRequestForBooking = request;
+
+        close();
+
+        const inbox = document.getElementById("crmUnifiedInboxModal");
+        if (inbox) inbox.style.display = "none";
+
+        // Nie dodajemy klienta i nie zamykamy zgłoszenia na tym etapie.
+        crmOpenAppointmentForContact(request);
+    };
+
+    return modal;
+}
+
+function crmConfirmContactDataV2(request) {
+    if (!request) return;
+
+    const modal = crmEnsureContactDataConfirmModalV2();
+    modal._crmRequest = request;
+
+    const name = document.getElementById("crmContactConfirmNameV2");
+    const phone = document.getElementById("crmContactConfirmPhoneV2");
+    const question = document.getElementById("crmContactConfirmQuestionV2");
+
+    if (name) name.value = request.name || "";
+    if (phone) phone.value = request.phone || "";
+    if (question) question.textContent = request.message || request.question || "Brak dodatkowej wiadomości.";
+
+    modal.style.display = "flex";
+    window.setTimeout(() => name?.focus(), 0);
+}
+
+/* Stary przycisk w ukrytym panelu także korzysta z nowego, bezpiecznego przebiegu. */
+const crmHandleContactRequestBeforeInboxV2 = crmHandleContactRequest;
+crmHandleContactRequest = async function(request, action) {
+    if (!request?.id) return;
+
+    if (action === "ADD_CLIENT") {
+        crmConfirmContactDataV2(request);
+        return;
+    }
+
+    return crmHandleContactRequestBeforeInboxV2(request, action);
+};
+
+async function crmDecideBookingRequestFromInboxV2(item, choice) {
+    if (!item?.id) return;
+
+    const label =
+        choice === "MAIN" ? item.main :
+        choice === "ALT" ? item.alternative :
+        "oba terminy";
+
+    if (choice !== "REJECT") {
+        const ok = window.confirm(`Potwierdzić termin ${label || "—"}?`);
+        if (!ok) return;
+    } else {
+        const ok = window.confirm("Odrzucić oba zaproponowane terminy?");
+        if (!ok) return;
+    }
+
+    try {
+        const response = await crmPost({
+            action: "decideBookingRequest",
+            requestId: item.id,
+            choice
+        });
+
+        if (!response?.success) {
+            throw new Error(response?.error || "Nie udało się zapisać decyzji");
+        }
+
+        item.readState = "OBSŁUŻONE";
+        item.status = choice === "REJECT" ? "ODRZUCONA" : "POTWIERDZONA";
+        crmRenderUnifiedInbox();
+
+        if (typeof crmToast === "function") {
+            crmToast(choice === "REJECT" ? "Prośba została odrzucona." : "Termin został potwierdzony.");
+        }
+
+        Promise.resolve().then(async () => {
+            if (typeof crmLightSyncCalendarData === "function") {
+                await crmLightSyncCalendarData("decyzja-skrzynka");
+            }
+            await crmLoadUnifiedInbox({ silent: true, force: true });
+        }).catch(console.error);
+
+    } catch (error) {
+        if (typeof crmToast === "function") crmToast(error.message || String(error), "error");
+    }
+}
+
+/* Nadpisujemy wyłącznie render Skrzynki, zachowując jej strukturę i filtry. */
+const crmRenderUnifiedInboxBeforeV2 = crmRenderUnifiedInbox;
+crmRenderUnifiedInbox = function() {
+    crmRenderUnifiedInboxBeforeV2();
+
+    const body = document.getElementById("crmUnifiedInboxBody");
+    if (!body) return;
+
+    // Podmień akcje kart na finalny przepływ.
+    const rows = crmUnifiedInboxFilter === "ALL"
+        ? crmUnifiedInboxItems
+        : crmUnifiedInboxItems.filter(item => crmInboxStatusLabel(item.readState) === crmUnifiedInboxFilter);
+
+    const cards = Array.from(body.querySelectorAll("article"));
+
+    cards.forEach((card, index) => {
+        const item = rows[index];
+        if (!item) return;
+
+        const actions = card.querySelector(".crm-inbox-actions");
+        if (!actions) return;
+
+        const state = crmInboxStatusLabel(item.readState);
+
+        // Zachowaj tylko przycisk "Oznacz jako przeczytane" utworzony przez V1.
+        const readButton = Array.from(actions.querySelectorAll("button"))
+            .find(btn => btn.textContent.includes("Oznacz jako przeczytane"));
+
+        actions.innerHTML = "";
+        if (readButton && state === "NOWE") actions.appendChild(readButton);
+
+        if (item.type === "CONTACT_FORM" && state !== "OBSŁUŻONE") {
+            const schedule = document.createElement("button");
+            schedule.type = "button";
+            schedule.className = "btn-primary";
+            schedule.textContent = "Dodaj klienta i umów";
+            schedule.onclick = () => crmConfirmContactDataV2(item);
+
+            const done = document.createElement("button");
+            done.type = "button";
+            done.className = "btn-secondary";
+            done.textContent = "Obsłużone";
+            done.onclick = async () => {
+                await crmHandleContactRequestBeforeInboxV2(item, "DONE");
+                await crmLoadUnifiedInbox({ silent: true, force: true }).catch(console.error);
+            };
+
+            actions.append(schedule, done);
+        }
+
+        if (item.type === "BOOKING_REQUEST" && item.status === "OCZEKUJE") {
+            const main = document.createElement("button");
+            main.type = "button";
+            main.className = "btn-primary";
+            main.textContent = "Potwierdź główny";
+            main.onclick = () => crmDecideBookingRequestFromInboxV2(item, "MAIN");
+
+            const alt = document.createElement("button");
+            alt.type = "button";
+            alt.className = "btn-secondary";
+            alt.textContent = "Potwierdź alternatywny";
+            alt.onclick = () => crmDecideBookingRequestFromInboxV2(item, "ALT");
+
+            const reject = document.createElement("button");
+            reject.type = "button";
+            reject.className = "btn-danger";
+            reject.textContent = "Odrzuć";
+            reject.onclick = () => crmDecideBookingRequestFromInboxV2(item, "REJECT");
+
+            actions.append(main, alt, reject);
+        }
+    });
+
+    crmHideLegacyInboxPanelsV2();
+};
+
+/* Powrót do ADMIN = lekka synchronizacja nowych wizyt.
+   Nie ma setInterval; działa tylko na focus/visibility. */
+let crmAppointmentsReturnSyncLastV2 = 0;
+function crmSyncAppointmentsOnReturnV2() {
+    const now = Date.now();
+    if (now - crmAppointmentsReturnSyncLastV2 < 8000) return;
+    crmAppointmentsReturnSyncLastV2 = now;
+
+    if (typeof crmLightSyncCalendarData === "function") {
+        crmLightSyncCalendarData("powrot-do-admin").catch(error => {
+            console.error("Odświeżanie wizyt po powrocie do ADMIN:", error);
+        });
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmHideLegacyInboxPanelsV2();
+        crmEnsureContactDataConfirmModalV2();
+    }, 1900);
+});
+
+window.addEventListener("focus", crmSyncAppointmentsOnReturnV2);
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) crmSyncAppointmentsOnReturnV2();
+});
+
+/* KONIEC ADMIN INBOX V2 */
+
+/* ==========================================================================
+   ADMIN INBOX V3 2026-08-12
+   JEDEN ODCZYT SKRZYNKI — bez równoległych starych zapytań.
+   ========================================================================== */
+let crmUnifiedInboxPromiseV3 = null;
+let crmUnifiedInboxLastSuccessV3 = 0;
+
+function crmSetUnifiedInboxConnectionStateV3(ok, message) {
+    const badge = document.getElementById("crmUnifiedInboxBadge");
+    const summary = document.getElementById("crmUnifiedInboxSummary");
+
+    if (ok) {
+        if (badge) {
+            badge.title = "";
+            badge.style.background = "#b3261e";
+        }
+        return;
+    }
+
+    if (badge) {
+        badge.textContent = "!";
+        badge.style.display = "inline-flex";
+        badge.style.background = "#b3261e";
+        badge.title = message || "Nie udało się odświeżyć Skrzynki";
+    }
+
+    if (summary) {
+        summary.textContent = "Nie udało się odświeżyć danych.";
+    }
+}
+
+async function crmFetchUnifiedInboxFastV3() {
+    const controller = typeof AbortController !== "undefined"
+        ? new AbortController()
+        : null;
+
+    // Osobny lekki endpoint. 15 s obejmuje również sporadyczny cold-start Apps Script.
+    const timer = controller
+        ? window.setTimeout(() => controller.abort(), 15000)
+        : null;
+
+    try {
+        const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+        const url =
+            `${APPS_SCRIPT_URL}${separator}adminInbox=true&_crmInbox=${Date.now()}`;
+
+        const response = await fetch(url, {
+            method: "GET",
+            cache: "no-store",
+            signal: controller ? controller.signal : undefined
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (!data || data.success !== true) {
+            throw new Error(data?.error || "Nieprawidłowa odpowiedź Skrzynki");
+        }
+
+        return data;
+    } catch (error) {
+        if (error?.name === "AbortError") {
+            throw new Error("Skrzynka ADMIN nie odpowiedziała. Spróbuj ponownie.");
+        }
+        throw error;
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+}
+
+/*
+ * Finalne nadpisanie loadera.
+ * Jeżeli kilka zdarzeń (focus, visibility, wejście w Kalendarz) wystąpi naraz,
+ * wszystkie czekają na TEN SAM promise zamiast wysyłać 2–4 zapytania.
+ */
+crmLoadUnifiedInbox = async function(options = {}) {
+    if (crmUnifiedInboxPromiseV3) {
+        return crmUnifiedInboxPromiseV3;
+    }
+
+    const body = document.getElementById("crmUnifiedInboxBody");
+
+    if (body && options.silent !== true) {
+        body.innerHTML =
+            '<div style="padding:20px;color:#777;">Ładowanie skrzynki…</div>';
+    }
+
+    crmUnifiedInboxPromiseV3 = (async () => {
+        try {
+            const response = await crmFetchUnifiedInboxFastV3();
+
+            crmUnifiedInboxItems =
+                Array.isArray(response.items) ? response.items : [];
+
+            crmUnifiedInboxLastSuccessV3 = Date.now();
+            crmSetUnifiedInboxConnectionStateV3(true);
+            crmRenderUnifiedInbox();
+
+            return crmUnifiedInboxItems;
+        } catch (error) {
+            const message = error?.message || String(error);
+            crmSetUnifiedInboxConnectionStateV3(false, message);
+
+            if (body && options.silent !== true) {
+                body.innerHTML =
+                    `<div style="padding:14px;color:#b3261e;">
+                       ${crmInboxEscape(message)}
+                       <div style="margin-top:10px;">
+                         <button type="button" class="btn-secondary" id="crmInboxRetryV3">
+                           Spróbuj ponownie
+                         </button>
+                       </div>
+                     </div>`;
+
+                document.getElementById("crmInboxRetryV3")
+                    ?.addEventListener("click", () =>
+                        crmLoadUnifiedInbox({ force: true }).catch(console.error)
+                    );
+            }
+
+            throw error;
+        } finally {
+            crmUnifiedInboxPromiseV3 = null;
+        }
+    })();
+
+    return crmUnifiedInboxPromiseV3;
+};
+
+/*
+ * KLUCZOWA POPRAWKA:
+ * stare listenery EVENT-DRIVEN nadal istnieją w pliku, ale od teraz
+ * wywołują wyłącznie nową Skrzynkę. Nie uruchamiają już równolegle
+ * getBookingRequests + getContactFormRequests.
+ */
+crmCheckEventDrivenInbox = async function(options = {}) {
+    return crmLoadUnifiedInbox({
+        silent: options?.notify === false || document.getElementById("crmUnifiedInboxModal")?.style.display !== "flex"
+    });
+};
+
+/* Nie używamy starego watchera próśb jako osobnego źródła danych. */
+crmStartRequestNoticeWatch = function() {
+    crmLoadUnifiedInbox({ silent: true }).catch(console.error);
+};
+
+/*
+ * Badge ma być zawsze wynikiem ostatniego poprawnego odczytu.
+ * Przy błędzie dostaje "!", więc nie pokazuje starej liczby jako aktualnej.
+ */
+const crmUpdateUnifiedInboxBadgeBeforeV3 = crmUpdateUnifiedInboxBadge;
+crmUpdateUnifiedInboxBadge = function(counts) {
+    crmUpdateUnifiedInboxBadgeBeforeV3(counts);
+    const badge = document.getElementById("crmUnifiedInboxBadge");
+    if (badge) {
+        badge.title = "";
+        badge.style.background = "#b3261e";
+    }
+};
+
+/* KONIEC ADMIN INBOX V3 */
+
+/* ==========================================================================
+   ADMIN INBOX FINAL V5 2026-08-12
+   Prawy panel + mikro-ping co 60 s tylko przy aktywnej karcie.
+   ========================================================================== */
+const CRM_INBOX_PING_INTERVAL_MS = 60000;
+const CRM_INBOX_NOTIFICATION_SEEN_KEY = "crm_admin_inbox_notification_seen_v1";
+let crmInboxPingTimerV5 = null;
+let crmInboxPingBusyV5 = false;
+
+function crmCloseUnifiedInboxPanelV5() {
+    const overlay = document.getElementById("crmUnifiedInboxModal");
+    if (overlay) overlay.hidden = true;
+}
+
+function crmCloseOtherRightContextsV5(except) {
+    if (except !== "inbox") crmCloseUnifiedInboxPanelV5();
+
+    if (except !== "day-list" && typeof crmCloseDayVisitsList === "function") {
+        crmCloseDayVisitsList();
+    }
+
+    if (except !== "visit") {
+        try {
+            const details = document.getElementById("appointmentDetailsModal");
+            if (details && getComputedStyle(details).display !== "none" && typeof closeAppointmentModal === "function") {
+                closeAppointmentModal();
+            }
+        } catch (ignore) {}
+        if (typeof crmToggleVisitStatusMenu === "function") crmToggleVisitStatusMenu(false);
+        if (typeof crmToggleVisitTrashMenu === "function") crmToggleVisitTrashMenu(false);
+    }
+}
+
+crmEnsureUnifiedInboxModal = function() {
+    let overlay = document.getElementById("crmUnifiedInboxModal");
+
+    if (overlay && overlay.dataset.crmRightInboxV5 !== "1") {
+        overlay.remove();
+        overlay = null;
+    }
+    if (overlay) return overlay;
+
+    overlay = document.createElement("div");
+    overlay.id = "crmUnifiedInboxModal";
+    overlay.dataset.crmRightInboxV5 = "1";
+    overlay.className = "crm-day-list-overlay";
+    overlay.hidden = true;
+
+    overlay.innerHTML = `
+      <section class="crm-day-list-panel" role="dialog" aria-modal="false" aria-labelledby="crmUnifiedInboxTitle">
+        <header>
+          <div style="min-width:0;flex:1;">
+            <span>WIADOMOŚCI I PROŚBY</span>
+            <h3 id="crmUnifiedInboxTitle">Skrzynka</h3>
+            <small id="crmUnifiedInboxSummary" style="display:block;margin-top:4px;color:#7b7076;font-size:11px;"></small>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button type="button" id="crmUnifiedInboxSyncForm" class="btn-secondary"
+                    style="min-height:34px;padding:6px 9px;font-size:10px;"
+                    title="Awaryjna synchronizacja formularza pierwszej wizyty">↻ Formularz</button>
+            <button type="button" id="crmUnifiedInboxRefresh" class="btn-secondary"
+                    style="min-height:34px;padding:6px 9px;font-size:10px;">Odśwież</button>
+            <button type="button" id="crmUnifiedInboxClose" class="crm-day-list-close" aria-label="Zamknij">×</button>
+          </div>
+        </header>
+
+        <div style="padding:10px 12px;border-bottom:1px solid #eee5e9;display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" data-inbox-filter="ALL" class="btn-secondary" style="font-size:10px;padding:6px 9px;">Wszystkie</button>
+          <button type="button" data-inbox-filter="NOWE" class="btn-secondary" style="font-size:10px;padding:6px 9px;">Nowe</button>
+          <button type="button" data-inbox-filter="PRZECZYTANE" class="btn-secondary" style="font-size:10px;padding:6px 9px;">Przeczytane</button>
+          <button type="button" data-inbox-filter="OBSŁUŻONE" class="btn-secondary" style="font-size:10px;padding:6px 9px;">Obsłużone (2 h)</button>
+        </div>
+
+        <div id="crmUnifiedInboxBody" class="crm-day-list-body">
+          <div style="padding:20px;color:#777;">Ładowanie…</div>
+        </div>
+      </section>`;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector("#crmUnifiedInboxClose").onclick = crmCloseUnifiedInboxPanelV5;
+    overlay.querySelector("#crmUnifiedInboxRefresh").onclick =
+        () => crmLoadUnifiedInbox({force:true}).catch(console.error);
+    overlay.querySelector("#crmUnifiedInboxSyncForm").onclick =
+        () => crmManualSyncContactFormInbox();
+
+    overlay.querySelectorAll("[data-inbox-filter]").forEach(button => {
+        button.onclick = () => {
+            crmUnifiedInboxFilter = button.dataset.inboxFilter || "ALL";
+            crmRenderUnifiedInbox();
+        };
+    });
+
+    return overlay;
+};
+
+crmOpenUnifiedInbox = async function() {
+    crmCloseOtherRightContextsV5("inbox");
+    const overlay = crmEnsureUnifiedInboxModal();
+    overlay.hidden = false;
+    await crmLoadUnifiedInbox({force:true}).catch(console.error);
+};
+
+function crmReadInboxNotificationSeenV5() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(CRM_INBOX_NOTIFICATION_SEEN_KEY) || "[]");
+        return new Set(Array.isArray(raw) ? raw.map(String) : []);
+    } catch (ignore) {
+        return new Set();
+    }
+}
+
+function crmWriteInboxNotificationSeenV5(set) {
+    try {
+        localStorage.setItem(
+            CRM_INBOX_NOTIFICATION_SEEN_KEY,
+            JSON.stringify(Array.from(set).slice(-500))
+        );
+    } catch (ignore) {}
+}
+
+async function crmFetchInboxPingV5() {
+    const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+    const url = `${APPS_SCRIPT_URL}${separator}adminInboxPing=true&_crmPing=${Date.now()}`;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? window.setTimeout(() => controller.abort(), 9000) : null;
+
+    try {
+        const response = await fetch(url, {
+            method:"GET",
+            cache:"no-store",
+            signal:controller ? controller.signal : undefined
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data?.success) throw new Error(data?.error || "Błąd licznika Skrzynki");
+        return data;
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+}
+
+async function crmRunInboxPingV5() {
+    if (crmInboxPingBusyV5 || document.hidden) return;
+    crmInboxPingBusyV5 = true;
+
+    try {
+        const data = await crmFetchInboxPingV5();
+        const items = Array.isArray(data.newItems) ? data.newItems : [];
+        const count = Math.max(0, Number(data.newCount) || 0);
+        crmUpdateUnifiedInboxBadge({new:count});
+
+        const seen = crmReadInboxNotificationSeenV5();
+        const initialized = localStorage.getItem(CRM_INBOX_NOTIFICATION_SEEN_KEY) !== null;
+
+        const fresh = items.filter(item => {
+            const key = `${item.type}:${item.id}`;
+            return key && !seen.has(key);
+        });
+
+        items.forEach(item => {
+            const key = `${item.type}:${item.id}`;
+            if (key) seen.add(key);
+        });
+        crmWriteInboxNotificationSeenV5(seen);
+
+        if (initialized && fresh.length) {
+            const first = fresh[0];
+            const title = fresh.length > 1
+                ? `Nowe wpisy w Skrzynce: ${fresh.length}`
+                : (first.type === "CONTACT_FORM" || first.requestType === "FIRST_VISIT")
+                    ? `Nowe zapytanie o pierwszą wizytę${first.name ? ": " + first.name : ""}`
+                    : `Nowa prośba o termin przez stronę${first.name ? ": " + first.name : ""}`;
+
+            if (typeof crmShowSimpleAdminNotice === "function") {
+                crmShowSimpleAdminNotice(title, "Otwórz Skrzynkę", () => crmOpenUnifiedInbox());
+            } else if (typeof crmToast === "function") {
+                crmToast(title);
+            }
+
+            const overlay = document.getElementById("crmUnifiedInboxModal");
+            if (overlay && !overlay.hidden) {
+                crmLoadUnifiedInbox({silent:true, force:true}).catch(console.error);
+            }
+        }
+    } catch (error) {
+        console.warn("Lekki ping Skrzynki:", error?.message || error);
+    } finally {
+        crmInboxPingBusyV5 = false;
+    }
+}
+
+function crmStartInboxPingV5() {
+    if (crmInboxPingTimerV5) clearInterval(crmInboxPingTimerV5);
+    window.setTimeout(() => crmRunInboxPingV5(), 6000);
+    crmInboxPingTimerV5 = window.setInterval(() => {
+        if (!document.hidden) crmRunInboxPingV5();
+    }, CRM_INBOX_PING_INTERVAL_MS);
+}
+
+if (typeof openAppointmentDetailsModal === "function") {
+    const crmInboxVisitOpenOriginalV5 = openAppointmentDetailsModal;
+    openAppointmentDetailsModal = function() {
+        crmCloseOtherRightContextsV5("visit");
+        return crmInboxVisitOpenOriginalV5.apply(this, arguments);
+    };
+}
+
+if (typeof crmOpenDayVisitsList === "function") {
+    const crmInboxDayListOpenOriginalV5 = crmOpenDayVisitsList;
+    crmOpenDayVisitsList = function() {
+        crmCloseOtherRightContextsV5("day-list");
+        return crmInboxDayListOpenOriginalV5.apply(this, arguments);
+    };
+}
+
+const crmHideLegacyInboxPanelsBeforeV5 =
+    typeof crmHideLegacyInboxPanelsV2 === "function"
+        ? crmHideLegacyInboxPanelsV2
+        : null;
+
+crmHideLegacyInboxPanelsV2 = function() {
+    if (crmHideLegacyInboxPanelsBeforeV5) crmHideLegacyInboxPanelsBeforeV5();
+    const bookingPanel = document.getElementById("booking-requests-panel");
+    const contactPanel = document.getElementById("contact-form-requests-panel");
+    if (bookingPanel) bookingPanel.style.display = "none";
+    if (contactPanel) contactPanel.style.display = "none";
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmEnsureUnifiedInboxButton();
+        crmEnsureUnifiedInboxModal();
+        crmHideLegacyInboxPanelsV2();
+        crmStartInboxPingV5();
+    }, 2100);
+});
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) crmRunInboxPingV5();
+});
+window.addEventListener("focus", () => crmRunInboxPingV5());
+
+/* KONIEC ADMIN INBOX FINAL V5 */
+
+/* ==========================================================================
+   CORE RELIABILITY V6 2026-08-12
+   Pasek stanu pod kalendarzem + szybkie odswiezanie aktywnej zakladki.
+   ========================================================================== */
+let crmActiveTabNameV6 = "kalendarz";
+let crmTabRefreshBusyV6 = false;
+let crmLastTabRefreshAtV6 = 0;
+
+function crmEnsureBackgroundStatusPanel() {
+    let panel = document.getElementById("crmBackgroundStatusPanel");
+    if (panel) return panel;
+
+    panel = document.createElement("section");
+    panel.id = "crmBackgroundStatusPanel";
+    panel.style.cssText =
+        "margin:10px 0 12px;padding:0;display:grid;gap:7px;";
+
+    panel.innerHTML = `
+      <button type="button" id="crmTaskStatusSync"
+              style="display:none;width:100%;text-align:left;border:1px solid #eadfe4;
+                     background:#fff;border-radius:10px;padding:9px 10px;color:#675f63;
+                     font-size:11px;line-height:1.35;cursor:default;"></button>
+      <button type="button" id="crmTaskStatusSave"
+              style="display:none;width:100%;text-align:left;border:1px solid #eadfe4;
+                     background:#fff;border-radius:10px;padding:9px 10px;color:#675f63;
+                     font-size:11px;line-height:1.35;cursor:pointer;"></button>`;
+
+    const sidebar = document.querySelector("#tab-kalendarz .calendar-sidebar");
+    const inboxButton = document.getElementById("crmUnifiedInboxButton");
+
+    if (sidebar) {
+        if (inboxButton && inboxButton.parentNode === sidebar) {
+            sidebar.insertBefore(panel, inboxButton);
+        } else {
+            sidebar.appendChild(panel);
+        }
+    }
+
+    return panel;
+}
+
+function crmSetBackgroundTaskStatus(task, state, text, options = {}) {
+    crmEnsureBackgroundStatusPanel();
+
+    const id = task === "save" ? "crmTaskStatusSave" : "crmTaskStatusSync";
+    const button = document.getElementById(id);
+    if (!button) return;
+
+    if (!text || state === "hidden") {
+        button.style.display = "none";
+        button.onclick = null;
+        return;
+    }
+
+    const icons = {
+        loading: "⏳",
+        retry: "↻",
+        success: "✓",
+        error: "⚠",
+        pending: "•",
+        attention: "!"
+    };
+
+    const palette = {
+        loading: ["#f7f4f5", "#d9cbd1", "#665c61"],
+        retry: ["#fff8ec", "#e7c477", "#8a6200"],
+        success: ["#f1f8f2", "#a7cfad", "#2f6f3d"],
+        error: ["#fff1f1", "#e0a4a4", "#9c2f2f"],
+        pending: ["#f7f4f5", "#d9cbd1", "#665c61"],
+        attention: ["#fff8ec", "#e7c477", "#8a6200"]
+    };
+
+    const colors = palette[state] || palette.pending;
+    button.style.display = "block";
+    button.style.background = colors[0];
+    button.style.borderColor = colors[1];
+    button.style.color = colors[2];
+    button.innerHTML = `<strong>${icons[state] || "•"} ${String(text)}</strong>`;
+
+    if (typeof options.onClick === "function") {
+        button.style.cursor = "pointer";
+        button.onclick = options.onClick;
+    } else {
+        button.style.cursor = "default";
+        button.onclick = null;
+    }
+
+    if (state === "success" && options.keep !== true) {
+        window.clearTimeout(button._crmHideTimer);
+        button._crmHideTimer = window.setTimeout(() => {
+            if (button.textContent.includes(String(text))) button.style.display = "none";
+        }, Number(options.hideAfter) || 3500);
+    }
+}
+window.crmSetBackgroundTaskStatus = crmSetBackgroundTaskStatus;
+
+function crmDetectActiveTabV6() {
+    const visible = Array.from(document.querySelectorAll(".tab-page")).find(node => {
+        const style = getComputedStyle(node);
+        return style.display !== "none";
+    });
+    return visible?.id?.replace(/^tab-/, "") || crmActiveTabNameV6 || "kalendarz";
+}
+
+async function crmRetryCalendarLightSyncV6(reason) {
+    let lastError = null;
+    const attempts = 5;
+    const delays = [0, 800, 1600, 3200, 5500];
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        if (attempt > 1) {
+            crmSetBackgroundTaskStatus(
+                "sync",
+                "retry",
+                `Kalendarz: problem z odświeżeniem · próba ${attempt}/${attempts}`
+            );
+            await new Promise(resolve => setTimeout(resolve, delays[attempt - 1]));
+        }
+
+        try {
+            const result = await crmLightSyncCalendarData(reason);
+            crmSetBackgroundTaskStatus("sync", "success", "Kalendarz aktualny");
+            return result;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    crmSetBackgroundTaskStatus(
+        "sync",
+        "error",
+        "Kalendarz: nie udało się odświeżyć. Kliknij, aby ponowić.",
+        { onClick: () => crmRetryCalendarLightSyncV6("reczne-ponowienie").catch(console.error) }
+    );
+    throw lastError || new Error("Nie udało się odświeżyć Kalendarza");
+}
+
+/* Wszystkie istniejące listenery calendar.js wołają tę nazwę dynamicznie,
+   więc od tej chwili również korzystają z retry. */
+crmScheduleCalendarLightSync = function(reason) {
+    clearTimeout(crmScheduleCalendarLightSync.timer);
+    crmScheduleCalendarLightSync.timer = setTimeout(() => {
+        crmRetryCalendarLightSyncV6(reason).catch(console.error);
+    }, 100);
+};
+crmScheduleCalendarLightSync.timer = null;
+
+async function crmRefreshTabIfChangedV6(tabName, reason) {
+    if (!window.crmSystemBootCompleteV2 || crmTabRefreshBusyV6) return;
+
+    const now = Date.now();
+    if (now - crmLastTabRefreshAtV6 < 2500) return;
+    crmLastTabRefreshAtV6 = now;
+    crmTabRefreshBusyV6 = true;
+
+    try {
+        tabName = tabName || crmDetectActiveTabV6();
+
+        /* Google Calendar może zmienić się niezależnie od arkusza,
+           więc przy powrocie do Kalendarza robimy jego lekki zakresowy sync. */
+        if (tabName === "kalendarz") {
+            await crmRetryCalendarLightSyncV6(reason || "powrot-do-kalendarza");
+            if (typeof crmCaptureRemoteStateV2 === "function") {
+                await crmCaptureRemoteStateV2();
+            }
+            return;
+        }
+
+        if (typeof crmFetchRemoteStateV2 !== "function") return;
+        const next = await crmFetchRemoteStateV2();
+        const previous = window.crmRemoteStateV2 || null;
+
+        const changed = key =>
+            !previous || String(previous[key] || "") !== String(next[key] || "");
+
+        if (tabName === "klienci" && changed("clients") && typeof crmLoadClientsPrimaryV2 === "function") {
+            await crmLoadClientsPrimaryV2();
+        } else if (
+            (tabName === "cennik" || tabName === "ustawienia") &&
+            (changed("services") || changed("calendar"))
+        ) {
+            if (changed("services") && typeof crmLoadServicesPrimaryV2 === "function") {
+                await crmLoadServicesPrimaryV2();
+            }
+            if (tabName === "ustawienia" && changed("calendar") && typeof crmLoadCalendarPrimaryV2 === "function") {
+                await crmLoadCalendarPrimaryV2();
+            }
+        } else if ((tabName === "dashboard" || tabName === "finanse") && changed("calendar")) {
+            await crmRetryCalendarLightSyncV6("zmiana-danych:" + tabName);
+        }
+
+        window.crmRemoteStateV2 = next;
+
+        if (typeof renderDashboard === "function" && tabName === "dashboard") renderDashboard();
+        if (typeof calculateFinanceReport === "function" && tabName === "finanse") calculateFinanceReport();
+    } catch (error) {
+        console.warn("Szybkie odświeżanie zakładki:", error);
+    } finally {
+        crmTabRefreshBusyV6 = false;
+    }
+}
+
+if (typeof switchTab === "function") {
+    const crmReliabilitySwitchTabOriginalV6 = switchTab;
+    switchTab = function(tabName) {
+        crmActiveTabNameV6 = tabName || "kalendarz";
+        const result = crmReliabilitySwitchTabOriginalV6.apply(this, arguments);
+        window.setTimeout(() => {
+            crmRefreshTabIfChangedV6(crmActiveTabNameV6, "wejscie:" + crmActiveTabNameV6);
+        }, 30);
+        return result;
+    };
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmEnsureBackgroundStatusPanel();
+        crmActiveTabNameV6 = crmDetectActiveTabV6();
+    }, 500);
+});
+
+window.addEventListener("focus", () => {
+    crmRefreshTabIfChangedV6(crmDetectActiveTabV6(), "focus");
+});
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        crmRefreshTabIfChangedV6(crmDetectActiveTabV6(), "powrot-do-karty");
+    }
+});
+
+/* KONIEC CORE RELIABILITY V6 */
+
+/* CORE RELIABILITY V6.1 — stare listenery nie rozbijaja kolejnosci startu. */
+if (typeof crmLightSyncCalendarData === "function") {
+    const crmReliabilityLightSyncOriginalV61 = crmLightSyncCalendarData;
+    crmLightSyncCalendarData = async function() {
+        if (window.crmBootInProgressV2) return { skippedDuringBoot:true };
+        return crmReliabilityLightSyncOriginalV61.apply(this, arguments);
+    };
+}
+
+crmCheckEventDrivenInbox = async function(options = {}) {
+    if (window.crmBootInProgressV2) return [];
+    if (typeof crmLoadUnifiedInbox === "function") {
+        return crmLoadUnifiedInbox({
+            silent: options?.notify === false ||
+                document.getElementById("crmUnifiedInboxModal")?.hidden !== false
+        });
+    }
+    return [];
+};
+/* KONIEC CORE RELIABILITY V6.1 */
+
+
+
+/* ==========================================================================
+   ADMIN FIRST VISIT V8 2026-08-12
+   Skrzynka -> propozycje na glownym Kalendarzu -> standardowy zapis wizyty.
+   ========================================================================== */
+window.crmFirstVisitSelectionModeV8 = window.crmFirstVisitSelectionModeV8 || {active:false,item:null};
+window.crmPendingFirstVisitRequestForBooking = window.crmPendingFirstVisitRequestForBooking || null;
+
+function crmFirstVisitNormalizeProposalsV8(item){
+    const proposals=Array.isArray(item?.proposals)?item.proposals:[];
+    return proposals.filter(row=>row&&/^\d{4}-\d{2}-\d{2}$/.test(String(row.date||""))).slice(0,3).map(row=>({
+        date:String(row.date),
+        times:Array.isArray(row.times)?Array.from(new Set(row.times.map(v=>String(v||"").slice(0,5)))).slice(0,2):[]
+    }));
+}
+function crmFirstVisitFormatDayV8(dateKey){
+    const date=new Date(`${dateKey}T12:00:00`);
+    if(Number.isNaN(date.getTime()))return dateKey;
+    return date.toLocaleDateString("pl-PL",{weekday:"short",day:"2-digit",month:"2-digit"});
+}
+function crmFirstVisitSetSelectionModeV8(item){
+    window.crmFirstVisitSelectionModeV8={active:Boolean(item),item:item||null};
+    window.crmPendingFirstVisitRequestForBooking=item||null;
+    document.body.classList.toggle("crm-first-visit-selection-active",Boolean(item));
+    if(typeof crmSetBackgroundTaskStatus==="function"&&item){
+        crmSetBackgroundTaskStatus("save","pending",
+            `Wybór terminu: ${item.name||"pierwsza wizyta"} — kliknij propozycję albo wolne miejsce w kalendarzu`,
+            {keep:true,onClick:()=>{const inbox=document.getElementById("crmUnifiedInboxModal");if(inbox)inbox.hidden=false;}}
+        );
+    }
+}
+function crmFirstVisitClearSelectionModeV8(){
+    window.crmFirstVisitSelectionModeV8={active:false,item:null};
+    window.crmPendingFirstVisitRequestForBooking=null;
+    document.body.classList.remove("crm-first-visit-selection-active");
+    const saveStatus=document.getElementById("crmTaskStatusSave");
+    if(saveStatus&&!window.crmAppointmentSaveJobV7)saveStatus.style.display="none";
+    if(typeof renderBooksyCalendar==="function")renderBooksyCalendar();
+    if(typeof renderMiniMonthCalendar==="function")renderMiniMonthCalendar();
+}
+window.crmFirstVisitClearSelectionModeV8=crmFirstVisitClearSelectionModeV8;
+
+function crmFirstVisitGoToDateV8(item,dateKey){
+    if(!item||!dateKey)return;
+    crmFirstVisitSetSelectionModeV8(item);
+    if(typeof switchTab==="function")switchTab("kalendarz");
+    if(typeof setCalendarView==="function")setCalendarView("day");
+    const date=new Date(`${dateKey}T12:00:00`);
+    if(!Number.isNaN(date.getTime())){
+        selectedCalendarDate=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+        miniMonthDate=new Date(selectedCalendarDate);
+    }
+    if(typeof renderMiniMonthCalendar==="function")renderMiniMonthCalendar();
+    if(typeof renderBooksyCalendar==="function")renderBooksyCalendar();
+}
+window.crmFirstVisitGoToDateV8=crmFirstVisitGoToDateV8;
+
+async function crmShowFirstVisitProposalsV8(item){
+    if(!item)return;
+    try{
+        if(crmInboxStatusLabel(item.readState)==="NOWE")await crmMarkUnifiedInboxItemRead(item,false);
+    }catch(error){console.warn("Oznaczanie pierwszej wizyty:",error);}
+    const proposals=crmFirstVisitNormalizeProposalsV8(item);
+    const firstDate=proposals[0]?.date||new Date().toISOString().slice(0,10);
+    crmFirstVisitGoToDateV8(item,firstDate);
+    const inbox=document.getElementById("crmUnifiedInboxModal");if(inbox)inbox.hidden=false;
+}
+window.crmShowFirstVisitProposalsV8=crmShowFirstVisitProposalsV8;
+
+function crmOpenFirstVisitAppointmentV8(item,isoDateTime=""){
+    if(!item)return;
+    crmFirstVisitSetSelectionModeV8(item);
+    window.crmPendingFirstVisitRequestForBooking=item;
+    window.crmPendingContactRequestForBooking=null;
+    window.crmOpeningFirstVisitAppointmentV8 = true;
+    try {
+        if(typeof openCreateModal==="function")openCreateModal();
+    } finally {
+        window.crmOpeningFirstVisitAppointmentV8 = false;
+    }
+    const set=(id,value)=>{const node=document.getElementById(id);if(node)node.value=value??"";};
+    set("appointmentName",item.name||"");
+    set("appointmentPhone",item.phone||"");
+    set("appointmentService",item.service||"");
+    set("appointmentDuration",Number(item.duration)||45);
+    if(isoDateTime)set("appointmentDateTime",isoDateTime);
+    if(typeof crmSyncFiveMinuteControlsFromHidden==="function")crmSyncFiveMinuteControlsFromHidden();
+    const title=document.getElementById("modalTitleAppointment");if(title)title.textContent="Pierwsza wizyta – zapytanie online";
+    if(typeof handleAppointmentServiceInput==="function")handleAppointmentServiceInput();
+    const inbox=document.getElementById("crmUnifiedInboxModal");if(inbox)inbox.hidden=true;
+}
+window.crmOpenFirstVisitAppointmentV8=crmOpenFirstVisitAppointmentV8;
+
+async function crmFirstVisitCloseWithoutBookingV8(item){
+    if(!item?.id)return;
+    if(!window.confirm("Oznaczyć tę prośbę jako obsłużoną bez tworzenia wizyty?"))return;
+    try{
+        const response=await crmPost({action:"decideBookingRequest",requestId:item.id,choice:"REJECT"});
+        if(!response?.success)throw new Error(response?.error||"Nie udało się zamknąć prośby");
+        item.status="ODRZUCONA";item.readState="OBSŁUŻONE";
+        if(window.crmFirstVisitSelectionModeV8?.item?.id===item.id)crmFirstVisitClearSelectionModeV8();
+        crmRenderUnifiedInbox();
+        if(typeof crmToast==="function")crmToast("Prośba została oznaczona jako obsłużona.");
+    }catch(error){if(typeof crmToast==="function")crmToast(error.message||String(error),"error");}
+}
+
+const crmRenderUnifiedInboxBeforeFirstVisitV8=crmRenderUnifiedInbox;
+crmRenderUnifiedInbox=function(){
+    crmRenderUnifiedInboxBeforeFirstVisitV8();
+    const body=document.getElementById("crmUnifiedInboxBody");if(!body)return;
+    const rows=crmUnifiedInboxFilter==="ALL"?(crmUnifiedInboxItems||[]):(crmUnifiedInboxItems||[]).filter(item=>crmInboxStatusLabel(item.readState)===crmUnifiedInboxFilter);
+    const cards=Array.from(body.querySelectorAll("article"));
+    cards.forEach((card,index)=>{
+        const item=rows[index];
+        if(!item||item.type!=="BOOKING_REQUEST"||item.requestType!=="FIRST_VISIT")return;
+        card.classList.add("crm-first-visit-inbox-card");
+        const proposals=crmFirstVisitNormalizeProposalsV8(item);
+        const oldMain=Array.from(card.querySelectorAll("div")).find(node=>node.textContent?.includes("Termin główny:"));
+        if(oldMain?.parentElement)oldMain.parentElement.remove();
+        let info=card.querySelector(".crm-first-visit-inbox-info");
+        if(!info){info=document.createElement("div");info.className="crm-first-visit-inbox-info";const actions=card.querySelector(".crm-inbox-actions");if(actions)card.insertBefore(info,actions);else card.appendChild(info);}
+        const proposalHtml=proposals.length?proposals.map(row=>`
+          <button type="button" class="crm-first-visit-date-chip" data-first-visit-date="${row.date}">
+            <b>${crmInboxEscape(crmFirstVisitFormatDayV8(row.date))}</b>
+            <span>${row.times.length?crmInboxEscape(row.times.join(" · ")):"dowolna godzina"}</span>
+          </button>`).join(""):`<span class="crm-first-visit-no-proposals">Klient nie wskazał konkretnego dnia.</span>`;
+        info.innerHTML=`
+          <div class="crm-first-visit-inbox-service"><span>Zabieg</span><strong>${crmInboxEscape(item.service||"—")}</strong><small>${Number(item.duration)||45} min</small></div>
+          ${item.email?`<div class="crm-first-visit-inbox-email"><span>E-mail</span><strong>${crmInboxEscape(item.email)}</strong></div>`:""}
+          <div class="crm-first-visit-inbox-proposals"><span>Preferencje klienta</span><div>${proposalHtml}</div></div>`;
+        info.querySelectorAll("[data-first-visit-date]").forEach(button=>button.onclick=()=>crmFirstVisitGoToDateV8(item,button.dataset.firstVisitDate));
+        const actions=card.querySelector(".crm-inbox-actions");if(!actions)return;
+        const state=crmInboxStatusLabel(item.readState);
+        const readButton=Array.from(actions.querySelectorAll("button")).find(btn=>btn.textContent.includes("Oznacz jako przeczytane"));
+        actions.innerHTML="";if(readButton&&state==="NOWE")actions.appendChild(readButton);
+        if(state!=="OBSŁUŻONE"&&item.status==="OCZEKUJE"){
+            const show=document.createElement("button");show.type="button";show.className="btn-primary";show.textContent=proposals.length?"Pokaż propozycje w kalendarzu":"Wybierz termin w kalendarzu";show.onclick=()=>crmShowFirstVisitProposalsV8(item);
+            const manual=document.createElement("button");manual.type="button";manual.className="btn-secondary";manual.textContent=proposals.length?"Wybierz inny termin":"Otwórz wybór terminu";manual.onclick=()=>{crmFirstVisitSetSelectionModeV8(item);if(typeof switchTab==="function")switchTab("kalendarz");if(typeof setCalendarView==="function")setCalendarView("day");if(typeof renderBooksyCalendar==="function")renderBooksyCalendar();};
+            const done=document.createElement("button");done.type="button";done.className="btn-secondary";done.textContent="Obsłużone bez wizyty";done.onclick=()=>crmFirstVisitCloseWithoutBookingV8(item);
+            actions.append(show,manual,done);
+        }
+    });
+    const formSync=document.getElementById("crmUnifiedInboxSyncForm");if(formSync)formSync.style.display="none";
+};
+/* KONIEC ADMIN FIRST VISIT V8 */
+
+
+
+/* Ręczne "Dodaj wizytę" nie może przypadkiem przejąć aktywnej prośby pierwszej wizyty. */
+if (typeof openCreateModal === "function") {
+    const crmOpenCreateModalBeforeFirstVisitV8 = openCreateModal;
+    openCreateModal = function() {
+        if (!window.crmOpeningFirstVisitAppointmentV8) {
+            window.crmPendingFirstVisitRequestForBooking = null;
+        }
+        return crmOpenCreateModalBeforeFirstVisitV8.apply(this, arguments);
+    };
+}
+
+/* ==========================================================================
+   ADMIN NETWORK STABILITY V9 2026-08-12
+   ========================================================================== */
+let crmUnifiedInboxRequestGenerationV9 = 0;
+let crmUnifiedInboxHardBusyV9 = false;
+
+function crmUnifiedInboxIsOpenV9() {
+    const modal = document.getElementById("crmUnifiedInboxModal");
+    return Boolean(modal && modal.hidden === false);
+}
+
+async function crmFetchUnifiedInboxAttemptV9(attempt, total) {
+    const body = document.getElementById("crmUnifiedInboxBody");
+
+    if (body) {
+        body.innerHTML =
+            `<div style="padding:20px;color:#777;">Ładowanie skrzynki · próba ${attempt}/${total}</div>`;
+    }
+
+    const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+    const url =
+        `${APPS_SCRIPT_URL}${separator}adminInbox=true&_crmInbox=${Date.now()}_${attempt}`;
+
+    const controller =
+        typeof AbortController !== "undefined" ? new AbortController() : null;
+
+    let timer = null;
+
+    try {
+        const fetchPromise = fetch(url, {
+            method:"GET",
+            cache:"no-store",
+            signal:controller ? controller.signal : undefined
+        });
+
+        const timeoutPromise = new Promise((_, reject) => {
+            timer = window.setTimeout(() => {
+                try { controller?.abort(); } catch (ignore) {}
+                reject(new Error("Skrzynka nie odpowiedziała w wyznaczonym czasie."));
+            }, 6500);
+        });
+
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+        if (!response.ok) throw new Error("HTTP " + response.status);
+
+        const data = await response.json();
+
+        if (!data || data.success !== true) {
+            throw new Error(data?.error || "Nieprawidłowa odpowiedź Skrzynki");
+        }
+
+        return data;
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+}
+
+async function crmFetchUnifiedInboxReliableV9() {
+    const total = 3;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= total; attempt += 1) {
+        try {
+            if (attempt > 1) {
+                await new Promise(resolve =>
+                    window.setTimeout(resolve, attempt === 2 ? 700 : 1400)
+                );
+            }
+            return await crmFetchUnifiedInboxAttemptV9(attempt, total);
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error("Nie udało się pobrać Skrzynki.");
+}
+
+/*
+ * Ciche eventy nie pobierają pełnej Skrzynki.
+ * Dzięki temu stare focus/visibility listenery nie tworzą kolejki.
+ */
+crmLoadUnifiedInbox = async function(options = {}) {
+    const silent = options.silent === true;
+    const force = options.force === true;
+    const modalOpen = crmUnifiedInboxIsOpenV9();
+
+    if (silent && !modalOpen) {
+        if (typeof crmRunInboxPingV5 === "function") {
+            try { await crmRunInboxPingV5(); } catch (ignore) {}
+        }
+        return Array.isArray(crmUnifiedInboxItems) ? crmUnifiedInboxItems : [];
+    }
+
+    if (crmUnifiedInboxHardBusyV9 && !force) {
+        return Array.isArray(crmUnifiedInboxItems) ? crmUnifiedInboxItems : [];
+    }
+
+    const generation = ++crmUnifiedInboxRequestGenerationV9;
+    const body = document.getElementById("crmUnifiedInboxBody");
+
+    crmUnifiedInboxHardBusyV9 = true;
+
+    try {
+        const response = await crmFetchUnifiedInboxReliableV9();
+
+        if (generation !== crmUnifiedInboxRequestGenerationV9) {
+            return Array.isArray(crmUnifiedInboxItems) ? crmUnifiedInboxItems : [];
+        }
+
+        crmUnifiedInboxItems =
+            Array.isArray(response.items) ? response.items : [];
+
+        crmUnifiedInboxLastSuccessV3 = Date.now();
+
+        if (typeof crmSetUnifiedInboxConnectionStateV3 === "function") {
+            crmSetUnifiedInboxConnectionStateV3(true);
+        }
+
+        crmRenderUnifiedInbox();
+        return crmUnifiedInboxItems;
+    } catch (error) {
+        const message = error?.message || String(error);
+
+        if (typeof crmSetUnifiedInboxConnectionStateV3 === "function") {
+            crmSetUnifiedInboxConnectionStateV3(false, message);
+        }
+
+        if (body && crmUnifiedInboxIsOpenV9()) {
+            body.innerHTML = `
+              <div style="padding:16px;color:#9b3a3a;">
+                <strong>Nie udało się pobrać zawartości Skrzynki.</strong>
+                <div style="margin-top:5px;font-size:11px;color:#766;">
+                  Licznik nowych zgłoszeń nadal działa.
+                </div>
+                <div style="margin-top:11px;">
+                  <button type="button" class="btn-secondary" id="crmInboxRetryV9">
+                    Spróbuj ponownie
+                  </button>
+                </div>
+              </div>`;
+
+            document.getElementById("crmInboxRetryV9")?.addEventListener(
+                "click",
+                () => crmLoadUnifiedInbox({force:true}).catch(console.error)
+            );
+        }
+
+        throw error;
+    } finally {
+        crmUnifiedInboxHardBusyV9 = false;
+    }
+};
+
+crmOpenUnifiedInbox = async function() {
+    crmCloseOtherRightContextsV5("inbox");
+    const overlay = crmEnsureUnifiedInboxModal();
+    overlay.hidden = false;
+
+    crmUnifiedInboxRequestGenerationV9++;
+    await crmLoadUnifiedInbox({force:true}).catch(console.error);
+};
+
+/* Focus / visibility / wejście w Kalendarz = tylko licznik. */
+crmCheckEventDrivenInbox = async function() {
+    if (window.crmBootInProgressV2) return [];
+    if (typeof crmRunInboxPingV5 === "function") {
+        try { await crmRunInboxPingV5(); } catch (ignore) {}
+    }
+    return [];
+};
+
+crmStartRequestNoticeWatch = function() {
+    if (typeof crmRunInboxPingV5 === "function") {
+        crmRunInboxPingV5().catch(console.error);
+    }
+};
+
+/* Stary niezależny focus listener synchronizacji wizyt dublował kolejne zapytanie. */
+try {
+    if (typeof crmSyncAppointmentsOnReturnV2 === "function") {
+        window.removeEventListener("focus", crmSyncAppointmentsOnReturnV2);
+    }
+} catch (ignore) {}
+
+/*
+ * Kalendarz: tylko lekki sync widocznego zakresu.
+ * adminState jest potrzebny dopiero dla innych zakładek.
+ */
+crmRefreshTabIfChangedV6 = async function(tabName, reason) {
+    if (!window.crmSystemBootCompleteV2 || crmTabRefreshBusyV6) return;
+
+    const now = Date.now();
+    if (now - crmLastTabRefreshAtV6 < 3000) return;
+
+    crmLastTabRefreshAtV6 = now;
+    crmTabRefreshBusyV6 = true;
+
+    try {
+        tabName = tabName || crmDetectActiveTabV6();
+
+        if (tabName === "kalendarz") {
+            await crmRetryCalendarLightSyncV6(reason || "powrot-do-kalendarza");
+            return;
+        }
+
+        if (typeof crmFetchRemoteStateV2 !== "function") return;
+
+        const next = await crmFetchRemoteStateV2();
+        const previous = window.crmRemoteStateV2 || null;
+        const changed = key =>
+            !previous || String(previous[key] || "") !== String(next[key] || "");
+
+        if (
+            tabName === "klienci" &&
+            changed("clients") &&
+            typeof crmLoadClientsPrimaryV2 === "function"
+        ) {
+            await crmLoadClientsPrimaryV2();
+        } else if (
+            (tabName === "cennik" || tabName === "ustawienia") &&
+            (changed("services") || changed("calendar"))
+        ) {
+            if (
+                changed("services") &&
+                typeof crmLoadServicesPrimaryV2 === "function"
+            ) {
+                await crmLoadServicesPrimaryV2();
+            }
+
+            if (
+                tabName === "ustawienia" &&
+                changed("calendar") &&
+                typeof crmLoadCalendarPrimaryV2 === "function"
+            ) {
+                await crmLoadCalendarPrimaryV2();
+            }
+        } else if (
+            (tabName === "dashboard" || tabName === "finanse") &&
+            changed("calendar")
+        ) {
+            await crmRetryCalendarLightSyncV6("zmiana-danych:" + tabName);
+        }
+
+        window.crmRemoteStateV2 = next;
+
+        if (typeof renderDashboard === "function" && tabName === "dashboard") {
+            renderDashboard();
+        }
+        if (
+            typeof calculateFinanceReport === "function" &&
+            tabName === "finanse"
+        ) {
+            calculateFinanceReport();
+        }
+    } catch (error) {
+        console.warn("Szybkie sprawdzanie zmian:", error);
+    } finally {
+        crmTabRefreshBusyV6 = false;
+    }
+};
+
+/* KONIEC ADMIN NETWORK STABILITY V9 */
+
+/* ==========================================================================
+   ADMIN INBOX TRANSPORT V10 2026-08-12
+   JSONP dla Skrzynki i pingu — bez wiszącego response.json().
+   ========================================================================== */
+
+crmFetchUnifiedInboxAttemptV9 = async function(attempt, total) {
+    const body = document.getElementById("crmUnifiedInboxBody");
+
+    if (body && crmUnifiedInboxIsOpenV9()) {
+        body.innerHTML =
+            `<div style="padding:20px;color:#777;">Ładowanie skrzynki · próba ${attempt}/${total}</div>`;
+    }
+
+    const data = await crmJsonpGetV10(
+        `${APPS_SCRIPT_URL}?adminInbox=true&_crmInbox=${Date.now()}_${attempt}`,
+        6000
+    );
+
+    if (!data || data.success !== true) {
+        throw new Error(data?.error || "Nieprawidłowa odpowiedź Skrzynki");
+    }
+
+    return data;
+};
+
+crmFetchInboxPingV5 = async function() {
+    const data = await crmJsonpGetV10(
+        `${APPS_SCRIPT_URL}?adminInboxPing=true&_crmPing=${Date.now()}`,
+        5000
+    );
+
+    if (!data || data.success !== true) {
+        throw new Error(data?.error || "Błąd licznika Skrzynki");
+    }
+
+    return data;
+};
+
+/*
+ * Po załadowaniu nowej wersji nie dziedziczymy żadnego starego,
+ * zawieszonego Promise/flag ze wcześniejszych warstw.
+ */
+crmUnifiedInboxPromiseV3 = null;
+crmUnifiedInboxHardBusyV9 = false;
+crmInboxPingBusyV5 = false;
+
+/*
+ * Ręczny klik Odśwież również zawsze rozpoczyna świeżą generację.
+ */
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        const refresh = document.getElementById("crmUnifiedInboxRefresh");
+        if (refresh) {
+            refresh.onclick = () => {
+                crmUnifiedInboxRequestGenerationV9++;
+                crmUnifiedInboxHardBusyV9 = false;
+                crmLoadUnifiedInbox({force:true}).catch(console.error);
+            };
+        }
+    }, 2300);
+});
+
+/* KONIEC ADMIN INBOX TRANSPORT V10 */
+
+/* ==========================================================================
+   ADMIN NETWORK COORDINATOR V11 2026-08-12
+   Usuwa lawinę: ping + inbox + state + legacy getBookingRequests.
+   ========================================================================== */
+let crmInboxPromiseV11=null;
+let crmInboxLastPingAtV11=0;
+let crmInboxScheduleTimerV11=null;
+const CRM_INBOX_MIN_PING_GAP_V11=30000;
+const CRM_INBOX_BACKGROUND_DELAY_V11=60000;
+
+/* Stary panel jest ukryty. Nie może już generować ciężkiego POST
+   getBookingRequests przy każdym switchTab. */
+loadBookingRequests=async function(){ return []; };
+if(typeof crmLoadContactFormRequests==="function"){
+    crmLoadContactFormRequests=async function(){ return []; };
+}
+
+crmFetchInboxPingV5=async function(){
+    const data=await crmQueuedGetV11(
+        `${APPS_SCRIPT_URL}?adminInboxPing=true&_crmPing=${Date.now()}`,
+        {key:"adminInboxPing",priority:25,timeoutMs:30000}
+    );
+    if(!data?.success) throw new Error(data?.error||"Błąd licznika Skrzynki");
+    return data;
+};
+
+crmRunInboxPingV5=async function(options={}){
+    if(document.hidden || window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) return null;
+    if(document.getElementById("crmUnifiedInboxModal")?.hidden===false) return null;
+
+    const now=Date.now();
+    if(!options.force && now-crmInboxLastPingAtV11<CRM_INBOX_MIN_PING_GAP_V11) return null;
+    crmInboxLastPingAtV11=now;
+
+    try{
+        const data=await crmFetchInboxPingV5();
+        const items=Array.isArray(data.newItems)?data.newItems:[];
+        const count=Math.max(0,Number(data.newCount)||0);
+        crmUpdateUnifiedInboxBadge({new:count});
+
+        const seen=crmReadInboxNotificationSeenV5();
+        const initialized=localStorage.getItem(CRM_INBOX_NOTIFICATION_SEEN_KEY)!==null;
+        const fresh=items.filter(item=>{
+            const key=`${item.type}:${item.id}`;
+            return key && !seen.has(key);
+        });
+        items.forEach(item=>{ const key=`${item.type}:${item.id}`; if(key) seen.add(key); });
+        crmWriteInboxNotificationSeenV5(seen);
+
+        if(initialized && fresh.length){
+            const first=fresh[0];
+            const title=fresh.length>1
+                ? `Nowe wpisy w Skrzynce: ${fresh.length}`
+                : (first.type==="CONTACT_FORM" || first.requestType==="FIRST_VISIT")
+                    ? `Nowa prośba o pierwszą wizytę${first.name?": "+first.name:""}`
+                    : `Nowa prośba o termin przez stronę${first.name?": "+first.name:""}`;
+            if(typeof crmShowSimpleAdminNotice==="function"){
+                crmShowSimpleAdminNotice(title,"Otwórz Skrzynkę",()=>crmOpenUnifiedInbox());
+            }else if(typeof crmToast==="function") crmToast(title);
+        }
+        return data;
+    }catch(error){
+        console.warn("Lekki ping Skrzynki:",error?.message||error);
+        return null;
+    }
+};
+
+/* Jeden samoplanujący ping. Nie setInterval i nigdy nie nakłada się na siebie. */
+crmStartInboxPingV5=function(){
+    try{ if(crmInboxPingTimerV5) clearInterval(crmInboxPingTimerV5); }catch(ignore){}
+    if(crmInboxScheduleTimerV11) clearTimeout(crmInboxScheduleTimerV11);
+
+    const schedule=()=>{
+        crmInboxScheduleTimerV11=window.setTimeout(async()=>{
+            try{ await crmRunInboxPingV5(); }
+            finally{ schedule(); }
+        },CRM_INBOX_BACKGROUND_DELAY_V11);
+    };
+    schedule();
+};
+
+crmLoadUnifiedInbox=async function(options={}){
+    const silent=options.silent===true;
+    const modal=document.getElementById("crmUnifiedInboxModal");
+    const open=Boolean(modal && modal.hidden===false);
+
+    if(silent && !open){
+        await crmRunInboxPingV5();
+        return Array.isArray(crmUnifiedInboxItems)?crmUnifiedInboxItems:[];
+    }
+
+    /* Jeśli pełna Skrzynka już jest pobierana, drugi klik czeka na TEN SAM request.
+       Nie uruchamiamy drugiego Apps Script. */
+    if(crmInboxPromiseV11) return crmInboxPromiseV11;
+
+    const body=document.getElementById("crmUnifiedInboxBody");
+    if(body) body.innerHTML='<div style="padding:20px;color:#777;">Ładowanie skrzynki…</div>';
+
+    crmInboxPromiseV11=(async()=>{
+        try{
+            const data=await crmQueuedGetV11(
+                `${APPS_SCRIPT_URL}?adminInbox=true&_crmInbox=${Date.now()}`,
+                {key:"adminInbox",priority:95,timeoutMs:30000}
+            );
+            if(!data?.success || !Array.isArray(data.items)){
+                throw new Error(data?.error||"Nieprawidłowa odpowiedź Skrzynki");
+            }
+            crmUnifiedInboxItems=data.items;
+            crmUnifiedInboxLastSuccessV3=Date.now();
+            crmSetUnifiedInboxConnectionStateV3?.(true);
+            crmRenderUnifiedInbox();
+            return crmUnifiedInboxItems;
+        }catch(error){
+            crmSetUnifiedInboxConnectionStateV3?.(false,error?.message||String(error));
+            if(body && document.getElementById("crmUnifiedInboxModal")?.hidden===false){
+                body.innerHTML=`<div style="padding:16px;color:#9b3a3a;">
+                    <strong>Nie udało się pobrać Skrzynki.</strong>
+                    <div style="margin-top:6px;font-size:11px;color:#766;">${crmInboxEscape(error?.message||String(error))}</div>
+                    <button type="button" id="crmInboxRetryV11" class="btn-secondary" style="margin-top:12px;">Spróbuj ponownie</button>
+                </div>`;
+                document.getElementById("crmInboxRetryV11")?.addEventListener("click",()=>crmLoadUnifiedInbox({force:true}).catch(console.error));
+            }
+            throw error;
+        }finally{
+            crmInboxPromiseV11=null;
+        }
+    })();
+    return crmInboxPromiseV11;
+};
+
+crmOpenUnifiedInbox=async function(){
+    crmCloseOtherRightContextsV5("inbox");
+    const overlay=crmEnsureUnifiedInboxModal();
+    overlay.hidden=false;
+    return crmLoadUnifiedInbox({force:true}).catch(console.error);
+};
+
+crmCheckEventDrivenInbox=async function(){
+    if(window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) return [];
+    await crmRunInboxPingV5();
+    return [];
+};
+
+crmStartRequestNoticeWatch=function(){ return crmRunInboxPingV5(); };
+
+/* Odśwież Skrzynki nie tworzy nowej generacji, jeśli poprzedni odczyt trwa. */
+document.addEventListener("DOMContentLoaded",()=>{
+    window.setTimeout(()=>{
+        const refresh=document.getElementById("crmUnifiedInboxRefresh");
+        if(refresh) refresh.onclick=()=>crmLoadUnifiedInbox({force:true}).catch(console.error);
+    },2400);
+});
+/* KONIEC ADMIN NETWORK COORDINATOR V11 */
+
+/* ==========================================================================
+   ADMIN CLEAN BOOT V12 2026-08-12
+   Jeden start, brak retry lawiny, ciężkie Ustawienia dopiero po wejściu.
+   ========================================================================== */
+let crmSettingsExtrasPromiseV12=null;
+let crmSettingsExtrasLoadedAtV12=0;
+
+async function crmLoadSettingsExtrasV12(options={}){
+    const force=options.force===true;
+    if(window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) return null;
+    if(!force && Date.now()-crmSettingsExtrasLoadedAtV12<120000) return true;
+    if(crmSettingsExtrasPromiseV12) return crmSettingsExtrasPromiseV12;
+
+    crmSettingsExtrasPromiseV12=(async()=>{
+        try{
+            if(typeof crmLoadEffectiveScheduleViewsV12==="function"){
+                await crmLoadEffectiveScheduleViewsV12({force});
+            }
+            crmSettingsExtrasLoadedAtV12=Date.now();
+            return true;
+        }catch(error){
+            console.warn("Dane dodatkowe Ustawień:",error?.message||error);
+            return false;
+        }finally{
+            crmSettingsExtrasPromiseV12=null;
+        }
+    })();
+    return crmSettingsExtrasPromiseV12;
+}
+window.crmLoadSettingsExtrasV12=crmLoadSettingsExtrasV12;
+
+/* Ostatnia warstwa nawigacji: ciężki grafik tylko gdy użytkownik faktycznie
+   otworzy Ustawienia. */
+if(typeof switchTab==="function"){
+    const crmSwitchTabBeforeCleanBootV12=switchTab;
+    switchTab=async function(tabName){
+        const result=await crmSwitchTabBeforeCleanBootV12.apply(this,arguments);
+        if(tabName==="ustawienia"){
+            window.setTimeout(()=>crmLoadSettingsExtrasV12().catch(console.error),60);
+        }
+        return result;
+    };
+}
+
+/* Stara funkcja retry Kalendarza nie może już odpalać 5 kolejnych wykonań
+   Apps Script po jednym timeout. */
+crmRetryCalendarLightSyncV6=async function(reason){
+    if(window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) return null;
+    try{
+        const result=await crmLightSyncCalendarData(reason||"lekki-sync");
+        if(typeof crmSetBackgroundTaskStatus==="function"){
+            crmSetBackgroundTaskStatus("sync","success","Kalendarz aktualny");
+        }
+        return result;
+    }catch(error){
+        if(typeof crmSetBackgroundTaskStatus==="function"){
+            crmSetBackgroundTaskStatus(
+                "sync","error",
+                "Kalendarz: nie udało się odświeżyć. Kliknij, aby ponowić.",
+                {onClick:()=>crmRetryCalendarLightSyncV6("reczne-ponowienie").catch(console.error)}
+            );
+        }
+        throw error;
+    }
+};
+/* KONIEC ADMIN CLEAN BOOT V12 */
+
+/* ==========================================================================
+   ADMIN EVENT COORDINATOR V13 2026-08-12
+   Bez adminState i bez równoległych odświeżeń po focus/visibility.
+   ========================================================================== */
+let crmReturnRefreshBusyV13 = false;
+let crmReturnRefreshAtV13 = 0;
+let crmClientsLoadedAtV13 = Date.now();
+let crmServicesLoadedAtV13 = Date.now();
+
+crmRefreshTabIfChangedV6 = async function(tabName, reason) {
+    if (
+        window.crmBootInProgressV2 ||
+        window.crmDiagnosticsNetworkModeV11 ||
+        crmReturnRefreshBusyV13
+    ) return null;
+
+    const now = Date.now();
+    if (now - crmReturnRefreshAtV13 < 8000) return null;
+
+    crmReturnRefreshAtV13 = now;
+    crmReturnRefreshBusyV13 = true;
+
+    try {
+        tabName = tabName || (
+            typeof crmDetectActiveTabV6 === "function"
+                ? crmDetectActiveTabV6()
+                : "kalendarz"
+        );
+
+        if (tabName === "kalendarz") {
+            return await crmRetryCalendarLightSyncV6(reason || "powrot-do-kalendarza");
+        }
+
+        if (tabName === "klienci") {
+            if (now - crmClientsLoadedAtV13 > 120000) {
+                await crmLoadClientsPrimaryV2();
+                crmClientsLoadedAtV13 = Date.now();
+            }
+            return true;
+        }
+
+        if (tabName === "cennik") {
+            if (now - crmServicesLoadedAtV13 > 120000) {
+                await crmLoadServicesPrimaryV2();
+                crmServicesLoadedAtV13 = Date.now();
+            }
+            return true;
+        }
+
+        if (tabName === "ustawienia") {
+            if (typeof crmLoadSettingsExtrasV12 === "function") {
+                await crmLoadSettingsExtrasV12();
+            }
+            return true;
+        }
+
+        if (tabName === "dashboard" && typeof renderDashboard === "function") {
+            renderDashboard();
+        }
+        if (tabName === "finanse" && typeof calculateFinanceReport === "function") {
+            calculateFinanceReport();
+        }
+
+        return true;
+    } catch (error) {
+        console.warn("Odświeżenie aktywnej zakładki V13:", error?.message || error);
+        return null;
+    } finally {
+        crmReturnRefreshBusyV13 = false;
+    }
+};
+
+/*
+ * Stary anonimowy visibility-listener wywołuje nazwę tej funkcji dynamicznie.
+ * Teraz przechodzi przez jeden koordynator V13.
+ */
+crmSyncAppointmentsOnReturnV2 = function() {
+    return crmRefreshTabIfChangedV6(
+        typeof crmDetectActiveTabV6 === "function"
+            ? crmDetectActiveTabV6()
+            : "kalendarz",
+        "powrot-do-admin"
+    );
+};
+
+/*
+ * Wszystkie stare event-driven wywołania zostają sprowadzone do jednego,
+ * odseparowanego pingu Skrzynki.
+ */
+crmCheckEventDrivenInbox = async function() {
+    if (window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) {
+        return [];
+    }
+    try {
+        await crmRunInboxPingV5();
+    } catch (ignore) {}
+    return [];
+};
+
+/* KONIEC ADMIN EVENT COORDINATOR V13 */

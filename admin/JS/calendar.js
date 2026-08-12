@@ -165,13 +165,31 @@ function changeSelectedDate(days){
 /* ----- CAL.8. changeMiniMonth (oryginalna linia 581) ----- */
 function changeMiniMonth(months){
 
+    /*
+     * Zmieniamy miesiac od pierwszego dnia miesiaca.
+     * Zapobiega to przeskokom typu 31 stycznia -> 3 marca.
+     * selectedCalendarDate pozostaje bez zmian, dopoki uzytkownik
+     * swiadomie nie kliknie konkretnego dnia.
+     */
+    miniMonthDate = new Date(miniMonthDate);
+    miniMonthDate.setDate(1);
     miniMonthDate.setMonth(
         miniMonthDate.getMonth()
         +
-        months
+        Number(months || 0)
     );
 
+    /* W widoku Miesiac oba kalendarze pokazuja ten sam ogladany miesiac. */
+    if (calendarViewMode === "month") {
+        displayedCalendarMonth = new Date(miniMonthDate);
+    }
+
     renderMiniMonthCalendar();
+
+    if (calendarViewMode === "month") {
+        updateCalendarRangeTitle();
+        renderBooksyCalendar();
+    }
 
 }
 
@@ -1316,14 +1334,23 @@ changeSelectedDate = function(days) {
         return;
     }
 
-    // Duzy kalendarz miesieczny zmienia tylko wlasny miesiac.
+    // Duzy kalendarz miesieczny zmienia ogladany miesiac, ale nie wybrany dzien.
     if (calendarViewMode === "month") {
-        displayedCalendarMonth = new Date(displayedCalendarMonth);
+        const visibleMonth = displayedCalendarMonth instanceof Date
+            ? displayedCalendarMonth
+            : selectedCalendarDate;
+
+        displayedCalendarMonth = new Date(visibleMonth);
         displayedCalendarMonth.setDate(1);
         displayedCalendarMonth.setMonth(
             displayedCalendarMonth.getMonth() + direction
         );
+
+        /* Mini-kalendarz ma pokazywac ten sam ogladany miesiac. */
+        miniMonthDate = new Date(displayedCalendarMonth);
+
         updateCalendarRangeTitle();
+        renderMiniMonthCalendar();
         renderBooksyCalendar();
         return;
     }
@@ -1994,7 +2021,12 @@ crmRenderThreeDayEvent = function(entry, layer, rangeStart, pixelsPerMinute) {
 
 crmRenderThreeDayCalendar = function(grid) {
     const configuredRange = crmDaySettingsRange();
-    const {start, end} = crmEtap1DisplayRange(configuredRange.start, configuredRange.end);
+    const baseDisplayRange = crmEtap1DisplayRange(configuredRange.start, configuredRange.end);
+    const adjustedDisplayRange =
+        typeof crmFirstVisitAdjustCalendarRangeV8 === "function"
+            ? crmFirstVisitAdjustCalendarRangeV8(baseDisplayRange)
+            : baseDisplayRange;
+    const {start, end} = adjustedDisplayRange;
     const scale = crmEtap1DayScale(grid, start, end);
     const ppm = scale.pixelsPerMinute;
     const timelineHeight = scale.totalMinutes * ppm;
@@ -2260,14 +2292,39 @@ function crmV6HolidayName(date) {
 
 function crmV6IsFullDayBlock(item) {
     if (String(item?.eventType || "") !== "block") return false;
+
+    /* WOLNE może pochodzić wyłącznie z ręcznej blokady całego dnia.
+       Jeśli backend przekazuje blockType=full_day, jest to rozstrzygające. */
     if (String(item?.blockType || "").toLowerCase() === "full_day") return true;
+
+    /* Starsze wpisy blokad nie miały blockType w odpowiedzi API.
+       Dla nich uznajemy wyłącznie dokładne 00:00 -> 00:00 następnego dnia.
+       Nie stosujemy progu „>=23 h”, bo częściowa blokada nie może dawać WOLNE. */
     const start = crmDayEventDate(item);
     const end = item?.endDate ? new Date(item.endDate) : null;
     if (!(start instanceof Date) || Number.isNaN(start.getTime())) return false;
     if (!(end instanceof Date) || Number.isNaN(end.getTime())) return false;
-    return end.getTime() - start.getTime() >= 23 * 60 * 60 * 1000;
+
+    if (
+        start.getHours() !== 0 || start.getMinutes() !== 0 ||
+        start.getSeconds() !== 0 || start.getMilliseconds() !== 0 ||
+        end.getHours() !== 0 || end.getMinutes() !== 0 ||
+        end.getSeconds() !== 0 || end.getMilliseconds() !== 0
+    ) return false;
+
+    const expectedEnd = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate() + 1,
+        0, 0, 0, 0
+    );
+    return end.getTime() === expectedEnd.getTime();
 }
 
+/* PUNKT 4 PLANU: BRAK/WOLNE/ŚWIĘTO
+   - BRAK/Brak: tylko eventType=work_shift zwrócony przez backend z markera grafiku,
+   - WOLNE: tylko pełna ręczna blokada 00:00 -> 00:00 następnego dnia i brak innych wpisów,
+   - ŚWIĘTO: niezależna informacja, może współistnieć z wizytą. */
 function crmV6DayPresentation(date) {
     const items = getCalendarEventsForDate(date) || [];
     const shifts = items.filter(item => item?.eventType === "work_shift");
@@ -2591,46 +2648,48 @@ function crmCalendarVisibleRange() {
 }
 
 async function crmLightSyncCalendarData(reason) {
-    if (crmCalendarLightSyncPromise) {
-        crmCalendarLightSyncQueued = true;
-        return crmCalendarLightSyncPromise;
-    }
+    if (crmCalendarLightSyncPromise) return crmCalendarLightSyncPromise;
+    if (window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) return null;
 
     const sequence = ++crmCalendarLightSyncSequence;
 
     crmCalendarLightSyncPromise = (async () => {
         const range = crmCalendarVisibleRange();
+        const from = getFormattedISOBlockDate(range.start);
+        const to = getFormattedISOBlockDate(range.end);
         const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
         const query = [
             "checkBusy=true",
-            `rangeStart=${encodeURIComponent(getFormattedISOBlockDate(range.start))}`,
-            `rangeEnd=${encodeURIComponent(getFormattedISOBlockDate(range.end))}`,
+            `rangeStart=${encodeURIComponent(from)}`,
+            `rangeEnd=${encodeURIComponent(to)}`,
             `_crmSync=${Date.now()}`
         ].join("&");
-        const response = await fetch(
-            `${APPS_SCRIPT_URL}${separator}${query}`,
-            { method: "GET", cache: "no-store" }
-        );
+        const url = `${APPS_SCRIPT_URL}${separator}${query}`;
 
-        if (!response.ok) {
-            throw new Error(`Błąd synchronizacji Kalendarza: HTTP ${response.status}`);
-        }
+        const payload = typeof crmQueuedGetV11 === "function"
+            ? await crmQueuedGetV11(url, {
+                key:`calendar:${from}:${to}`,
+                priority:90,
+                timeoutMs:45000
+              })
+            : await (async () => {
+                const response = await fetch(url, {method:"GET",cache:"no-store"});
+                const text = await response.text();
+                if(!response.ok) throw new Error(`Błąd synchronizacji Kalendarza: HTTP ${response.status}`);
+                return JSON.parse(text);
+              })();
 
-        const payload = await response.json();
         if (!payload || !Array.isArray(payload.appointments)) {
             throw new Error(payload?.error || "Backend nie zwrócił listy wizyt");
         }
 
-        /* Starsza odpowiedź nie może nadpisać nowszej. */
         if (sequence !== crmCalendarLightSyncSequence) return payload;
 
         appointmentsData = payload.appointments;
+        if (payload.settings && typeof payload.settings === "object") {
+            settingsData = {...settingsData, ...payload.settings};
+        }
 
-        /*
-         * Synchronizacja aktualizuje wyłącznie dane. Nie przywraca snapshotu
-         * widoku ani daty, ponieważ użytkownik mógł w międzyczasie wybrać
-         * Dzień, Tydzień, Miesiąc lub inny zakres.
-         */
         if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
         if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
         if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
@@ -2638,10 +2697,7 @@ async function crmLightSyncCalendarData(reason) {
         return payload;
     })().finally(() => {
         crmCalendarLightSyncPromise = null;
-        if (crmCalendarLightSyncQueued) {
-            crmCalendarLightSyncQueued = false;
-            setTimeout(() => crmLightSyncCalendarData("kolejka").catch(console.error), 0);
-        }
+        crmCalendarLightSyncQueued = false;
     });
 
     return crmCalendarLightSyncPromise;
@@ -2791,3 +2847,142 @@ renderBooksyCalendar = function() {
     return result;
 };
 /* KONIEC ADMIN FINAL: LOKALNY CACHE PROSB, WYBRANY DZIEN, OZNACZENIA I ANULOWANIA */
+
+
+
+/* ==========================================================================
+   CALENDAR FIRST VISIT V8 2026-08-12
+   Propozycje klienta sa warstwa glownego kalendarza, nie prawdziwa wizyta.
+   ========================================================================== */
+function crmFirstVisitProposalRowsCalendarV8(){
+    const item=window.crmFirstVisitSelectionModeV8?.item;
+    if(!window.crmFirstVisitSelectionModeV8?.active||!item)return[];
+    if(typeof crmFirstVisitNormalizeProposalsV8==="function")return crmFirstVisitNormalizeProposalsV8(item);
+    return Array.isArray(item.proposals)?item.proposals:[];
+}
+function crmFirstVisitProposalMinutesV8(){
+    const result=[];
+    crmFirstVisitProposalRowsCalendarV8().forEach(row=>(row.times||[]).forEach(time=>{
+        const [h,m]=String(time).split(":").map(Number);
+        if(Number.isFinite(h)&&Number.isFinite(m))result.push(h*60+m);
+    }));
+    return result;
+}
+function crmFirstVisitAdjustCalendarRangeV8(baseRange){
+    if(!window.crmFirstVisitSelectionModeV8?.active)return baseRange;
+    const times=crmFirstVisitProposalMinutesV8();
+    const duration=Number(window.crmFirstVisitSelectionModeV8?.item?.duration)||45;
+    let start=Math.max(0,baseRange.start-60);
+    let end=Math.min(24*60,baseRange.end+60);
+    if(times.length){
+        const earliest=Math.min(...times),latestEnd=Math.max(...times.map(v=>v+duration));
+        start=Math.min(start,Math.floor(earliest/30)*30);
+        end=Math.max(end,Math.ceil(latestEnd/30)*30);
+    }
+    return{start:start,end:end};
+}
+window.crmFirstVisitAdjustCalendarRangeV8=crmFirstVisitAdjustCalendarRangeV8;
+function crmFirstVisitDateKeyCalendarV8(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;}
+function crmFirstVisitConflictCalendarV8(dateKey,time,duration){
+    const start=new Date(`${dateKey}T${time}`),end=new Date(start.getTime()+(Number(duration)||45)*60000);
+    return (appointmentsData||[]).filter(item=>item.eventType!=="work_shift").some(item=>{
+        const itemStart=new Date(item.date||item.start||"");
+        const itemEnd=new Date(item.endDate||item.end||new Date(itemStart.getTime()+(Number(item.duration)||45)*60000));
+        if(Number.isNaN(itemStart.getTime())||Number.isNaN(itemEnd.getTime()))return false;
+        return start<itemEnd&&end>itemStart;
+    });
+}
+function crmFirstVisitOverlayForColumnV8(column,date,startMinute,pixelsPerMinute){
+    const item=window.crmFirstVisitSelectionModeV8?.item;if(!item)return;
+    const dateKey=crmFirstVisitDateKeyCalendarV8(date);
+    const proposal=crmFirstVisitProposalRowsCalendarV8().find(row=>String(row.date)===dateKey);
+    const header=column.querySelector(".crm-3day-header");
+    if(proposal&&header){
+        header.classList.add("crm-first-visit-proposed-day");
+        const badge=document.createElement("em");badge.className="crm-first-visit-day-badge";badge.textContent=proposal.times?.length?"propozycje klienta":"preferowany dzien";header.appendChild(badge);
+    }
+    const layer=column.querySelector(".crm-3day-events");if(!layer||!proposal||!Array.isArray(proposal.times))return;
+    const duration=Number(item.duration)||45;
+    proposal.times.forEach(time=>{
+        const [hour,minute]=String(time).split(":").map(Number);if(!Number.isFinite(hour)||!Number.isFinite(minute))return;
+        const minuteOfDay=hour*60+minute,top=Math.round((minuteOfDay-startMinute)*pixelsPerMinute),height=Math.max(26,Math.round(duration*pixelsPerMinute)-2);
+        if(top<-height)return;
+        const conflict=crmFirstVisitConflictCalendarV8(dateKey,time,duration);
+        const marker=document.createElement("button");marker.type="button";marker.className="crm-first-visit-proposal"+(conflict?" is-conflict":"");
+        marker.style.top=`${top}px`;marker.style.height=`${height}px`;
+        marker.innerHTML=`<span>${time} · ${duration} min</span><strong>${conflict?"Propozycja · termin obecnie zajety":"Propozycja klienta"}</strong>`;
+        marker.title=conflict?"Klient zaproponowal ten termin, ale obecnie koliduje on z innym wpisem.":"Kliknij, aby przygotowac wizyte na ten termin.";
+        marker.onclick=event=>{event.stopPropagation();if(typeof window.crmOpenFirstVisitAppointmentV8==="function")window.crmOpenFirstVisitAppointmentV8(item,`${dateKey}T${time}`);};
+        layer.appendChild(marker);
+    });
+}
+function crmFirstVisitInstallCanvasPickV8(column,date,startMinute,pixelsPerMinute,endMinute){
+    const canvas=column.querySelector(".crm-3day-canvas");if(!canvas)return;
+    canvas.classList.add("crm-first-visit-pick-canvas");
+    canvas.addEventListener("click",event=>{
+        if(!window.crmFirstVisitSelectionModeV8?.active)return;
+        if(event.target.closest(".crm-3day-event,.crm-first-visit-proposal,.crm-current-time-line"))return;
+        const rect=canvas.getBoundingClientRect();
+        const raw=startMinute+((event.clientY-rect.top)/pixelsPerMinute);
+        const rounded=Math.round(raw/5)*5;
+        if(rounded<startMinute||rounded>endMinute)return;
+        const hh=String(Math.floor(rounded/60)).padStart(2,"0"),mm=String(rounded%60).padStart(2,"0");
+        const dateKey=crmFirstVisitDateKeyCalendarV8(date);
+        if(typeof window.crmOpenFirstVisitAppointmentV8==="function")window.crmOpenFirstVisitAppointmentV8(window.crmFirstVisitSelectionModeV8.item,`${dateKey}T${hh}:${mm}`);
+    });
+}
+const crmRenderThreeDayCalendarBeforeFirstVisitV8=crmRenderThreeDayCalendar;
+crmRenderThreeDayCalendar=function(grid){
+    crmRenderThreeDayCalendarBeforeFirstVisitV8(grid);
+    if(!window.crmFirstVisitSelectionModeV8?.active)return;
+    const configured=crmDaySettingsRange(),baseRange=crmEtap1DisplayRange(configured.start,configured.end),range=crmFirstVisitAdjustCalendarRangeV8(baseRange),scale=crmEtap1DayScale(grid,range.start,range.end);
+    Array.from(grid.querySelectorAll(".crm-3day-column")).forEach((column,index)=>{
+        const date=new Date(selectedCalendarDate);date.setDate(date.getDate()+index);
+        crmFirstVisitOverlayForColumnV8(column,date,range.start,scale.pixelsPerMinute);
+        crmFirstVisitInstallCanvasPickV8(column,date,range.start,scale.pixelsPerMinute,range.end);
+    });
+};
+const renderMiniMonthCalendarBeforeFirstVisitV8=renderMiniMonthCalendar;
+renderMiniMonthCalendar=function(){
+    renderMiniMonthCalendarBeforeFirstVisitV8();
+    if(!window.crmFirstVisitSelectionModeV8?.active)return;
+    const proposalDates=new Set(crmFirstVisitProposalRowsCalendarV8().map(row=>String(row.date)));
+    document.querySelectorAll("#mini-month-days-grid .mini-date-cell").forEach(cell=>{
+        const day=Number(cell.textContent);if(!day)return;
+        const date=new Date(miniMonthDate.getFullYear(),miniMonthDate.getMonth(),day),key=crmFirstVisitDateKeyCalendarV8(date);
+        if(proposalDates.has(key))cell.classList.add("crm-first-visit-mini-proposed");
+    });
+};
+/* KONIEC CALENDAR FIRST VISIT V8 */
+
+/* ==========================================================================
+   CALENDAR NETWORK V11 2026-08-12
+   Widoczny zakres kalendarza korzysta ze wspólnej kolejki odczytów.
+   ========================================================================== */
+if(typeof crmLightSyncCalendarData==="function"){
+    crmLightSyncCalendarData=async function(reason){
+        if(window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11){
+            return {skipped:true,reason:window.crmDiagnosticsNetworkModeV11?"diagnostyka":"boot"};
+        }
+        const range=crmCalendarVisibleRange();
+        const from=getFormattedISOBlockDate(range.start);
+        const to=getFormattedISOBlockDate(range.end);
+        const separator=APPS_SCRIPT_URL.includes("?")?"&":"?";
+        const url=`${APPS_SCRIPT_URL}${separator}checkBusy=true&rangeStart=${encodeURIComponent(from)}&rangeEnd=${encodeURIComponent(to)}&_crmSync=${Date.now()}`;
+        const payload=await crmQueuedGetV11(url,{
+            key:`calendar:${from}:${to}`,
+            priority:80,
+            timeoutMs:35000
+        });
+        if(!payload || !Array.isArray(payload.appointments)) throw new Error(payload?.error||"Backend nie zwrócił listy wizyt");
+        appointmentsData=payload.appointments;
+        if(payload.settings){
+            settingsData={...settingsData,...payload.settings};
+        }
+        if(typeof renderBooksyCalendar==="function")renderBooksyCalendar();
+        if(typeof renderMiniMonthCalendar==="function")renderMiniMonthCalendar();
+        if(typeof crmRenderCalendarInsights==="function")crmRenderCalendarInsights();
+        return payload;
+    };
+}
+/* KONIEC CALENDAR NETWORK V11 */

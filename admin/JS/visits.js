@@ -348,6 +348,26 @@ async function saveAppointment() {
             : "Dodano z CRM"
     };
 
+    /*
+     * Rezerwacja uruchomiona ze Skrzynki ADMIN.
+     * ID zgłoszenia jedzie w tym samym żądaniu co zapis wizyty,
+     * więc zgłoszenie zostanie oznaczone OBSŁUŻONE dopiero po sukcesie.
+     */
+    const pendingContactRequest =
+        (!currentEditingAppointment &&
+         window.crmPendingContactRequestForBooking &&
+         window.crmPendingContactRequestForBooking.id)
+            ? window.crmPendingContactRequestForBooking
+            : null;
+
+    if (pendingContactRequest) {
+        payload.contactRequestId = pendingContactRequest.id;
+        payload.bookingSource = "FORM_FIRST";
+        payload.sourceRequestId = pendingContactRequest.id;
+    } else if (!currentEditingAppointment) {
+        payload.bookingSource = "ADMIN";
+    }
+
     if (
         currentEditingAppointment
     ) {
@@ -422,13 +442,31 @@ async function saveAppointment() {
             currentEditingAppointment =
                 null;
 
-            closeCreateAppointmentModal();
+            /*
+             * Po sukcesie zamykamy formularz bez pytania o niezapisane zmiany.
+             * Wcześniej asynchroniczna ochrona formularza mogła zostawić modal
+             * widoczny mimo poprawnego zapisu.
+             */
+            await closeCreateAppointmentModal(true);
+
+            if (pendingContactRequest) {
+                window.crmPendingContactRequestForBooking = null;
+
+                // Skrzynka odświeża się w tle; nie blokuje zamknięcia modala.
+                Promise.resolve().then(() => {
+                    if (typeof crmLoadUnifiedInbox === "function") {
+                        return crmLoadUnifiedInbox({ silent: true, force: true });
+                    }
+                    return null;
+                }).catch(error => console.error("Odświeżanie Skrzynki po zapisie wizyty:", error));
+            }
 
             if (typeof crmToast === "function") {
                 crmToast(successMessage);
             }
 
             await loadSettings();
+            if (typeof crmRememberAppointmentsAsSeen === "function") crmRememberAppointmentsAsSeen();
 
             renderDashboard();
 
@@ -577,6 +615,15 @@ async function closeCreateAppointmentModal(forceClose) {
     }
 
     modal.style.display = "none";
+    if (!isSavingAppointment && window.crmPendingContactRequestForBooking) {
+        window.crmPendingContactRequestForBooking = null;
+    }
+    if (!isSavingAppointment && window.crmPendingFirstVisitRequestForBooking) {
+        window.crmPendingFirstVisitRequestForBooking = null;
+        if (typeof window.crmFirstVisitClearSelectionModeV8 === "function") {
+            window.crmFirstVisitClearSelectionModeV8();
+        }
+    }
 }
 
 /* ----- VIS.14. openAppointmentDetailsModal (oryginalna linia 1741) ----- */
@@ -1370,9 +1417,15 @@ async function crmRunLifecycleOperation(operation, initiator, deleteCalendarEven
                     console.error("Synchronizacja po anulowaniu wizyty nie powiodła się:", error);
                 });
         } else {
-            /* Pozostałe operacje nadal czekają na pełne, pewne odświeżenie. */
-            await crmRefreshAllViews();
+            const localStatus = operation === "NIEOBECNOSC" ? "NIEOBECNOSC" : (operation === "ZREALIZOWANA" ? "ZREALIZOWANA" : operation);
+            affectedAppointment.status = localStatus;
+            affectedAppointment.crmStatus = localStatus;
+            if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+            if (typeof renderDashboard === "function") renderDashboard();
+            if (typeof calculateFinanceReport === "function") calculateFinanceReport();
             crmToast(successText);
+            Promise.resolve().then(() => typeof crmLightSyncCalendarData === "function" ? crmLightSyncCalendarData("status-wizyty") : null)
+                .catch(error => console.error("Lekka synchronizacja statusu wizyty nie powiodła się:", error));
         }
     } catch (error) {
         crmToast(error.message || String(error), "error");
@@ -1630,11 +1683,48 @@ openAppointmentDetailsModal = function(app) {
 function crmVisitSourceInfo(app) {
     const raw = String(app?.bookingSource || app?.source || app?.createdBy || "").trim().toUpperCase();
     const phone = String(app?.phone || "").trim().toUpperCase();
-    if (raw.includes("BOOKSY")) return { code:"BOOKSY", label:"Wizyta zaimportowana z Booksy", manual:false };
-    if (raw.includes("GOOGLE") || phone === "GOOGLE CALENDAR") return { code:"GOOGLE", label:"Wizyta dodana ręcznie w Google Calendar", manual:true };
-    if (raw.includes("ADMIN") || raw.includes("MISTRZYNI") || raw.includes("MASTER")) return { code:"ADMIN", label:"Wizyta dodana ręcznie w ADMIN", manual:true };
-    if (raw.includes("INDEX") || raw.includes("ONLINE") || raw.includes("CLIENT") || raw.includes("KLIENT")) return { code:"ONLINE", label:"Klient zarezerwował online", manual:false };
-    return { code:"ONLINE", label:"Klient zarezerwował online", manual:false };
+
+    if (raw.includes("FORM")) return {
+        code:"FORM_FIRST", label:"Pierwsza wizyta – zapytanie online",
+        badge:"PIERWSZA WIZYTA · ONLINE", manual:false,
+        background:"#fbf1f5", border:"#d9a6b9", text:"#7c4860"
+    };
+
+    if (raw.includes("INDEX_REQUEST") || raw.includes("REQUEST")) return {
+        code:"INDEX_REQUEST", label:"Prośba o termin przez stronę",
+        badge:"PROŚBA PRZEZ STRONĘ", manual:false,
+        background:"#f1f6fb", border:"#a8bfd5", text:"#48657d"
+    };
+
+    if (raw.includes("INDEX") || raw.includes("ONLINE") || raw.includes("CLIENT") || raw.includes("KLIENT")) return {
+        code:"INDEX", label:"Rezerwacja przez stronę",
+        badge:"REZERWACJA PRZEZ STRONĘ", manual:false,
+        background:"#f1f6fb", border:"#a8bfd5", text:"#48657d"
+    };
+
+    if (raw.includes("GOOGLE") || phone === "GOOGLE CALENDAR") return {
+        code:"GOOGLE", label:"Google Kalendarz",
+        badge:"GOOGLE KALENDARZ", manual:true,
+        background:"#f3f4f6", border:"#c4cad1", text:"#59616b"
+    };
+
+    if (raw.includes("ADMIN") || raw.includes("MISTRZYNI") || raw.includes("MASTER")) return {
+        code:"ADMIN", label:"Dodana przeze mnie",
+        badge:"DODANA PRZEZE MNIE", manual:true,
+        background:"#f7f2f5", border:"#ccb8c1", text:"#67545e"
+    };
+
+    if (raw.includes("BOOKSY")) return {
+        code:"BOOKSY", label:"Wizyta zaimportowana z Booksy",
+        badge:"BOOKSY", manual:false,
+        background:"#f4f4f4", border:"#c9c9c9", text:"#555"
+    };
+
+    return {
+        code:"LEGACY", label:"Starsza wizyta – źródło nie zapisane",
+        badge:"STARSZA WIZYTA", manual:false,
+        background:"#f6f6f6", border:"#d3d3d3", text:"#666"
+    };
 }
 
 /* ----- VIS.54. crmApplyVisitPanelBusinessRules (oryginalna linia 6058) ----- */
@@ -1646,9 +1736,45 @@ function crmApplyVisitPanelBusinessRules(app) {
         note.textContent = source.manual ? "Pracownik wybrany ręcznie" : "";
     }
     const sourceNode = document.getElementById("crmInfoSource");
-    if (sourceNode) sourceNode.textContent = source.label;
+    if (sourceNode) {
+        sourceNode.textContent = source.label;
+        sourceNode.style.display = "inline-flex";
+        sourceNode.style.width = "fit-content";
+        sourceNode.style.padding = "5px 8px";
+        sourceNode.style.border = `1px solid ${source.border}`;
+        sourceNode.style.borderRadius = "999px";
+        sourceNode.style.background = source.background;
+        sourceNode.style.color = source.text;
+        sourceNode.style.fontSize = "11px";
+        sourceNode.style.fontWeight = "800";
+    }
+
+    const modal = document.getElementById("appointmentDetailsModal");
+    if (modal) modal.dataset.crmSource = String(source.code || "").toLowerCase();
+
     const reservationId = document.getElementById("crmVisitReservationId");
     if (reservationId) reservationId.hidden = true;
+
+    const statusCopy = document.querySelector("#appointmentDetailsModal .crm-safe-status-copy");
+    if (statusCopy) {
+        let badge = document.getElementById("crmVisitSourceBadge");
+        if (!badge) {
+            badge = document.createElement("span");
+            badge.id = "crmVisitSourceBadge";
+            statusCopy.appendChild(badge);
+        }
+        badge.textContent = source.badge;
+        badge.style.display = "inline-flex";
+        badge.style.marginTop = "5px";
+        badge.style.padding = "4px 7px";
+        badge.style.border = `1px solid ${source.border}`;
+        badge.style.borderRadius = "999px";
+        badge.style.background = source.background;
+        badge.style.color = source.text;
+        badge.style.fontSize = "9px";
+        badge.style.fontWeight = "800";
+        badge.style.letterSpacing = ".03em";
+    }
     const fields = document.querySelectorAll("#appointmentDetailsModal .crm-visit-field");
     fields.forEach(field => {
         const label = field.querySelector("span")?.textContent?.trim();
@@ -1773,20 +1899,12 @@ const crmSafeOpenAppointmentOriginal = openAppointmentDetailsModal;
 
 /* ----- VIS.61. openAppointmentDetailsModal (oryginalna linia 6446) ----- */
 function crmVisitReadableStatus(app) {
-    const raw = String(app?.crmStatus || app?.status || "").trim().toUpperCase();
-
-    if (/NO_SHOW|NIEOBEC/.test(raw)) {
-        return {key:"no-show", icon:"!", label:"KLIENT NIE PRZYSZEDŁ", info:"Klient nie przyszedł"};
-    }
-    if (/COMPLET|ZREALIZ/.test(raw)) {
-        return {key:"completed", icon:"✓", label:"ZREALIZOWANA", info:"Zrealizowana"};
-    }
-    if (/CANCEL|ANUL/.test(raw)) {
-        return {key:"cancelled", icon:"×", label:"ANULOWANA", info:"Anulowana"};
-    }
-    if (/PENDING|OCZEK/.test(raw)) {
-        return {key:"pending", icon:"⌛", label:"OCZEKUJE", info:"Oczekuje"};
-    }
+    const normalized = typeof crmV3NormalizeStatus === "function" ? crmV3NormalizeStatus(app) : String(app?.crmStatus || app?.status || "CONFIRMED").trim().toUpperCase();
+    if (normalized === "NO_SHOW") return {key:"no-show", icon:"❗", label:"NIEOBECNOŚĆ", info:"Klient nie przyszedł"};
+    if (normalized === "COMPLETED") return {key:"completed", icon:"✓", label:"ZREALIZOWANA", info:"Zrealizowana"};
+    if (normalized === "IN_PROGRESS") return {key:"in-progress", icon:"▶", label:"W TRAKCIE", info:"Wizyta trwa"};
+    if (normalized === "CANCELLED_CLIENT" || normalized === "CANCELLED_SALON") return {key:"cancelled", icon:"×", label:"ANULOWANA", info:"Anulowana"};
+    if (normalized === "PENDING") return {key:"pending", icon:"⌛", label:"OCZEKUJE", info:"Oczekuje"};
     return {key:"confirmed", icon:"●", label:"POTWIERDZONO", info:"Potwierdzono"};
 }
 
@@ -2194,3 +2312,514 @@ closeCreateAppointmentModal = async function() {
 
 /* KONIEC: BLOKADA KLIENTA W TRYBIE UMOW PONOWNIE */
 
+/* ==========================================================================
+   VISITS RELIABILITY V7 2026-08-12
+   Nieblokujacy zapis, minimalizacja, retry i odzyskanie po odswiezeniu.
+   ========================================================================== */
+const CRM_PENDING_APPOINTMENT_SAVE_KEY_V7 = "crm_pending_appointment_save_v7";
+let crmAppointmentSaveJobV7 = null;
+
+function crmOperationIdV7() {
+    if (window.crypto?.randomUUID) return "ADM_" + window.crypto.randomUUID();
+    return "ADM_" + Date.now() + "_" + Math.random().toString(36).slice(2, 12);
+}
+
+function crmReadPendingSaveV7() {
+    try {
+        return JSON.parse(localStorage.getItem(CRM_PENDING_APPOINTMENT_SAVE_KEY_V7) || "null");
+    } catch (ignore) {
+        return null;
+    }
+}
+
+function crmWritePendingSaveV7(job) {
+    try {
+        if (!job) localStorage.removeItem(CRM_PENDING_APPOINTMENT_SAVE_KEY_V7);
+        else localStorage.setItem(CRM_PENDING_APPOINTMENT_SAVE_KEY_V7, JSON.stringify(job));
+    } catch (ignore) {}
+}
+
+function crmEnsureAppointmentMinimizeButtonV7() {
+    const modal = document.getElementById("appointmentModal");
+    if (!modal) return null;
+
+    let button = document.getElementById("crmAppointmentMinimizeBtnV7");
+    if (button) return button;
+
+    const header = modal.querySelector(".modal-header");
+    const close = header?.querySelector(".modal-close");
+    if (!header) return null;
+
+    button = document.createElement("button");
+    button.type = "button";
+    button.id = "crmAppointmentMinimizeBtnV7";
+    button.title = "Zwiń i wróć do Kalendarza";
+    button.setAttribute("aria-label", "Zwiń");
+    button.textContent = "—";
+    button.style.cssText =
+        "margin-left:auto;margin-right:5px;border:0;background:#f6f1f3;" +
+        "width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;color:#655b60;";
+
+    button.onclick = () => crmMinimizeAppointmentEditorV7();
+
+    if (close) header.insertBefore(button, close);
+    else header.appendChild(button);
+
+    return button;
+}
+
+function crmMinimizeAppointmentEditorV7() {
+    const modal = document.getElementById("appointmentModal");
+    if (!modal) return;
+    modal.dataset.crmMinimized = "1";
+    modal.style.display = "none";
+
+    const text = isSavingAppointment
+        ? "Zapisywanie wizyty w tle — kliknij, aby otworzyć"
+        : "Niedokończona wizyta — kliknij, aby dokończyć";
+
+    if (typeof crmSetBackgroundTaskStatus === "function") {
+        crmSetBackgroundTaskStatus(
+            "save",
+            isSavingAppointment ? "loading" : "pending",
+            text,
+            { onClick: crmRestoreAppointmentEditorV7, keep:true }
+        );
+    }
+}
+
+function crmRestoreAppointmentEditorV7() {
+    const modal = document.getElementById("appointmentModal");
+    if (!modal) return;
+    modal.dataset.crmMinimized = "0";
+    modal.style.display = "flex";
+}
+
+window.crmRestoreAppointmentEditorV7 = crmRestoreAppointmentEditorV7;
+
+function crmCaptureAppointmentDraftV7() {
+    const value = id => String(document.getElementById(id)?.value || "");
+    return {
+        name: value("appointmentName"),
+        phone: value("appointmentPhone"),
+        service: value("appointmentService"),
+        duration: value("appointmentDuration"),
+        date: value("appointmentDateTime")
+    };
+}
+
+function crmApplyAppointmentDraftV7(draft) {
+    if (!draft) return;
+    const set = (id, value) => {
+        const node = document.getElementById(id);
+        if (node && value !== undefined && value !== null) node.value = value;
+    };
+    set("appointmentName", draft.name);
+    set("appointmentPhone", draft.phone);
+    set("appointmentService", draft.service);
+    set("appointmentDuration", draft.duration || "45");
+    set("appointmentDateTime", draft.date);
+}
+
+async function crmCheckBookingOperationV7(operationId, options = {}) {
+    if (!operationId) return { success:true, found:false };
+
+    const attempts = Math.max(1, Number(options.attempts) || 5);
+    const delays = [0, 800, 1600, 3000, 5000];
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        if (attempt > 1) await new Promise(resolve => setTimeout(resolve, delays[attempt - 1]));
+
+        if (typeof crmSetBackgroundTaskStatus === "function" && options.showStatus) {
+            crmSetBackgroundTaskStatus(
+                "save",
+                attempt === 1 ? "loading" : "retry",
+                `Sprawdzanie zapisu · próba ${attempt}/${attempts}`,
+                { keep:true }
+            );
+        }
+
+        try {
+            const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+            const response = await fetch(
+                `${APPS_SCRIPT_URL}${separator}bookingOperationStatus=${encodeURIComponent(operationId)}&_op=${Date.now()}`,
+                { method:"GET", cache:"no-store" }
+            );
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            return await response.json();
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error("Nie udało się sprawdzić zapisu");
+}
+
+async function crmPostBookingAttemptV7(payload, attempt, total) {
+    if (typeof crmSetBackgroundTaskStatus === "function") {
+        crmSetBackgroundTaskStatus(
+            "save",
+            attempt === 1 ? "loading" : "retry",
+            `Zapisywanie wizyty · próba ${attempt}/${total}`,
+            { onClick: crmRestoreAppointmentEditorV7, keep:true }
+        );
+    }
+
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 22000) : null;
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method:"POST",
+            headers:{ "Content-Type":"text/plain" },
+            body:JSON.stringify(payload),
+            signal:controller ? controller.signal : undefined
+        });
+
+        const text = await response.text();
+        if (!response.ok) throw new Error("HTTP " + response.status + ": " + text);
+
+        try {
+            return JSON.parse(text);
+        } catch (error) {
+            throw new Error("Serwer zwrócił nieprawidłową odpowiedź");
+        }
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
+function crmLocalInsertSavedAppointmentV7(payload, data) {
+    if (payload.editFlag) return;
+
+    const exists = (appointmentsData || []).some(item =>
+        data?.eventId && String(item?.eventId || "") === String(data.eventId)
+    );
+    if (exists) return;
+
+    appointmentsData = appointmentsData || [];
+    appointmentsData.push({
+        eventType:"appointment",
+        date:payload.date,
+        phone:payload.phone,
+        name:payload.name,
+        service:payload.service,
+        duration:Number(payload.duration) || 45,
+        status:"POTWIERDZONA",
+        crmStatus:"POTWIERDZONA",
+        eventId:data?.eventId || "",
+        appointmentId:data?.appointmentId || "",
+        bookingSource:data?.bookingSource || payload.bookingSource || "ADMIN",
+        source:data?.bookingSource || payload.bookingSource || "ADMIN",
+        requestId:data?.sourceRequestId || payload.sourceRequestId || "",
+        firstVisit:Boolean(data?.firstVisit)
+    });
+
+    if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+    if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
+}
+
+async function crmFinishSuccessfulAppointmentSaveV7(payload, data) {
+    crmWritePendingSaveV7(null);
+    crmAppointmentSaveJobV7 = null;
+    window.crmPendingContactRequestForBooking = null;
+    window.crmPendingFirstVisitRequestForBooking = null;
+    if (payload.firstVisitRequestId && typeof window.crmFirstVisitClearSelectionModeV8 === "function") {
+        window.crmFirstVisitClearSelectionModeV8();
+    }
+
+    crmLocalInsertSavedAppointmentV7(payload, data);
+
+    currentEditingAppointment = null;
+    await closeCreateAppointmentModal(true);
+
+    if (typeof crmSetBackgroundTaskStatus === "function") {
+        crmSetBackgroundTaskStatus("save", "success", "Wizyta zapisana ✓");
+    }
+    if (typeof crmToast === "function") crmToast(payload.editFlag ? "Wizyta została zaktualizowana." : "Wizyta została dodana.");
+
+    // Odświeżenia są osobnym zadaniem. Ich błąd NIE oznacza błędu zapisu.
+    Promise.resolve().then(async () => {
+        try {
+            if (typeof crmRetryCalendarLightSyncV6 === "function") {
+                await crmRetryCalendarLightSyncV6("po-zapisie-wizyty");
+            } else if (typeof crmLightSyncCalendarData === "function") {
+                await crmLightSyncCalendarData("po-zapisie-wizyty");
+            }
+        } catch (error) {
+            console.warn("Wizyta zapisana, ale odświeżenie Kalendarza wymaga ponowienia:", error);
+        }
+
+        try {
+            if (typeof crmLoadUnifiedInbox === "function") {
+                await crmLoadUnifiedInbox({ silent:true, force:true });
+            }
+        } catch (error) {
+            console.warn("Wizyta zapisana, Skrzynka odświeży się później:", error);
+        }
+
+        try {
+            if (typeof renderDashboard === "function") renderDashboard();
+            if (typeof calculateFinanceReport === "function") calculateFinanceReport();
+        } catch (ignore) {}
+    });
+}
+
+async function crmRunAppointmentSaveJobV7(job) {
+    if (!job?.payload) return;
+    crmAppointmentSaveJobV7 = job;
+    crmWritePendingSaveV7(job);
+
+    const total = 3;
+    let lastNetworkError = null;
+
+    for (let attempt = 1; attempt <= total; attempt += 1) {
+        try {
+            job.attempt = attempt;
+            job.state = "saving";
+            crmWritePendingSaveV7(job);
+
+            const data = await crmPostBookingAttemptV7(job.payload, attempt, total);
+
+            if (data?.success) {
+                await crmFinishSuccessfulAppointmentSaveV7(job.payload, data);
+                return;
+            }
+
+            // Błąd biznesowy — ponowienie go nie naprawi. Zachowujemy formularz.
+            job.state = "attention";
+            job.error = data?.error || "Nieznany błąd zapisu";
+            crmWritePendingSaveV7(job);
+
+            if (typeof crmSetBackgroundTaskStatus === "function") {
+                crmSetBackgroundTaskStatus(
+                    "save",
+                    "attention",
+                    `Wymaga poprawy: ${job.error} — kliknij, aby dokończyć`,
+                    { onClick: crmRestoreAppointmentEditorV7, keep:true }
+                );
+            }
+
+            crmRestoreAppointmentEditorV7();
+            return;
+        } catch (error) {
+            lastNetworkError = error;
+
+            // Zanim ponowimy, sprawdzamy czy Google mimo utraty odpowiedzi już zapisał wizytę.
+            try {
+                const status = await crmCheckBookingOperationV7(job.payload.operationId, { attempts:1 });
+                if (status?.found) {
+                    await crmFinishSuccessfulAppointmentSaveV7(job.payload, status);
+                    return;
+                }
+            } catch (ignore) {}
+
+            if (attempt < total) {
+                await new Promise(resolve => setTimeout(resolve, attempt * 1200));
+            }
+        }
+    }
+
+    job.state = "unknown";
+    job.error = lastNetworkError?.message || "Nie udało się potwierdzić zapisu";
+    crmWritePendingSaveV7(job);
+
+    if (typeof crmSetBackgroundTaskStatus === "function") {
+        crmSetBackgroundTaskStatus(
+            "save",
+            "error",
+            "Nie udało się potwierdzić zapisu — kliknij, aby sprawdzić i dokończyć",
+            {
+                keep:true,
+                onClick: async () => {
+                    try {
+                        const status = await crmCheckBookingOperationV7(job.payload.operationId, { attempts:5, showStatus:true });
+                        if (status?.found) {
+                            await crmFinishSuccessfulAppointmentSaveV7(job.payload, status);
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn(error);
+                    }
+                    crmRestoreAppointmentEditorV7();
+                }
+            }
+        );
+    }
+}
+
+saveAppointment = async function() {
+    if (isSavingAppointment) return;
+
+    const name = String(document.getElementById("appointmentName")?.value || "").trim();
+    const phone = String(document.getElementById("appointmentPhone")?.value || "").trim();
+    const service = String(document.getElementById("appointmentService")?.value || "").trim();
+    const duration = Number(document.getElementById("appointmentDuration")?.value || 45) || 45;
+    const dateValue = String(document.getElementById("appointmentDateTime")?.value || "").trim();
+
+    if (!name || !phone || !service || !dateValue) {
+        if (typeof crmToast === "function") crmToast("Uzupełnij wszystkie pola wizyty.", "error");
+        else alert("Uzupełnij wszystkie pola wizyty.");
+        return;
+    }
+
+    const pendingFirstVisitRequest =
+        (!currentEditingAppointment &&
+         window.crmPendingFirstVisitRequestForBooking?.id)
+            ? window.crmPendingFirstVisitRequestForBooking
+            : null;
+
+    const pendingContactRequest =
+        (!currentEditingAppointment &&
+         window.crmPendingContactRequestForBooking?.id)
+            ? window.crmPendingContactRequestForBooking
+            : null;
+
+    const previousJob = crmReadPendingSaveV7();
+    const sameDraft =
+        previousJob?.draft &&
+        previousJob.draft.name === name &&
+        previousJob.draft.phone === phone &&
+        previousJob.draft.service === service &&
+        previousJob.draft.date === dateValue &&
+        String(previousJob.draft.duration || "") === String(duration);
+
+    const operationId =
+        sameDraft && previousJob?.payload?.operationId
+            ? previousJob.payload.operationId
+            : crmOperationIdV7();
+
+    const payload = {
+        action:"createBooking",
+        bookingSource: (pendingFirstVisitRequest || pendingContactRequest) ? "FORM_FIRST" : "ADMIN",
+        phone,
+        name,
+        service,
+        date:dateValue,
+        duration,
+        rodo: currentEditingAppointment ? "Edytowano z CRM" : "Dodano z CRM",
+        operationId
+    };
+
+    if (pendingFirstVisitRequest) {
+        payload.firstVisitRequestId = pendingFirstVisitRequest.id;
+        payload.sourceRequestId = pendingFirstVisitRequest.id;
+    } else if (pendingContactRequest) {
+        payload.contactRequestId = pendingContactRequest.id;
+        payload.sourceRequestId = pendingContactRequest.id;
+    }
+
+    if (currentEditingAppointment) {
+        const oldEventId = currentEditingAppointment.eventId || "";
+        if (!oldEventId) {
+            if (typeof crmToast === "function") crmToast("Brakuje Event ID. Odśwież Kalendarz i spróbuj ponownie.", "error");
+            return;
+        }
+        payload.editFlag = true;
+        payload.oldEventId = oldEventId;
+        payload.oldDate = currentEditingAppointment.date;
+        payload.oldName = currentEditingAppointment.name;
+    }
+
+    const job = {
+        version:7,
+        createdAt:Date.now(),
+        state:"saving",
+        attempt:0,
+        draft:{ name, phone, service, duration:String(duration), date:dateValue },
+        payload
+    };
+
+    isSavingAppointment = true;
+    const saveBtn = document.getElementById("saveAppointmentBtn");
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Zapisywanie w tle…";
+    }
+
+    crmEnsureAppointmentMinimizeButtonV7();
+
+    try {
+        await crmRunAppointmentSaveJobV7(job);
+    } finally {
+        isSavingAppointment = false;
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Zapisz wizytę";
+        }
+    }
+};
+
+async function crmRecoverPendingAppointmentSaveV7() {
+    const job = crmReadPendingSaveV7();
+    if (!job?.payload?.operationId) return;
+
+    crmAppointmentSaveJobV7 = job;
+
+    if (typeof crmSetBackgroundTaskStatus === "function") {
+        crmSetBackgroundTaskStatus(
+            "save",
+            "loading",
+            "Sprawdzam niedokończony zapis po odświeżeniu…",
+            { keep:true }
+        );
+    }
+
+    try {
+        const status = await crmCheckBookingOperationV7(job.payload.operationId, {
+            attempts:5,
+            showStatus:true
+        });
+
+        if (status?.found) {
+            await crmFinishSuccessfulAppointmentSaveV7(job.payload, status);
+            return;
+        }
+    } catch (error) {
+        console.warn("Odzyskanie zapisu:", error);
+    }
+
+    crmApplyAppointmentDraftV7(job.draft);
+
+    if (typeof crmSetBackgroundTaskStatus === "function") {
+        crmSetBackgroundTaskStatus(
+            "save",
+            "pending",
+            "Niedokończony zapis wizyty — kliknij, aby dokończyć",
+            {
+                keep:true,
+                onClick: () => {
+                    crmRestoreAppointmentEditorV7();
+                    const title = document.getElementById("modalTitleAppointment");
+                    if (title) title.textContent = "Dokończ zapis wizyty";
+                }
+            }
+        );
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmEnsureAppointmentMinimizeButtonV7();
+        crmRecoverPendingAppointmentSaveV7().catch(console.error);
+    }, 2600);
+});
+
+/* KONIEC VISITS RELIABILITY V7 */
+
+/* VISITS FIRST VISIT V8 — zamknięcie formularza nie zamyka samego zgłoszenia. */
+if (typeof closeCreateAppointmentModal === "function") {
+    const crmCloseCreateAppointmentModalBeforeFirstVisitV8 = closeCreateAppointmentModal;
+    closeCreateAppointmentModal = async function(forceClose) {
+        const hadFirstVisit = Boolean(window.crmPendingFirstVisitRequestForBooking?.id);
+        const result = await crmCloseCreateAppointmentModalBeforeFirstVisitV8.apply(this, arguments);
+        const modal = document.getElementById("appointmentModal");
+        const closed = !modal || modal.style.display === "none";
+        if (hadFirstVisit && closed && !isSavingAppointment) {
+            window.crmPendingFirstVisitRequestForBooking = null;
+        }
+        return result;
+    };
+}
+/* KONIEC VISITS FIRST VISIT V8 */

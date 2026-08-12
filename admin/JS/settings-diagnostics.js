@@ -186,7 +186,9 @@ async function saveSettings(){
         Math.max(0, Number(document.getElementById("cleanup_buffer_minutes").value) || 0),
 
     schedule_cycle:
-        document.getElementById("schedule_cycle").value.trim() || "4x4",
+        (document.getElementById("schedule_cycle")
+            ? document.getElementById("schedule_cycle").value.trim()
+            : (settingsData.schedule_cycle || "4x4")) || "4x4",
 
     colors:
         categoryColors
@@ -822,7 +824,7 @@ async function crmSmartScheduleUpdateNow() {
    DO KOMENTARZA "KONIEC DIAGNOSTYKI SYSTEMU CRM".
    ========================================================== */
 
-const CRM_TESTER_VERSION = "1.0.1";
+const CRM_TESTER_VERSION = "2.0.0";
 
 /* ----- DIA.59. crmTestIsRunning (oryginalna linia 4761) ----- */
 let crmTestIsRunning = false;
@@ -951,18 +953,38 @@ function crmTestRenderSummary(report) {
 }
 
 /* ----- DIA.70. crmTestGet (oryginalna linia 4875) ----- */
-async function crmTestGet(parameters) {
-    const query = Object.keys(parameters).map(key =>
+async function crmTestGet(parameters, options = {}) {
+    const query = Object.keys(parameters || {}).map(key =>
         encodeURIComponent(key) + "=" + encodeURIComponent(parameters[key])
     ).join("&");
-    const response = await fetch(APPS_SCRIPT_URL + "?" + query, {
-        method: "GET",
-        cache: "no-store"
-    });
-    const text = await response.text();
-    if (!response.ok) throw new Error("HTTP " + response.status + ": " + text);
-    try { return JSON.parse(text); }
-    catch (error) { throw new Error("API nie zwrocilo JSON: " + text.substring(0, 500)); }
+    const timeoutMs = Math.max(2000, Number(options.timeoutMs) || 10000);
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    let timer = null;
+
+    try {
+        const wholeRequest = (async () => {
+            const response = await fetch(APPS_SCRIPT_URL + "?" + query, {
+                method: "GET",
+                cache: "no-store",
+                signal: controller ? controller.signal : undefined
+            });
+            const text = await response.text();
+            if (!response.ok) throw new Error("HTTP " + response.status + ": " + text.substring(0, 500));
+            try { return JSON.parse(text); }
+            catch (error) { throw new Error("API nie zwrocilo JSON: " + text.substring(0, 500)); }
+        })();
+
+        const timeout = new Promise((_, reject) => {
+            timer = window.setTimeout(() => {
+                try { controller?.abort(); } catch (ignore) {}
+                reject(new Error("TIMEOUT GET po " + timeoutMs + " ms: " + query));
+            }, timeoutMs);
+        });
+
+        return await Promise.race([wholeRequest, timeout]);
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
 }
 
 /* ----- DIA.71. crmTestFrontendChecks (oryginalna linia 4901) ----- */
@@ -1352,3 +1374,622 @@ function crmDaySettingsRange() {
     const end = crmDayMinutes(settingsData?.work_end_hour, 21 * 60);
     return {start: Math.min(start, end - 60), end: Math.max(end, start + 60)};
 }
+
+/* ==========================================================================
+   DIAGNOSTYKA SIECI / SKRZYNKI V2 2026-08-12
+   Tester endpointow krytycznych z twardym timeoutem i pomiarem czasu.
+   ========================================================================== */
+
+function crmDiagNowV2(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+function crmDiagElapsedV2(start){ return Math.round(crmDiagNowV2()-start); }
+
+function crmDiagSummaryShapeV2(data){
+    if(Array.isArray(data)) return {type:"array",length:data.length};
+    if(!data || typeof data!=="object") return {type:typeof data,value:String(data)};
+    const summary={type:"object",keys:Object.keys(data).slice(0,20)};
+    if(Array.isArray(data.items)) summary.items=data.items.length;
+    if(Array.isArray(data.appointments)) summary.appointments=data.appointments.length;
+    if(Array.isArray(data.requests)) summary.requests=data.requests.length;
+    if(data.newCount!==undefined) summary.newCount=data.newCount;
+    if(data.success!==undefined) summary.success=data.success;
+    if(data.error) summary.error=data.error;
+    return summary;
+}
+
+async function crmDiagProbeFetchV2(params, timeoutMs=8000){
+    const start=crmDiagNowV2();
+    try{
+        const data=await crmTestGet(Object.assign({},params,{_diag:Date.now()}),{timeoutMs});
+        return {ok:true,ms:crmDiagElapsedV2(start),transport:"fetch",data,shape:crmDiagSummaryShapeV2(data)};
+    }catch(error){
+        return {ok:false,ms:crmDiagElapsedV2(start),transport:"fetch",error:error?.message||String(error)};
+    }
+}
+
+function crmDiagProbeJsonpV2(params, timeoutMs=8000){
+    return new Promise(resolve=>{
+        const start=crmDiagNowV2();
+        const callback="__crmDiagJsonpV2_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+        const script=document.createElement("script");
+        let finished=false;
+        const finish=result=>{
+            if(finished)return;
+            finished=true;
+            clearTimeout(timer);
+            try{delete window[callback];}catch(ignore){window[callback]=undefined;}
+            script.remove();
+            resolve(Object.assign({ms:crmDiagElapsedV2(start),transport:"jsonp"},result));
+        };
+        window[callback]=data=>finish({ok:true,data,shape:crmDiagSummaryShapeV2(data)});
+        script.onerror=()=>finish({ok:false,error:"Blad ladowania skryptu JSONP / callback nie zostal wykonany"});
+        const timer=setTimeout(()=>finish({ok:false,error:"TIMEOUT JSONP po "+timeoutMs+" ms"}),timeoutMs);
+        const query=Object.entries(Object.assign({},params,{callback,_diag:Date.now()}))
+            .map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&");
+        script.src=APPS_SCRIPT_URL+(APPS_SCRIPT_URL.includes("?")?"&":"?")+query;
+        script.async=true;
+        document.head.appendChild(script);
+    });
+}
+
+function crmDiagAddProbeV2(report,name,result,validator,required=true){
+    const valid=result.ok && (!validator || validator(result.data));
+    const status=valid?"OK":(required?"BLAD":"OSTRZEZENIE");
+    crmTestAdd(report,status,name,{
+        transport:result.transport,
+        czas_ms:result.ms,
+        wynik:result.ok?result.shape:result.error
+    });
+    return valid;
+}
+
+async function crmTestNetworkChecksV2(report){
+    crmTestSetProgress(18,"Diagnostyka sieci: endpointy podstawowe...");
+    const baseTests=[
+        ["GET checkBusy",{checkBusy:"true"},d=>d&&Array.isArray(d.appointments)&&d.settings,true,12000],
+        ["GET getPrices",{getPrices:"true"},d=>Array.isArray(d),true,9000],
+        ["GET getClients",{getClients:"true"},d=>Array.isArray(d),true,9000],
+        ["GET adminInboxPing",{adminInboxPing:"true"},d=>d&&d.success===true&&typeof d.newCount!=="undefined",true,8000],
+        ["GET adminInbox",{adminInbox:"true"},d=>d&&d.success===true&&Array.isArray(d.items),true,8000],
+        ["GET adminState",{adminState:"true"},d=>d&&d.success===true,true,8000],
+        ["GET bookingOperationStatus",{bookingOperationStatus:"CRM_DIAG_NIEISTNIEJACY"},d=>d&&d.success===true&&d.found===false,false,8000]
+    ];
+
+    for(const [name,params,validator,required,timeout] of baseTests){
+        crmTestSetProgress(20,"Siec: "+name+"...");
+        const result=await crmDiagProbeFetchV2(params,timeout);
+        crmDiagAddProbeV2(report,name,result,validator,required);
+    }
+
+    crmTestSetProgress(23,"Diagnostyka transportu JSONP Skrzynki...");
+    const jsonpRequired = typeof window.crmJsonpGetV10 === "function" ||
+        typeof window.crmFetchUnifiedInboxJsonpV10 === "function" ||
+        String(window.crmInboxTransportVersion||"").toUpperCase().includes("JSONP");
+
+    const jsonpTests=[
+        ["JSONP adminInboxPing",{adminInboxPing:"true"},d=>d&&d.success===true],
+        ["JSONP adminInbox",{adminInbox:"true"},d=>d&&d.success===true&&Array.isArray(d.items)],
+        ["JSONP adminState",{adminState:"true"},d=>d&&d.success===true]
+    ];
+    for(const [name,params,validator] of jsonpTests){
+        const result=await crmDiagProbeJsonpV2(params,8000);
+        crmDiagAddProbeV2(report,name,result,validator,jsonpRequired);
+    }
+
+    const functions=[
+        "crmLoadUnifiedInbox","crmRunInboxPingV5","crmFetchRemoteStateV2",
+        "crmLightSyncCalendarData","crmRetryCalendarLightSyncV6"
+    ];
+    functions.forEach(name=>{
+        crmTestAdd(report,typeof window[name]==="function"?"OK":"OSTRZEZENIE",
+            "Funkcja sieciowa "+name+"()",
+            typeof window[name]==="function"?"Dostepna":"Brak w aktualnym frontendzie");
+    });
+
+    crmTestAdd(report,navigator.onLine?"OK":"BLAD","Stan przegladarki navigator.onLine",String(navigator.onLine));
+    crmTestAdd(report,"OK","Adres Web App ADMIN",APPS_SCRIPT_URL);
+}
+
+/* Szybki i pelny test automatycznie dostaja preflight sieci/Skrzynki. */
+const crmTestApiChecksBeforeNetworkV2=crmTestApiChecks;
+crmTestApiChecks=async function(report){
+    await crmTestNetworkChecksV2(report);
+    return crmTestApiChecksBeforeNetworkV2(report);
+};
+
+async function runCRMNetworkTestV2(){
+    if(crmTestIsRunning)return alert("Test CRM jest juz uruchomiony.");
+    crmTestSetRunning(true);
+    const report=crmTestCreateReport("SIEC_I_SKRZYNKA");
+    crmLastTestReport=report;
+    const started=Date.now();
+    try{
+        crmTestSetProgress(5,"Sprawdzanie transportu i endpointow...");
+        await crmTestNetworkChecksV2(report);
+    }catch(error){
+        crmTestAdd(report,"BLAD","Glowny przebieg testu sieci",error?.message||String(error));
+    }finally{
+        crmTestFinish(report,started);
+        crmTestSetProgress(92,"Proba zapisu raportu...");
+        try{await saveCRMTestReport(report);}catch(error){
+            crmTestAdd(report,"OSTRZEZENIE","Zapis raportu do Google Sheets",error?.message||String(error));
+            crmTestFinish(report,started);
+        }
+        crmTestSetProgress(100,"Test sieci i Skrzynki zakonczony.");
+        crmTestSetRunning(false);
+    }
+}
+window.runCRMNetworkTestV2=runCRMNetworkTestV2;
+
+function crmInstallNetworkDiagnosticsButtonV2(){
+    const panel=document.getElementById("crm-diagnostics-panel");
+    if(!panel||document.getElementById("runCRMNetworkTestV2Btn"))return;
+
+    const details=document.createElement("details");
+    details.className="crm-procedure";
+    details.style.cssText="margin:8px 0;";
+    details.innerHTML=`
+      <summary style="cursor:pointer;font-weight:700">Test sieci i Skrzynki</summary>
+      <div style="padding:10px 0">
+        <p style="margin:0 0 10px;color:#746b70;font-size:12px">
+          Sprawdza osobno checkBusy, klientow, cennik, adminInboxPing, adminInbox i adminState.
+          Kazde zapytanie ma twardy timeout i zapisuje czas odpowiedzi. Testuje rowniez JSONP.
+        </p>
+        <button id="runCRMNetworkTestV2Btn" type="button" class="btn-secondary">Uruchom test sieci/Skrzynki</button>
+      </div>`;
+    details.querySelector("button").onclick=runCRMNetworkTestV2;
+
+    const existing=Array.from(panel.querySelectorAll("details"));
+    const anchor=existing.find(d=>/Szybki test/i.test(d.querySelector("summary")?.textContent||""))||existing[0];
+    if(anchor)anchor.before(details);else panel.appendChild(details);
+}
+
+document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallNetworkDiagnosticsButtonV2,2800));
+setTimeout(crmInstallNetworkDiagnosticsButtonV2,3200);
+
+/* KONIEC DIAGNOSTYKI SIECI / SKRZYNKI V2 */
+
+/* ==========================================================================
+   DIAGNOSTYKA SIECI V3 2026-08-12
+   Test nie tworzy kolejki timeoutowanych wykonań Apps Script.
+   ========================================================================== */
+window.crmDiagnosticsNetworkModeV11=false;
+
+async function crmDiagProbeDirectV3(name,params,timeoutMs=40000){
+    const query=Object.entries({...params,_diag:Date.now()})
+        .map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&");
+    const url=APPS_SCRIPT_URL+(APPS_SCRIPT_URL.includes("?")?"&":"?")+query;
+    const start=(performance?.now?.()||Date.now());
+    try{
+        const data=typeof crmFetchWholeJsonV11==="function"
+            ? await crmFetchWholeJsonV11(url,{timeoutMs})
+            : await crmTestGet(params,{timeoutMs});
+        return {ok:true,ms:Math.round((performance?.now?.()||Date.now())-start),data,shape:crmDiagSummaryShapeV2(data)};
+    }catch(error){
+        return {ok:false,ms:Math.round((performance?.now?.()||Date.now())-start),error:error?.message||String(error),timeout:Boolean(error?.crmTimeoutV11)};
+    }
+}
+
+async function crmTestNetworkChecksV3(report){
+    const today=new Date();
+    const end=new Date(today);end.setDate(end.getDate()+2);
+    const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const tests=[
+        ["GET adminInboxPing",{adminInboxPing:"true"},d=>d?.success===true&&typeof d.newCount!=="undefined",30000],
+        ["GET adminState",{adminState:"true"},d=>d?.success===true,30000],
+        ["GET adminInbox",{adminInbox:"true"},d=>d?.success===true&&Array.isArray(d.items),30000],
+        ["GET checkBusy (3 dni)",{checkBusy:"true",rangeStart:fmt(today),rangeEnd:fmt(end)},d=>d&&Array.isArray(d.appointments)&&d.settings,40000],
+        ["GET getPrices",{getPrices:"true"},d=>Array.isArray(d),30000],
+        ["GET getClients",{getClients:"true"},d=>Array.isArray(d),30000]
+    ];
+
+    for(let i=0;i<tests.length;i++){
+        const [name,params,validator,timeout]=tests[i];
+        crmTestSetProgress(10+Math.round((i/tests.length)*75),"Sieć: "+name+"…");
+        const result=await crmDiagProbeDirectV3(name,params,timeout);
+        const valid=result.ok&&validator(result.data);
+        crmTestAdd(report,valid?"OK":"BLAD",name,{
+            czas_ms:result.ms,
+            wynik:result.ok?result.shape:result.error
+        });
+        if(result.timeout){
+            crmTestAdd(report,"OSTRZEZENIE","Test przerwany po timeout", "Nie uruchomiono kolejnych endpointów, aby nie tworzyć kolejki wykonań Apps Script.");
+            break;
+        }
+        await crmTestWait(900);
+    }
+
+    ["crmQueuedGetV11","crmLoadUnifiedInbox","crmRunInboxPingV5","crmLightSyncCalendarData"].forEach(name=>{
+        crmTestAdd(report,typeof window[name]==="function"?"OK":"BLAD","Funkcja "+name+"()",typeof window[name]==="function"?"Dostępna":"Brak");
+    });
+}
+
+async function runCRMNetworkTestV3(){
+    if(crmTestIsRunning)return alert("Test CRM jest już uruchomiony.");
+    crmTestSetRunning(true);
+    window.crmDiagnosticsNetworkModeV11=true;
+    const report=crmTestCreateReport("SIEC_I_SKRZYNKA_V3");
+    crmLastTestReport=report;
+    const started=Date.now();
+    try{
+        crmTestSetProgress(5,"Zatrzymano odświeżanie w tle. Testuję endpointy kolejno…");
+        await crmTestNetworkChecksV3(report);
+    }catch(error){
+        crmTestAdd(report,"BLAD","Główny przebieg testu sieci",error?.message||String(error));
+    }finally{
+        crmTestFinish(report,started);
+        crmTestSetProgress(100,"Test sieci zakończony. Raport pozostaje lokalnie — bez dodatkowego POST do Google.");
+        window.crmDiagnosticsNetworkModeV11=false;
+        crmTestSetRunning(false);
+    }
+}
+window.runCRMNetworkTestV3=runCRMNetworkTestV3;
+
+/* Stary przycisk V2 uruchamia już bezpieczny V3. */
+window.runCRMNetworkTestV2=runCRMNetworkTestV3;
+
+document.addEventListener("DOMContentLoaded",()=>{
+    window.setTimeout(()=>{
+        const btn=document.getElementById("runCRMNetworkTestV2Btn");
+        if(btn){
+            btn.textContent="Uruchom bezpieczny test sieci/Skrzynki";
+            btn.onclick=runCRMNetworkTestV3;
+        }
+    },2600);
+});
+/* KONIEC DIAGNOSTYKA SIECI V3 */
+
+/* ==========================================================================
+   SETTINGS LAZY DATA V12 2026-08-12
+   Jedno getEffectiveSchedule na miesiąc, dopiero po wejściu do Ustawień.
+   ========================================================================== */
+const crmEffectiveScheduleCacheV12=new Map();
+const crmEffectiveSchedulePromiseV12=new Map();
+
+async function crmGetEffectiveScheduleV12(monthKey,options={}){
+    const key=String(monthKey||"");
+    const force=options.force===true;
+    const cached=crmEffectiveScheduleCacheV12.get(key);
+    if(!force && cached && Date.now()-cached.at<120000) return cached.data;
+    if(crmEffectiveSchedulePromiseV12.has(key)) return crmEffectiveSchedulePromiseV12.get(key);
+
+    const promise=(async()=>{
+        const response=await crmExtendedPost("getEffectiveSchedule",{month:key});
+        if(!response?.success) throw new Error(response?.error||"Błąd odczytu grafiku");
+        crmEffectiveScheduleCacheV12.set(key,{at:Date.now(),data:response});
+        return response;
+    })().finally(()=>crmEffectiveSchedulePromiseV12.delete(key));
+
+    crmEffectiveSchedulePromiseV12.set(key,promise);
+    return promise;
+}
+
+function crmRenderScheduleListV12(response){
+    const output=document.getElementById("sch-output");
+    if(!output)return;
+    output.innerHTML=(response?.entries||[]).map(item=>
+        `<div style="padding:6px;border-bottom:1px solid #ddd"><strong>${item.date}</strong> | ${item.code||item.dayType} | źródło: ${item.source} | ${item.reason||""}</div>`
+    ).join("")||"Brak wpisów";
+}
+
+function crmRenderWorkScheduleFromResponseV12(response,year,monthIndex){
+    const host=document.getElementById("work-schedule-calendar");
+    if(!host)return;
+    const byDate={};
+    (response?.entries||[]).forEach(item=>{byDate[item.date]=item;});
+    const names=["Pon","Wt","Śr","Czw","Pt","Sob","Niedz"];
+    const monthName=new Date(year,monthIndex,1).toLocaleDateString("pl-PL",{month:"long",year:"numeric"});
+    let html=`<h3 style="margin:0 0 12px">${monthName}</h3><div class="work-schedule-grid" style="display:grid;grid-template-columns:repeat(7,minmax(70px,1fr));gap:5px">`;
+    names.forEach(name=>{html+=`<div style="font-weight:700;text-align:center;padding:5px">${name}</div>`;});
+    const first=new Date(year,monthIndex,1);
+    const leading=first.getDay()===0?6:first.getDay()-1;
+    for(let i=0;i<leading;i++)html+="<div></div>";
+    const days=new Date(year,monthIndex+1,0).getDate();
+    for(let day=1;day<=days;day++){
+        const dateKey=`${year}-${String(monthIndex+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+        const entry=byDate[dateKey]||{};
+        const code=entry.code||"";
+        const color=scheduleCodeColor(code);
+        const title=entry.source?`Kod: ${code}; źródło: ${entry.source}; ${entry.reason||""}`:"Brak danych";
+        html+=`<button type="button" title="${title.replace(/"/g,"&quot;")}" style="min-height:58px;border:1px solid #d8cec6;border-radius:7px;background:${color.bg};color:${color.fg};cursor:pointer"><span style="display:block;font-size:12px">${day}</span><strong style="font-size:17px">${code}</strong></button>`;
+    }
+    host.innerHTML=html+"</div><p style=\"font-size:12px;color:#666\">1 = zmiana dzienna, 2 = zmiana nocna. Grafik ma charakter informacyjny i sam nie blokuje wizyt.</p>";
+}
+
+refreshSchedulePanel=async function(){
+    const month=document.getElementById("sch-month");
+    if(!month)return;
+    const response=await crmGetEffectiveScheduleV12(month.value);
+    crmRenderScheduleListV12(response);
+    return response;
+};
+
+renderWorkScheduleCalendar=async function(){
+    const year=selectedCalendarDate.getFullYear();
+    const monthIndex=selectedCalendarDate.getMonth();
+    const monthKey=`${year}-${String(monthIndex+1).padStart(2,"0")}`;
+    const response=await crmGetEffectiveScheduleV12(monthKey);
+    crmRenderWorkScheduleFromResponseV12(response,year,monthIndex);
+    return response;
+};
+
+async function crmLoadEffectiveScheduleViewsV12(options={}){
+    const year=selectedCalendarDate.getFullYear();
+    const monthIndex=selectedCalendarDate.getMonth();
+    const monthKey=`${year}-${String(monthIndex+1).padStart(2,"0")}`;
+    const response=await crmGetEffectiveScheduleV12(monthKey,options);
+
+    const monthInput=document.getElementById("sch-month");
+    if(monthInput)monthInput.value=monthKey;
+    crmRenderScheduleListV12(response);
+    crmRenderWorkScheduleFromResponseV12(response,year,monthIndex);
+    return response;
+}
+window.crmLoadEffectiveScheduleViewsV12=crmLoadEffectiveScheduleViewsV12;
+
+/* Diagnostyka V4: najpierw sprawdza pojedynczy bootstrap, bez lawiny. */
+async function runCRMNetworkTestV4(){
+    if(crmTestIsRunning)return alert("Test CRM jest już uruchomiony.");
+    crmTestSetRunning(true);
+    window.crmDiagnosticsNetworkModeV11=true;
+    const report=crmTestCreateReport("SIEC_I_START_V4");
+    crmLastTestReport=report;
+    const started=Date.now();
+
+    try{
+        const now=new Date();
+        const from=new Date(now.getFullYear(),now.getMonth(),1);
+        const to=new Date(now.getFullYear(),now.getMonth()+1,0);
+        const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+        const tests=[
+            ["GET serverProbe",{serverProbe:"true"},d=>d?.success===true,30000],
+            ["GET adminBootstrap",{adminBootstrap:"true",rangeStart:fmt(from),rangeEnd:fmt(to)},
+                d=>d?.success===true&&Array.isArray(d.appointments)&&Array.isArray(d.services)&&Array.isArray(d.clients),50000],
+            ["GET adminInbox",{adminInbox:"true"},d=>d?.success===true&&Array.isArray(d.items),35000],
+            ["GET adminState",{adminState:"true"},d=>d?.success===true,35000]
+        ];
+
+        for(let i=0;i<tests.length;i++){
+            const [name,params,validator,timeout]=tests[i];
+            crmTestSetProgress(10+Math.round((i/tests.length)*80),"Diagnostyka: "+name+"…");
+            const result=await crmDiagProbeDirectV3(name,params,timeout);
+            const valid=result.ok&&validator(result.data);
+            crmTestAdd(report,valid?"OK":"BLAD",name,{
+                czas_ms:result.ms,
+                wynik:result.ok?crmDiagSummaryShapeV2(result.data):result.error
+            });
+            if(result.timeout){
+                crmTestAdd(report,"OSTRZEZENIE","Dalsze testy zatrzymane","Po timeout nie uruchamiamy kolejnych Apps Script.");
+                break;
+            }
+            await crmTestWait(800);
+        }
+    }catch(error){
+        crmTestAdd(report,"BLAD","Główny przebieg testu V4",error?.message||String(error));
+    }finally{
+        crmTestFinish(report,started);
+        crmTestSetProgress(100,"Test V4 zakończony — raport pozostaje lokalnie.");
+        window.crmDiagnosticsNetworkModeV11=false;
+        crmTestSetRunning(false);
+    }
+}
+window.runCRMNetworkTestV4=runCRMNetworkTestV4;
+window.runCRMNetworkTestV3=runCRMNetworkTestV4;
+window.runCRMNetworkTestV2=runCRMNetworkTestV4;
+
+document.addEventListener("DOMContentLoaded",()=>{
+    window.setTimeout(()=>{
+        const btn=document.getElementById("runCRMNetworkTestV2Btn");
+        if(btn){
+            btn.textContent="Uruchom test startu i sieci V4";
+            btn.onclick=runCRMNetworkTestV4;
+        }
+    },2700);
+});
+/* KONIEC SETTINGS LAZY DATA V12 */
+
+/* ==========================================================================
+   DIAGNOSTYKA TRANSPORTU V13 2026-08-12
+   Pełny test używa tego samego transportu co prawdziwy ADMIN.
+   ========================================================================== */
+
+/*
+ * Stary pełny test miał 10 s i własny fetch(), przez co nie testował
+ * faktycznej ścieżki V13. Od teraz korzysta z crmQueuedGetV11/crmFetchJsonV12.
+ */
+crmTestGet = async function(parameters, options = {}) {
+    const params = Object.assign({}, parameters || {});
+
+    /*
+     * Pełny test tworzy wizyty do ok. 20 dni w przyszłość.
+     * Jeśli checkBusy nie dostał zakresu, ograniczamy go do 45 dni,
+     * zamiast domyślnych ~95 dni.
+     */
+    if (String(params.checkBusy || "") === "true" && !params.rangeStart && !params.rangeEnd) {
+        const start = new Date();
+        start.setDate(start.getDate() - 1);
+        const end = new Date();
+        end.setDate(end.getDate() + 45);
+        const fmt = date =>
+            `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+        params.rangeStart = fmt(start);
+        params.rangeEnd = fmt(end);
+    }
+
+    const query = Object.keys(params).map(key =>
+        encodeURIComponent(key) + "=" + encodeURIComponent(params[key])
+    ).join("&");
+
+    const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+    const url = `${APPS_SCRIPT_URL}${separator}${query}`;
+    const timeoutMs = Math.max(20000, Number(options.timeoutMs) || 45000);
+
+    if (typeof crmQueuedGetV11 === "function") {
+        return crmQueuedGetV11(url, {
+            key: "diag:" + query.replace(/(?:testTimestamp|_diag|_t)=[^&]*/g, ""),
+            priority: 110,
+            timeoutMs
+        });
+    }
+
+    return crmFetchJsonV12(url, { timeoutMs });
+};
+
+const crmTestFrontendChecksBeforeV13 = crmTestFrontendChecks;
+crmTestFrontendChecks = function(report) {
+    /*
+     * Kopiujemy standardowy test, ale schedule_cycle nie jest już obowiązkowym
+     * elementem HTML. Ustawienie istnieje w backendzie i ma fallback "4x4".
+     */
+    const beforeErrors = report.errors;
+    crmTestFrontendChecksBeforeV13(report);
+
+    const scheduleResult = report.results
+        .slice()
+        .reverse()
+        .find(item => item.name === "Element HTML #schedule_cycle");
+
+    if (scheduleResult && scheduleResult.status === "BLAD") {
+        scheduleResult.status = "OSTRZEZENIE";
+        scheduleResult.details =
+            "Pole nie jest obecnie wyświetlane w HTML. Backend zachowuje schedule_cycle=4x4.";
+        report.errors = Math.max(0, report.errors - 1);
+        report.warnings += 1;
+        report.passed = Math.max(0, report.passed);
+    }
+};
+
+async function runCRMNetworkTestV5() {
+    if (crmTestIsRunning) {
+        return alert("Test CRM jest już uruchomiony.");
+    }
+
+    crmTestSetRunning(true);
+    window.crmDiagnosticsNetworkModeV11 = true;
+
+    const report = crmTestCreateReport("SIEC_V13");
+    crmLastTestReport = report;
+    const started = Date.now();
+
+    try {
+        const today = new Date();
+        const end = new Date(today);
+        end.setDate(end.getDate() + 3);
+
+        const fmt = date =>
+            `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+
+        const tests = [
+            ["serverProbe", {serverProbe:"true"}, data => data?.success === true, 30000],
+            ["checkBusy 3 dni", {
+                checkBusy:"true",
+                rangeStart:fmt(today),
+                rangeEnd:fmt(end)
+            }, data => data && Array.isArray(data.appointments) && data.settings, 45000],
+            ["getPrices", {getPrices:"true"}, data => Array.isArray(data), 35000],
+            ["getClients", {getClients:"true"}, data => Array.isArray(data), 35000],
+            ["adminInboxPing", {adminInboxPing:"true"}, data => data?.success === true, 35000],
+            ["adminInbox", {adminInbox:"true"}, data => data?.success === true && Array.isArray(data.items), 45000]
+        ];
+
+        for (let index = 0; index < tests.length; index++) {
+            const [name, params, validator, timeoutMs] = tests[index];
+            crmTestSetProgress(
+                8 + Math.round((index / tests.length) * 82),
+                "V13: " + name + "…"
+            );
+
+            const startedRequest = Date.now();
+
+            try {
+                const data = await crmTestGet(
+                    Object.assign({}, params, {_diag13:Date.now()}),
+                    {timeoutMs}
+                );
+
+                crmTestAdd(
+                    report,
+                    validator(data) ? "OK" : "BLAD",
+                    "V13 GET " + name,
+                    {
+                        czas_ms: Date.now() - startedRequest,
+                        transport:
+                            window.location?.protocol === "file:"
+                                ? "JSONP V13 (lokalny plik)"
+                                : "fetch V13",
+                        wynik: typeof crmDiagSummaryShapeV2 === "function"
+                            ? crmDiagSummaryShapeV2(data)
+                            : data
+                    }
+                );
+            } catch (error) {
+                crmTestAdd(
+                    report,
+                    "BLAD",
+                    "V13 GET " + name,
+                    {
+                        czas_ms: Date.now() - startedRequest,
+                        transport:
+                            window.location?.protocol === "file:"
+                                ? "JSONP V13 (lokalny plik)"
+                                : "fetch V13",
+                        blad: error?.message || String(error)
+                    }
+                );
+
+                if (error?.crmTimeoutV12 || error?.crmTimeoutV13) {
+                    crmTestAdd(
+                        report,
+                        "OSTRZEZENIE",
+                        "Test zatrzymany po timeout",
+                        "Nie wysyłam kolejnych żądań, aby nie tworzyć kolejki Apps Script."
+                    );
+                    break;
+                }
+            }
+
+            await crmTestWait(700);
+        }
+
+        crmTestAdd(
+            report,
+            typeof window.crmJsonpGetV13 === "function" ? "OK" : "BLAD",
+            "Transport crmJsonpGetV13()",
+            typeof window.crmJsonpGetV13 === "function"
+                ? "Dostępny"
+                : "Brak"
+        );
+    } catch (error) {
+        crmTestAdd(
+            report,
+            "BLAD",
+            "Główny przebieg testu V13",
+            error?.message || String(error)
+        );
+    } finally {
+        crmTestFinish(report, started);
+        crmTestSetProgress(
+            100,
+            "Test V13 zakończony. Raport nie wykonuje dodatkowego zapisu do Google."
+        );
+        window.crmDiagnosticsNetworkModeV11 = false;
+        crmTestSetRunning(false);
+    }
+}
+
+window.runCRMNetworkTestV5 = runCRMNetworkTestV5;
+window.runCRMNetworkTestV4 = runCRMNetworkTestV5;
+window.runCRMNetworkTestV3 = runCRMNetworkTestV5;
+window.runCRMNetworkTestV2 = runCRMNetworkTestV5;
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        const button = document.getElementById("runCRMNetworkTestV2Btn");
+        if (button) {
+            button.textContent = "Uruchom test transportu V13";
+            button.onclick = runCRMNetworkTestV5;
+        }
+    }, 2900);
+});
+
+/* KONIEC DIAGNOSTYKA TRANSPORTU V13 */

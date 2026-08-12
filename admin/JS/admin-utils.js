@@ -51,17 +51,31 @@ function crmConfirm(message, confirmText) {
 /* ----- UTL.4. crmV3NormalizeStatus (oryginalna linia 5583) ----- */
 function crmV3NormalizeStatus(item) {
     const raw = String(item?.crmStatus || item?.status || item?.bookingStatus || "CONFIRMED")
-        .trim().toUpperCase();
+        .trim().toUpperCase().replace(/[\s-]+/g, "_");
     const map = {
         "POTWIERDZONA":"CONFIRMED", "POTWIERDZONO":"CONFIRMED", "CONFIRMED":"CONFIRMED",
         "OCZEKUJE":"PENDING", "OCZEKUJE_POTWIERDZENIA":"PENDING", "PENDING":"PENDING",
         "TERMIN_ALTERNATYWNY":"ALTERNATIVE", "ALTERNATIVE":"ALTERNATIVE",
         "WYMAGA_KONTAKTU":"CONTACT", "CONTACT":"CONTACT",
-        "ANULOWANA_PRZEZ_KLIENTA":"CANCELLED_CLIENT", "CANCELLED_CLIENT":"CANCELLED_CLIENT",
-        "ANULOWANA_PRZEZ_SALON":"CANCELLED_SALON", "CANCELLED_SALON":"CANCELLED_SALON",
+        "ANULOWANA_PRZEZ_KLIENTA":"CANCELLED_CLIENT", "ANULOWANA_KLIENT":"CANCELLED_CLIENT", "CANCELLED_CLIENT":"CANCELLED_CLIENT",
+        "ANULOWANA_PRZEZ_SALON":"CANCELLED_SALON", "ANULOWANA_SALON":"CANCELLED_SALON", "CANCELLED_SALON":"CANCELLED_SALON",
+        "NIEOBECNOSC":"NO_SHOW", "NIEOBECNOŚĆ":"NO_SHOW", "NO_SHOW":"NO_SHOW",
         "ZREALIZOWANA":"COMPLETED", "COMPLETED":"COMPLETED"
     };
-    return map[raw] || "CONFIRMED";
+    const normalized = map[raw] || "CONFIRMED";
+    if (normalized !== "CONFIRMED") return normalized;
+    if (!item || item.eventType !== "appointment") return normalized;
+
+    const start = new Date(item.date || "");
+    if (Number.isNaN(start.getTime())) return normalized;
+    let end = item.endDate ? new Date(item.endDate) : null;
+    if (!(end instanceof Date) || Number.isNaN(end.getTime())) {
+        end = new Date(start.getTime() + Math.max(5, Number(item.duration) || 45) * 60000);
+    }
+    const now = Date.now();
+    if (now >= end.getTime()) return "COMPLETED";
+    if (now >= start.getTime()) return "IN_PROGRESS";
+    return "CONFIRMED";
 }
 
 /* ----- UTL.5. crmEscapePanelValue (oryginalna linia 5692) ----- */
