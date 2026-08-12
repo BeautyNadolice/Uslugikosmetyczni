@@ -15,88 +15,331 @@ let flatpickrInstance = null;
 let isClientApproved = false; 
 
 // ==========================================================
-// INDEX: KONTAKT DLA NOWEGO KLIENTA - GOOGLE FORM PREFILL
+// INDEX: KONTAKT DLA NOWEGO KLIENTA - GOOGLE FORM
+// Stabilna wersja bez osadzonego formularza Google.
+// Odpowiedź nadal zapisuje się do tego samego Google Form,
+// ale formularz jest wyświetlany natywnie w naszej stronie.
 // ==========================================================
 const CONTACT_FORM_PUBLIC_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform";
+const CONTACT_FORM_RESPONSE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/formResponse";
 const CONTACT_FORM_ENTRY_NAME = "entry.565415087";
 const CONTACT_FORM_ENTRY_PHONE = "entry.165109377";
 const CONTACT_FORM_ENTRY_QUESTION = "entry.1372241831";
 
 let contactFormAutoCloseTimer = null;
+let contactFormSubmissionPending = false;
 
-function crmResetContactFormIframe() {
-  const modal = document.getElementById("contact-form-modal");
-  const iframe = modal ? modal.querySelector("iframe") : null;
-  if (!iframe) return;
+function crmContactFormStyles() {
+  if (document.getElementById("crmContactFormNativeStyles")) return;
 
-  // Po zamknięciu przygotowujemy świeży formularz na następne otwarcie.
-  iframe.dataset.contactFormAwaitingInitialLoad = "1";
-  iframe.src = `${CONTACT_FORM_PUBLIC_URL}?embedded=true`;
+  const style = document.createElement("style");
+  style.id = "crmContactFormNativeStyles";
+  style.textContent = `
+    #crmContactFormNative {
+      padding: 18px 6px 6px;
+      color: #2c2c2c;
+      font-family: inherit;
+    }
+    #crmContactFormNative h2 {
+      margin: 0 34px 20px 0;
+      color: #c2a383;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+    #crmContactFormNative .crm-contact-help {
+      margin: -8px 0 20px;
+      color: #6e6e6e;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    #crmContactFormNative .crm-contact-field {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    #crmContactFormNative label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    #crmContactFormNative input,
+    #crmContactFormNative textarea {
+      width: 100%;
+      border: 1px solid #dcdcdc;
+      border-radius: 7px;
+      background: #fff;
+      color: #2c2c2c;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    #crmContactFormNative input {
+      height: 42px;
+      padding: 8px 12px;
+    }
+    #crmContactFormNative textarea {
+      min-height: 120px;
+      padding: 11px 12px;
+      resize: vertical;
+    }
+    #crmContactFormNative input:focus,
+    #crmContactFormNative textarea:focus {
+      border-color: #c2a383;
+      box-shadow: 0 0 0 2px rgba(194,163,131,.12);
+    }
+    #crmContactFormSubmitBtn {
+      width: 100%;
+      padding: 13px 16px;
+      border: 0;
+      border-radius: 7px;
+      background: #c2a383;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #crmContactFormSubmitBtn:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+    #crmContactFormSuccess {
+      display: none;
+      min-height: 240px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 35px 20px;
+    }
+    #crmContactFormSuccess .crm-contact-success-icon {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 15px;
+      border-radius: 50%;
+      background: #eef8f0;
+      color: #27823a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 700;
+    }
+    #crmContactFormSuccess strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+    #crmContactFormSuccess p {
+      margin: 0;
+      color: #6e6e6e;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
-function crmCloseContactFormModal({ resetIframe = true } = {}) {
+function crmGetContactFormNodes() {
   const modal = document.getElementById("contact-form-modal");
-  if (modal) modal.style.display = "none";
+  if (!modal) return {};
+
+  const wrapper = modal.firstElementChild;
+  return {
+    modal,
+    wrapper,
+    form: document.getElementById("crmContactFormNativeForm"),
+    name: document.getElementById("crmContactName"),
+    phone: document.getElementById("crmContactPhone"),
+    question: document.getElementById("crmContactQuestion"),
+    submit: document.getElementById("crmContactFormSubmitBtn"),
+    success: document.getElementById("crmContactFormSuccess"),
+    fields: document.getElementById("crmContactFormFields")
+  };
+}
+
+function crmResetNativeContactForm({ clearValues = true } = {}) {
+  const nodes = crmGetContactFormNodes();
+
+  contactFormSubmissionPending = false;
 
   if (contactFormAutoCloseTimer) {
     clearTimeout(contactFormAutoCloseTimer);
     contactFormAutoCloseTimer = null;
   }
 
-  if (resetIframe) {
-    // Minimalne opóźnienie: najpierw chowamy modal, potem odświeżamy iframe w tle.
-    setTimeout(crmResetContactFormIframe, 50);
+  if (nodes.submit) {
+    nodes.submit.disabled = false;
+    nodes.submit.textContent = "Wyślij zapytanie";
+  }
+
+  if (nodes.fields) nodes.fields.style.display = "block";
+  if (nodes.success) nodes.success.style.display = "none";
+
+  if (clearValues) {
+    if (nodes.form) nodes.form.reset();
+    if (nodes.name) nodes.name.value = "";
+    if (nodes.phone) nodes.phone.value = "";
+    if (nodes.question) nodes.question.value = "";
   }
 }
 
-function crmInstallContactFormAutoClose() {
-  const modal = document.getElementById("contact-form-modal");
-  const iframe = modal ? modal.querySelector("iframe") : null;
-  if (!modal || !iframe || iframe.dataset.contactFormAutoCloseInstalled === "1") return;
-
-  iframe.dataset.contactFormAutoCloseInstalled = "1";
-
-  iframe.addEventListener("load", () => {
-    const modalVisible = window.getComputedStyle(modal).display !== "none";
-    if (!modalVisible) return;
-
-    // Gdy sami ustawiamy adres formularza (np. z wypełnionym telefonem),
-    // pierwsze załadowanie NIE oznacza wysłania odpowiedzi.
-    if (iframe.dataset.contactFormAwaitingInitialLoad === "1") {
-      iframe.dataset.contactFormAwaitingInitialLoad = "0";
-      return;
-    }
-
-    // Kolejna nawigacja iframe podczas otwartego formularza to strona
-    // potwierdzenia Google po wysłaniu odpowiedzi. Pozostawiamy ją na 3 s.
-    if (contactFormAutoCloseTimer) clearTimeout(contactFormAutoCloseTimer);
-    contactFormAutoCloseTimer = setTimeout(() => {
-      crmCloseContactFormModal({ resetIframe: true });
-    }, 3000);
-  });
+function crmCloseContactFormModal({ reset = true } = {}) {
+  const { modal } = crmGetContactFormNodes();
+  if (modal) modal.style.display = "none";
+  if (reset) crmResetNativeContactForm({ clearValues: true });
 }
 
-document.addEventListener("DOMContentLoaded", crmInstallContactFormAutoClose);
+window.crmCloseContactFormModal = crmCloseContactFormModal;
+
+function crmEnsureNativeContactForm() {
+  const modal = document.getElementById("contact-form-modal");
+  if (!modal) return null;
+
+  crmContactFormStyles();
+
+  const wrapper = modal.firstElementChild;
+  if (!wrapper) return null;
+
+  const originalIframe = wrapper.querySelector("iframe:not(#crmContactFormSubmitTarget)");
+  if (originalIframe) originalIframe.style.display = "none";
+
+  let native = document.getElementById("crmContactFormNative");
+  if (native) return native;
+
+  native = document.createElement("div");
+  native.id = "crmContactFormNative";
+  native.innerHTML = `
+    <div id="crmContactFormFields">
+      <h2>Kontakt z Nail-Art Daria</h2>
+      <p class="crm-contact-help">Napisz krótkie zapytanie. Odpowiemy na podany numer telefonu.</p>
+
+      <form id="crmContactFormNativeForm"
+            action="${CONTACT_FORM_RESPONSE_URL}"
+            method="POST"
+            target="crmContactFormSubmitTarget"
+            autocomplete="on">
+        <div class="crm-contact-field">
+          <label for="crmContactName">Imię i nazwisko *</label>
+          <input id="crmContactName"
+                 name="${CONTACT_FORM_ENTRY_NAME}"
+                 type="text"
+                 autocomplete="name"
+                 required>
+        </div>
+
+        <div class="crm-contact-field">
+          <label for="crmContactPhone">Numer telefonu *</label>
+          <input id="crmContactPhone"
+                 name="${CONTACT_FORM_ENTRY_PHONE}"
+                 type="tel"
+                 autocomplete="tel"
+                 required>
+        </div>
+
+        <div class="crm-contact-field">
+          <label for="crmContactQuestion">Twoje pytanie *</label>
+          <textarea id="crmContactQuestion"
+                    name="${CONTACT_FORM_ENTRY_QUESTION}"
+                    required></textarea>
+        </div>
+
+        <button id="crmContactFormSubmitBtn" type="submit">Wyślij zapytanie</button>
+      </form>
+    </div>
+
+    <div id="crmContactFormSuccess">
+      <div>
+        <div class="crm-contact-success-icon">✓</div>
+        <strong>Dziękujemy!</strong>
+        <p>Twoje zapytanie zostało wysłane.<br>To okno zamknie się automatycznie.</p>
+      </div>
+    </div>
+
+    <iframe id="crmContactFormSubmitTarget"
+            name="crmContactFormSubmitTarget"
+            title="Wysyłanie formularza"
+            style="display:none;width:0;height:0;border:0;"></iframe>
+  `;
+
+  wrapper.appendChild(native);
+
+  const form = document.getElementById("crmContactFormNativeForm");
+  const submitTarget = document.getElementById("crmContactFormSubmitTarget");
+
+  if (form) {
+    form.addEventListener("submit", () => {
+      contactFormSubmissionPending = true;
+
+      const submit = document.getElementById("crmContactFormSubmitBtn");
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = "Wysyłanie...";
+      }
+    });
+  }
+
+  if (submitTarget) {
+    submitTarget.addEventListener("load", () => {
+      if (!contactFormSubmissionPending) return;
+
+      contactFormSubmissionPending = false;
+
+      const fields = document.getElementById("crmContactFormFields");
+      const success = document.getElementById("crmContactFormSuccess");
+      const submit = document.getElementById("crmContactFormSubmitBtn");
+
+      if (fields) fields.style.display = "none";
+      if (success) success.style.display = "flex";
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = "Wyślij zapytanie";
+      }
+
+      if (contactFormAutoCloseTimer) {
+        clearTimeout(contactFormAutoCloseTimer);
+      }
+
+      contactFormAutoCloseTimer = setTimeout(() => {
+        crmCloseContactFormModal({ reset: true });
+      }, 3000);
+    });
+  }
+
+  return native;
+}
+
+function crmInstallContactFormModalBehavior() {
+  const modal = document.getElementById("contact-form-modal");
+  if (!modal || modal.dataset.crmNativeBehaviorInstalled === "1") return;
+
+  modal.dataset.crmNativeBehaviorInstalled = "1";
+  crmEnsureNativeContactForm();
+
+  // Zamknięcie kliknięciem w X z istniejącego HTML też czyści formularz.
+  const observer = new MutationObserver(() => {
+    const hidden = window.getComputedStyle(modal).display === "none";
+    if (hidden) {
+      crmResetNativeContactForm({ clearValues: true });
+    } else {
+      crmEnsureNativeContactForm();
+    }
+  });
+
+  observer.observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
+}
+
+document.addEventListener("DOMContentLoaded", crmInstallContactFormModalBehavior);
 
 function openContactFormPrefilled(phone = "", name = "", question = "") {
   const modal = document.getElementById("contact-form-modal");
-  const iframe = modal ? modal.querySelector("iframe") : null;
-  if (!modal || !iframe) return;
+  if (!modal) return;
 
-  const params = new URLSearchParams();
-  params.set("embedded", "true");
-  params.set("usp", "pp_url");
-  if (name) params.set(CONTACT_FORM_ENTRY_NAME, name);
-  if (phone) params.set(CONTACT_FORM_ENTRY_PHONE, phone);
-  if (question) params.set(CONTACT_FORM_ENTRY_QUESTION, question);
-
-  // Oznaczamy pierwsze załadowanie nowego URL jako zwykłe otwarcie formularza,
-  // a nie jako potwierdzenie wysłania.
-  iframe.dataset.contactFormAwaitingInitialLoad = "1";
-  iframe.src = `${CONTACT_FORM_PUBLIC_URL}?${params.toString()}`;
+  crmEnsureNativeContactForm();
+  crmResetNativeContactForm({ clearValues: true });
 
   // Najpierw zamykamy i resetujemy modal rezerwacji,
-  // żeby Google Form nie otwierał się nad drugim oknem.
+  // żeby formularz kontaktowy nie otwierał się nad drugim oknem.
   if (typeof closeBookingModal === "function") {
     closeBookingModal();
   } else {
@@ -104,20 +347,39 @@ function openContactFormPrefilled(phone = "", name = "", question = "") {
     if (bookingModal) bookingModal.style.display = "none";
   }
 
+  const nodes = crmGetContactFormNodes();
+  if (nodes.name) nodes.name.value = name || "";
+  if (nodes.phone) nodes.phone.value = phone || "";
+  if (nodes.question) nodes.question.value = question || "";
+
   modal.style.display = "block";
+
+  window.setTimeout(() => {
+    if (nodes.name && !nodes.name.value) nodes.name.focus();
+    else if (nodes.question) nodes.question.focus();
+  }, 80);
 }
+
+window.openContactFormPrefilled = openContactFormPrefilled;
 
 function renderUnknownClientContact(statusEl, phone) {
   if (!statusEl) return;
+
   statusEl.style.color = "#7a4c00";
   statusEl.innerHTML = `
     <div style="padding:10px 12px;border:1px solid #e3b341;border-radius:8px;background:#fffaf0;line-height:1.45;">
       <div style="font-weight:700;margin-bottom:8px;">Nie znaleźliśmy tego numeru w bazie klientów.</div>
       <div style="font-weight:400;margin-bottom:10px;">Jeżeli chcesz umówić pierwszą wizytę, wyślij krótkie zapytanie. Numer telefonu wpiszemy do formularza automatycznie.</div>
-      <button type="button" id="openNewClientContactFormBtn" class="verify-btn" style="height:auto;padding:10px 14px;">Wyślij zapytanie</button>
+      <button type="button"
+              id="openNewClientContactFormBtn"
+              class="verify-btn"
+              style="height:auto;padding:10px 14px;">Wyślij zapytanie</button>
     </div>`;
+
   const button = document.getElementById("openNewClientContactFormBtn");
-  if (button) button.onclick = () => openContactFormPrefilled(phone);
+  if (button) {
+    button.onclick = () => openContactFormPrefilled(phone);
+  }
 }
 
 
