@@ -14,6 +14,44 @@ let adminSettings = {
 let flatpickrInstance = null;
 let isClientApproved = false; 
 
+// ==========================================================
+// INDEX: KONTAKT DLA NOWEGO KLIENTA - GOOGLE FORM PREFILL
+// ==========================================================
+const CONTACT_FORM_PUBLIC_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdyZSEXo8-qMeIaOgvT_qgT4AtAmOYV---sgo9V_qGdE3HF0w/viewform";
+const CONTACT_FORM_ENTRY_NAME = "entry.565415087";
+const CONTACT_FORM_ENTRY_PHONE = "entry.165109377";
+const CONTACT_FORM_ENTRY_QUESTION = "entry.1372241831";
+
+function openContactFormPrefilled(phone = "", name = "", question = "") {
+  const modal = document.getElementById("contact-form-modal");
+  const iframe = modal ? modal.querySelector("iframe") : null;
+  if (!modal || !iframe) return;
+
+  const params = new URLSearchParams();
+  params.set("embedded", "true");
+  params.set("usp", "pp_url");
+  if (name) params.set(CONTACT_FORM_ENTRY_NAME, name);
+  if (phone) params.set(CONTACT_FORM_ENTRY_PHONE, phone);
+  if (question) params.set(CONTACT_FORM_ENTRY_QUESTION, question);
+
+  iframe.src = `${CONTACT_FORM_PUBLIC_URL}?${params.toString()}`;
+  modal.style.display = "block";
+}
+
+function renderUnknownClientContact(statusEl, phone) {
+  if (!statusEl) return;
+  statusEl.style.color = "#7a4c00";
+  statusEl.innerHTML = `
+    <div style="padding:10px 12px;border:1px solid #e3b341;border-radius:8px;background:#fffaf0;line-height:1.45;">
+      <div style="font-weight:700;margin-bottom:8px;">Nie znaleźliśmy tego numeru w bazie klientów.</div>
+      <div style="font-weight:400;margin-bottom:10px;">Jeżeli chcesz umówić pierwszą wizytę, wyślij krótkie zapytanie. Numer telefonu wpiszemy do formularza automatycznie.</div>
+      <button type="button" id="openNewClientContactFormBtn" class="verify-btn" style="height:auto;padding:10px 14px;">Wyślij zapytanie</button>
+    </div>`;
+  const button = document.getElementById("openNewClientContactFormBtn");
+  if (button) button.onclick = () => openContactFormPrefilled(phone);
+}
+
+
 function fetchJSONP(url) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -401,8 +439,7 @@ async function checkExistingClient() {
       loadServicesIntoSelect().then(() => { return loadFreeSlots(); });
     } else {
       document.getElementById("clientName").value = "";
-      statusEl.style.color = "red";
-      statusEl.innerHTML = "Numer nie znajduje się w bazie. Skontaktuj się z administratorem.";
+      renderUnknownClientContact(statusEl, fullPhoneNumber);
       isClientApproved = false;
       toggleFormState(false); 
     }
