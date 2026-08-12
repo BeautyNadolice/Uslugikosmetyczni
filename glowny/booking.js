@@ -35,6 +35,16 @@ function openContactFormPrefilled(phone = "", name = "", question = "") {
   if (question) params.set(CONTACT_FORM_ENTRY_QUESTION, question);
 
   iframe.src = `${CONTACT_FORM_PUBLIC_URL}?${params.toString()}`;
+
+  // Najpierw zamykamy i resetujemy modal rezerwacji,
+  // żeby Google Form nie otwierał się nad drugim oknem.
+  if (typeof closeBookingModal === "function") {
+    closeBookingModal();
+  } else {
+    const bookingModal = document.getElementById("bookingModal");
+    if (bookingModal) bookingModal.style.display = "none";
+  }
+
   modal.style.display = "block";
 }
 
