@@ -329,7 +329,8 @@ function crmInstallContactFormModalBehavior() {
   observer.observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
 }
 
-document.addEventListener("DOMContentLoaded", crmInstallContactFormModalBehavior);
+// Google Form nie jest już uruchamiany jako formularz pierwszej wizyty.
+// document.addEventListener("DOMContentLoaded", crmInstallContactFormModalBehavior);
 
 function openContactFormPrefilled(phone = "", name = "", question = "") {
   const modal = document.getElementById("contact-form-modal");
@@ -1719,3 +1720,294 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // KONIEC INDEX V6
+
+
+// ==========================================================================
+// INDEX FIRST VISIT UI V8 2026-08-12
+// Jedna prośba o pierwszą wizytę, bez wysylania do Google Form.
+// ==========================================================================
+const CRM_FIRST_VISIT_MAX_DAYS_V8 = 3;
+const CRM_FIRST_VISIT_MAX_TIMES_PER_DAY_V8 = 2;
+let crmFirstVisitDaysV8 = [];
+let crmFirstVisitServicesV8 = [];
+let crmFirstVisitBusyLoadedV8 = false;
+
+function crmFirstVisitEscapeV8(value){
+  return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+}
+
+async function crmFirstVisitEnsureDataV8(){
+  if(!crmFirstVisitServicesV8.length){
+    const services=await fetchJSONP(`${APPS_SCRIPT_URL}?getPrices=true&_firstVisit=${Date.now()}`);
+    crmFirstVisitServicesV8=Array.isArray(services)
+      ? services.filter(item=>String(item.status||"").toUpperCase()==="OPUBLIKOWANY")
+      : [];
+  }
+  {
+    // Dostępność jest pobierana przy każdym otwarciu, żeby propozycje były aktualne.
+    const data=await fetchJSONP(`${APPS_SCRIPT_URL}?checkBusy=true&_firstVisit=${Date.now()}`);
+    allAvailableSlots=data?.busySlots||[];
+    appointmentsData=data?.appointments||[];
+    if(data?.settings) adminSettings={...adminSettings,...data.settings};
+    if(Array.isArray(data?.familySchedule)) window.familyScheduleEntries=data.familySchedule;
+    if(Array.isArray(data?.holidays)) window.polishHolidayDates=data.holidays;
+    crmFirstVisitBusyLoadedV8=true;
+  }
+}
+
+function crmFirstVisitDurationV8(){
+  const select=document.getElementById("crmFirstVisitServiceV8");
+  const option=select?.options?.[select.selectedIndex];
+  return Math.max(5,Number(option?.dataset?.duration)||45);
+}
+
+function crmFirstVisitFreeSlotsV8(dateStr){
+  if(!dateStr)return[];
+
+  const duration=crmFirstVisitDurationV8();
+  const now=new Date();
+  const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+  const startStr=String(adminSettings.work_start_hour||"09:00").substring(0,5);
+  const endStr=String(adminSettings.work_end_hour||"18:00").substring(0,5);
+  const [startH,startM]=startStr.split(":").map(Number);
+  const [endH,endM]=endStr.split(":").map(Number);
+
+  const regularStart=startH*60+startM;
+  const endMinutes=endH*60+endM;
+  const regularStep=Math.max(5,Number(adminSettings.slot_interval_minutes)||45);
+  const earlyStep=15;
+  const startOffsetMs=(Number(adminSettings.start_offset_minutes)||0)*60000;
+
+  const dayBusy=(appointmentsData||[])
+    .filter(item=>item.date&&String(item.date).startsWith(dateStr))
+    .map(item=>{
+      const s=new Date(item.date);
+      const e=new Date(
+        item.endDate||
+        item.end||
+        new Date(s.getTime()+(Number(item.duration)||45)*60000)
+      );
+      return{start:s,end:e};
+    })
+    .filter(item=>!isNaN(item.start.getTime())&&!isNaN(item.end.getTime()));
+
+  function candidateIsFree(minuteOfDay,isEarlyCandidate){
+    const time=`${String(Math.floor(minuteOfDay/60)).padStart(2,"0")}:${String(minuteOfDay%60).padStart(2,"0")}`;
+    const slotStart=new Date(`${dateStr}T${time}`);
+    const slotEnd=new Date(slotStart.getTime()+duration*60000);
+
+    if(slotEnd.getHours()*60+slotEnd.getMinutes()>endMinutes)return false;
+
+    if(dateStr===today){
+      const buffer=(Number(adminSettings.buffer_hours)||0)*3600000;
+      if(slotStart.getTime()-now.getTime()<buffer)return false;
+    }
+
+    const conflict=dayBusy.some(busy=>{
+      const allowedAfter=new Date(busy.end.getTime()+startOffsetMs);
+      return slotStart<allowedAfter&&slotEnd>busy.start;
+    });
+    if(conflict)return false;
+
+    let policy={mode:"STANDARD",reason:""};
+    if(typeof classifyFamilySlot==="function"){
+      policy=classifyFamilySlot(dateStr,time,duration)||policy;
+      if(policy.mode==="MANUAL_ONLY")return false;
+    }
+
+    // Przed zwykłym startem pokazujemy tylko wyjątki z grafiku rodzinnego,
+    // które wymagają potwierdzenia salonu.
+    if(isEarlyCandidate&&policy.mode!=="CONFIRM")return false;
+
+    return true;
+  }
+
+  const result=[];
+  const seen=new Set();
+
+  // Wyjątkowe godziny poranne — nie wcześniej niż 08:00.
+  const earlyFrom=Math.min(regularStart,8*60);
+  for(let minute=earlyFrom;minute<regularStart;minute+=earlyStep){
+    if(!candidateIsFree(minute,true))continue;
+    const value=`${String(Math.floor(minute/60)).padStart(2,"0")}:${String(minute%60).padStart(2,"0")}`;
+    if(!seen.has(value)){seen.add(value);result.push(value);}
+  }
+
+  // Normalne sloty zachowują krok skonfigurowany dla strony klienta.
+  for(let minute=regularStart;minute<endMinutes;minute+=regularStep){
+    if(!candidateIsFree(minute,false))continue;
+    const value=`${String(Math.floor(minute/60)).padStart(2,"0")}:${String(minute%60).padStart(2,"0")}`;
+    if(!seen.has(value)){seen.add(value);result.push(value);}
+  }
+
+  return result;
+}
+
+function crmFirstVisitServiceOptionsV8(){
+  const grouped={};
+  crmFirstVisitServicesV8.forEach(item=>(grouped[item.category||"Inne"]??=[]).push(item));
+  return Object.entries(grouped).map(([category,items])=>`
+    <optgroup label="${crmFirstVisitEscapeV8(category)}">
+      ${items.map(item=>`
+        <option value="${crmFirstVisitEscapeV8(item.name)}" data-duration="${Number(item.duration)||45}" data-price="${Number(item.price)||0}">
+          ${crmFirstVisitEscapeV8(item.name)}${item.showPrice==="Nie"?"":` (${Number(item.price)||0} zl)`}
+        </option>`).join("")}
+    </optgroup>`).join("");
+}
+
+function crmFirstVisitFormMarkupV8(){
+  return `
+  <div id="crmFirstVisitV8" class="crm-first-visit-form">
+    <div class="crm-first-visit-head">
+      <div>
+        <span class="crm-first-visit-eyebrow">PIERWSZA WIZYTA</span>
+        <h2>Wyślij prośbę o termin</h2>
+        <p>Możesz podać do 3 preferowanych dni i maksymalnie 2 godziny na każdy dzień. To są propozycje — salon potwierdzi wybrany termin.</p>
+      </div>
+      <button type="button" class="crm-first-visit-close" aria-label="Zamknij">×</button>
+    </div>
+    <form id="crmFirstVisitFormV8" autocomplete="on">
+      <div class="crm-first-visit-grid">
+        <label><span>Imię i nazwisko *</span><input id="crmFirstVisitNameV8" type="text" autocomplete="name" required></label>
+        <label><span>Telefon *</span><input id="crmFirstVisitPhoneV8" type="tel" autocomplete="tel" required></label>
+      </div>
+      <label class="crm-first-visit-field"><span>E-mail <small>(opcjonalnie)</small></span><input id="crmFirstVisitEmailV8" type="email" autocomplete="email" placeholder="np. anna@email.pl"></label>
+      <label class="crm-first-visit-field"><span>Jaki zabieg Cię interesuje? *</span>
+        <select id="crmFirstVisitServiceV8" required><option value="">- Wybierz zabieg -</option>${crmFirstVisitServiceOptionsV8()}</select>
+      </label>
+      <section class="crm-first-visit-preferences">
+        <div class="crm-first-visit-section-title">
+          <div><strong>Preferowane terminy</strong><small>Opcjonalnie. Możesz też wybrać sam dzień bez godziny.</small></div>
+          <button type="button" id="crmFirstVisitAddDayV8" class="crm-first-visit-add-day">+ Dodaj dzień</button>
+        </div>
+        <div id="crmFirstVisitDaysV8"></div>
+      </section>
+      <label class="crm-first-visit-field"><span>Wiadomość <small>(opcjonalnie, jesli podajesz termin)</small></span>
+        <textarea id="crmFirstVisitMessageV8" rows="4" placeholder="Np. najlepiej po 16:00, zalezy mi na konkretnym zdobieniu..."></textarea>
+      </label>
+      <label class="crm-first-visit-consent"><input id="crmFirstVisitContactConsentV8" type="checkbox" required>
+        <span>Jeśli żaden z proponowanych terminów nie będzie możliwy, zgadzam się na kontakt telefoniczny/SMS lub e-mail w celu ustalenia innego terminu. *</span>
+      </label>
+      <label class="crm-first-visit-consent"><input id="crmFirstVisitRodoV8" type="checkbox" required>
+        <span>Wyrażam zgodę na przetwarzanie danych w celu obsługi mojego zapytania o wizytę. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *</span>
+      </label>
+      <div id="crmFirstVisitErrorV8" class="crm-first-visit-error" hidden></div>
+      <button id="crmFirstVisitSubmitV8" type="submit" class="crm-first-visit-submit">Wyślij prośbę o pierwszą wizytę</button>
+    </form>
+    <div id="crmFirstVisitSuccessV8" class="crm-first-visit-success" hidden>
+      <b>✓</b><strong>Prośba została wysłana</strong>
+      <p>Salon sprawdzi zaproponowane terminy i potwierdzi wizytę lub skontaktuje się z Tobą.</p>
+    </div>
+  </div>`;
+}
+
+function crmFirstVisitDayStateV8(id){return crmFirstVisitDaysV8.find(item=>item.id===id);}
+function crmFirstVisitRemoveDayV8(id){crmFirstVisitDaysV8=crmFirstVisitDaysV8.filter(item=>item.id!==id);crmFirstVisitRenderDaysV8();}
+function crmFirstVisitToggleTimeV8(id,time){
+  const item=crmFirstVisitDayStateV8(id);if(!item)return;item.times||=[];
+  if(item.times.includes(time))item.times=item.times.filter(v=>v!==time);
+  else{
+    if(item.times.length>=CRM_FIRST_VISIT_MAX_TIMES_PER_DAY_V8){
+      const e=document.getElementById("crmFirstVisitErrorV8");if(e){e.hidden=false;e.textContent="Na jeden dzień możesz wybrać maksymalnie 2 godziny.";}return;
+    }
+    item.times.push(time);
+  }
+  crmFirstVisitRenderDaysV8();
+}
+
+function crmFirstVisitRenderDaysV8(){
+  const host=document.getElementById("crmFirstVisitDaysV8"),add=document.getElementById("crmFirstVisitAddDayV8");
+  if(!host)return;if(add)add.disabled=crmFirstVisitDaysV8.length>=CRM_FIRST_VISIT_MAX_DAYS_V8;
+  if(!crmFirstVisitDaysV8.length){
+    host.innerHTML='<div class="crm-first-visit-empty">Nie musisz wybierać terminu. Możesz po prostu opisać, kiedy zwykle Ci pasuje.</div>';return;
+  }
+  host.innerHTML=crmFirstVisitDaysV8.map((item,index)=>{
+    const free=item.date?crmFirstVisitFreeSlotsV8(item.date):[];
+    return `<article class="crm-first-visit-day-card" data-day-id="${item.id}">
+      <div class="crm-first-visit-day-head"><strong>Dzień ${index+1}</strong><button type="button" data-remove-day="${item.id}">Usuń</button></div>
+      <input type="text" class="crm-first-visit-date" data-day-date="${item.id}" value="${crmFirstVisitEscapeV8(item.date||"")}" placeholder="Wybierz datę" readonly>
+      <div class="crm-first-visit-day-hint">${item.date?(free.length?"Wybierz maks. 2 godziny lub zostaw bez godziny.":"Brak standardowych godzin — możesz zostawić sam dzień."):"Najpierw wybierz dzień."}</div>
+      <div class="crm-first-visit-times">${free.map(time=>`<button type="button" class="${item.times?.includes(time)?"is-selected":""}" data-day-time="${item.id}" data-time="${time}">${time}</button>`).join("")}</div>
+    </article>`;
+  }).join("");
+  host.querySelectorAll("[data-remove-day]").forEach(btn=>btn.onclick=()=>crmFirstVisitRemoveDayV8(btn.dataset.removeDay));
+  host.querySelectorAll("[data-day-time]").forEach(btn=>btn.onclick=()=>crmFirstVisitToggleTimeV8(btn.dataset.dayTime,btn.dataset.time));
+  host.querySelectorAll("[data-day-date]").forEach(input=>{
+    const id=input.dataset.dayDate,item=crmFirstVisitDayStateV8(id);
+    flatpickr(input,{locale:"pl",dateFormat:"Y-m-d",minDate:"today",maxDate:new Date().fp_incr(120),disableMobile:true,defaultDate:item?.date||null,
+      onChange:(selected,dateStr)=>{const row=crmFirstVisitDayStateV8(id);if(!row)return;row.date=dateStr;row.times=[];crmFirstVisitRenderDaysV8();}
+    });
+  });
+}
+
+function crmFirstVisitAddDayV8(){
+  if(crmFirstVisitDaysV8.length>=CRM_FIRST_VISIT_MAX_DAYS_V8)return;
+  crmFirstVisitDaysV8.push({id:"D"+Date.now()+"_"+Math.random().toString(36).slice(2,6),date:"",times:[]});
+  crmFirstVisitRenderDaysV8();
+}
+
+async function openFirstVisitRequestFormV8(phone="",name=""){
+  const modal=document.getElementById("contact-form-modal");if(!modal)return;
+  const wrapper=modal.firstElementChild;if(!wrapper)return;
+  const bookingModal=document.getElementById("bookingModal");if(bookingModal)bookingModal.style.display="none";
+  wrapper.innerHTML='<div class="crm-first-visit-loading">Ładowanie formularza pierwszej wizyty…</div>';modal.style.display="flex";
+  try{
+    await crmFirstVisitEnsureDataV8();crmFirstVisitDaysV8=[];wrapper.innerHTML=crmFirstVisitFormMarkupV8();
+    document.getElementById("crmFirstVisitNameV8").value=name||"";
+    document.getElementById("crmFirstVisitPhoneV8").value=phone||"";
+    wrapper.querySelector(".crm-first-visit-close").onclick=()=>{modal.style.display="none";};
+    document.getElementById("crmFirstVisitAddDayV8").onclick=crmFirstVisitAddDayV8;
+    document.getElementById("crmFirstVisitServiceV8").onchange=()=>{crmFirstVisitDaysV8.forEach(item=>item.times=[]);crmFirstVisitRenderDaysV8();};
+    document.getElementById("crmFirstVisitFormV8").onsubmit=crmFirstVisitSubmitV8;
+    crmFirstVisitRenderDaysV8();
+  }catch(error){
+    wrapper.innerHTML=`<div class="crm-first-visit-loading crm-first-visit-load-error"><strong>Nie udało się załadować formularza.</strong><p>${crmFirstVisitEscapeV8(error?.message||error)}</p><button type="button" class="verify-btn">Spróbuj ponownie</button></div>`;
+    wrapper.querySelector("button").onclick=()=>openFirstVisitRequestFormV8(phone,name);
+  }
+}
+window.openFirstVisitRequestFormV8=openFirstVisitRequestFormV8;
+window.openFirstVisitRequestForm=openFirstVisitRequestFormV8;
+
+async function crmFirstVisitSubmitV8(event){
+  event.preventDefault();
+  const submit=document.getElementById("crmFirstVisitSubmitV8"),error=document.getElementById("crmFirstVisitErrorV8");
+  if(error){error.hidden=true;error.textContent="";}
+  const name=String(document.getElementById("crmFirstVisitNameV8")?.value||"").trim();
+  const phone=String(document.getElementById("crmFirstVisitPhoneV8")?.value||"").trim();
+  const email=String(document.getElementById("crmFirstVisitEmailV8")?.value||"").trim();
+  const service=String(document.getElementById("crmFirstVisitServiceV8")?.value||"").trim();
+  const duration=crmFirstVisitDurationV8();
+  const message=String(document.getElementById("crmFirstVisitMessageV8")?.value||"").trim();
+  const contactConsent=Boolean(document.getElementById("crmFirstVisitContactConsentV8")?.checked);
+  const rodo=Boolean(document.getElementById("crmFirstVisitRodoV8")?.checked);
+  const proposals=crmFirstVisitDaysV8.filter(item=>item.date).slice(0,3).map(item=>({date:item.date,times:(item.times||[]).slice(0,2)}));
+  const phoneDigits=phone.replace(/\D/g,"");
+  if(!name||!phone||!service){if(error){error.hidden=false;error.textContent="Uzupełnij imię, telefon i zabieg.";}return;}
+  if(phoneDigits.length<8||phoneDigits.length>15){if(error){error.hidden=false;error.textContent="Wpisz poprawny numer telefonu.";}return;}
+  if(!proposals.length&&!message){if(error){error.hidden=false;error.textContent="Wybierz przynajmniej jeden preferowany dzień albo napisz krótką wiadomość.";}return;}
+  if(!contactConsent||!rodo){if(error){error.hidden=false;error.textContent="Zaznacz obie wymagane zgody.";}return;}
+  if(submit){submit.disabled=true;submit.textContent="Wysyłanie…";}
+  try{
+    const response=await fetch(APPS_SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
+      action:"createFirstVisitRequest",phone,name,email,service,duration,message,contactConsent:"TAK",rodo:"TAK",proposals:JSON.stringify(proposals)
+    })});
+    const data=await response.json();if(!data?.success)throw new Error(data?.message||data?.error||"Nie udało się wysłać prośby.");
+    document.getElementById("crmFirstVisitFormV8").hidden=true;
+    const success=document.getElementById("crmFirstVisitSuccessV8");if(success)success.hidden=false;
+    setTimeout(()=>{const m=document.getElementById("contact-form-modal");if(m)m.style.display="none";},4200);
+  }catch(err){
+    if(error){error.hidden=false;error.textContent=err?.message||String(err);}
+    if(submit){submit.disabled=false;submit.textContent="Wyślij prośbę o pierwszą wizytę";}
+  }
+}
+
+renderUnknownClientContact=function(statusEl,phone){
+  if(!statusEl)return;
+  statusEl.style.color="#7a4c00";
+  statusEl.innerHTML=`<div class="crm-first-visit-unknown"><strong>Nie znaleźliśmy tego numeru w bazie klientów.</strong><span>Jeśli to Twoja pierwsza wizyta, możesz wysłać prośbę o termin i wskazać do 3 pasujących dni.</span><button type="button" id="openNewClientContactFormBtn" class="verify-btn">Poproś o pierwszą wizytę</button></div>`;
+  const button=document.getElementById("openNewClientContactFormBtn");if(button)button.onclick=()=>openFirstVisitRequestFormV8(phone);
+};
+
+document.addEventListener("DOMContentLoaded",()=>{const b=document.getElementById("openFirstVisitRequestStandaloneV8");if(b)b.onclick=()=>openFirstVisitRequestFormV8();});
+// KONIEC INDEX FIRST VISIT UI V8
