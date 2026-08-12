@@ -211,8 +211,8 @@ function crmEnsureNativeContactForm() {
   native.id = "crmContactFormNative";
   native.innerHTML = `
     <div id="crmContactFormFields">
-      <h2>Kontakt z Nail-Art Daria</h2>
-      <p class="crm-contact-help">Napisz krótkie zapytanie. Odpowiemy na podany numer telefonu.</p>
+      <h2>Zapytanie o pierwszą wizytę</h2>
+      <p class="crm-contact-help">Wyślij krótkie zapytanie o pierwszą wizytę. Odpowiemy na podany numer telefonu.</p>
 
       <form id="crmContactFormNativeForm"
             action="${CONTACT_FORM_RESPONSE_URL}"
