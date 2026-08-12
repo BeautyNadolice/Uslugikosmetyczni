@@ -353,3 +353,62 @@ input:disabled, select:disabled {
 
 /* INDEX V2 */
 .booking-policy-notice{padding:12px;margin:12px 0;background:#fff4cc;border:1px solid #e3b341;border-radius:8px;color:#5f4700;text-align:left}.alternative-booking-section{padding:14px;margin:14px 0;border:1px solid #e3b341;border-radius:10px;background:#fffdf5}.time-slot.requires-confirmation{border-color:#e0a400;background:#fff4cc;color:#5f4700}.time-slot.requires-confirmation.selected{background:#e0a400;color:#fff}
+
+
+
+/* ==========================================================================
+   INDEX FIRST VISIT V8
+   ========================================================================== */
+.first-visit-entry{margin:34px auto 12px;padding:18px;max-width:440px;text-align:center;border:1px solid rgba(194,163,131,.28);border-radius:16px;background:rgba(255,255,255,.5);}
+.first-visit-entry p{margin:0 0 9px;color:var(--text-muted);font-size:13px;}
+.first-visit-entry-btn{border:1px solid #cfb79e;border-radius:24px;padding:11px 18px;background:#fff;color:#8f6f50;font-weight:700;cursor:pointer;}
+.first-visit-modal-content{max-width:620px!important;padding:0!important;overflow:hidden;}
+.crm-first-visit-loading{padding:40px 24px;text-align:center;color:var(--text-muted);}
+.crm-first-visit-load-error strong{display:block;color:#9d4242;margin-bottom:8px;}
+.crm-first-visit-form{padding:24px;max-height:min(88vh,820px);overflow-y:auto;text-align:left;color:var(--text-main);}
+.crm-first-visit-head{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px;}
+.crm-first-visit-head h2{margin:3px 0 7px;color:var(--accent-color);font-family:'Playfair Display',Georgia,serif;font-size:25px;}
+.crm-first-visit-head p{margin:0;color:var(--text-muted);font-size:13px;line-height:1.5;}
+.crm-first-visit-eyebrow{font-size:10px;font-weight:800;letter-spacing:.11em;color:#9c846b;}
+.crm-first-visit-close{flex:0 0 34px;width:34px;height:34px;border:0;border-radius:50%;background:#f7f2ed;color:#71665d;font-size:22px;cursor:pointer;}
+.crm-first-visit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.crm-first-visit-grid label,.crm-first-visit-field{display:block;margin-bottom:14px;}
+.crm-first-visit-grid span,.crm-first-visit-field>span{display:block;margin-bottom:6px;font-weight:700;font-size:13px;}
+.crm-first-visit-field small{font-weight:400;color:var(--text-muted);}
+.crm-first-visit-form input[type="text"],.crm-first-visit-form input[type="tel"],.crm-first-visit-form input[type="email"],.crm-first-visit-form select,.crm-first-visit-form textarea{width:100%;border:1px solid #ded7d1;border-radius:9px;background:#fff;color:var(--text-main);font:inherit;font-size:14px;outline:none;}
+.crm-first-visit-form input,.crm-first-visit-form select{min-height:42px;padding:9px 11px;}
+.crm-first-visit-form textarea{padding:11px;resize:vertical;min-height:90px;}
+.crm-first-visit-form input:focus,.crm-first-visit-form select:focus,.crm-first-visit-form textarea:focus{border-color:var(--accent-color);box-shadow:0 0 0 2px rgba(194,163,131,.12);}
+.crm-first-visit-preferences{margin:6px 0 16px;padding:14px;border:1px solid #e8dfd6;border-radius:12px;background:#fdfbf8;}
+.crm-first-visit-section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.crm-first-visit-section-title strong{display:block;font-size:14px;}
+.crm-first-visit-section-title small{display:block;margin-top:3px;color:var(--text-muted);font-size:11px;}
+.crm-first-visit-add-day{border:1px solid #cdb79e;border-radius:9px;background:#fff;color:#876d54;padding:8px 10px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.crm-first-visit-add-day:disabled{opacity:.45;cursor:not-allowed;}
+.crm-first-visit-empty{padding:12px;text-align:center;color:#8b8178;font-size:12px;border:1px dashed #dfd3c6;border-radius:9px;}
+.crm-first-visit-day-card{margin-top:9px;padding:11px;background:#fff;border:1px solid #e6ddd4;border-radius:10px;}
+.crm-first-visit-day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.crm-first-visit-day-head strong{font-size:12px;}
+.crm-first-visit-day-head button{border:0;background:transparent;color:#9b6c6c;font-size:11px;cursor:pointer;}
+.crm-first-visit-date{cursor:pointer!important;background:#fff!important;}
+.crm-first-visit-day-hint{margin:7px 0;color:#877d75;font-size:11px;}
+.crm-first-visit-times{display:grid;grid-template-columns:repeat(auto-fill,minmax(67px,1fr));gap:6px;}
+.crm-first-visit-times button{min-height:34px;border:1px solid #ddd2c7;border-radius:8px;background:#fff;color:#5d554e;font-weight:650;cursor:pointer;}
+.crm-first-visit-times button.is-selected{background:#c2a383;color:#fff;border-color:#c2a383;box-shadow:0 3px 8px rgba(194,163,131,.22);}
+.crm-first-visit-consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0;color:var(--text-muted);font-size:11px;line-height:1.45;}
+.crm-first-visit-consent input{margin-top:3px;flex:0 0 auto;}
+.crm-first-visit-consent a{color:var(--accent-color);}
+.crm-first-visit-error{margin:12px 0;padding:10px 11px;border:1px solid #e6b0b0;border-radius:8px;background:#fff3f3;color:#a23d3d;font-size:12px;}
+.crm-first-visit-submit{width:100%;min-height:46px;border:0;border-radius:10px;background:var(--accent-color);color:#fff;font-weight:800;cursor:pointer;}
+.crm-first-visit-submit:disabled{opacity:.55;cursor:wait;}
+.crm-first-visit-success{padding:55px 24px;text-align:center;}
+.crm-first-visit-success b{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 14px;border-radius:50%;background:#edf7ef;color:#2f8b43;font-size:30px;}
+.crm-first-visit-success strong{display:block;font-size:19px;margin-bottom:7px;}
+.crm-first-visit-success p{margin:0;color:var(--text-muted);font-size:13px;line-height:1.5;}
+.crm-first-visit-unknown{padding:11px 12px;border:1px solid #e3b341;border-radius:9px;background:#fffaf0;display:grid;gap:8px;line-height:1.4;}
+.crm-first-visit-unknown strong{color:#704a00;}
+.crm-first-visit-unknown span{font-weight:400;color:#765f33;}
+.crm-first-visit-unknown .verify-btn{justify-self:start;height:auto;padding:9px 12px;}
+@media(max-width:560px){.crm-first-visit-form{padding:18px 15px}.crm-first-visit-grid{grid-template-columns:1fr}.crm-first-visit-section-title{display:grid}.crm-first-visit-add-day{justify-self:start}}
+/* KONIEC INDEX FIRST VISIT V8 */
+
