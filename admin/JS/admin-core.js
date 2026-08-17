@@ -1191,12 +1191,34 @@ function crmRememberAppointmentsAsSeen() {
     crmWriteSeenSet(CRM_APPOINTMENT_SEEN_KEY,seen);
 }
 window.crmRememberAppointmentsAsSeen=crmRememberAppointmentsAsSeen;
+const CRM_APPOINTMENT_NOTICE_SESSION_BASELINE_V17 = "crm_appointment_notice_baseline_v17";
+
 function crmDetectNewAppointments() {
     const rows=(appointmentsData||[]).filter(x=>x?.eventType==="appointment");
+
+    let baselineReady=false;
+    try{
+        baselineReady=sessionStorage.getItem(CRM_APPOINTMENT_NOTICE_SESSION_BASELINE_V17)==="1";
+    }catch(ignore){}
+
+    if(!baselineReady){
+        crmRememberAppointmentsAsSeen();
+        try{sessionStorage.setItem(CRM_APPOINTMENT_NOTICE_SESSION_BASELINE_V17,"1");}catch(ignore){}
+        return [];
+    }
+
     const fresh=crmNewRowsFromSeen(CRM_APPOINTMENT_SEEN_KEY,rows,crmAppointmentNoticeKey);
-    if(!fresh.length)return;
+    if(!fresh.length)return [];
+
     const first=fresh[0];
-    crmShowSimpleAdminNotice(fresh.length===1?`Nowa wizyta: ${first.name||"Klient"}`:`Nowe wizyty: ${fresh.length}`,"Pokaż kalendarz",()=>{if(typeof switchTab==="function")switchTab("kalendarz");});
+    crmShowSimpleAdminNotice(
+        fresh.length===1
+            ? `Nowa wizyta: ${first.name||"Klient"}`
+            : `Nowe wizyty: ${fresh.length}`,
+        "Pokaż kalendarz",
+        ()=>{if(typeof switchTab==="function")switchTab("kalendarz");}
+    );
+    return fresh;
 }
 
 function crmVisitTransitionTimes(item) {
@@ -2337,10 +2359,36 @@ function crmEnsureBackgroundStatusPanel() {
 }
 
 function crmSetBackgroundTaskStatus(task, state, text, options = {}) {
+    /*
+     * ADMIN UX V17.1
+     * Zwykła synchronizacja danych działa całkowicie po cichu.
+     * Nie tworzymy i nie odświeżamy już widocznego cyklu:
+     * "Kalendarz: pobieranie...", "Dane gotowe", retry itd.
+     *
+     * To ogranicza zbędne operacje DOM podczas startu i synchronizacji.
+     */
+    if (task !== "save") {
+        const oldSync = document.getElementById("crmTaskStatusSync");
+        if (oldSync) oldSync.style.display = "none";
+
+        // Błąd nadal może zostać pokazany jako lekki toast, bez stałego panelu.
+        if (
+            (state === "error" || state === "attention") &&
+            text &&
+            typeof crmToast === "function"
+        ) {
+            crmToast(String(text), "error");
+        }
+        return;
+    }
+
+    /*
+     * Status operacji zapisu zostaje, bo pojawia się tylko podczas
+     * konkretnej akcji użytkownika i może zawierać możliwość ponowienia.
+     */
     crmEnsureBackgroundStatusPanel();
 
-    const id = task === "save" ? "crmTaskStatusSave" : "crmTaskStatusSync";
-    const button = document.getElementById(id);
+    const button = document.getElementById("crmTaskStatusSave");
     if (!button) return;
 
     if (!text || state === "hidden") {
@@ -2386,7 +2434,7 @@ function crmSetBackgroundTaskStatus(task, state, text, options = {}) {
         window.clearTimeout(button._crmHideTimer);
         button._crmHideTimer = window.setTimeout(() => {
             if (button.textContent.includes(String(text))) button.style.display = "none";
-        }, Number(options.hideAfter) || 3500);
+        }, Number(options.hideAfter) || 2500);
     }
 }
 window.crmSetBackgroundTaskStatus = crmSetBackgroundTaskStatus;
@@ -2668,7 +2716,7 @@ crmRenderUnifiedInbox=function(){
         card.classList.add("crm-first-visit-inbox-card");
         const proposals=crmFirstVisitNormalizeProposalsV8(item);
         const oldMain=Array.from(card.querySelectorAll("div")).find(node=>node.textContent?.includes("Termin główny:"));
-        if(oldMain)oldMain.remove();
+        if(oldMain?.parentElement)oldMain.parentElement.remove();
         let info=card.querySelector(".crm-first-visit-inbox-info");
         if(!info){info=document.createElement("div");info.className="crm-first-visit-inbox-info";const actions=card.querySelector(".crm-inbox-actions");if(actions)card.insertBefore(info,actions);else card.appendChild(info);}
         const proposalHtml=proposals.length?proposals.map(row=>`
@@ -3287,8 +3335,23 @@ crmRefreshTabIfChangedV6 = async function(tabName, reason) {
                 : "kalendarz"
         );
 
+        const normalizedReason = String(reason || "").trim().toLowerCase();
+        const isBrowserReturn =
+            normalizedReason === "focus" ||
+            normalizedReason === "powrot-do-karty" ||
+            normalizedReason === "powrot-do-admin";
+
+        if (isBrowserReturn) {
+            try {
+                if (typeof crmRunInboxPingV5 === "function") {
+                    await crmRunInboxPingV5();
+                }
+            } catch (ignore) {}
+            return true;
+        }
+
         if (tabName === "kalendarz") {
-            return await crmRetryCalendarLightSyncV6(reason || "powrot-do-kalendarza");
+            return await crmRetryCalendarLightSyncV6(reason || "wejscie-do-kalendarza");
         }
 
         if (tabName === "klienci") {
@@ -3358,3 +3421,254 @@ crmCheckEventDrivenInbox = async function() {
 };
 
 /* KONIEC ADMIN EVENT COORDINATOR V13 */
+
+/* ==========================================================================
+   ADMIN UX V17 2026-08-16
+   Systemowe alert("...") nie blokują już pracy i nie wymagają klikania OK.
+   ========================================================================== */
+if (!window.crmNativeAlertBeforeV17) {
+    window.crmNativeAlertBeforeV17 = window.alert.bind(window);
+}
+
+window.alert = function(message) {
+    const text = String(message ?? "").trim();
+    if (typeof crmToast === "function") {
+        const errorLike =
+            /błąd|blad|nie uda|nie można|nie mozna|brak |uzupełnij|uzupelnij|nie wybrano|wymagane/i.test(text);
+        crmToast(text || "Gotowe.", errorLike ? "error" : undefined);
+        return;
+    }
+    return window.crmNativeAlertBeforeV17(text);
+};
+/* KONIEC ADMIN UX V17 */
+
+/* ==========================================================================
+   ADMIN UX V17.1: UKRYCIE CYKLU ŁADOWANIA
+   ========================================================================== */
+function crmHideLegacySyncStatusV171() {
+    const sync = document.getElementById("crmTaskStatusSync");
+    if (sync) sync.style.display = "none";
+
+    const panel = document.getElementById("crmBackgroundStatusPanel");
+    const save = document.getElementById("crmTaskStatusSave");
+
+    if (panel && (!save || save.style.display === "none" || getComputedStyle(save).display === "none")) {
+        panel.style.display = "none";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(crmHideLegacySyncStatusV171, 0);
+    window.setTimeout(crmHideLegacySyncStatusV171, 800);
+});
+/* KONIEC ADMIN UX V17.1 */
+
+/* ==========================================================================
+   ADMIN RETURN COORDINATOR V17.2 2026-08-16
+   Neutralizuje stary anonimowy visibilitychange z calendar.js.
+   Powrót do karty = tylko lekki ping Skrzynki, bez Calendar sync.
+   ========================================================================== */
+crmScheduleCalendarLightSync = function(reason) {
+    const normalizedReason = String(reason || "").trim().toLowerCase();
+    const isBrowserReturn =
+        normalizedReason === "powrot-do-karty" ||
+        normalizedReason === "powrot-do-admin" ||
+        normalizedReason === "focus";
+
+    if (isBrowserReturn) {
+        try {
+            if (typeof crmRunInboxPingV5 === "function") {
+                crmRunInboxPingV5().catch(() => {});
+            }
+        } catch (ignore) {}
+        return;
+    }
+
+    window.clearTimeout(crmScheduleCalendarLightSync.timer);
+    crmScheduleCalendarLightSync.timer = window.setTimeout(() => {
+        if (typeof crmRetryCalendarLightSyncV6 === "function") {
+            crmRetryCalendarLightSyncV6(reason).catch(error => {
+                console.warn("Lekka synchronizacja Kalendarza:", error?.message || error);
+            });
+        }
+    }, 100);
+};
+crmScheduleCalendarLightSync.timer = null;
+/* KONIEC ADMIN RETURN COORDINATOR V17.2 */
+
+/* ==========================================================================
+   ADMIN PERFORMANCE COORDINATOR V18 2026-08-16
+   - blokuje pusty render Kalendarza w trakcie startu;
+   - wejście do zakładki natychmiast renderuje dane lokalne;
+   - odświeżenie sieciowe po wejściu jest tylko tłem i tylko po TTL;
+   - zwykły powrót do przeglądarki nadal = tylko ping Skrzynki.
+   ========================================================================== */
+
+const CRM_PERF_CALENDAR_TTL_V18 = 5 * 60 * 1000;
+const CRM_PERF_DATA_TTL_V18 = 10 * 60 * 1000;
+
+if (typeof renderBooksyCalendar === "function" && !window.crmRenderBooksyCalendarBeforePerfV18) {
+    window.crmRenderBooksyCalendarBeforePerfV18 = renderBooksyCalendar;
+    renderBooksyCalendar = function() {
+        if (window.crmPerfSuppressCalendarRenderV18) return null;
+        return window.crmRenderBooksyCalendarBeforePerfV18.apply(this, arguments);
+    };
+}
+
+function crmPerfRenderTabNowV18(tabName) {
+    if (typeof window.crmPerfRenderCurrentTabV18 === "function") {
+        window.crmPerfRenderCurrentTabV18(tabName, { includeCalendar: true });
+    }
+}
+
+function crmPerfRefreshInBackgroundV18(tabName) {
+    const fresh = window.crmPerfFreshAtV18 || {};
+    const now = Date.now();
+
+    if (tabName === "kalendarz") {
+        if (now - Number(fresh.calendar || 0) < CRM_PERF_CALENDAR_TTL_V18) return;
+        Promise.resolve()
+            .then(() => typeof crmRetryCalendarLightSyncV6 === "function"
+                ? crmRetryCalendarLightSyncV6("stale:kalendarz")
+                : null)
+            .catch(error => console.warn("Tło Kalendarza V18:", error?.message || error));
+        return;
+    }
+
+    if (tabName === "klienci") {
+        if (now - Number(fresh.clients || 0) < CRM_PERF_DATA_TTL_V18) return;
+        Promise.resolve()
+            .then(() => typeof crmLoadClientsPrimaryV2 === "function"
+                ? crmLoadClientsPrimaryV2()
+                : null)
+            .catch(error => console.warn("Tło Klientów V18:", error?.message || error));
+        return;
+    }
+
+    if (tabName === "cennik") {
+        if (now - Number(fresh.services || 0) < CRM_PERF_DATA_TTL_V18) return;
+        Promise.resolve()
+            .then(() => typeof crmLoadServicesPrimaryV2 === "function"
+                ? crmLoadServicesPrimaryV2()
+                : null)
+            .catch(error => console.warn("Tło Cennika V18:", error?.message || error));
+    }
+}
+window.crmPerfRefreshInBackgroundV18 = crmPerfRefreshInBackgroundV18;
+
+/*
+ * Wszystkie wcześniejsze listenery wołają tę nazwę dynamicznie.
+ * Finalna wersja nie blokuje nawigacji oczekiwaniem na sieć.
+ */
+crmRefreshTabIfChangedV6 = async function(tabName, reason) {
+    if (window.crmBootInProgressV2 || window.crmDiagnosticsNetworkModeV11) return null;
+
+    tabName = tabName || (
+        typeof crmDetectActiveTabV6 === "function"
+            ? crmDetectActiveTabV6()
+            : "kalendarz"
+    );
+
+    const normalizedReason = String(reason || "").trim().toLowerCase();
+    const isBrowserReturn =
+        normalizedReason === "focus" ||
+        normalizedReason === "powrot-do-karty" ||
+        normalizedReason === "powrot-do-admin";
+
+    if (isBrowserReturn) {
+        try {
+            if (typeof crmRunInboxPingV5 === "function") {
+                crmRunInboxPingV5().catch(() => {});
+            }
+        } catch (ignore) {}
+        return true;
+    }
+
+    /*
+     * Najpierw natychmiast render z pamięci RAM. Sieć dopiero później.
+     */
+    crmPerfRenderTabNowV18(tabName);
+
+    if (tabName === "ustawienia") {
+        if (typeof populateSettingsForm === "function") populateSettingsForm();
+        if (typeof crmLoadSettingsExtrasV12 === "function") {
+            window.setTimeout(() => {
+                crmLoadSettingsExtrasV12().catch(console.error);
+            }, 0);
+        }
+        return true;
+    }
+
+    if (tabName === "dashboard" && typeof renderDashboard === "function") {
+        renderDashboard();
+        return true;
+    }
+
+    if (tabName === "finanse" && typeof calculateFinanceReport === "function") {
+        calculateFinanceReport();
+        return true;
+    }
+
+    crmPerfRefreshInBackgroundV18(tabName);
+    return true;
+};
+
+/*
+ * Nie wykonujemy pełnego łańcucha switchTab dla kliknięcia już aktywnej
+ * zakładki. To usuwa zbędny rerender, ale nie wpływa na zmianę zakładki.
+ */
+if (typeof switchTab === "function") {
+    const crmSwitchTabBeforePerfV18 = switchTab;
+    switchTab = async function(tabName) {
+        const current = typeof crmDetectActiveTabV6 === "function"
+            ? crmDetectActiveTabV6()
+            : "";
+
+        if (
+            tabName &&
+            current === tabName &&
+            !window.crmBootInProgressV2
+        ) {
+            crmPerfRenderTabNowV18(tabName);
+            return true;
+        }
+
+        const result = await crmSwitchTabBeforePerfV18.apply(this, arguments);
+
+        try {
+            sessionStorage.setItem("crm_active_tab_v18", String(tabName || "kalendarz"));
+        } catch (ignore) {}
+
+        return result;
+    };
+}
+
+/* KONIEC ADMIN PERFORMANCE COORDINATOR V18 */
+
+/* ==========================================================================
+   ADMIN PERFORMANCE V19: publiczny snapshot metryk dla testera
+   ========================================================================== */
+window.crmGetPerformanceSnapshotV19 = function() {
+    return {
+        boot: Object.assign({}, window.crmPerfMetricsV18 || {}),
+        persistent: Object.assign({}, window.crmPerfMetricsV19 || {}),
+        freshAt: Object.assign({}, window.crmPerfFreshAtV18 || {})
+    };
+};
+/* KONIEC ADMIN PERFORMANCE V19 */
+
+/* ==========================================================================
+   ADMIN PERFORMANCE V19.1: stan świeżego bootstrapu
+   ========================================================================== */
+window.crmGetPerformanceSnapshotV191 = function() {
+    return {
+        boot: Object.assign({}, window.crmPerfMetricsV18 || {}),
+        persistent: Object.assign({}, window.crmPerfMetricsV19 || {}),
+        freshAt: Object.assign({}, window.crmPerfFreshAtV18 || {}),
+        freshBootstrap: {
+            state: window.crmPerfFreshBootstrapStateV191 || "idle",
+            error: window.crmPerfFreshBootstrapErrorV191 || ""
+        }
+    };
+};
+/* KONIEC ADMIN PERFORMANCE V19.1 */

@@ -759,32 +759,6 @@ function crmArrangeSchedulePanel() {
     crmWrapSectionAsDetails(panel, "Grafik męża");
 }
 
-/* ----- DIA.55. crmArrangeDiagnosticsPanel (oryginalna linia 4504) ----- */
-function crmArrangeDiagnosticsPanel() {
-    const panel = document.getElementById("crm-diagnostics-panel");
-    if (!panel || panel.dataset.finalLayout === "1") return;
-    panel.dataset.finalLayout = "1";
-    const buttons = Array.from(panel.querySelectorAll("button"));
-    const host = document.createElement("div");
-    host.style.cssText = "display:block";
-    const definitions = [
-        ["Szybki test", b => /Szybki test/i.test(b.textContent)],
-        ["Pełny test CRM", b => /Pełny test/i.test(b.textContent)],
-        ["Raport diagnostyczny", b => /Kopiuj raport/i.test(b.textContent)],
-        ["Historia testów", b => /Historia testów/i.test(b.textContent)]
-    ];
-    definitions.forEach(([title, match]) => {
-        const button = buttons.find(match);
-        if (!button) return;
-        const row = document.createElement("div");
-        row.appendChild(button);
-        host.appendChild(crmCreateProcedure(title, row));
-    });
-    const firstDetails = panel.querySelector("details");
-    if (firstDetails) firstDetails.before(host); else panel.appendChild(host);
-    Array.from(panel.querySelectorAll("details")).forEach(d => d.open = false);
-    crmWrapSectionAsDetails(panel, "Diagnostyka systemu CRM");
-}
 
 /* ----- DIA.56. crmCollapseWorkCalendar (oryginalna linia 4529) ----- */
 function crmCollapseWorkCalendar() {
@@ -811,562 +785,6 @@ async function crmSmartScheduleUpdateNow() {
     finally { if (button) { button.disabled = false; button.textContent = "Sprawdź aktualizację"; } }
 }
 
-/* ----- DIA.58. CRM_TESTER_VERSION (oryginalna linia 4760) ----- */
-/* KONIEC ADMIN V13 */
-
-/* ==========================================================
-   DIAGNOSTYKA SYSTEMU CRM - MODUL STALY
-   WERSJA TESTERA: 1.0.1
-
-   TEN BLOK MUSI POZOSTAC NA SAMYM KONCU ADMIN.JS.
-   POD NIM NIE DODAJEMY INNEGO KODU.
-   ABY USUNAC TESTER, USUN CALY BLOK OD TEGO KOMENTARZA
-   DO KOMENTARZA "KONIEC DIAGNOSTYKI SYSTEMU CRM".
-   ========================================================== */
-
-const CRM_TESTER_VERSION = "2.0.0";
-
-/* ----- DIA.59. crmTestIsRunning (oryginalna linia 4761) ----- */
-let crmTestIsRunning = false;
-
-/* ----- DIA.60. crmLastTestReport (oryginalna linia 4762) ----- */
-let crmLastTestReport = null;
-
-/* ----- DIA.61. crmTestCreateReport (oryginalna linia 4764) ----- */
-function crmTestCreateReport(testType) {
-    const now = new Date();
-    return {
-        testId: "CRM_TEST_" + now.getTime(),
-        testerVersion: CRM_TESTER_VERSION,
-        testType: testType,
-        startedAt: now.toISOString(),
-        finishedAt: "",
-        durationSeconds: 0,
-        status: "W TRAKCIE",
-        passed: 0,
-        warnings: 0,
-        errors: 0,
-        currentStage: "Przygotowanie testu",
-        tests: [],
-        testData: {}
-    };
-}
-
-/* ----- DIA.62. crmTestAdd (oryginalna linia 4783) ----- */
-function crmTestAdd(report, status, name, details) {
-    report.tests.push({
-        status: status,
-        name: name,
-        details: details === undefined ? "" : details
-    });
-    if (status === "OK") report.passed += 1;
-    else if (status === "OSTRZEZENIE") report.warnings += 1;
-    else report.errors += 1;
-    crmTestRenderReport(report);
-}
-
-/* ----- DIA.63. crmTestWait (oryginalna linia 4795) ----- */
-function crmTestWait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/* ----- DIA.64. crmTestSetProgress (oryginalna linia 4799) ----- */
-function crmTestSetProgress(percent, text) {
-    const wrapper = document.getElementById("crm-test-progress-wrapper");
-    const bar = document.getElementById("crm-test-progress-bar");
-    const label = document.getElementById("crm-test-progress-text");
-    if (wrapper) wrapper.style.display = "block";
-    if (bar) bar.style.width = Math.max(0, Math.min(100, percent)) + "%";
-    if (label) label.textContent = text;
-    if (crmLastTestReport) crmLastTestReport.currentStage = text;
-}
-
-/* ----- DIA.65. crmTestSetRunning (oryginalna linia 4809) ----- */
-function crmTestSetRunning(running) {
-    crmTestIsRunning = running;
-    ["runQuickCRMTestBtn", "runFullCRMTestBtn"].forEach(id => {
-        const button = document.getElementById(id);
-        if (button) button.disabled = running;
-    });
-}
-
-/* ----- DIA.66. crmTestSafeText (oryginalna linia 4817) ----- */
-function crmTestSafeText(value) {
-    if (value === undefined || value === null || value === "") return "";
-    if (typeof value === "string") return value;
-    try { return JSON.stringify(value); }
-    catch (error) { return String(value); }
-}
-
-/* ----- DIA.67. buildCRMTestTextReport (oryginalna linia 4824) ----- */
-function buildCRMTestTextReport(report) {
-    if (!report) return "Brak raportu.";
-    const lines = [
-        "CRM TEST REPORT",
-        "ID testu: " + report.testId,
-        "Wersja testera: " + report.testerVersion,
-        "Rodzaj testu: " + report.testType,
-        "Status: " + report.status,
-        "Rozpoczecie: " + report.startedAt,
-        "Zakonczenie: " + (report.finishedAt || "test trwa"),
-        "Czas: " + report.durationSeconds + " s",
-        "Zaliczone: " + report.passed,
-        "Ostrzezenia: " + report.warnings,
-        "Bledy: " + report.errors,
-        "",
-        "SZCZEGOLY:"
-    ];
-    report.tests.forEach((test, index) => {
-        const icon = test.status === "OK" ? "[OK]" :
-            (test.status === "OSTRZEZENIE" ? "[OSTRZEZENIE]" : "[BLAD]");
-        lines.push((index + 1) + ". " + icon + " " + test.name);
-        const details = crmTestSafeText(test.details);
-        if (details) lines.push("   " + details);
-    });
-    return lines.join("\n");
-}
-
-/* ----- DIA.68. crmTestRenderReport (oryginalna linia 4851) ----- */
-function crmTestRenderReport(report) {
-    const output = document.getElementById("crm-test-report-output");
-    if (output) output.textContent = buildCRMTestTextReport(report);
-}
-
-/* ----- DIA.69. crmTestRenderSummary (oryginalna linia 4856) ----- */
-function crmTestRenderSummary(report) {
-    const box = document.getElementById("crm-test-summary");
-    if (!box) return;
-    const isError = report.errors > 0;
-    const isWarning = !isError && report.warnings > 0;
-    const color = isError ? "#b42318" : (isWarning ? "#a15c00" : "#198754");
-    const title = isError ? "Test wykryl bledy" :
-        (isWarning ? "Test zakonczony z ostrzezeniami" : "Test zakonczony pomyslnie");
-    box.style.display = "block";
-    box.style.borderLeft = "6px solid " + color;
-    box.innerHTML =
-        '<h3 style="color:' + color + ';margin-top:0;">' + title + '</h3>' +
-        '<p><strong>ID testu:</strong> ' + report.testId + '</p>' +
-        '<p>OK: <strong>' + report.passed + '</strong> &nbsp; ' +
-        'Ostrzezenia: <strong>' + report.warnings + '</strong> &nbsp; ' +
-        'Bledy: <strong>' + report.errors + '</strong></p>' +
-        '<p>Czas: <strong>' + report.durationSeconds + ' s</strong></p>';
-}
-
-/* ----- DIA.70. crmTestGet (oryginalna linia 4875) ----- */
-async function crmTestGet(parameters, options = {}) {
-    const query = Object.keys(parameters || {}).map(key =>
-        encodeURIComponent(key) + "=" + encodeURIComponent(parameters[key])
-    ).join("&");
-    const timeoutMs = Math.max(2000, Number(options.timeoutMs) || 10000);
-    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    let timer = null;
-
-    try {
-        const wholeRequest = (async () => {
-            const response = await fetch(APPS_SCRIPT_URL + "?" + query, {
-                method: "GET",
-                cache: "no-store",
-                signal: controller ? controller.signal : undefined
-            });
-            const text = await response.text();
-            if (!response.ok) throw new Error("HTTP " + response.status + ": " + text.substring(0, 500));
-            try { return JSON.parse(text); }
-            catch (error) { throw new Error("API nie zwrocilo JSON: " + text.substring(0, 500)); }
-        })();
-
-        const timeout = new Promise((_, reject) => {
-            timer = window.setTimeout(() => {
-                try { controller?.abort(); } catch (ignore) {}
-                reject(new Error("TIMEOUT GET po " + timeoutMs + " ms: " + query));
-            }, timeoutMs);
-        });
-
-        return await Promise.race([wholeRequest, timeout]);
-    } finally {
-        if (timer) window.clearTimeout(timer);
-    }
-}
-
-/* ----- DIA.71. crmTestFrontendChecks (oryginalna linia 4901) ----- */
-function crmTestFrontendChecks(report) {
-    [
-        "admin-panel-wrapper", "tab-dashboard", "tab-kalendarz", "tab-klienci",
-        "tab-cennik", "tab-finanse", "tab-ustawienia", "booksy-grid",
-        "clientsTableBody", "adminServicesTableBody", "settingsForm",
-        "work_start_hour", "work_end_hour", "buffer_hours", "slot_interval_minutes",
-        "start_offset_minutes", "cleanup_buffer_minutes", "schedule_cycle", "appointmentModal",
-        "appointmentDetailsModal", "blockTimeModal", "clientModal", "serviceModal",
-        "categoryModal", "crm-diagnostics-panel"
-    ].forEach(id => {
-        const exists = Boolean(document.getElementById(id));
-        crmTestAdd(report, exists ? "OK" : "BLAD", "Element HTML #" + id,
-            exists ? "Znaleziono" : "Nie znaleziono");
-    });
-    [
-        "loadSystem", "loadServices", "loadSettings", "loadClients",
-        "renderDashboard", "renderBooksyCalendar", "renderMiniMonthCalendar",
-        "renderDayCalendar", "renderWeekCalendar", "renderMonthCalendar",
-        "normalizeClientCounter", "renderClients", "renderServicesTable", "calculateFinanceReport",
-        "saveSettings", "saveAppointment", "deleteAppointmentFromAdmin",
-        "deleteBlockTimeFromAdmin", "deleteSelectedCalendarItemFromAdmin",
-        "recordAppointmentLifecycle", "loadClientCRMProfile", "saveClientBookingMode",
-        "getSmartNextVisitSuggestion", "saveFamilyScheduleEntry",
-        "submitBlockTime", "saveClientModalData", "deleteClient",
-        "saveDraftsToCloud", "publishDrafts"
-    ].forEach(name => {
-        const exists = typeof window[name] === "function";
-        crmTestAdd(report, exists ? "OK" : "BLAD", "Funkcja " + name + "()",
-            exists ? "Dostepna" : "Brak funkcji");
-    });
-}
-
-/* ----- DIA.72. crmTestApiChecks (oryginalna linia 4933) ----- */
-async function crmTestApiChecks(report) {
-    const busy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
-    const validBusy = busy && typeof busy === "object" && busy.settings &&
-        typeof busy.settings === "object" && Array.isArray(busy.appointments);
-    crmTestAdd(report, validBusy ? "OK" : "BLAD", "Odczyt ustawien i kalendarza",
-        validBusy ? "Poprawna odpowiedz" : busy);
-    if (!validBusy) throw new Error("Nieprawidlowa odpowiedz checkBusy");
-
-    [
-        "work_start_hour", "work_end_hour", "buffer_hours", "slot_interval_minutes",
-        "start_offset_minutes", "cleanup_buffer_minutes", "schedule_cycle",
-        "calendar_id", "colors", "all_categories"
-    ].forEach(key => {
-        const exists = Object.prototype.hasOwnProperty.call(busy.settings, key);
-        crmTestAdd(report, exists ? "OK" : "OSTRZEZENIE", "Ustawienie " + key,
-            exists ? busy.settings[key] : "Brak ustawienia");
-    });
-    const services = await crmTestGet({ getPrices: "true", testTimestamp: Date.now() });
-    crmTestAdd(report, Array.isArray(services) ? "OK" : "BLAD", "Odczyt cennika",
-        Array.isArray(services) ? "Liczba uslug: " + services.length : services);
-    const clients = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-    crmTestAdd(report, Array.isArray(clients) ? "OK" : "BLAD", "Odczyt klientow",
-        Array.isArray(clients) ? "Liczba klientow: " + clients.length : clients);
-    return busy;
-}
-
-/* ----- DIA.73. crmTestLocalDate (oryginalna linia 4959) ----- */
-function crmTestLocalDate(daysForward, hour, minute) {
-    const date = new Date();
-    date.setDate(date.getDate() + daysForward);
-    date.setHours(hour, minute, 0, 0);
-    const p = value => String(value).padStart(2, "0");
-    return date.getFullYear() + "-" + p(date.getMonth() + 1) + "-" + p(date.getDate()) +
-        "T" + p(date.getHours()) + ":" + p(date.getMinutes());
-}
-
-/* ----- DIA.74. crmTestLocalDay (oryginalna linia 4968) ----- */
-function crmTestLocalDay(daysForward) {
-    return crmTestLocalDate(daysForward, 0, 0).substring(0, 10);
-}
-
-/* ----- DIA.75. crmTestFinish (oryginalna linia 4972) ----- */
-function crmTestFinish(report, startedAtMs) {
-    report.finishedAt = new Date().toISOString();
-    report.durationSeconds = Math.round((Date.now() - startedAtMs) / 1000);
-    report.status = report.errors > 0 ? "BLEDY" :
-        (report.warnings > 0 ? "OSTRZEZENIA" : "ZALICZONY");
-    crmTestRenderReport(report);
-    crmTestRenderSummary(report);
-}
-
-/* ----- DIA.76. saveCRMTestReport (oryginalna linia 4981) ----- */
-async function saveCRMTestReport(report) {
-    const result = await crmTestPost({ action: "saveTestReport", report: report });
-    if (!result || !result.success) {
-        throw new Error(result && result.error ? result.error : "Nie zapisano raportu");
-    }
-    return result;
-}
-
-/* ----- DIA.77. runCRMQuickTest (oryginalna linia 4989) ----- */
-async function runCRMQuickTest() {
-    if (crmTestIsRunning) return alert("Test CRM jest juz uruchomiony.");
-    crmTestSetRunning(true);
-    const report = crmTestCreateReport("SZYBKI");
-    crmLastTestReport = report;
-    const started = Date.now();
-    try {
-        crmTestSetProgress(15, "Sprawdzanie HTML i JavaScript...");
-        crmTestFrontendChecks(report);
-        crmTestSetProgress(55, "Sprawdzanie API i danych...");
-        await crmTestApiChecks(report);
-    } catch (error) {
-        crmTestAdd(report, "BLAD", "Glowny przebieg szybkiego testu", error.message || String(error));
-    } finally {
-        crmTestFinish(report, started);
-        crmTestSetProgress(90, "Zapisywanie raportu...");
-        try { await saveCRMTestReport(report); }
-        catch (error) { crmTestAdd(report, "BLAD", "Zapis raportu", error.message || String(error)); crmTestFinish(report, started); }
-        crmTestSetProgress(100, "Szybki test zakonczony.");
-        crmTestSetRunning(false);
-    }
-}
-
-/* ----- DIA.78. runCRMFullTest (oryginalna linia 5012) ----- */
-async function runCRMFullTest() {
-    if (crmTestIsRunning) return alert("Test CRM jest juz uruchomiony.");
-    crmTestSetRunning(true);
-    const report = crmTestCreateReport("PELNY");
-    crmLastTestReport = report;
-    const started = Date.now();
-    const marker = Date.now();
-    const phone = "TEST-" + marker;
-    const clientName = "CRM_TEST_KLIENT_" + marker;
-    const editedName = "CRM_TEST_EDYCJA_" + marker;
-    const serviceName = "CRM_TEST_USLUGA_" + marker;
-    const blockTitle = "CRM_TEST_BLOKADA_" + marker;
-    const appointmentDate = crmTestLocalDate(20, 10, 15);
-    const editedDate = crmTestLocalDate(20, 12, 30);
-    let appointmentEventId = "";
-    let blockEventId = "";
-    report.testData = { marker, phone, clientName, editedName, serviceName, blockTitle };
-
-    try {
-        crmTestSetProgress(5, "Sprawdzanie HTML i JavaScript...");
-        crmTestFrontendChecks(report);
-
-        const savedViewMode = calendarViewMode;
-        const savedSelectedDate = new Date(selectedCalendarDate);
-        ["day", "week", "month"].forEach(mode => {
-            setCalendarView(mode);
-            const calendarGrid = document.getElementById("booksy-grid");
-            crmTestAdd(
-                report,
-                calendarGrid && calendarGrid.dataset.calendarView === mode ? "OK" : "BLAD",
-                "Renderowanie widoku " + mode,
-                calendarGrid ? calendarGrid.dataset.calendarView : "Brak siatki kalendarza"
-            );
-        });
-        selectedCalendarDate = savedSelectedDate;
-        setCalendarView(savedViewMode);
-
-        crmTestSetProgress(15, "Sprawdzanie API i ustawien...");
-        await crmTestApiChecks(report);
-
-        const extensionInit = await crmExtendedPost("initializeCRMExtensions");
-        crmTestAdd(report, extensionInit && extensionInit.success ? "OK" : "BLAD",
-            "Inicjalizacja modułów 3.3E-3.3H", extensionInit);
-
-        const familyRead = await crmExtendedPost("getFamilySchedule", { fromDate: "", toDate: "" });
-        crmTestAdd(report, familyRead && familyRead.success && Array.isArray(familyRead.entries) ? "OK" : "BLAD",
-            "Odczyt grafiku rodzinnego", familyRead);
-
-        const point35 = await crmExtendedPost("runPoint35Diagnostics");
-        crmTestAdd(report, point35 && point35.success ? "OK" : "BLAD", "Diagnostyka końcowa 3.4 i 3.5", point35);
-        crmTestAdd(report, point35 && point35.drive && point35.drive.folderAccessible ? "OK" : "BLAD", "Dostęp do folderu prawdziwego grafiku", point35 && point35.drive);
-        crmTestAdd(report, point35 && point35.manualCorrectionHighestPriority ? "OK" : "BLAD", "Ręczna korekta ma najwyższy priorytet", point35);
-        crmTestAdd(report, point35 && point35.privateCalendarProtection ? "OK" : "BLAD", "Ochrona prywatnych wydarzeń Google Calendar", point35);
-        crmTestAdd(report, point35 && point35.smartVisitEngine ? "OK" : "BLAD", "Silnik inteligentnego kolejnego wizytu", point35);
-
-        const backupResult = await crmExtendedPost("createFinalAdminBackup", { description: "Automatyczny backup testu " + report.testId });
-        crmTestAdd(report, backupResult && backupResult.success ? "OK" : "BLAD", "Finalny backup ADMIN", backupResult);
-
-        crmTestSetProgress(25, "Tworzenie klienta testowego...");
-        const clientCreate = await crmTestPost({
-            action: "saveClient", oldPhone: "",
-            client: { name: clientName, phone, visits: 0, cancelled: 0, lastVisit: "" }
-        });
-        crmTestAdd(report, clientCreate.success ? "OK" : "BLAD", "Tworzenie klienta testowego", clientCreate);
-        const clientEdit = await crmTestPost({
-            action: "saveClient", oldPhone: phone,
-            client: { name: editedName, phone, visits: 2, cancelled: 1, lastVisit: "" }
-        });
-        crmTestAdd(report, clientEdit.success ? "OK" : "BLAD", "Edycja klienta testowego", clientEdit);
-
-        crmTestSetProgress(40, "Tworzenie wizyty testowej...");
-        const appointmentCreate = await crmTestPost({
-            action: "createBooking", phone, name: editedName, service: serviceName,
-            date: appointmentDate, duration: 45, rodo: "Test automatyczny CRM"
-        });
-        crmTestAdd(report, appointmentCreate.success ? "OK" : "BLAD", "Tworzenie wizyty testowej", appointmentCreate);
-        await crmTestWait(1500);
-        let busy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
-        let appointment = busy.appointments.find(item =>
-            String(item.phone) === phone && item.name === editedName && item.service === serviceName
-        );
-        if (appointment) appointmentEventId = appointment.eventId || "";
-        crmTestAdd(report, appointment ? "OK" : "BLAD", "Odczyt utworzonej wizyty", appointment || "Nie znaleziono");
-        crmTestAdd(report, appointmentEventId ? "OK" : "OSTRZEZENIE", "Event ID wizyty", appointmentEventId || "Brak Event ID");
-        crmTestAdd(report, appointment && Number(appointment.duration) === 45 ? "OK" : "BLAD",
-            "Czas trwania utworzonej wizyty", appointment ? appointment.duration + " min" : "Brak wizyty");
-
-        let clientsAfterCreate = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-        let testClientStats = clientsAfterCreate.find(item => String(item.phone) === phone);
-        crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 1 ? "OK" : "BLAD",
-            "Statystyka klienta po utworzeniu wizyty", testClientStats || "Nie znaleziono klienta");
-        crmTestAdd(report, testClientStats && typeof testClientStats.visits === "number" ? "OK" : "BLAD",
-            "Licznik wizyt klienta jest liczbą", testClientStats || "Nie znaleziono klienta");
-
-        const conflictAttempt = await crmTestPost({
-            action: "createBooking",
-            phone: phone + "-KONFLIKT",
-            name: "CRM_TEST_KONFLIKT_" + marker,
-            service: serviceName + "_KONFLIKT",
-            date: crmTestLocalDate(20, 11, 0),
-            duration: 45,
-            rodo: "Test konfliktu CRM"
-        });
-        const conflictRejected =
-            conflictAttempt &&
-            conflictAttempt.success === false &&
-            conflictAttempt.code === "TIME_CONFLICT";
-        crmTestAdd(report, conflictRejected ? "OK" : "BLAD",
-            "Odrzucenie nakładającej się wizyty", conflictAttempt);
-
-        crmTestSetProgress(52, "Edytowanie wizyty testowej...");
-        if (appointmentEventId) {
-            const appointmentEdit = await crmTestPost({
-                action: "createBooking", editFlag: true, oldEventId: appointmentEventId,
-                oldDate: appointmentDate, oldName: editedName, phone, name: editedName,
-                service: serviceName + "_EDYCJA", date: editedDate, duration: 60,
-                rodo: "Edycja automatyczna CRM"
-            });
-            crmTestAdd(report, appointmentEdit.success ? "OK" : "BLAD", "Edycja wizyty testowej", appointmentEdit);
-            await crmTestWait(1500);
-            busy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
-            appointment = busy.appointments.find(item =>
-                String(item.phone) === phone && item.service === serviceName + "_EDYCJA"
-            );
-            if (appointment) appointmentEventId = appointment.eventId || appointmentEventId;
-            crmTestAdd(report, appointment ? "OK" : "BLAD", "Weryfikacja wizyty po edycji", appointment || "Nie znaleziono");
-            crmTestAdd(report, appointment && Number(appointment.duration) === 60 ? "OK" : "BLAD",
-                "Czas trwania wizyty po edycji", appointment ? appointment.duration + " min" : "Brak wizyty");
-
-            const clientsAfterEdit = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-            testClientStats = clientsAfterEdit.find(item => String(item.phone) === phone);
-            crmTestAdd(report, testClientStats && Number(testClientStats.visits) === 1 ? "OK" : "BLAD",
-                "Edycja nie zwiększa licznika wizyt", testClientStats || "Nie znaleziono klienta");
-        }
-
-        crmTestSetProgress(65, "Tworzenie blokady testowej...");
-        const blockCreate = await crmTestPost({
-            action: "blockTime", blockType: "hours", date: crmTestLocalDay(21),
-            startTime: "14:10", endTime: "15:20", title: blockTitle
-        });
-        if (blockCreate.success) blockEventId = blockCreate.eventId || "";
-        crmTestAdd(report, blockCreate.success ? "OK" : "BLAD", "Tworzenie blokady testowej", blockCreate);
-        crmTestAdd(report, blockEventId ? "OK" : "OSTRZEZENIE", "Event ID blokady", blockEventId || "Brak Event ID");
-
-        crmTestSetProgress(78, "Sprzatanie danych testowych...");
-        if (appointmentEventId) {
-            const result = await crmTestPost({
-                action: "createBooking", deleteFlag: true, eventId: appointmentEventId,
-                date: editedDate, name: editedName
-            });
-            let deletionSucceeded = Boolean(result && result.success);
-            if (!deletionSucceeded) {
-                await crmTestWait(700);
-                const verificationBusy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
-                const stillExists = verificationBusy && Array.isArray(verificationBusy.appointments)
-                    ? verificationBusy.appointments.some(item => item.eventId === appointmentEventId)
-                    : true;
-                deletionSucceeded = !stillExists;
-            }
-            crmTestAdd(report, deletionSucceeded ? "OK" : "BLAD", "Usuwanie wizyty testowej",
-                deletionSucceeded && (!result || !result.success)
-                    ? "Wizyta usunięta; odpowiedź API została utracona, stan potwierdzony odczytem"
-                    : result);
-            await crmTestWait(500);
-            const clientsAfterAppointmentDelete = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-            testClientStats = clientsAfterAppointmentDelete.find(item => String(item.phone) === phone);
-            const customerRemovedAfterCleanup = !testClientStats;
-            const customerCounterReset = testClientStats && Number(testClientStats.visits) === 0;
-            crmTestAdd(report, customerRemovedAfterCleanup || customerCounterReset ? "OK" : "BLAD",
-                "Licznik klienta po usunięciu wizyty",
-                customerRemovedAfterCleanup
-                    ? "Klient testowy bez wizyt został automatycznie usunięty"
-                    : testClientStats);
-        }
-        if (blockEventId) {
-            const result = await crmTestPost({
-                action: "deleteBlockTime", eventId: blockEventId,
-                start: crmTestLocalDay(21) + "T14:10", end: crmTestLocalDay(21) + "T15:20", title: blockTitle
-            });
-            crmTestAdd(report, result.success ? "OK" : "BLAD", "Usuwanie blokady przez deleteBlockTime", result);
-        }
-        const clientDelete = await crmTestPost({ action: "deleteClient", phone });
-        crmTestAdd(report, clientDelete.success ? "OK" : "BLAD", "Usuwanie klienta testowego", clientDelete);
-
-        crmTestSetProgress(88, "Weryfikacja sprzatania...");
-        await crmTestWait(1200);
-        const finalClients = await crmTestGet({ getClients: "true", testTimestamp: Date.now() });
-        const clientExists = Array.isArray(finalClients) && finalClients.some(item => String(item.phone) === phone);
-        crmTestAdd(report, !clientExists ? "OK" : "BLAD", "Kontrola usuniecia klienta",
-            !clientExists ? "Klient usuniety" : "Klient nadal istnieje");
-        const finalBusy = await crmTestGet({ checkBusy: "true", testTimestamp: Date.now() });
-        const appointmentExists = finalBusy.appointments.some(item => item.eventId === appointmentEventId || String(item.phone) === phone);
-        const blockExists = finalBusy.appointments.some(item => item.eventId === blockEventId || item.name === blockTitle);
-        crmTestAdd(report, !appointmentExists ? "OK" : "BLAD", "Kontrola usuniecia wizyty",
-            !appointmentExists ? "Wizyta usunieta" : "Wizyta nadal istnieje");
-        crmTestAdd(report, !blockExists ? "OK" : "BLAD", "Kontrola usuniecia blokady",
-            !blockExists ? "Blokada usunieta" : "Blokada nadal istnieje");
-    } catch (error) {
-        crmTestAdd(report, "BLAD", "Glowny przebieg pelnego testu", error.message || String(error));
-        try { await crmTestPost({ action: "deleteClient", phone }); } catch (cleanupError) { console.error(cleanupError); }
-    } finally {
-        crmTestFinish(report, started);
-        crmTestSetProgress(95, "Zapisywanie raportu w Google Sheets...");
-        try { await saveCRMTestReport(report); }
-        catch (error) { crmTestAdd(report, "BLAD", "Zapis raportu", error.message || String(error)); crmTestFinish(report, started); }
-        crmTestSetProgress(100, "Pelny test CRM zakonczony.");
-        crmTestSetRunning(false);
-        try { await loadSystem(); } catch (error) { console.error("Blad odswiezenia po tescie:", error); }
-    }
-}
-
-/* ----- DIA.79. copyCRMTestReport (oryginalna linia 5223) ----- */
-async function copyCRMTestReport() {
-    if (!crmLastTestReport) return alert("Nie ma jeszcze raportu do skopiowania.");
-    const text = buildCRMTestTextReport(crmLastTestReport);
-    try {
-        await navigator.clipboard.writeText(text);
-        alert("Raport zostal skopiowany.");
-    } catch (error) {
-        const field = document.createElement("textarea");
-        field.value = text;
-        document.body.appendChild(field);
-        field.select();
-        document.execCommand("copy");
-        field.remove();
-        alert("Raport zostal skopiowany.");
-    }
-}
-
-/* ----- DIA.80. loadCRMTestHistory (oryginalna linia 5240) ----- */
-async function loadCRMTestHistory() {
-    const container = document.getElementById("crm-test-history");
-    if (!container) return;
-    container.style.display = "block";
-    container.textContent = "Ladowanie historii testow...";
-    try {
-        const response = await crmTestPost({ action: "getTestReports", limit: 10 });
-        if (!response.success || !Array.isArray(response.reports)) {
-            throw new Error(response.error || "Nieprawidlowa odpowiedz");
-        }
-        if (response.reports.length === 0) {
-            container.innerHTML = "<p>Brak zapisanych raportow.</p>";
-            return;
-        }
-        let html = '<h3>Ostatnie testy CRM</h3><div style="overflow-x:auto;">' +
-            '<table class="admin-table"><thead><tr><th>Data</th><th>ID</th><th>Typ</th>' +
-            '<th>Status</th><th>OK</th><th>Ostrzezenia</th><th>Bledy</th><th>Czas</th>' +
-            '</tr></thead><tbody>';
-        response.reports.forEach(item => {
-            html += "<tr><td>" + (item.date || "") + "</td><td>" + (item.testId || "") +
-                "</td><td>" + (item.testType || "") + "</td><td>" + (item.status || "") +
-                "</td><td>" + (item.passed || 0) + "</td><td>" + (item.warnings || 0) +
-                "</td><td>" + (item.errors || 0) + "</td><td>" +
-                (item.durationSeconds || 0) + " s</td></tr>";
-        });
-        container.innerHTML = html + "</tbody></table></div>";
-    } catch (error) {
-        container.innerHTML = '<p style="color:#b42318;">Blad historii: ' +
-            String(error.message || error) + "</p>";
-    }
-}
 
 /* ----- DIA.81. crmDaySettingsRange (oryginalna linia 5814) ----- */
 function crmDaySettingsRange() {
@@ -1375,268 +793,6 @@ function crmDaySettingsRange() {
     return {start: Math.min(start, end - 60), end: Math.max(end, start + 60)};
 }
 
-/* ==========================================================================
-   DIAGNOSTYKA SIECI / SKRZYNKI V2 2026-08-12
-   Tester endpointow krytycznych z twardym timeoutem i pomiarem czasu.
-   ========================================================================== */
-
-function crmDiagNowV2(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
-function crmDiagElapsedV2(start){ return Math.round(crmDiagNowV2()-start); }
-
-function crmDiagSummaryShapeV2(data){
-    if(Array.isArray(data)) return {type:"array",length:data.length};
-    if(!data || typeof data!=="object") return {type:typeof data,value:String(data)};
-    const summary={type:"object",keys:Object.keys(data).slice(0,20)};
-    if(Array.isArray(data.items)) summary.items=data.items.length;
-    if(Array.isArray(data.appointments)) summary.appointments=data.appointments.length;
-    if(Array.isArray(data.requests)) summary.requests=data.requests.length;
-    if(data.newCount!==undefined) summary.newCount=data.newCount;
-    if(data.success!==undefined) summary.success=data.success;
-    if(data.error) summary.error=data.error;
-    return summary;
-}
-
-async function crmDiagProbeFetchV2(params, timeoutMs=8000){
-    const start=crmDiagNowV2();
-    try{
-        const data=await crmTestGet(Object.assign({},params,{_diag:Date.now()}),{timeoutMs});
-        return {ok:true,ms:crmDiagElapsedV2(start),transport:"fetch",data,shape:crmDiagSummaryShapeV2(data)};
-    }catch(error){
-        return {ok:false,ms:crmDiagElapsedV2(start),transport:"fetch",error:error?.message||String(error)};
-    }
-}
-
-function crmDiagProbeJsonpV2(params, timeoutMs=8000){
-    return new Promise(resolve=>{
-        const start=crmDiagNowV2();
-        const callback="__crmDiagJsonpV2_"+Date.now()+"_"+Math.random().toString(36).slice(2);
-        const script=document.createElement("script");
-        let finished=false;
-        const finish=result=>{
-            if(finished)return;
-            finished=true;
-            clearTimeout(timer);
-            try{delete window[callback];}catch(ignore){window[callback]=undefined;}
-            script.remove();
-            resolve(Object.assign({ms:crmDiagElapsedV2(start),transport:"jsonp"},result));
-        };
-        window[callback]=data=>finish({ok:true,data,shape:crmDiagSummaryShapeV2(data)});
-        script.onerror=()=>finish({ok:false,error:"Blad ladowania skryptu JSONP / callback nie zostal wykonany"});
-        const timer=setTimeout(()=>finish({ok:false,error:"TIMEOUT JSONP po "+timeoutMs+" ms"}),timeoutMs);
-        const query=Object.entries(Object.assign({},params,{callback,_diag:Date.now()}))
-            .map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&");
-        script.src=APPS_SCRIPT_URL+(APPS_SCRIPT_URL.includes("?")?"&":"?")+query;
-        script.async=true;
-        document.head.appendChild(script);
-    });
-}
-
-function crmDiagAddProbeV2(report,name,result,validator,required=true){
-    const valid=result.ok && (!validator || validator(result.data));
-    const status=valid?"OK":(required?"BLAD":"OSTRZEZENIE");
-    crmTestAdd(report,status,name,{
-        transport:result.transport,
-        czas_ms:result.ms,
-        wynik:result.ok?result.shape:result.error
-    });
-    return valid;
-}
-
-async function crmTestNetworkChecksV2(report){
-    crmTestSetProgress(18,"Diagnostyka sieci: endpointy podstawowe...");
-    const baseTests=[
-        ["GET checkBusy",{checkBusy:"true"},d=>d&&Array.isArray(d.appointments)&&d.settings,true,12000],
-        ["GET getPrices",{getPrices:"true"},d=>Array.isArray(d),true,9000],
-        ["GET getClients",{getClients:"true"},d=>Array.isArray(d),true,9000],
-        ["GET adminInboxPing",{adminInboxPing:"true"},d=>d&&d.success===true&&typeof d.newCount!=="undefined",true,8000],
-        ["GET adminInbox",{adminInbox:"true"},d=>d&&d.success===true&&Array.isArray(d.items),true,8000],
-        ["GET adminState",{adminState:"true"},d=>d&&d.success===true,true,8000],
-        ["GET bookingOperationStatus",{bookingOperationStatus:"CRM_DIAG_NIEISTNIEJACY"},d=>d&&d.success===true&&d.found===false,false,8000]
-    ];
-
-    for(const [name,params,validator,required,timeout] of baseTests){
-        crmTestSetProgress(20,"Siec: "+name+"...");
-        const result=await crmDiagProbeFetchV2(params,timeout);
-        crmDiagAddProbeV2(report,name,result,validator,required);
-    }
-
-    crmTestSetProgress(23,"Diagnostyka transportu JSONP Skrzynki...");
-    const jsonpRequired = typeof window.crmJsonpGetV10 === "function" ||
-        typeof window.crmFetchUnifiedInboxJsonpV10 === "function" ||
-        String(window.crmInboxTransportVersion||"").toUpperCase().includes("JSONP");
-
-    const jsonpTests=[
-        ["JSONP adminInboxPing",{adminInboxPing:"true"},d=>d&&d.success===true],
-        ["JSONP adminInbox",{adminInbox:"true"},d=>d&&d.success===true&&Array.isArray(d.items)],
-        ["JSONP adminState",{adminState:"true"},d=>d&&d.success===true]
-    ];
-    for(const [name,params,validator] of jsonpTests){
-        const result=await crmDiagProbeJsonpV2(params,8000);
-        crmDiagAddProbeV2(report,name,result,validator,jsonpRequired);
-    }
-
-    const functions=[
-        "crmLoadUnifiedInbox","crmRunInboxPingV5","crmFetchRemoteStateV2",
-        "crmLightSyncCalendarData","crmRetryCalendarLightSyncV6"
-    ];
-    functions.forEach(name=>{
-        crmTestAdd(report,typeof window[name]==="function"?"OK":"OSTRZEZENIE",
-            "Funkcja sieciowa "+name+"()",
-            typeof window[name]==="function"?"Dostepna":"Brak w aktualnym frontendzie");
-    });
-
-    crmTestAdd(report,navigator.onLine?"OK":"BLAD","Stan przegladarki navigator.onLine",String(navigator.onLine));
-    crmTestAdd(report,"OK","Adres Web App ADMIN",APPS_SCRIPT_URL);
-}
-
-/* Szybki i pelny test automatycznie dostaja preflight sieci/Skrzynki. */
-const crmTestApiChecksBeforeNetworkV2=crmTestApiChecks;
-crmTestApiChecks=async function(report){
-    await crmTestNetworkChecksV2(report);
-    return crmTestApiChecksBeforeNetworkV2(report);
-};
-
-async function runCRMNetworkTestV2(){
-    if(crmTestIsRunning)return alert("Test CRM jest juz uruchomiony.");
-    crmTestSetRunning(true);
-    const report=crmTestCreateReport("SIEC_I_SKRZYNKA");
-    crmLastTestReport=report;
-    const started=Date.now();
-    try{
-        crmTestSetProgress(5,"Sprawdzanie transportu i endpointow...");
-        await crmTestNetworkChecksV2(report);
-    }catch(error){
-        crmTestAdd(report,"BLAD","Glowny przebieg testu sieci",error?.message||String(error));
-    }finally{
-        crmTestFinish(report,started);
-        crmTestSetProgress(92,"Proba zapisu raportu...");
-        try{await saveCRMTestReport(report);}catch(error){
-            crmTestAdd(report,"OSTRZEZENIE","Zapis raportu do Google Sheets",error?.message||String(error));
-            crmTestFinish(report,started);
-        }
-        crmTestSetProgress(100,"Test sieci i Skrzynki zakonczony.");
-        crmTestSetRunning(false);
-    }
-}
-window.runCRMNetworkTestV2=runCRMNetworkTestV2;
-
-function crmInstallNetworkDiagnosticsButtonV2(){
-    const panel=document.getElementById("crm-diagnostics-panel");
-    if(!panel||document.getElementById("runCRMNetworkTestV2Btn"))return;
-
-    const details=document.createElement("details");
-    details.className="crm-procedure";
-    details.style.cssText="margin:8px 0;";
-    details.innerHTML=`
-      <summary style="cursor:pointer;font-weight:700">Test sieci i Skrzynki</summary>
-      <div style="padding:10px 0">
-        <p style="margin:0 0 10px;color:#746b70;font-size:12px">
-          Sprawdza osobno checkBusy, klientow, cennik, adminInboxPing, adminInbox i adminState.
-          Kazde zapytanie ma twardy timeout i zapisuje czas odpowiedzi. Testuje rowniez JSONP.
-        </p>
-        <button id="runCRMNetworkTestV2Btn" type="button" class="btn-secondary">Uruchom test sieci/Skrzynki</button>
-      </div>`;
-    details.querySelector("button").onclick=runCRMNetworkTestV2;
-
-    const existing=Array.from(panel.querySelectorAll("details"));
-    const anchor=existing.find(d=>/Szybki test/i.test(d.querySelector("summary")?.textContent||""))||existing[0];
-    if(anchor)anchor.before(details);else panel.appendChild(details);
-}
-
-document.addEventListener("DOMContentLoaded",()=>setTimeout(crmInstallNetworkDiagnosticsButtonV2,2800));
-setTimeout(crmInstallNetworkDiagnosticsButtonV2,3200);
-
-/* KONIEC DIAGNOSTYKI SIECI / SKRZYNKI V2 */
-
-/* ==========================================================================
-   DIAGNOSTYKA SIECI V3 2026-08-12
-   Test nie tworzy kolejki timeoutowanych wykonań Apps Script.
-   ========================================================================== */
-window.crmDiagnosticsNetworkModeV11=false;
-
-async function crmDiagProbeDirectV3(name,params,timeoutMs=40000){
-    const query=Object.entries({...params,_diag:Date.now()})
-        .map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&");
-    const url=APPS_SCRIPT_URL+(APPS_SCRIPT_URL.includes("?")?"&":"?")+query;
-    const start=(performance?.now?.()||Date.now());
-    try{
-        const data=typeof crmFetchWholeJsonV11==="function"
-            ? await crmFetchWholeJsonV11(url,{timeoutMs})
-            : await crmTestGet(params,{timeoutMs});
-        return {ok:true,ms:Math.round((performance?.now?.()||Date.now())-start),data,shape:crmDiagSummaryShapeV2(data)};
-    }catch(error){
-        return {ok:false,ms:Math.round((performance?.now?.()||Date.now())-start),error:error?.message||String(error),timeout:Boolean(error?.crmTimeoutV11)};
-    }
-}
-
-async function crmTestNetworkChecksV3(report){
-    const today=new Date();
-    const end=new Date(today);end.setDate(end.getDate()+2);
-    const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const tests=[
-        ["GET adminInboxPing",{adminInboxPing:"true"},d=>d?.success===true&&typeof d.newCount!=="undefined",30000],
-        ["GET adminState",{adminState:"true"},d=>d?.success===true,30000],
-        ["GET adminInbox",{adminInbox:"true"},d=>d?.success===true&&Array.isArray(d.items),30000],
-        ["GET checkBusy (3 dni)",{checkBusy:"true",rangeStart:fmt(today),rangeEnd:fmt(end)},d=>d&&Array.isArray(d.appointments)&&d.settings,40000],
-        ["GET getPrices",{getPrices:"true"},d=>Array.isArray(d),30000],
-        ["GET getClients",{getClients:"true"},d=>Array.isArray(d),30000]
-    ];
-
-    for(let i=0;i<tests.length;i++){
-        const [name,params,validator,timeout]=tests[i];
-        crmTestSetProgress(10+Math.round((i/tests.length)*75),"Sieć: "+name+"…");
-        const result=await crmDiagProbeDirectV3(name,params,timeout);
-        const valid=result.ok&&validator(result.data);
-        crmTestAdd(report,valid?"OK":"BLAD",name,{
-            czas_ms:result.ms,
-            wynik:result.ok?result.shape:result.error
-        });
-        if(result.timeout){
-            crmTestAdd(report,"OSTRZEZENIE","Test przerwany po timeout", "Nie uruchomiono kolejnych endpointów, aby nie tworzyć kolejki wykonań Apps Script.");
-            break;
-        }
-        await crmTestWait(900);
-    }
-
-    ["crmQueuedGetV11","crmLoadUnifiedInbox","crmRunInboxPingV5","crmLightSyncCalendarData"].forEach(name=>{
-        crmTestAdd(report,typeof window[name]==="function"?"OK":"BLAD","Funkcja "+name+"()",typeof window[name]==="function"?"Dostępna":"Brak");
-    });
-}
-
-async function runCRMNetworkTestV3(){
-    if(crmTestIsRunning)return alert("Test CRM jest już uruchomiony.");
-    crmTestSetRunning(true);
-    window.crmDiagnosticsNetworkModeV11=true;
-    const report=crmTestCreateReport("SIEC_I_SKRZYNKA_V3");
-    crmLastTestReport=report;
-    const started=Date.now();
-    try{
-        crmTestSetProgress(5,"Zatrzymano odświeżanie w tle. Testuję endpointy kolejno…");
-        await crmTestNetworkChecksV3(report);
-    }catch(error){
-        crmTestAdd(report,"BLAD","Główny przebieg testu sieci",error?.message||String(error));
-    }finally{
-        crmTestFinish(report,started);
-        crmTestSetProgress(100,"Test sieci zakończony. Raport pozostaje lokalnie — bez dodatkowego POST do Google.");
-        window.crmDiagnosticsNetworkModeV11=false;
-        crmTestSetRunning(false);
-    }
-}
-window.runCRMNetworkTestV3=runCRMNetworkTestV3;
-
-/* Stary przycisk V2 uruchamia już bezpieczny V3. */
-window.runCRMNetworkTestV2=runCRMNetworkTestV3;
-
-document.addEventListener("DOMContentLoaded",()=>{
-    window.setTimeout(()=>{
-        const btn=document.getElementById("runCRMNetworkTestV2Btn");
-        if(btn){
-            btn.textContent="Uruchom bezpieczny test sieci/Skrzynki";
-            btn.onclick=runCRMNetworkTestV3;
-        }
-    },2600);
-});
-/* KONIEC DIAGNOSTYKA SIECI V3 */
 
 /* ==========================================================================
    SETTINGS LAZY DATA V12 2026-08-12
@@ -1726,270 +882,281 @@ async function crmLoadEffectiveScheduleViewsV12(options={}){
 }
 window.crmLoadEffectiveScheduleViewsV12=crmLoadEffectiveScheduleViewsV12;
 
-/* Diagnostyka V4: najpierw sprawdza pojedynczy bootstrap, bez lawiny. */
-async function runCRMNetworkTestV4(){
-    if(crmTestIsRunning)return alert("Test CRM jest już uruchomiony.");
-    crmTestSetRunning(true);
-    window.crmDiagnosticsNetworkModeV11=true;
-    const report=crmTestCreateReport("SIEC_I_START_V4");
-    crmLastTestReport=report;
-    const started=Date.now();
-
-    try{
-        const now=new Date();
-        const from=new Date(now.getFullYear(),now.getMonth(),1);
-        const to=new Date(now.getFullYear(),now.getMonth()+1,0);
-        const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
-        const tests=[
-            ["GET serverProbe",{serverProbe:"true"},d=>d?.success===true,30000],
-            ["GET adminBootstrap",{adminBootstrap:"true",rangeStart:fmt(from),rangeEnd:fmt(to)},
-                d=>d?.success===true&&Array.isArray(d.appointments)&&Array.isArray(d.services)&&Array.isArray(d.clients),50000],
-            ["GET adminInbox",{adminInbox:"true"},d=>d?.success===true&&Array.isArray(d.items),35000],
-            ["GET adminState",{adminState:"true"},d=>d?.success===true,35000]
-        ];
-
-        for(let i=0;i<tests.length;i++){
-            const [name,params,validator,timeout]=tests[i];
-            crmTestSetProgress(10+Math.round((i/tests.length)*80),"Diagnostyka: "+name+"…");
-            const result=await crmDiagProbeDirectV3(name,params,timeout);
-            const valid=result.ok&&validator(result.data);
-            crmTestAdd(report,valid?"OK":"BLAD",name,{
-                czas_ms:result.ms,
-                wynik:result.ok?crmDiagSummaryShapeV2(result.data):result.error
-            });
-            if(result.timeout){
-                crmTestAdd(report,"OSTRZEZENIE","Dalsze testy zatrzymane","Po timeout nie uruchamiamy kolejnych Apps Script.");
-                break;
-            }
-            await crmTestWait(800);
-        }
-    }catch(error){
-        crmTestAdd(report,"BLAD","Główny przebieg testu V4",error?.message||String(error));
-    }finally{
-        crmTestFinish(report,started);
-        crmTestSetProgress(100,"Test V4 zakończony — raport pozostaje lokalnie.");
-        window.crmDiagnosticsNetworkModeV11=false;
-        crmTestSetRunning(false);
-    }
-}
-window.runCRMNetworkTestV4=runCRMNetworkTestV4;
-window.runCRMNetworkTestV3=runCRMNetworkTestV4;
-window.runCRMNetworkTestV2=runCRMNetworkTestV4;
-
-document.addEventListener("DOMContentLoaded",()=>{
-    window.setTimeout(()=>{
-        const btn=document.getElementById("runCRMNetworkTestV2Btn");
-        if(btn){
-            btn.textContent="Uruchom test startu i sieci V4";
-            btn.onclick=runCRMNetworkTestV4;
-        }
-    },2700);
-});
-/* KONIEC SETTINGS LAZY DATA V12 */
-
 /* ==========================================================================
-   DIAGNOSTYKA TRANSPORTU V13 2026-08-12
-   Pełny test używa tego samego transportu co prawdziwy ADMIN.
+   CRM TESTS — CLEAN LAUNCHER / REPORT CORE V1 2026-08-16
+
+   Ten plik zawiera TYLKO:
+   - normalną logikę Ustawień/Grafiku,
+   - wspólny stan uruchamiania testów,
+   - transport GET używany przez testy,
+   - renderowanie postępu i raportu,
+   - kopiowanie raportu.
+
+   Właściwe testy są osobno:
+   - crm-test-full.js
+   - crm-test-light.js
    ========================================================================== */
 
+const CRM_TEST_UI_VERSION = "1.0.0";
+let crmTestIsRunning = false;
+let crmLastTestReport = null;
+window.crmDiagnosticsNetworkModeV11 = Boolean(window.crmDiagnosticsNetworkModeV11);
+
+function crmTestCreateReport(testType, testerVersion) {
+    const now = new Date();
+    return {
+        testId: "CRM_TEST_" + now.getTime(),
+        testerVersion: testerVersion || CRM_TEST_UI_VERSION,
+        testType: String(testType || "CRM_TEST"),
+        status: "URUCHOMIONY",
+        startedAt: now.toISOString(),
+        finishedAt: "",
+        durationSeconds: 0,
+        passed: 0,
+        warnings: 0,
+        errors: 0,
+        tests: [],
+        currentStage: ""
+    };
+}
+
+function crmTestAdd(report, status, name, details) {
+    if (!report || !Array.isArray(report.tests)) return;
+    const normalized =
+        status === "OK" ? "OK" :
+        status === "OSTRZEZENIE" ? "OSTRZEZENIE" :
+        "BLAD";
+
+    report.tests.push({
+        status: normalized,
+        name: String(name || ""),
+        details: details === undefined ? "" : details
+    });
+
+    if (normalized === "OK") report.passed += 1;
+    else if (normalized === "OSTRZEZENIE") report.warnings += 1;
+    else report.errors += 1;
+
+    crmTestRenderReport(report);
+}
+
+function crmTestWait(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+function crmTestSetProgress(percent, text) {
+    const wrapper = document.getElementById("crm-test-progress-wrapper");
+    const bar = document.getElementById("crm-test-progress-bar");
+    const label = document.getElementById("crm-test-progress-text");
+
+    if (wrapper) wrapper.style.display = "block";
+    if (bar) bar.style.width = Math.max(0, Math.min(100, Number(percent) || 0)) + "%";
+    if (label) label.textContent = String(text || "");
+
+    if (crmLastTestReport) crmLastTestReport.currentStage = String(text || "");
+}
+
+function crmTestSetRunning(running) {
+    crmTestIsRunning = Boolean(running);
+    window.crmTestIsRunning = crmTestIsRunning;
+
+    ["runCRMTestLightBtn", "runCRMTestFullBtn"].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = crmTestIsRunning;
+    });
+}
+
+function crmTestSafeText(value) {
+    if (value === undefined || value === null) return "";
+    if (typeof value === "string") return value;
+    try { return JSON.stringify(value); }
+    catch (error) { return String(value); }
+}
+
+function buildCRMTestTextReport(report) {
+    if (!report) return "Brak raportu.";
+
+    const lines = [
+        "CRM TEST REPORT",
+        "ID testu: " + (report.testId || ""),
+        "Wersja testera: " + (report.testerVersion || ""),
+        "Rodzaj testu: " + (report.testType || ""),
+        "Status: " + (report.status || ""),
+        "Rozpoczecie: " + (report.startedAt || ""),
+        "Zakonczenie: " + (report.finishedAt || ""),
+        "Czas: " + (report.durationSeconds || 0) + " s",
+        "Zaliczone: " + (report.passed || 0),
+        "Ostrzezenia: " + (report.warnings || 0),
+        "Bledy: " + (report.errors || 0),
+        "",
+        "SZCZEGOLY:"
+    ];
+
+    (report.tests || []).forEach((test, index) => {
+        const icon =
+            test.status === "OK" ? "[OK]" :
+            test.status === "OSTRZEZENIE" ? "[OSTRZEZENIE]" :
+            "[BLAD]";
+
+        lines.push((index + 1) + ". " + icon + " " + (test.name || ""));
+        const details = crmTestSafeText(test.details);
+        if (details) lines.push("   " + details);
+    });
+
+    return lines.join("\n");
+}
+
+function crmTestRenderReport(report) {
+    const output = document.getElementById("crm-test-report-output");
+    if (output) output.textContent = buildCRMTestTextReport(report);
+}
+
+function crmTestRenderSummary(report) {
+    const box = document.getElementById("crm-test-summary");
+    if (!box || !report) return;
+
+    const isError = report.errors > 0;
+    const isWarning = !isError && report.warnings > 0;
+    const color = isError ? "#b42318" : (isWarning ? "#a15c00" : "#198754");
+    const title =
+        isError ? "Test wykrył błędy" :
+        isWarning ? "Test zakończony z ostrzeżeniami" :
+        "Test zakończony pomyślnie";
+
+    box.style.display = "block";
+    box.style.borderLeft = "6px solid " + color;
+    box.innerHTML =
+        '<h3 style="color:' + color + ';margin-top:0;">' + title + '</h3>' +
+        '<p><strong>Test:</strong> ' + String(report.testType || "") + '</p>' +
+        '<p>OK: <strong>' + Number(report.passed || 0) + '</strong> &nbsp; ' +
+        'Ostrzeżenia: <strong>' + Number(report.warnings || 0) + '</strong> &nbsp; ' +
+        'Błędy: <strong>' + Number(report.errors || 0) + '</strong></p>' +
+        '<p>Czas: <strong>' + Number(report.durationSeconds || 0) + ' s</strong></p>';
+}
+
+function crmTestFinish(report, startedAtMs) {
+    if (!report) return;
+    report.finishedAt = new Date().toISOString();
+    report.durationSeconds = Math.round((Date.now() - Number(startedAtMs || Date.now())) / 1000);
+    report.status =
+        report.errors > 0 ? "BLEDY" :
+        report.warnings > 0 ? "OSTRZEZENIA" :
+        "ZALICZONY";
+
+    crmTestRenderReport(report);
+    crmTestRenderSummary(report);
+}
+
 /*
- * Stary pełny test miał 10 s i własny fetch(), przez co nie testował
- * faktycznej ścieżki V13. Od teraz korzysta z crmQueuedGetV11/crmFetchJsonV12.
+ * Jeden transport GET dla obu testów.
+ * Przy lokalnym file:// korzysta z działającego transportu V13 przez
+ * crmQueuedGetV11 / crmFetchJsonV12.
  */
-crmTestGet = async function(parameters, options = {}) {
+async function crmTestGet(parameters, options = {}) {
     const params = Object.assign({}, parameters || {});
 
-    /*
-     * Pełny test tworzy wizyty do ok. 20 dni w przyszłość.
-     * Jeśli checkBusy nie dostał zakresu, ograniczamy go do 45 dni,
-     * zamiast domyślnych ~95 dni.
-     */
-    if (String(params.checkBusy || "") === "true" && !params.rangeStart && !params.rangeEnd) {
-        const start = new Date();
-        start.setDate(start.getDate() - 1);
-        const end = new Date();
-        end.setDate(end.getDate() + 45);
-        const fmt = date =>
-            `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-        params.rangeStart = fmt(start);
-        params.rangeEnd = fmt(end);
-    }
-
-    const query = Object.keys(params).map(key =>
-        encodeURIComponent(key) + "=" + encodeURIComponent(params[key])
-    ).join("&");
+    const query = Object.keys(params)
+        .map(key => encodeURIComponent(key) + "=" + encodeURIComponent(params[key]))
+        .join("&");
 
     const separator = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
     const url = `${APPS_SCRIPT_URL}${separator}${query}`;
-    const timeoutMs = Math.max(20000, Number(options.timeoutMs) || 45000);
+    const timeoutMs = Math.max(15000, Number(options.timeoutMs) || 45000);
 
     if (typeof crmQueuedGetV11 === "function") {
         return crmQueuedGetV11(url, {
-            key: "diag:" + query.replace(/(?:testTimestamp|_diag|_t)=[^&]*/g, ""),
+            key: "crm-test:" + query.replace(/(?:testTimestamp|_diag|_t|_e2e)=[^&]*/g, ""),
             priority: 110,
-            timeoutMs
+            timeoutMs: timeoutMs
         });
     }
 
-    return crmFetchJsonV12(url, { timeoutMs });
-};
-
-const crmTestFrontendChecksBeforeV13 = crmTestFrontendChecks;
-crmTestFrontendChecks = function(report) {
-    /*
-     * Kopiujemy standardowy test, ale schedule_cycle nie jest już obowiązkowym
-     * elementem HTML. Ustawienie istnieje w backendzie i ma fallback "4x4".
-     */
-    const beforeErrors = report.errors;
-    crmTestFrontendChecksBeforeV13(report);
-
-    const scheduleResult = report.results
-        .slice()
-        .reverse()
-        .find(item => item.name === "Element HTML #schedule_cycle");
-
-    if (scheduleResult && scheduleResult.status === "BLAD") {
-        scheduleResult.status = "OSTRZEZENIE";
-        scheduleResult.details =
-            "Pole nie jest obecnie wyświetlane w HTML. Backend zachowuje schedule_cycle=4x4.";
-        report.errors = Math.max(0, report.errors - 1);
-        report.warnings += 1;
-        report.passed = Math.max(0, report.passed);
-    }
-};
-
-async function runCRMNetworkTestV5() {
-    if (crmTestIsRunning) {
-        return alert("Test CRM jest już uruchomiony.");
+    if (typeof crmFetchJsonV12 === "function") {
+        return crmFetchJsonV12(url, { timeoutMs: timeoutMs });
     }
 
-    crmTestSetRunning(true);
-    window.crmDiagnosticsNetworkModeV11 = true;
+    const response = await fetch(url, { method: "GET", cache: "no-store" });
+    const text = await response.text();
+    if (!response.ok) throw new Error("HTTP " + response.status + ": " + text.slice(0, 500));
+    try { return JSON.parse(text); }
+    catch (error) { throw new Error("API nie zwróciło JSON: " + text.slice(0, 500)); }
+}
 
-    const report = crmTestCreateReport("SIEC_V13");
-    crmLastTestReport = report;
-    const started = Date.now();
+async function saveCRMTestReport(report) {
+    if (typeof crmTestPost !== "function") {
+        throw new Error("Brak crmTestPost()");
+    }
+    const result = await crmTestPost(
+        { action: "saveTestReport", report: report },
+        { timeoutMs: 45000 }
+    );
+    if (!result || !result.success) {
+        throw new Error(result?.error || "Nie zapisano raportu");
+    }
+    return result;
+}
+
+async function copyCRMTestReport() {
+    if (!crmLastTestReport) {
+        if (typeof crmToast === "function") crmToast("Nie ma jeszcze raportu do skopiowania.", "error");
+        return;
+    }
+
+    const text = buildCRMTestTextReport(crmLastTestReport);
 
     try {
-        const today = new Date();
-        const end = new Date(today);
-        end.setDate(end.getDate() + 3);
-
-        const fmt = date =>
-            `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-
-        const tests = [
-            ["serverProbe", {serverProbe:"true"}, data => data?.success === true, 30000],
-            ["checkBusy 3 dni", {
-                checkBusy:"true",
-                rangeStart:fmt(today),
-                rangeEnd:fmt(end)
-            }, data => data && Array.isArray(data.appointments) && data.settings, 45000],
-            ["getPrices", {getPrices:"true"}, data => Array.isArray(data), 35000],
-            ["getClients", {getClients:"true"}, data => Array.isArray(data), 35000],
-            ["adminInboxPing", {adminInboxPing:"true"}, data => data?.success === true, 35000],
-            ["adminInbox", {adminInbox:"true"}, data => data?.success === true && Array.isArray(data.items), 45000]
-        ];
-
-        for (let index = 0; index < tests.length; index++) {
-            const [name, params, validator, timeoutMs] = tests[index];
-            crmTestSetProgress(
-                8 + Math.round((index / tests.length) * 82),
-                "V13: " + name + "…"
-            );
-
-            const startedRequest = Date.now();
-
-            try {
-                const data = await crmTestGet(
-                    Object.assign({}, params, {_diag13:Date.now()}),
-                    {timeoutMs}
-                );
-
-                crmTestAdd(
-                    report,
-                    validator(data) ? "OK" : "BLAD",
-                    "V13 GET " + name,
-                    {
-                        czas_ms: Date.now() - startedRequest,
-                        transport:
-                            window.location?.protocol === "file:"
-                                ? "JSONP V13 (lokalny plik)"
-                                : "fetch V13",
-                        wynik: typeof crmDiagSummaryShapeV2 === "function"
-                            ? crmDiagSummaryShapeV2(data)
-                            : data
-                    }
-                );
-            } catch (error) {
-                crmTestAdd(
-                    report,
-                    "BLAD",
-                    "V13 GET " + name,
-                    {
-                        czas_ms: Date.now() - startedRequest,
-                        transport:
-                            window.location?.protocol === "file:"
-                                ? "JSONP V13 (lokalny plik)"
-                                : "fetch V13",
-                        blad: error?.message || String(error)
-                    }
-                );
-
-                if (error?.crmTimeoutV12 || error?.crmTimeoutV13) {
-                    crmTestAdd(
-                        report,
-                        "OSTRZEZENIE",
-                        "Test zatrzymany po timeout",
-                        "Nie wysyłam kolejnych żądań, aby nie tworzyć kolejki Apps Script."
-                    );
-                    break;
-                }
-            }
-
-            await crmTestWait(700);
-        }
-
-        crmTestAdd(
-            report,
-            typeof window.crmJsonpGetV13 === "function" ? "OK" : "BLAD",
-            "Transport crmJsonpGetV13()",
-            typeof window.crmJsonpGetV13 === "function"
-                ? "Dostępny"
-                : "Brak"
-        );
+        await navigator.clipboard.writeText(text);
+        if (typeof crmToast === "function") crmToast("Raport skopiowany.");
     } catch (error) {
-        crmTestAdd(
-            report,
-            "BLAD",
-            "Główny przebieg testu V13",
-            error?.message || String(error)
-        );
-    } finally {
-        crmTestFinish(report, started);
-        crmTestSetProgress(
-            100,
-            "Test V13 zakończony. Raport nie wykonuje dodatkowego zapisu do Google."
-        );
-        window.crmDiagnosticsNetworkModeV11 = false;
-        crmTestSetRunning(false);
+        const field = document.createElement("textarea");
+        field.value = text;
+        field.style.position = "fixed";
+        field.style.opacity = "0";
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand("copy");
+        field.remove();
+        if (typeof crmToast === "function") crmToast("Raport skopiowany.");
     }
 }
 
-window.runCRMNetworkTestV5 = runCRMNetworkTestV5;
-window.runCRMNetworkTestV4 = runCRMNetworkTestV5;
-window.runCRMNetworkTestV3 = runCRMNetworkTestV5;
-window.runCRMNetworkTestV2 = runCRMNetworkTestV5;
+/*
+ * admin-core wywołuje tę funkcję podczas układania Ustawień.
+ * Stara wersja przebudowywała panel i dokładała wiele procedur.
+ * Clean V1 pozostawia dokładnie trzy elementy z admin.html.
+ */
+function crmArrangeDiagnosticsPanel() {
+    const panel = document.getElementById("crm-diagnostics-panel");
+    if (!panel) return;
+    panel.dataset.finalLayout = "clean-v1";
+}
 
-document.addEventListener("DOMContentLoaded", () => {
-    window.setTimeout(() => {
-        const button = document.getElementById("runCRMNetworkTestV2Btn");
-        if (button) {
-            button.textContent = "Uruchom test transportu V13";
-            button.onclick = runCRMNetworkTestV5;
-        }
-    }, 2900);
-});
+function crmResetTestPanelForRun(label) {
+    const summary = document.getElementById("crm-test-summary");
+    const output = document.getElementById("crm-test-report-output");
+    const wrapper = document.getElementById("crm-test-progress-wrapper");
+    const bar = document.getElementById("crm-test-progress-bar");
+    const text = document.getElementById("crm-test-progress-text");
 
-/* KONIEC DIAGNOSTYKA TRANSPORTU V13 */
+    if (summary) {
+        summary.style.display = "none";
+        summary.innerHTML = "";
+    }
+    if (output) output.textContent = "Uruchamianie " + String(label || "testu") + "...";
+    if (wrapper) wrapper.style.display = "block";
+    if (bar) bar.style.width = "0%";
+    if (text) text.textContent = "Przygotowanie " + String(label || "testu") + "...";
+}
+
+window.copyCRMTestReport = copyCRMTestReport;
+window.crmTestCreateReport = crmTestCreateReport;
+window.crmTestAdd = crmTestAdd;
+window.crmTestWait = crmTestWait;
+window.crmTestSetProgress = crmTestSetProgress;
+window.crmTestSetRunning = crmTestSetRunning;
+window.crmTestFinish = crmTestFinish;
+window.crmTestGet = crmTestGet;
+window.saveCRMTestReport = saveCRMTestReport;
+window.crmResetTestPanelForRun = crmResetTestPanelForRun;
+
+/* KONIEC CRM TESTS CLEAN LAUNCHER / REPORT CORE V1 */

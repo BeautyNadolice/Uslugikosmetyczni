@@ -550,26 +550,39 @@
                     </button>
 
                 </form>
+                <details id="booking-requests-panel" style="margin-top:24px;"><summary><strong>Prośby o wizytę</strong></summary><div id="bookingRequestsList" style="margin-top:14px;"></div></details>
 
-                <details id="booking-requests-panel" style="margin-top:24px;"><summary><strong>Prośby o wizytę</strong></summary><div id="bookingRequestsList" style="margin-top:14px;"></div></details><!-- DIAGNOSTYKA SYSTEMU CRM -->
+                <!-- CRM TESTS: CLEAN V1 -->
                 <section id="crm-diagnostics-panel" style="width:100%;box-sizing:border-box;margin-top:35px;padding:24px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6;">
-                    <h2 style="margin-top:0;">🧪 Diagnostyka systemu CRM</h2>
-                    <p>Test sprawdza frontend, Google Apps Script, Google Sheets, klientów, wizyty, blokady czasu i automatyczne sprzątanie danych testowych.</p>
+                    <h2 style="margin-top:0;">🧪 Testy systemu</h2>
+                    <p style="margin-bottom:8px;">
+                        <strong>CRM Test Full</strong> — pełny test regresyjny całego CRM.
+                    </p>
+                    <p style="margin-top:0;">
+                        <strong>CRM Test Light</strong> — szybki test bieżącej zmiany. Jego zakres może być wymieniany razem z aktualnie poprawianym modułem.
+                    </p>
+
                     <div style="display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;">
-                        <button id="runQuickCRMTestBtn" type="button" class="btn-secondary" onclick="runCRMQuickTest()">⚡ Szybki test</button>
-                        <button id="runFullCRMTestBtn" type="button" class="btn-primary" onclick="runCRMFullTest()">🧪 Pełny test CRM</button>
+                        <button id="runCRMTestLightBtn" type="button" class="btn-secondary" onclick="runCRMTestLight()">⚡ CRM Test Light</button>
+                        <button id="runCRMTestFullBtn" type="button" class="btn-primary" onclick="runCRMTestFull()">🧪 CRM Test Full</button>
                         <button id="copyCRMTestReportBtn" type="button" class="btn-secondary" onclick="copyCRMTestReport()">📋 Kopiuj raport</button>
-                        <button id="loadCRMTestHistoryBtn" type="button" class="btn-secondary" onclick="loadCRMTestHistory()">🕘 Historia testów</button>
                     </div>
+
                     <div id="crm-test-progress-wrapper" style="display:none;margin:20px 0;">
                         <div id="crm-test-progress-text" style="margin-bottom:8px;">Przygotowanie testu...</div>
-                        <div style="width:100%;height:18px;border-radius:10px;background:#eadfd5;overflow:hidden;"><div id="crm-test-progress-bar" style="width:0%;height:100%;background:#b05c75;transition:width 0.25s ease;"></div></div>
+                        <div style="width:100%;height:18px;border-radius:10px;background:#eadfd5;overflow:hidden;">
+                            <div id="crm-test-progress-bar" style="width:0%;height:100%;background:#b05c75;transition:width 0.25s ease;"></div>
+                        </div>
                     </div>
+
                     <div id="crm-test-summary" style="display:none;margin-top:20px;padding:16px;border-radius:8px;background:white;border:1px solid #ddd;"></div>
-                    <details style="margin-top:15px;"><summary style="cursor:pointer;font-weight:bold;">Szczegółowy raport</summary><pre id="crm-test-report-output" style="margin-top:12px;padding:15px;max-height:450px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#202124;color:#f1f3f4;border-radius:8px;font-size:12px;">Nie uruchomiono jeszcze testu.</pre></details>
-                    <div id="crm-test-history" style="display:none;margin-top:20px;overflow-x:auto;"></div>
+
+                    <details id="crm-test-report-details" style="margin-top:15px;">
+                        <summary style="cursor:pointer;font-weight:bold;">Raport</summary>
+                        <pre id="crm-test-report-output" style="margin-top:12px;padding:15px;max-height:450px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#202124;color:#f1f3f4;border-radius:8px;font-size:12px;">Nie uruchomiono jeszcze testu.</pre>
+                    </details>
                 </section>
-                <!-- KONIEC PANELU DIAGNOSTYKI CRM -->
+                <!-- KONIEC CRM TESTS: CLEAN V1 -->
 
             </section>
 
@@ -926,6 +939,8 @@
 <script src="JS/price-list.js"></script>
 <script src="JS/finance.js"></script>
 <script src="JS/settings-diagnostics.js"></script>
+<script src="JS/crm-test-full.js"></script>
+<script src="JS/crm-test-light.js"></script>
 <script src="JS/admin-core.js"></script>
 
 </body>

@@ -1933,9 +1933,9 @@ body.crm-v3-details-open .crm-day-list-panel {
    ========================================================================== */
 @media (min-width: 1121px) {
     #tab-kalendarz .calendar-layout-header.crm-v8-toolbar-constrained {
-        width: calc(100% - var(--crm-v8-panel-width, 330px) - 340px) !important;
-        max-width: calc(100% - var(--crm-v8-panel-width, 330px) - 340px) !important;
-        margin-right: calc(var(--crm-v8-panel-width, 330px) + 340px) !important;
+        width: calc(100% - var(--crm-v8-panel-width, 330px) - var(--crm-layout-gap, 10px)) !important;
+        max-width: calc(100% - var(--crm-v8-panel-width, 330px) - var(--crm-layout-gap, 10px)) !important;
+        margin-right: calc(var(--crm-v8-panel-width, 330px) + var(--crm-layout-gap, 10px)) !important;
         box-sizing: border-box !important;
         grid-template-columns: auto auto minmax(220px, 1fr) auto !important;
         overflow: visible !important;
@@ -2301,3 +2301,38 @@ body.crm-v3-details-open .crm-day-list-panel {
     color: #991b1b !important;
     opacity: 1 !important;
 }
+
+/* ==========================================================================
+   ADMIN UX V17: DODAJ / EDYTUJ WIZYTĘ JAKO NIEBLOKUJĄCY PANEL BOCZNY
+   ========================================================================== */
+@media (min-width: 761px) {
+    #appointmentModal.modal-overlay {
+        background: transparent !important;
+        pointer-events: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-end !important;
+        padding: 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    #appointmentModal.modal-overlay .modal-content {
+        pointer-events: auto !important;
+        width: min(420px, calc(100vw - 24px)) !important;
+        max-width: 420px !important;
+        height: calc(100vh - 24px) !important;
+        max-height: calc(100vh - 24px) !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        border-radius: 18px !important;
+        box-shadow: 0 16px 42px rgba(48, 35, 42, 0.18) !important;
+    }
+}
+
+@media (max-width: 760px) {
+    #appointmentModal.modal-overlay {
+        pointer-events: auto !important;
+    }
+}
+/* KONIEC ADMIN UX V17 */

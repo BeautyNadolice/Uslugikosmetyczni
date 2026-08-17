@@ -1279,3 +1279,877 @@ window.crmRestartSystemLoadV2 = async function() {
 };
 
 /* KONIEC API LOCAL TRANSPORT / START V13 */
+
+/* ==========================================================================
+   API PERFORMANCE V18 2026-08-16
+   - jeden bootstrap GET zamiast Kalendarz -> Cennik -> Klienci -> ping;
+   - session cache daje natychmiastowy pierwszy render po reload;
+   - ciężkie tabele innych zakładek są renderowane dopiero po wejściu;
+   - fallback do V13 pozostaje, gdy bootstrap naprawdę zawiedzie.
+   ========================================================================== */
+
+const CRM_PERF_CACHE_KEY_V18 = "crm_admin_bootstrap_v18";
+const CRM_PERF_CACHE_TTL_V18 = 10 * 60 * 1000;
+
+window.crmPerfMetricsV18 = window.crmPerfMetricsV18 || {
+    strategy: "single-bootstrap-v18",
+    bootNetworkRequests: 0,
+    bootStartedAt: 0,
+    bootFinishedAt: 0,
+    bootNetworkMs: 0,
+    cacheUsed: false,
+    freshApplied: false,
+    fallbackUsed: false
+};
+
+window.crmPerfFreshAtV18 = window.crmPerfFreshAtV18 || {
+    calendar: 0,
+    services: 0,
+    clients: 0
+};
+
+function crmPerfActiveTabV18() {
+    if (typeof crmDetectActiveTabV6 === "function") {
+        try { return crmDetectActiveTabV6(); } catch (ignore) {}
+    }
+    const visible = Array.from(document.querySelectorAll(".tab-page"))
+        .find(node => getComputedStyle(node).display !== "none");
+    return visible?.id?.replace(/^tab-/, "") || "kalendarz";
+}
+
+function crmPerfReadCacheV18() {
+    try {
+        const raw = sessionStorage.getItem(CRM_PERF_CACHE_KEY_V18);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const age = Date.now() - Number(parsed?.savedAt || 0);
+        if (!parsed?.data || age < 0 || age > CRM_PERF_CACHE_TTL_V18) {
+            sessionStorage.removeItem(CRM_PERF_CACHE_KEY_V18);
+            return null;
+        }
+        return parsed.data;
+    } catch (error) {
+        return null;
+    }
+}
+
+function crmPerfWriteCacheV18(data) {
+    try {
+        const safe = {
+            settings: data?.settings || settingsData || {},
+            appointments: Array.isArray(data?.appointments) ? data.appointments : (appointmentsData || []),
+            services: Array.isArray(data?.services) ? data.services : (currentServices || []),
+            clients: Array.isArray(data?.clients) ? data.clients : (customersData || [])
+        };
+        sessionStorage.setItem(
+            CRM_PERF_CACHE_KEY_V18,
+            JSON.stringify({ savedAt: Date.now(), data: safe })
+        );
+    } catch (error) {
+        // Cache jest wyłącznie optymalizacją; jego błąd nie wpływa na CRM.
+    }
+}
+
+function crmPerfMarkFreshV18(parts) {
+    const now = Date.now();
+    (parts || []).forEach(part => {
+        window.crmPerfFreshAtV18[part] = now;
+    });
+}
+
+function crmPerfRenderCurrentTabV18(tabName, options = {}) {
+    const tab = tabName || crmPerfActiveTabV18();
+    const includeCalendar = options.includeCalendar !== false;
+
+    if (tab === "kalendarz" && includeCalendar) {
+        if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
+        if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+        if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+        return;
+    }
+
+    if (tab === "klienci") {
+        if (typeof renderClients === "function") renderClients();
+        return;
+    }
+
+    if (tab === "cennik") {
+        if (typeof renderServicesTable === "function") renderServicesTable();
+        if (typeof crmReplaceServiceFormInputs === "function") crmReplaceServiceFormInputs();
+        if (typeof crmRefreshServiceFormChoices === "function") crmRefreshServiceFormChoices();
+        return;
+    }
+
+    if (tab === "dashboard") {
+        if (typeof renderDashboard === "function") renderDashboard();
+        return;
+    }
+
+    if (tab === "finanse") {
+        if (typeof calculateFinanceReport === "function") calculateFinanceReport();
+        return;
+    }
+
+    if (tab === "ustawienia") {
+        if (typeof populateSettingsForm === "function") populateSettingsForm();
+        if (typeof buildColorsEditor === "function") buildColorsEditor();
+    }
+}
+window.crmPerfRenderCurrentTabV18 = crmPerfRenderCurrentTabV18;
+
+function crmPerfApplyBootstrapV18(data, options = {}) {
+    if (!data || typeof data !== "object") return false;
+
+    settingsData = data.settings || settingsData || {};
+    appointmentsData = Array.isArray(data.appointments) ? data.appointments : (appointmentsData || []);
+    currentServices = Array.isArray(data.services) ? data.services : (currentServices || []);
+    customersData = Array.isArray(data.clients) ? data.clients : (customersData || []);
+
+    globalColors = {};
+    if (settingsData?.colors) {
+        Object.keys(settingsData.colors).forEach(key => {
+            globalColors[key] = settingsData.colors[key];
+        });
+    }
+    allCategories = settingsData?.all_categories || allCategories || [];
+
+    crmPerfMarkFreshV18(["calendar", "services", "clients"]);
+
+    /*
+     * Start ADMIN = Kalendarz. Nie renderujemy przy tym tabel Klientów,
+     * Cennika, Dashboardu ani Finansów.
+     */
+    const tab = crmPerfActiveTabV18();
+    crmPerfRenderCurrentTabV18(tab, { includeCalendar: true });
+
+    if (!options.fromCache && data.inboxPing && typeof crmUpdateUnifiedInboxBadge === "function") {
+        crmUpdateUnifiedInboxBadge({
+            new: Math.max(0, Number(data.inboxPing.newCount) || 0)
+        });
+    }
+
+    return true;
+}
+window.crmPerfApplyBootstrapV18 = crmPerfApplyBootstrapV18;
+
+async function crmPerfFetchBootstrapV18() {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    from.setDate(from.getDate() - 3);
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    to.setDate(to.getDate() + 7);
+
+    const fmt = d =>
+        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+    const url =
+        `${APPS_SCRIPT_URL}?adminBootstrap=true` +
+        `&rangeStart=${encodeURIComponent(fmt(from))}` +
+        `&rangeEnd=${encodeURIComponent(fmt(to))}` +
+        `&_perf18=${Date.now()}`;
+
+    window.crmPerfMetricsV18.bootNetworkRequests += 1;
+    const started = performance.now();
+
+    const data = await crmQueuedGetV11(url, {
+        key: "adminBootstrapV18",
+        priority: 125,
+        timeoutMs: 50000
+    });
+
+    window.crmPerfMetricsV18.bootNetworkMs =
+        Math.round(performance.now() - started);
+
+    if (!data?.success) {
+        throw new Error(data?.error || "Bootstrap ADMIN V18 zwrócił błąd");
+    }
+
+    return data;
+}
+window.crmPerfFetchBootstrapV18 = crmPerfFetchBootstrapV18;
+
+/*
+ * Opakowujemy normalne loadery, aby każda późniejsza prawdziwa
+ * synchronizacja aktualizowała znacznik świeżości i session-cache.
+ */
+const crmLoadCalendarPrimaryBeforePerfV18 = crmLoadCalendarPrimaryV2;
+crmLoadCalendarPrimaryV2 = async function() {
+    const result = await crmLoadCalendarPrimaryBeforePerfV18.apply(this, arguments);
+    crmPerfMarkFreshV18(["calendar"]);
+    crmPerfWriteCacheV18({});
+    return result;
+};
+
+const crmLoadServicesPrimaryBeforePerfV18 = crmLoadServicesPrimaryV2;
+crmLoadServicesPrimaryV2 = async function() {
+    const result = await crmLoadServicesPrimaryBeforePerfV18.apply(this, arguments);
+    crmPerfMarkFreshV18(["services"]);
+    crmPerfWriteCacheV18({});
+    return result;
+};
+
+const crmLoadClientsPrimaryBeforePerfV18 = crmLoadClientsPrimaryV2;
+crmLoadClientsPrimaryV2 = async function() {
+    const result = await crmLoadClientsPrimaryBeforePerfV18.apply(this, arguments);
+    crmPerfMarkFreshV18(["clients"]);
+    crmPerfWriteCacheV18({});
+    return result;
+};
+
+/* Aliasy starszych modułów kierujemy na aktualne opakowane loadery. */
+loadSettings = crmLoadCalendarPrimaryV2;
+loadServices = crmLoadServicesPrimaryV2;
+loadClients = crmLoadClientsPrimaryV2;
+
+async function crmLoadSystemFastV18() {
+    const metrics = window.crmPerfMetricsV18;
+    metrics.strategy = "single-bootstrap-v18";
+    metrics.bootNetworkRequests = 0;
+    metrics.bootStartedAt = Date.now();
+    metrics.bootFinishedAt = 0;
+    metrics.bootNetworkMs = 0;
+    metrics.cacheUsed = false;
+    metrics.freshApplied = false;
+    metrics.fallbackUsed = false;
+
+    crmSystemBootCompleteV2 = false;
+    window.crmSystemBootCompleteV2 = false;
+    window.crmBootInProgressV2 = true;
+    window.crmPerfSuppressCalendarRenderV18 = true;
+
+    try {
+        try {
+            if (typeof switchTab === "function") await switchTab("kalendarz");
+        } catch (error) {
+            console.warn("Start Kalendarza V18:", error);
+        }
+
+        const cached = crmPerfReadCacheV18();
+        if (cached) {
+            metrics.cacheUsed = true;
+            window.crmPerfSuppressCalendarRenderV18 = false;
+            crmPerfApplyBootstrapV18(cached, { fromCache: true });
+            window.crmPerfSuppressCalendarRenderV18 = true;
+        }
+
+        try {
+            const fresh = await crmPerfFetchBootstrapV18();
+
+            window.crmPerfSuppressCalendarRenderV18 = false;
+            crmPerfApplyBootstrapV18(fresh, { fromCache: false });
+            crmPerfWriteCacheV18(fresh);
+
+            metrics.freshApplied = true;
+            crmSystemBootCompleteV2 = true;
+            window.crmSystemBootCompleteV2 = true;
+            return true;
+        } catch (bootstrapError) {
+            console.warn("Bootstrap V18:", bootstrapError);
+
+            /*
+             * Jeśli cache już dał działający ekran, nie uruchamiamy lawiny
+             * 3 kolejnych żądań tylko dlatego, że pojedynczy refresh się nie udał.
+             */
+            if (cached) {
+                crmSystemBootCompleteV2 = true;
+                window.crmSystemBootCompleteV2 = true;
+                if (typeof crmToast === "function") {
+                    crmToast("Dane są dostępne z pamięci. Świeże dane pobiorę przy kolejnej synchronizacji.", "error");
+                }
+                return true;
+            }
+
+            /*
+             * Pierwszy start bez cache: zachowujemy bezpieczny fallback V13.
+             */
+            metrics.fallbackUsed = true;
+            window.crmPerfSuppressCalendarRenderV18 = false;
+            const ok = await crmLoadSystemSequentialV13();
+            if (ok) crmPerfWriteCacheV18({});
+            return ok;
+        }
+    } finally {
+        window.crmPerfSuppressCalendarRenderV18 = false;
+        window.crmBootInProgressV2 = false;
+        metrics.bootFinishedAt = Date.now();
+    }
+}
+
+/* Ostateczny punkt startowy ADMIN. */
+loadSystem = async function() {
+    if (crmInitialBootPromiseV2) return crmInitialBootPromiseV2;
+
+    crmInitialBootPromiseV2 = crmLoadSystemFastV18()
+        .finally(() => {
+            window.crmBootInProgressV2 = false;
+            window.setTimeout(() => {
+                crmInitialBootPromiseV2 = null;
+            }, 250);
+        });
+
+    return crmInitialBootPromiseV2;
+};
+
+window.crmRestartSystemLoadV2 = async function() {
+    crmInitialBootPromiseV2 = null;
+    try { crmReadQueueV11.length = 0; } catch (ignore) {}
+    try { crmReadByKeyV11.clear(); } catch (ignore) {}
+    try { sessionStorage.removeItem(CRM_PERF_CACHE_KEY_V18); } catch (ignore) {}
+    return loadSystem();
+};
+
+/* KONIEC API PERFORMANCE V18 */
+
+/* ==========================================================================
+   API PERFORMANCE V19 2026-08-16
+   - persistent localStorage snapshot: szybki start także po ponownym otwarciu;
+   - stale-while-revalidate: stary snapshot tylko do pierwszego świeżego GET;
+   - fingerprint: jeśli świeży payload = ten sam stan, nie robimy drugiego renderu;
+   - zapisujemy server timings zwrócone przez Google ADMIN.
+   ========================================================================== */
+
+const CRM_PERF_PERSIST_KEY_V19 = "crm_admin_bootstrap_persist_v19";
+const CRM_PERF_PERSIST_MAX_AGE_V19 = 24 * 60 * 60 * 1000;
+
+window.crmPerfMetricsV19 = window.crmPerfMetricsV19 || {
+    persistentCacheUsed: false,
+    persistentCacheAgeMs: 0,
+    immediateRenderMs: 0,
+    freshPayloadChanged: true,
+    freshRenderSkipped: false,
+    payloadBytes: 0,
+    serverPerf: null
+};
+
+window.crmPerfAppliedFingerprintV19 = window.crmPerfAppliedFingerprintV19 || "";
+
+function crmPerfSnapshotV19(data) {
+    return {
+        settings: data?.settings || settingsData || {},
+        appointments: Array.isArray(data?.appointments) ? data.appointments : (appointmentsData || []),
+        services: Array.isArray(data?.services) ? data.services : (currentServices || []),
+        clients: Array.isArray(data?.clients) ? data.clients : (customersData || [])
+    };
+}
+
+function crmPerfFingerprintV19(data) {
+    const snapshot = crmPerfSnapshotV19(data);
+    let text = "";
+    try { text = JSON.stringify(snapshot); }
+    catch (error) { return String(Date.now()); }
+
+    // FNV-1a 32 bit — wystarczy do wykrycia identycznego renderu UI.
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16) + ":" + text.length;
+}
+window.crmPerfFingerprintV19 = crmPerfFingerprintV19;
+
+function crmPerfWritePersistentCacheV19(data) {
+    try {
+        const snapshot = crmPerfSnapshotV19(data);
+        localStorage.setItem(
+            CRM_PERF_PERSIST_KEY_V19,
+            JSON.stringify({
+                savedAt: Date.now(),
+                fingerprint: crmPerfFingerprintV19(snapshot),
+                data: snapshot
+            })
+        );
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+window.crmPerfWritePersistentCacheV19 = crmPerfWritePersistentCacheV19;
+
+function crmPerfReadPersistentCacheV19() {
+    try {
+        const raw = localStorage.getItem(CRM_PERF_PERSIST_KEY_V19);
+        if (!raw) return null;
+
+        const parsed = JSON.parse(raw);
+        const age = Date.now() - Number(parsed?.savedAt || 0);
+
+        if (
+            !parsed?.data ||
+            age < 0 ||
+            age > CRM_PERF_PERSIST_MAX_AGE_V19
+        ) {
+            localStorage.removeItem(CRM_PERF_PERSIST_KEY_V19);
+            return null;
+        }
+
+        return {
+            data: parsed.data,
+            savedAt: Number(parsed.savedAt || 0),
+            ageMs: age,
+            fingerprint: parsed.fingerprint || crmPerfFingerprintV19(parsed.data)
+        };
+    } catch (error) {
+        return null;
+    }
+}
+window.crmPerfReadPersistentCacheV19 = crmPerfReadPersistentCacheV19;
+
+function crmPerfApplySnapshotWithoutForcedRenderV19(data, options = {}) {
+    if (!data || typeof data !== "object") return false;
+
+    const fingerprint = crmPerfFingerprintV19(data);
+    const same = fingerprint === window.crmPerfAppliedFingerprintV19;
+
+    settingsData = data.settings || settingsData || {};
+    appointmentsData = Array.isArray(data.appointments) ? data.appointments : (appointmentsData || []);
+    currentServices = Array.isArray(data.services) ? data.services : (currentServices || []);
+    customersData = Array.isArray(data.clients) ? data.clients : (customersData || []);
+
+    globalColors = {};
+    if (settingsData?.colors) {
+        Object.keys(settingsData.colors).forEach(key => {
+            globalColors[key] = settingsData.colors[key];
+        });
+    }
+    allCategories = settingsData?.all_categories || allCategories || [];
+
+    if (typeof crmPerfMarkFreshV18 === "function") {
+        crmPerfMarkFreshV18(["calendar", "services", "clients"]);
+    }
+
+    const shouldRender = options.forceRender === true || !same;
+
+    if (shouldRender) {
+        const tab = typeof crmPerfActiveTabV18 === "function"
+            ? crmPerfActiveTabV18()
+            : "kalendarz";
+
+        if (typeof crmPerfRenderCurrentTabV18 === "function") {
+            crmPerfRenderCurrentTabV18(tab, { includeCalendar: true });
+        }
+    }
+
+    window.crmPerfAppliedFingerprintV19 = fingerprint;
+    return { same, rendered: shouldRender, fingerprint };
+}
+window.crmPerfApplySnapshotWithoutForcedRenderV19 = crmPerfApplySnapshotWithoutForcedRenderV19;
+
+/*
+ * Nadpisujemy tylko start V18. Cała kolejka transportowa i fallback pozostają.
+ */
+async function crmLoadSystemFastV19() {
+    const metrics18 = window.crmPerfMetricsV18 || {};
+    const metrics19 = window.crmPerfMetricsV19 || {};
+
+    metrics18.strategy = "single-bootstrap-v19";
+    metrics18.bootNetworkRequests = 0;
+    metrics18.bootStartedAt = Date.now();
+    metrics18.bootFinishedAt = 0;
+    metrics18.bootNetworkMs = 0;
+    metrics18.cacheUsed = false;
+    metrics18.freshApplied = false;
+    metrics18.fallbackUsed = false;
+
+    metrics19.persistentCacheUsed = false;
+    metrics19.persistentCacheAgeMs = 0;
+    metrics19.immediateRenderMs = 0;
+    metrics19.freshPayloadChanged = true;
+    metrics19.freshRenderSkipped = false;
+    metrics19.payloadBytes = 0;
+    metrics19.serverPerf = null;
+
+    crmSystemBootCompleteV2 = false;
+    window.crmSystemBootCompleteV2 = false;
+    window.crmBootInProgressV2 = true;
+    window.crmPerfSuppressCalendarRenderV18 = true;
+
+    const visualStart = performance.now();
+
+    try {
+        try {
+            if (typeof switchTab === "function") await switchTab("kalendarz");
+        } catch (error) {
+            console.warn("Start Kalendarza V19:", error);
+        }
+
+        /*
+         * 1. Najpierw sessionStorage V18.
+         * 2. Jeśli go nie ma — persistent localStorage V19.
+         */
+        let cached = typeof crmPerfReadCacheV18 === "function"
+            ? crmPerfReadCacheV18()
+            : null;
+
+        if (cached) {
+            metrics18.cacheUsed = true;
+            window.crmPerfSuppressCalendarRenderV18 = false;
+            const applied = crmPerfApplySnapshotWithoutForcedRenderV19(cached, { forceRender: true });
+            metrics19.immediateRenderMs = Math.round(performance.now() - visualStart);
+            window.crmPerfSuppressCalendarRenderV18 = true;
+        } else {
+            const persistent = crmPerfReadPersistentCacheV19();
+            if (persistent?.data) {
+                metrics19.persistentCacheUsed = true;
+                metrics19.persistentCacheAgeMs = Math.max(0, persistent.ageMs || 0);
+
+                window.crmPerfSuppressCalendarRenderV18 = false;
+                crmPerfApplySnapshotWithoutForcedRenderV19(
+                    persistent.data,
+                    { forceRender: true }
+                );
+                metrics19.immediateRenderMs = Math.round(performance.now() - visualStart);
+                window.crmPerfSuppressCalendarRenderV18 = true;
+
+                cached = persistent.data;
+            }
+        }
+
+        try {
+            const fresh = await crmPerfFetchBootstrapV18();
+
+            try {
+                metrics19.payloadBytes = JSON.stringify(fresh).length;
+            } catch (ignore) {
+                metrics19.payloadBytes = 0;
+            }
+
+            metrics19.serverPerf = fresh?.perf || null;
+
+            const freshFingerprint = crmPerfFingerprintV19(fresh);
+            const previousFingerprint = window.crmPerfAppliedFingerprintV19;
+            const changed = freshFingerprint !== previousFingerprint;
+
+            metrics19.freshPayloadChanged = changed;
+
+            window.crmPerfSuppressCalendarRenderV18 = false;
+
+            const applied = crmPerfApplySnapshotWithoutForcedRenderV19(
+                fresh,
+                { forceRender: !previousFingerprint || changed }
+            );
+
+            metrics19.freshRenderSkipped = Boolean(
+                previousFingerprint && !changed && applied?.rendered === false
+            );
+
+            crmPerfWriteCacheV18(fresh);
+            crmPerfWritePersistentCacheV19(fresh);
+
+            metrics18.freshApplied = true;
+            crmSystemBootCompleteV2 = true;
+            window.crmSystemBootCompleteV2 = true;
+            return true;
+        } catch (bootstrapError) {
+            console.warn("Bootstrap V19:", bootstrapError);
+
+            if (cached) {
+                crmSystemBootCompleteV2 = true;
+                window.crmSystemBootCompleteV2 = true;
+                if (typeof crmToast === "function") {
+                    crmToast(
+                        "Pokazuję ostatnie zapisane dane. Świeże dane pobiorę przy kolejnej synchronizacji.",
+                        "error"
+                    );
+                }
+                return true;
+            }
+
+            metrics18.fallbackUsed = true;
+            window.crmPerfSuppressCalendarRenderV18 = false;
+            const ok = await crmLoadSystemSequentialV13();
+            if (ok) {
+                crmPerfWriteCacheV18({});
+                crmPerfWritePersistentCacheV19({});
+            }
+            return ok;
+        }
+    } finally {
+        window.crmPerfSuppressCalendarRenderV18 = false;
+        window.crmBootInProgressV2 = false;
+        metrics18.bootFinishedAt = Date.now();
+    }
+}
+
+loadSystem = async function() {
+    if (crmInitialBootPromiseV2) return crmInitialBootPromiseV2;
+
+    crmInitialBootPromiseV2 = crmLoadSystemFastV19()
+        .finally(() => {
+            window.crmBootInProgressV2 = false;
+            window.setTimeout(() => {
+                crmInitialBootPromiseV2 = null;
+            }, 250);
+        });
+
+    return crmInitialBootPromiseV2;
+};
+
+window.crmRestartSystemLoadV2 = async function() {
+    crmInitialBootPromiseV2 = null;
+
+    try { crmReadQueueV11.length = 0; } catch (ignore) {}
+    try { crmReadByKeyV11.clear(); } catch (ignore) {}
+    try { sessionStorage.removeItem(CRM_PERF_CACHE_KEY_V18); } catch (ignore) {}
+    try { localStorage.removeItem(CRM_PERF_PERSIST_KEY_V19); } catch (ignore) {}
+
+    return loadSystem();
+};
+
+/* KONIEC API PERFORMANCE V19 */
+
+/* ==========================================================================
+   API PERFORMANCE V19.1 2026-08-16
+   Korekta migracji cache + obserwowalność background bootstrap.
+   ========================================================================== */
+
+window.crmPerfFreshBootstrapPromiseV191 = null;
+window.crmPerfFreshBootstrapStateV191 = "idle";
+window.crmPerfFreshBootstrapErrorV191 = "";
+
+async function crmLoadSystemFastV191() {
+    const metrics18 = window.crmPerfMetricsV18 || {};
+    const metrics19 = window.crmPerfMetricsV19 || {};
+
+    metrics18.strategy = "single-bootstrap-v19.1";
+    metrics18.bootNetworkRequests = 0;
+    metrics18.bootStartedAt = Date.now();
+    metrics18.bootFinishedAt = 0;
+    metrics18.bootNetworkMs = 0;
+    metrics18.cacheUsed = false;
+    metrics18.freshApplied = false;
+    metrics18.fallbackUsed = false;
+
+    metrics19.persistentCacheUsed = false;
+    metrics19.persistentCacheAgeMs = 0;
+    metrics19.immediateRenderMs = 0;
+    metrics19.freshPayloadChanged = true;
+    metrics19.freshRenderSkipped = false;
+    metrics19.payloadBytes = 0;
+    metrics19.serverPerf = null;
+
+    window.crmPerfFreshBootstrapStateV191 = "idle";
+    window.crmPerfFreshBootstrapErrorV191 = "";
+    window.crmPerfFreshBootstrapPromiseV191 = null;
+
+    crmSystemBootCompleteV2 = false;
+    window.crmSystemBootCompleteV2 = false;
+    window.crmBootInProgressV2 = true;
+    window.crmPerfSuppressCalendarRenderV18 = true;
+
+    const visualStart = performance.now();
+
+    try {
+        try {
+            if (typeof switchTab === "function") await switchTab("kalendarz");
+        } catch (error) {
+            console.warn("Start Kalendarza V19.1:", error);
+        }
+
+        let cached = typeof crmPerfReadCacheV18 === "function"
+            ? crmPerfReadCacheV18()
+            : null;
+
+        if (cached) {
+            metrics18.cacheUsed = true;
+
+            /*
+             * Migracja V18 -> V19:
+             * już posiadany poprawny session snapshot od razu staje się
+             * persistent snapshotem. Nie czekamy na Google.
+             */
+            crmPerfWritePersistentCacheV19(cached);
+
+            window.crmPerfSuppressCalendarRenderV18 = false;
+            crmPerfApplySnapshotWithoutForcedRenderV19(
+                cached,
+                { forceRender: true }
+            );
+            metrics19.immediateRenderMs =
+                Math.round(performance.now() - visualStart);
+            window.crmPerfSuppressCalendarRenderV18 = true;
+        } else {
+            const persistent = crmPerfReadPersistentCacheV19();
+
+            if (persistent?.data) {
+                metrics19.persistentCacheUsed = true;
+                metrics19.persistentCacheAgeMs =
+                    Math.max(0, persistent.ageMs || 0);
+
+                window.crmPerfSuppressCalendarRenderV18 = false;
+                crmPerfApplySnapshotWithoutForcedRenderV19(
+                    persistent.data,
+                    { forceRender: true }
+                );
+                metrics19.immediateRenderMs =
+                    Math.round(performance.now() - visualStart);
+                window.crmPerfSuppressCalendarRenderV18 = true;
+
+                cached = persistent.data;
+            }
+        }
+
+        /*
+         * Udostępniamy dokładnie TEN request testerowi.
+         * Tester nie tworzy drugiego bootstrap requestu.
+         */
+        window.crmPerfFreshBootstrapStateV191 = "pending";
+
+        const freshPromise = crmPerfFetchBootstrapV18();
+        window.crmPerfFreshBootstrapPromiseV191 = freshPromise;
+
+        try {
+            const fresh = await freshPromise;
+
+            window.crmPerfFreshBootstrapStateV191 = "success";
+
+            try {
+                metrics19.payloadBytes = JSON.stringify(fresh).length;
+            } catch (ignore) {
+                metrics19.payloadBytes = 0;
+            }
+
+            metrics19.serverPerf = fresh?.perf || null;
+
+            const freshFingerprint = crmPerfFingerprintV19(fresh);
+            const previousFingerprint = window.crmPerfAppliedFingerprintV19;
+            const changed = freshFingerprint !== previousFingerprint;
+
+            metrics19.freshPayloadChanged = changed;
+
+            window.crmPerfSuppressCalendarRenderV18 = false;
+
+            const applied = crmPerfApplySnapshotWithoutForcedRenderV19(
+                fresh,
+                { forceRender: !previousFingerprint || changed }
+            );
+
+            metrics19.freshRenderSkipped = Boolean(
+                previousFingerprint &&
+                !changed &&
+                applied?.rendered === false
+            );
+
+            crmPerfWriteCacheV18(fresh);
+            crmPerfWritePersistentCacheV19(fresh);
+
+            metrics18.freshApplied = true;
+            crmSystemBootCompleteV2 = true;
+            window.crmSystemBootCompleteV2 = true;
+            return true;
+
+        } catch (bootstrapError) {
+            window.crmPerfFreshBootstrapStateV191 = "error";
+            window.crmPerfFreshBootstrapErrorV191 =
+                bootstrapError?.message || String(bootstrapError);
+
+            console.warn("Bootstrap V19.1:", bootstrapError);
+
+            if (cached) {
+                crmSystemBootCompleteV2 = true;
+                window.crmSystemBootCompleteV2 = true;
+
+                if (typeof crmToast === "function") {
+                    crmToast(
+                        "Pokazuję ostatnie zapisane dane. Świeże dane pobiorę przy kolejnej synchronizacji.",
+                        "error"
+                    );
+                }
+                return true;
+            }
+
+            metrics18.fallbackUsed = true;
+            window.crmPerfSuppressCalendarRenderV18 = false;
+
+            const ok = await crmLoadSystemSequentialV13();
+
+            if (ok) {
+                crmPerfWriteCacheV18({});
+                crmPerfWritePersistentCacheV19({});
+            }
+            return ok;
+        }
+    } finally {
+        window.crmPerfSuppressCalendarRenderV18 = false;
+        window.crmBootInProgressV2 = false;
+        metrics18.bootFinishedAt = Date.now();
+    }
+}
+
+window.crmWaitForFreshBootstrapV191 = async function(timeoutMs = 60000) {
+    if (window.crmPerfFreshBootstrapStateV191 === "success") {
+        return { success: true, state: "success" };
+    }
+
+    if (window.crmPerfFreshBootstrapStateV191 === "error") {
+        return {
+            success: false,
+            state: "error",
+            error: window.crmPerfFreshBootstrapErrorV191 || "Bootstrap error"
+        };
+    }
+
+    const promise = window.crmPerfFreshBootstrapPromiseV191;
+    if (!promise || typeof promise.then !== "function") {
+        return {
+            success: false,
+            state: window.crmPerfFreshBootstrapStateV191 || "idle",
+            error: "Brak aktywnego bootstrap promise"
+        };
+    }
+
+    let timer = null;
+
+    try {
+        await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timer = window.setTimeout(
+                    () => reject(new Error("Timeout oczekiwania na bootstrap V19.1")),
+                    Math.max(1000, Number(timeoutMs) || 60000)
+                );
+            })
+        ]);
+
+        return {
+            success: window.crmPerfFreshBootstrapStateV191 === "success",
+            state: window.crmPerfFreshBootstrapStateV191,
+            error: window.crmPerfFreshBootstrapErrorV191 || ""
+        };
+    } catch (error) {
+        return {
+            success: false,
+            state: window.crmPerfFreshBootstrapStateV191,
+            error: error?.message || String(error)
+        };
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+};
+
+loadSystem = async function() {
+    if (crmInitialBootPromiseV2) return crmInitialBootPromiseV2;
+
+    crmInitialBootPromiseV2 = crmLoadSystemFastV191()
+        .finally(() => {
+            window.crmBootInProgressV2 = false;
+            window.setTimeout(() => {
+                crmInitialBootPromiseV2 = null;
+            }, 250);
+        });
+
+    return crmInitialBootPromiseV2;
+};
+
+window.crmRestartSystemLoadV2 = async function() {
+    crmInitialBootPromiseV2 = null;
+
+    try { crmReadQueueV11.length = 0; } catch (ignore) {}
+    try { crmReadByKeyV11.clear(); } catch (ignore) {}
+    try { sessionStorage.removeItem(CRM_PERF_CACHE_KEY_V18); } catch (ignore) {}
+    try { localStorage.removeItem(CRM_PERF_PERSIST_KEY_V19); } catch (ignore) {}
+
+    return loadSystem();
+};
+
+/* KONIEC API PERFORMANCE V19.1 */
