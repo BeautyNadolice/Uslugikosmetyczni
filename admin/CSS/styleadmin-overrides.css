@@ -13,13 +13,13 @@
    NIEZALEZNA REGULACJA SAMEGO ZNAKU X ORAZ SAMEGO ZNAKU PLUS
    ============================================================================
    WAZNE:
-   - --close-move-up / --close-move-left przesuwaja CALE KOLO z krzyzykiem.
+   - --close-move-up / --close-move-left przesuwają obszar kliknięcia ze znakiem X.
    - --close-symbol-move-x / --close-symbol-move-y przesuwaja TYLKO znak X.
    - --plus-move-up przesuwa CALE KOLO z plusem.
    - --plus-symbol-move-x / --plus-symbol-move-y przesuwaja TYLKO znak +.
    ============================================================================ */
 
-/* TYLKO ZNAK X W KOLKU ZAMKNIECIA PRAWEGO PANELU */
+/* TYLKO ZNAK X — BEZ KOŁA I BEZ TŁA */
 #appointmentDetailsModal .crm-safe-close{
   font-size:0!important;                 /* ukrywa oryginalny tekstowy znak X */
   line-height:1!important;
@@ -95,24 +95,24 @@
 
 
 /* ==========================================================
-   ADMIN V10.4: X BEZ KOLA, KOLKO TYLKO HOVER
+   ADMIN V10.4: X BEZ KOŁA — TAKŻE PO NAJECHANIU
    ========================================================== */
 #appointmentDetailsModal .crm-safe-close{
-  background:var(--close-background)!important;
-  border-color:var(--close-border-color)!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
   box-shadow:none!important;
-  border-radius:50%!important;
-  transition:
-    background-color var(--button-animation-time) ease,
-    border-color var(--button-animation-time) ease,
-    transform var(--button-animation-time) ease!important;
+  transition:color var(--button-animation-time) ease,
+             opacity var(--button-animation-time) ease!important;
 }
 #appointmentDetailsModal .crm-safe-close:hover,
 #appointmentDetailsModal .crm-safe-close:focus-visible{
-  background:var(--close-hover-background)!important;
-  border-color:var(--close-hover-border-color)!important;
-  transform:translateY(var(--close-hover-lift))!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  transform:none!important;
   box-shadow:none!important;
+  opacity:.78!important;
   outline:none!important;
 }
 /* KONIEC ADMIN V10.4 */
@@ -733,8 +733,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header > div:last-child
 .crm-day-list-panel>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px 15px;border-bottom:1px solid #eee5e9;background:linear-gradient(145deg,#fff,#fdf7fa);}
 .crm-day-list-panel>header span{color:#ad5577;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
 .crm-day-list-panel>header h3{margin:3px 0 0;color:#342d34;font-size:17px;text-transform:capitalize;}
-.crm-day-list-close{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:#f7edf2;color:#9f5877;cursor:pointer;font-size:24px;font-weight:300;}
-.crm-day-list-close:hover{background:#ead3dd;transform:translateY(-1px);}
+.crm-day-list-close{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:0;background:transparent;color:#9f5877;box-shadow:none;cursor:pointer;font-size:24px;font-weight:300;}
+.crm-day-list-close:hover{background:transparent;color:#7f3f5b;transform:none;}
 .crm-day-list-body{display:flex;flex-direction:column;gap:8px;max-height:calc(min(78vh,760px) - 78px);padding:14px 16px 18px;overflow:auto;}
 .crm-day-list-item{
   --crm-event-color:#b05c75;
@@ -2000,8 +2000,9 @@ body.crm-v3-details-open .crm-day-list-panel {
     height: 30px !important;
     padding: 0 !important;
     border: 0 !important;
-    border-radius: 50% !important;
+    border-radius: 0 !important;
     background: transparent !important;
+    box-shadow: none !important;
     color: #4d4147 !important;
     cursor: pointer !important;
     font-size: 22px !important;
@@ -2010,7 +2011,8 @@ body.crm-v3-details-open .crm-day-list-panel {
 
 .crm-request-notice-simple-close:hover,
 .crm-request-notice-simple-close:focus-visible {
-    background: #f7e8ee !important;
+    background: transparent !important;
+    color: #9b4c69 !important;
     outline: none !important;
 }
 
@@ -2303,8 +2305,9 @@ body.crm-v3-details-open .crm-day-list-panel {
     flex: 0 0 34px !important;
     padding: 0 !important;
     border: 0 !important;
-    border-radius: 50% !important;
-    background: #f6f1f3 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
     color: #655b60 !important;
     font-size: 20px !important;
     line-height: 1 !important;
@@ -2433,8 +2436,9 @@ body.crm-v3-details-open .crm-day-list-panel {
     height: 34px !important;
     padding: 0 !important;
     border: 0 !important;
-    border-radius: 50% !important;
-    background: #f8eef2 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
     color: #b35b7a !important;
     font-size: 23px !important;
     font-weight: 300 !important;
@@ -2443,7 +2447,7 @@ body.crm-v3-details-open .crm-day-list-panel {
 }
 
 .crm-v173-insights-close:hover {
-    background: #efdce4 !important;
+    background: transparent !important;
     color: #944261 !important;
 }
 
@@ -2891,7 +2895,8 @@ body.crm-v3-details-open .crm-day-list-panel {
 
 /* Badge źródła wizyty po prawej stronie. */
 #appointmentDetailsModal #crmVisitSourceBadge.crm-v176-source-badge {
-    grid-column: 3 !important;
+transform: translateY(10px) !important;   
+ grid-column: 0 !important;
     grid-row: 1 !important;
     display: inline-flex !important;
     align-items: center !important;

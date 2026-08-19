@@ -764,14 +764,6 @@ function crmMakeNoticeDraggable(box,handle){
   handle.addEventListener("pointermove",e=>{if(!active)return;const maxX=Math.max(0,innerWidth-box.offsetWidth),maxY=Math.max(0,innerHeight-box.offsetHeight);box.style.left=Math.max(0,Math.min(maxX,e.clientX-dx))+"px";box.style.top=Math.max(0,Math.min(maxY,e.clientY-dy))+"px";box.style.right="auto";box.style.bottom="auto";});
   handle.addEventListener("pointerup",()=>{active=false;crmNoticeStorePosition(box);});
 }
-function crmRenderRequestNotice(requests){
-  crmNoticeRequests=requests||[]; let box=document.getElementById("crmRequestNoticeFinal");
-  if(!crmNoticeRequests.length){box?.remove();return;}
-  if(!box){box=document.createElement("aside");box.id="crmRequestNoticeFinal";box.className="crm-request-notice-final";document.body.appendChild(box);const saved=JSON.parse(localStorage.getItem("crmNoticePosition")||"null");if(saved){box.style.left=saved.left;box.style.top=saved.top;box.style.right="auto";}}
-  box.innerHTML='<header><span class="crm-notice-grip">⋮⋮</span><strong>'+(crmNoticeRequests.length===1?'Nowa prośba o wizytę':'Nowe prośby: '+crmNoticeRequests.length)+'</strong><button type="button" aria-label="Odłóż">×</button></header><div class="crm-notice-list"></div><footer><button type="button" class="btn-secondary" data-later>Później</button><button type="button" class="btn-primary" data-show>Pokaż wszystkie</button></footer>';
-  const list=box.querySelector(".crm-notice-list");crmNoticeRequests.slice(0,5).forEach(r=>{const b=document.createElement("button");b.type="button";b.className="crm-notice-row";b.innerHTML='<strong>'+crmSafeText(r.name||"Klient")+'</strong><span>'+crmSafeText(r.service||"Wizyta")+'</span><small>'+crmSafeText(r.mainDate||r.date||"")+(r.alternativeDate?' • alternatywa: '+crmSafeText(r.alternativeDate):'')+'</small>';b.onclick=()=>{box.classList.add("is-minimized");document.getElementById("booking-requests-panel")?.scrollIntoView({behavior:"smooth",block:"nearest"});};list.appendChild(b);});
-  const later=()=>box.classList.add("is-minimized");box.querySelector("header button").onclick=later;box.querySelector("[data-later]").onclick=later;box.querySelector("[data-show]").onclick=()=>{box.classList.add("is-minimized");document.getElementById("booking-requests-panel")?.scrollIntoView({behavior:"smooth",block:"nearest"});};crmMakeNoticeDraggable(box,box.querySelector("header"));
-}
 const crmOriginalShowNewRequestNotification=typeof crmShowNewRequestNotification==="function"?crmShowNewRequestNotification:null;
 crmShowNewRequestNotification=function(requests){crmRenderRequestNotice(requests);};
 const crmOriginalInitializeWorkspaceFinal=typeof crmV3InitializeWorkspace==="function"?crmV3InitializeWorkspace:null;

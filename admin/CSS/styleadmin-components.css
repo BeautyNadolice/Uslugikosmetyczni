@@ -404,9 +404,7 @@
 /* ==========================================================
    ADMIN V6.1: USUNIĘCIE ZBĘDNEGO PRZYCISKU I NAGŁÓWEK PANELU
    ========================================================== */
-.crm-left-quick-buttons{
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-}
+
 .crm-visit-panel__header{
   grid-template-columns:34px minmax(150px,1fr) auto!important;
   column-gap:9px!important;

@@ -1466,12 +1466,6 @@ planNextVisitFromCurrentAppointment = async function() {
     finally { crmUiOperationLock=false; crmSetActionGroupBusy(false); }
 };
 
-/* ----- VIS.37. crmFindServiceForVisit (oryginalna linia 4579) ----- */
-function crmFindServiceForVisit(item) {
-    const wanted = crmNormalizeServiceName(item && item.service);
-    if (!wanted) return null;
-    return currentServices.find(service => crmNormalizeServiceName(service && service.name) === wanted) || null;
-}
 
 /* ----- VIS.38. crmV3RenderAppointmentCardOriginal (oryginalna linia 5612) ----- */
 const crmV3RenderAppointmentCardOriginal = renderAppointmentCard;
