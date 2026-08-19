@@ -11,7 +11,7 @@
    BŁĄD = operacja nie wykonała się poprawnie.
    ========================================================================== */
 
-const CRM_TEST_LIGHT_VERSION = "7.1.0";
+const CRM_TEST_LIGHT_VERSION = "7.2.0";
 const CRM_TEST_LIGHT_SCOPE = "PERFORMANCE_INDEX_AFTER_V21";
 const CRM_ACTIONS_INDEX_URL_V5 =
     "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
@@ -773,7 +773,7 @@ async function runCRMTestLight() {
 
         try {
             cleanupStarted = true;
-            const cleanup = await crmActionsTimedV5(
+            await crmActionsTimedV5(
                 report,
                 timings,
                 "CLEANUP — dane PERFORMANCE ACTIONS",
@@ -784,21 +784,34 @@ async function runCRMTestLight() {
                 result => result?.success === true
             );
 
-            const leftover = await crmActionsPostV5({
-                action:"crmE2EInspect",
-                marker
-            },50000);
+            /* V7.2: cleanup i późniejsza kontrola to dwie różne operacje.
+               Jeśli cleanup dostał success:true, a czysty crmE2EInspect zgubi
+               odpowiedź Google, nie oznaczamy działającego cleanupu jako błędu. */
+            try {
+                const leftover = await crmActionsPostV5({
+                    action:"crmE2EInspect",
+                    marker
+                },50000);
 
-            const rows = Number(leftover?.rows || 0);
-            const events = Number(leftover?.calendarEvents || 0);
+                const rows = Number(leftover?.rows || 0);
+                const events = Number(leftover?.calendarEvents || 0);
 
-            crmActionsAssertV5(
-                report,
-                rows === 0 && events === 0,
-                "Pozostałości po PERFORMANCE ACTIONS",
-                {rows,calendarEvents:events},
-                {rows,calendarEvents:events,result:crmActionsCompactV5(leftover)}
-            );
+                crmActionsAssertV5(
+                    report,
+                    rows === 0 && events === 0,
+                    "Pozostałości po PERFORMANCE ACTIONS",
+                    {rows,calendarEvents:events},
+                    {rows,calendarEvents:events,result:crmActionsCompactV5(leftover)}
+                );
+            } catch (inspectError) {
+                crmActionsAddV5(
+                    report,
+                    "OSTRZEZENIE",
+                    "Kontrola pozostałości po cleanupie",
+                    "Cleanup zakończył się poprawnie, ale kontrolny odczyt ADMIN nie odpowiedział: " +
+                    (inspectError?.message || String(inspectError))
+                );
+            }
         } catch (cleanupError) {
             crmActionsAddV5(
                 report,
@@ -842,8 +855,9 @@ window.runCRMTestLight = runCRMTestLight;
 
 
 /* CRM TEST LIGHT V7 — INDEX PERFORMANCE V21 */
-window.crmTestLightPerformanceIndexV21 = "7.1.0";
+window.crmTestLightPerformanceIndexV21 = "7.2.0";
 
 
 /* CRM TEST LIGHT V7.1 — SAFE DIAGNOSTIC TRANSPORT RETRY */
-window.crmTestLightSafeDiagnosticRetryV71 = "7.1.0";
+window.crmTestLightSafeDiagnosticRetryV71 = "7.2.0";
+window.crmTestLightCleanupInspectWarningV72 = "7.2.0";

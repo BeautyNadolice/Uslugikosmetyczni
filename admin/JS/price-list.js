@@ -41,6 +41,84 @@ async function loadServices() {
 
 }
 
+/* ----- CEN.3. renderServicesTable (oryginalna linia 149) ----- */
+function renderServicesTable() {
+
+    const tbody =
+        document.getElementById(
+            "adminServicesTableBody"
+        );
+
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (
+        !currentServices ||
+        currentServices.length === 0
+    ) {
+
+        tbody.innerHTML =
+            `
+            <tr>
+                <td colspan="6"
+                    style="text-align:center;">
+                    Brak usług
+                </td>
+            </tr>
+            `;
+
+        return;
+
+    }
+
+    currentServices.forEach((service, index) => {
+
+        const tr =
+            document.createElement("tr");
+
+        tr.innerHTML = `
+
+            <td>
+                ${service.category || ""}
+            </td>
+
+            <td>
+                ${service.name || ""}
+            </td>
+
+            <td>
+                ${service.price || 0} zł
+            </td>
+
+            <td>
+                ${service.duration || 0} min
+            </td>
+
+            <td>
+                ${service.status || ""}
+            </td>
+
+            <td>
+    <button
+        class="btn-secondary"
+        onclick="editService(${index})">
+        Edytuj
+    </button>
+
+    <button
+        class="btn-danger"
+        onclick="deleteService(${index})">
+        Usuń
+    </button>
+</td>
+        `;
+
+        tbody.appendChild(tr);
+
+    });
+
+}
 
 /* ----- CEN.4. populateServiceNameDatalist (oryginalna linia 1192) ----- */
 function populateServiceNameDatalist() {
@@ -143,6 +221,41 @@ function editService(index) {
     document.getElementById("serviceModal").style.display = "flex";
 }
 
+/* ----- CEN.8. saveServiceModalData (oryginalna linia 3272) ----- */
+function saveServiceModalData() {
+    const index = parseInt(
+        document.getElementById("editServiceIndex").value,
+        10
+    );
+
+    const serviceData = {
+        category: document.getElementById("serviceCategory").value.trim(),
+        name: document.getElementById("serviceName").value.trim(),
+        price: Number(document.getElementById("servicePrice").value) || 0,
+        duration: Number(document.getElementById("serviceDuration").value) || 60,
+        showPrice: "Tak",
+        showDuration: "Tak",
+        status: document.getElementById("serviceStatus").value || "Szkic"
+    };
+
+    if (!serviceData.category || !serviceData.name) {
+        alert("Wpisz kategorię i nazwę usługi.");
+        return;
+    }
+
+    if (index >= 0) {
+        currentServices[index] = serviceData;
+    } else {
+        currentServices.push(serviceData);
+    }
+
+    renderServicesTable();
+    syncCategoryColorsAndRefresh().catch(console.error);
+    buildColorsEditor();
+    closeServiceModal();
+
+    alert("Usługa zapisana lokalnie. Następny krok: zapis szkicu do arkusza.");
+}
 
 /* ----- CEN.9. getUniqueServiceCategories (oryginalna linia 3311) ----- */
 /* ==========================================================
@@ -349,6 +462,19 @@ function deleteCategoryFromModal() {
     );
 }
 
+
+function crmPriceListTouchCacheV25() {
+    try {
+        if (typeof crmPerfMarkFreshV18 === "function") crmPerfMarkFreshV18(["services"]);
+    } catch (ignore) {}
+    try {
+        if (typeof crmPerfWriteCacheV18 === "function") crmPerfWriteCacheV18({});
+    } catch (ignore) {}
+    try {
+        if (typeof crmPerfWritePersistentCacheV19 === "function") crmPerfWritePersistentCacheV19({});
+    } catch (ignore) {}
+}
+
 /* ----- CEN.16. saveDraftsToCloud (oryginalna linia 3508) ----- */
 /* ==========================================================
    CENNIK - SAVE DRAFT / PUBLISH
@@ -361,29 +487,32 @@ async function saveDraftsToCloud() {
             return;
         }
 
-        const response = await fetch(
-            APPS_SCRIPT_URL,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain"
-                },
-                body: JSON.stringify({
-                    action: "saveDraftPrices",
-                    prices: currentServices
-                })
-            }
-        );
+        const payload = {
+            action: "saveDraftPrices",
+            prices: currentServices
+        };
 
-        const data = await response.json();
+        const data = typeof crmPost === "function"
+            ? await crmPost(payload)
+            : await (async () => {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(payload)
+                });
+                return response.json();
+            })();
 
-        if (data.success) {
+        if (data && data.success) {
+            /* currentServices jest dokładnie tym szkicem, który przed chwilą
+               zapisaliśmy. Nie pobieramy więc ponownie całego Cennika z Google. */
+            crmPriceListTouchCacheV25();
+            if (typeof renderServicesTable === "function") renderServicesTable();
             alert("Szkic cennika zapisany.");
-            await loadServices();
         } else {
             alert(
                 "Błąd zapisu szkicu: " +
-                (data.error || "Nieznany błąd")
+                (data?.error || "Nieznany błąd")
             );
         }
     } catch (error) {
@@ -399,28 +528,27 @@ async function publishDrafts() {
     }
 
     try {
-        const response = await fetch(
-            APPS_SCRIPT_URL,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain"
-                },
-                body: JSON.stringify({
-                    action: "publishDraftToPublic"
-                })
-            }
-        );
+        const payload = { action: "publishDraftToPublic" };
+        const data = typeof crmPost === "function"
+            ? await crmPost(payload)
+            : await (async () => {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(payload)
+                });
+                return response.json();
+            })();
 
-        const data = await response.json();
-
-        if (data.success) {
+        if (data && data.success) {
+            /* Publikacja kopiuje zapisany szkic; lokalny Cennik się nie zmienia,
+               więc drugi GET po sukcesie był zbędny. */
+            crmPriceListTouchCacheV25();
             alert("Cennik opublikowany.");
-            await loadServices();
         } else {
             alert(
                 "Błąd publikacji: " +
-                (data.error || "Nieznany błąd")
+                (data?.error || "Nieznany błąd")
             );
         }
     } catch (error) {

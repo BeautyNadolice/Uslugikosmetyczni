@@ -4,6 +4,13 @@
    modulu odpowiada kolejnosci w monolicie. Nie zmieniac nazw globalnych.
    ========================================================================== */
 
+
+/* ADMIN PERFORMANCE V24 2026-08-19
+   - zapis/edycja wizyty od razu aktualizuje appointmentsData także przy edycji;
+   - blokada create/edit/delete od razu aktualizuje RAM i cache;
+   - drugi odczyt Kalendarza po blokadzie jest wyłącznie w tle;
+   - brak zmian w INDEX i Google Apps Script. */
+
 /* ----- VIS.1. appointmentsData (oryginalna linia 24) ----- */
 let appointmentsData = [];
 
@@ -1174,17 +1181,69 @@ async function submitBlockTime() {
 
         if (data.success) {
             const wasEditingBlock = currentEditingAppointment && currentEditingAppointment.eventType === "block";
+            const previousBlock = wasEditingBlock ? currentEditingAppointment : null;
+            const oldEventId = String(previousBlock?.eventId || "");
+            const eventId = String(data.eventId || oldEventId || "");
+
+            const startIso = blockType === "full_day"
+                ? `${blockDate}T00:00`
+                : `${blockDate}T${blockStart}`;
+            let endIso = "";
+            if (blockType === "full_day") {
+                const nextDay = new Date(`${blockDate}T12:00:00`);
+                nextDay.setDate(nextDay.getDate() + 1);
+                endIso = crmLocalIsoMinuteV24(new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 0, 0, 0));
+            } else {
+                endIso = `${blockDate}T${blockEnd}`;
+            }
+
+            const startDate = new Date(startIso);
+            const endDate = new Date(endIso);
+            const duration = !Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())
+                ? Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60000))
+                : Number(previousBlock?.duration) || 60;
+
+            appointmentsData = (appointmentsData || []).filter(item => {
+                if (oldEventId && String(item?.eventId || "") === oldEventId) return false;
+                if (!oldEventId && wasEditingBlock && previousBlock) {
+                    return !(String(item?.date || "") === String(previousBlock.date || "") && String(item?.name || "") === String(previousBlock.name || ""));
+                }
+                return true;
+            });
+
+            appointmentsData.push({
+                date:startIso,
+                endDate:endIso,
+                phone:"",
+                name:blockTitle || "Zablokowane",
+                service:"Blokada czasu",
+                category:"Inne",
+                duration,
+                eventId,
+                status:"",
+                crmStatus:"",
+                bookingSource:"",
+                source:"",
+                requestId:"",
+                firstVisit:false,
+                eventType:"block",
+                displayOnly:false
+            });
+
+            crmWriteLocalCalendarCacheV24();
+            if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+            if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
+            if (typeof renderDashboard === "function") renderDashboard();
+            if (typeof calculateFinanceReport === "function") calculateFinanceReport();
+
             if (typeof crmToast === "function") {
                 crmToast(wasEditingBlock ? "Blokada została zaktualizowana." : "Czas został zablokowany.");
             }
             currentEditingAppointment = null;
             closeBlockTimeModal();
 
-            await loadSettings();
-
-            renderBooksyCalendar();
-            renderDashboard();
-            calculateFinanceReport();
+            // Nie blokujemy formularza drugim odczytem Google. Weryfikacja idzie w tle.
+            crmScheduleCalendarSyncV24(wasEditingBlock ? "po-edycji-blokady" : "po-dodaniu-blokady");
         } else {
             alert(
                 "Błąd blokowania czasu: " +
@@ -2240,17 +2299,15 @@ deleteBlockTimeFromAdmin = async function() {
         currentEditingAppointment = null;
         closeAppointmentModal();
 
+        crmWriteLocalCalendarCacheV24();
         if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+        if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
         if (typeof renderDashboard === "function") renderDashboard();
         if (typeof calculateFinanceReport === "function") calculateFinanceReport();
         if (typeof crmToast === "function") crmToast("Blokada czasu została usunięta.");
 
-        Promise.resolve()
-            .then(() => typeof loadSettings === "function" ? loadSettings() : null)
-            .then(() => {
-                if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
-            })
-            .catch(error => console.error("Synchronizacja po usunięciu blokady:", error));
+        // Po sukcesie UI jest już poprawne z RAM; Google potwierdzamy lekkim syncem w tle.
+        crmScheduleCalendarSyncV24("po-usunieciu-blokady");
     } catch (error) {
         console.error(error);
         if (typeof crmToast === "function") {
@@ -2484,32 +2541,99 @@ async function crmPostBookingAttemptV7(payload, attempt, total) {
     }
 }
 
+function crmLocalIsoMinuteV24(value) {
+    const date = value instanceof Date ? new Date(value) : new Date(String(value || ""));
+    if (Number.isNaN(date.getTime())) return String(value || "").slice(0,16);
+    const pad = number => String(number).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function crmWriteLocalCalendarCacheV24() {
+    try {
+        if (typeof crmPerfWriteCacheV18 === "function") crmPerfWriteCacheV18({});
+    } catch (ignore) {}
+    try {
+        if (typeof crmPerfWritePersistentCacheV19 === "function") crmPerfWritePersistentCacheV19({});
+    } catch (ignore) {}
+}
+
+function crmScheduleCalendarSyncV24(reason) {
+    const syncReason = reason || "lokalna-zmiana-kalendarza";
+
+    /* Finalny koordynator sam scala kilka szybkich żądań w jedno.
+       Dzięki temu zapis + zamknięcie panelu + render nie uruchamiają
+       równoległych synchronizacji Google Calendar. */
+    try {
+        if (typeof crmScheduleCalendarLightSync === "function") {
+            crmScheduleCalendarLightSync(syncReason);
+            return;
+        }
+    } catch (ignore) {}
+
+    Promise.resolve().then(async () => {
+        try {
+            if (typeof crmRetryCalendarLightSyncV6 === "function") {
+                await crmRetryCalendarLightSyncV6(syncReason);
+            } else if (typeof crmLightSyncCalendarData === "function") {
+                await crmLightSyncCalendarData(syncReason);
+            } else if (typeof loadSettings === "function") {
+                await loadSettings();
+            }
+        } catch (error) {
+            console.warn("Synchronizacja Kalendarza po lokalnej zmianie:", error?.message || error);
+        }
+    });
+}
+
 function crmLocalInsertSavedAppointmentV7(payload, data) {
-    if (payload.editFlag) return;
+    const previous = payload.editFlag && currentEditingAppointment
+        ? currentEditingAppointment
+        : null;
+    const oldEventId = String(payload.oldEventId || previous?.eventId || "");
+    const oldDate = String(payload.oldDate || previous?.date || "");
+    const oldName = String(payload.oldName || previous?.name || "");
+    const eventId = String(data?.eventId || oldEventId || "");
 
-    const exists = (appointmentsData || []).some(item =>
-        data?.eventId && String(item?.eventId || "") === String(data.eventId)
-    );
-    if (exists) return;
+    appointmentsData = Array.isArray(appointmentsData) ? appointmentsData : [];
 
-    appointmentsData = appointmentsData || [];
+    if (payload.editFlag) {
+        appointmentsData = appointmentsData.filter(item => {
+            if (oldEventId && String(item?.eventId || "") === oldEventId) return false;
+            return !(!oldEventId && oldDate && oldName && String(item?.date || "") === oldDate && String(item?.name || "") === oldName);
+        });
+    } else if (eventId && appointmentsData.some(item => String(item?.eventId || "") === eventId)) {
+        return;
+    }
+
+    const duration = Number(payload.duration) || Number(previous?.duration) || 45;
+    const start = crmLocalIsoMinuteV24(payload.date);
+    const startDate = new Date(start);
+    const end = Number.isNaN(startDate.getTime())
+        ? ""
+        : crmLocalIsoMinuteV24(new Date(startDate.getTime() + duration * 60000));
+    const bookingSource = data?.bookingSource || previous?.bookingSource || previous?.source || payload.bookingSource || "ADMIN";
+
     appointmentsData.push({
         eventType:"appointment",
-        date:payload.date,
+        date:start || payload.date,
+        endDate:end,
         phone:payload.phone,
         name:payload.name,
         service:payload.service,
-        duration:Number(payload.duration) || 45,
-        status:"POTWIERDZONA",
-        crmStatus:"POTWIERDZONA",
-        eventId:data?.eventId || "",
-        appointmentId:data?.appointmentId || "",
-        bookingSource:data?.bookingSource || payload.bookingSource || "ADMIN",
-        source:data?.bookingSource || payload.bookingSource || "ADMIN",
-        requestId:data?.sourceRequestId || payload.sourceRequestId || "",
-        firstVisit:Boolean(data?.firstVisit)
+        category:previous?.category || "Inne",
+        duration,
+        status:previous?.status || "POTWIERDZONA",
+        crmStatus:previous?.crmStatus || previous?.status || "POTWIERDZONA",
+        eventId,
+        appointmentId:data?.appointmentId || previous?.appointmentId || "",
+        bookingSource,
+        source:bookingSource,
+        requestId:data?.sourceRequestId || previous?.requestId || payload.sourceRequestId || "",
+        firstVisit:Boolean(data?.firstVisit ?? previous?.firstVisit),
+        displayOnly:false
     });
 
+    crmWriteLocalCalendarCacheV24();
     if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
     if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
 }

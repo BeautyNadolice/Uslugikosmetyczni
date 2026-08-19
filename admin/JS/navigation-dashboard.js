@@ -72,6 +72,17 @@ if(activeBtn){
 
 }
 
+
+function crmGetServicePriceMapV25() {
+    const map = new Map();
+    (Array.isArray(currentServices) ? currentServices : []).forEach(service => {
+        const key = String(service?.name || "").trim().toLowerCase();
+        if (!key) return;
+        map.set(key, Number(service?.price) || 0);
+    });
+    return map;
+}
+
 /* ----- NAV.2. renderDashboard (oryginalna linia 350) ----- */
 /* ==========================================================
    DASHBOARD
@@ -88,6 +99,7 @@ function renderDashboard() {
 
     let monthIncome = 0;
 
+    const servicePriceMap = crmGetServicePriceMapV25();
 
     appointmentsData.forEach(app => {
 
@@ -96,24 +108,8 @@ function renderDashboard() {
         const appDate =
             new Date(app.date);
 
-        const service =
-            currentServices.find(
-                s =>
-                s.name &&
-                app.service &&
-                s.name.trim()
-                .toLowerCase()
-                ===
-                app.service.trim()
-                .toLowerCase()
-            );
-
-        const price =
-            service
-            ?
-            Number(service.price)
-            :
-            0;
+        const serviceKey = String(app.service || "").trim().toLowerCase();
+        const price = servicePriceMap.get(serviceKey) || 0;
 
 
         if(

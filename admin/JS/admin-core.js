@@ -3084,8 +3084,9 @@ document.addEventListener("DOMContentLoaded", () => {
 let crmInboxPromiseV11=null;
 let crmInboxLastPingAtV11=0;
 let crmInboxScheduleTimerV11=null;
-const CRM_INBOX_MIN_PING_GAP_V11=30000;
+const CRM_INBOX_MIN_PING_GAP_V11=55000;
 const CRM_INBOX_BACKGROUND_DELAY_V11=60000;
+const CRM_INBOX_FULL_CACHE_TTL_V25=45000;
 
 /* Stary panel jest ukryty. Nie może już generować ciężkiego POST
    getBookingRequests przy każdym switchTab. */
@@ -3115,6 +3116,7 @@ crmRunInboxPingV5=async function(options={}){
         const data=await crmFetchInboxPingV5();
         const items=Array.isArray(data.newItems)?data.newItems:[];
         const count=Math.max(0,Number(data.newCount)||0);
+        window.crmInboxPingNewCountV25=count;
         crmUpdateUnifiedInboxBadge({new:count});
 
         const seen=crmReadInboxNotificationSeenV5();
@@ -3160,6 +3162,7 @@ crmStartInboxPingV5=function(){
 
 crmLoadUnifiedInbox=async function(options={}){
     const silent=options.silent===true;
+    const force=options.force===true;
     const modal=document.getElementById("crmUnifiedInboxModal");
     const open=Boolean(modal && modal.hidden===false);
 
@@ -3168,12 +3171,38 @@ crmLoadUnifiedInbox=async function(options={}){
         return Array.isArray(crmUnifiedInboxItems)?crmUnifiedInboxItems:[];
     }
 
+    const cachedItems=Array.isArray(crmUnifiedInboxItems)?crmUnifiedInboxItems:[];
+    const cacheAge=Date.now()-Number(crmUnifiedInboxLastSuccessV3||0);
+    const cachedNewCount=cachedItems.reduce((sum,item)=>
+        sum+(String(item?.readState||"").trim().toUpperCase()==="NOWE"?1:0),0
+    );
+    const pingNewCount=Number(window.crmInboxPingNewCountV25);
+    const pingAgrees=!Number.isFinite(pingNewCount) || pingNewCount===cachedNewCount;
+    const cacheFresh=
+        !force &&
+        crmUnifiedInboxLastSuccessV3>0 &&
+        cacheAge>=0 &&
+        cacheAge<CRM_INBOX_FULL_CACHE_TTL_V25 &&
+        pingAgrees;
+
+    /* Reopen Skrzynki w krótkim czasie = natychmiast z RAM, bez drugiego GET.
+       Jeśli ping wykrył inną liczbę nowych wpisów, cache nie jest używany. */
+    if(open && cacheFresh){
+        crmRenderUnifiedInbox();
+        return cachedItems;
+    }
+
     /* Jeśli pełna Skrzynka już jest pobierana, drugi klik czeka na TEN SAM request.
        Nie uruchamiamy drugiego Apps Script. */
     if(crmInboxPromiseV11) return crmInboxPromiseV11;
 
     const body=document.getElementById("crmUnifiedInboxBody");
-    if(body) body.innerHTML='<div style="padding:20px;color:#777;">Ładowanie skrzynki…</div>';
+    const hasCachedView=open && crmUnifiedInboxLastSuccessV3>0;
+    if(hasCachedView){
+        crmRenderUnifiedInbox();
+    }else if(body){
+        body.innerHTML='<div style="padding:20px;color:#777;">Ładowanie skrzynki…</div>';
+    }
 
     crmInboxPromiseV11=(async()=>{
         try{
@@ -3186,12 +3215,14 @@ crmLoadUnifiedInbox=async function(options={}){
             }
             crmUnifiedInboxItems=data.items;
             crmUnifiedInboxLastSuccessV3=Date.now();
+            window.crmInboxPingNewCountV25=Math.max(0,Number(data?.counts?.new)||0);
+            crmUpdateUnifiedInboxBadge({new:window.crmInboxPingNewCountV25});
             crmSetUnifiedInboxConnectionStateV3?.(true);
             crmRenderUnifiedInbox();
             return crmUnifiedInboxItems;
         }catch(error){
             crmSetUnifiedInboxConnectionStateV3?.(false,error?.message||String(error));
-            if(body && document.getElementById("crmUnifiedInboxModal")?.hidden===false){
+            if(body && document.getElementById("crmUnifiedInboxModal")?.hidden===false && !hasCachedView){
                 body.innerHTML=`<div style="padding:16px;color:#9b3a3a;">
                     <strong>Nie udało się pobrać Skrzynki.</strong>
                     <div style="margin-top:6px;font-size:11px;color:#766;">${crmInboxEscape(error?.message||String(error))}</div>
@@ -3211,7 +3242,7 @@ crmOpenUnifiedInbox=async function(){
     crmCloseOtherRightContextsV5("inbox");
     const overlay=crmEnsureUnifiedInboxModal();
     overlay.hidden=false;
-    return crmLoadUnifiedInbox({force:true}).catch(console.error);
+    return crmLoadUnifiedInbox({force:false}).catch(console.error);
 };
 
 crmCheckEventDrivenInbox=async function(){
@@ -3622,6 +3653,71 @@ if (typeof switchTab === "function") {
             !window.crmBootInProgressV2
         ) {
             crmPerfRenderTabNowV18(tabName);
+            return true;
+        }
+
+        /*
+         * PERFORMANCE V23 — szybkie wejście do Klientów z RAM.
+         *
+         * Starszy switchTab przechodzi przez kilka warstw kompatybilności.
+         * Dla zakładki Klienci żadna z nich nie musi czekać na sieć: dane są już
+         * w customersData, a ewentualne odświeżenie po TTL ma działać w tle.
+         *
+         * Fast-path uruchamiamy wyłącznie gdy nie ma niezapisanych zmian.
+         * Gdy formularz jest brudny, pozostaje pełny stary łańcuch z ochroną.
+         */
+        const hasUnsavedChangesV23 =
+            typeof crmHasUnsavedChanges !== "undefined" &&
+            Boolean(crmHasUnsavedChanges);
+
+        if (
+            tabName === "klienci" &&
+            !window.crmBootInProgressV2 &&
+            !hasUnsavedChangesV23
+        ) {
+            if (typeof crmCloseDayVisitsList === "function") crmCloseDayVisitsList();
+            if (typeof crmToggleVisitStatusMenu === "function") crmToggleVisitStatusMenu(false);
+
+            const detailsPanel = document.getElementById("appointmentDetailsModal");
+            if (detailsPanel) detailsPanel.style.display = "none";
+            document.body.classList.remove("crm-v3-details-open");
+            if (typeof currentEditingAppointment !== "undefined") {
+                currentEditingAppointment = null;
+            }
+
+            document.querySelectorAll(".tab-page")
+                .forEach(tab => { tab.style.display = "none"; });
+            document.querySelectorAll(".nav-btn")
+                .forEach(btn => btn.classList.remove("active"));
+
+            const page = document.getElementById("tab-klienci");
+
+            const activeBtn = document.querySelector('.nav-btn[onclick*="klienci"]');
+            if (activeBtn) activeBtn.classList.add("active");
+
+            if (typeof crmActiveTabNameV6 !== "undefined") {
+                crmActiveTabNameV6 = "klienci";
+            }
+
+            /*
+             * PERFORMANCE V25.1: renderujemy ciężką tabelę, gdy zakładka nadal
+             * jest ukryta. Przeglądarka nie przelicza layoutu po każdym wierszu.
+             */
+            if (typeof renderClients === "function") renderClients();
+            if (page) page.style.display = "block";
+
+            try {
+                sessionStorage.setItem("crm_active_tab_v18", "klienci");
+            } catch (ignore) {}
+
+            /* Sieć nie blokuje kliknięcia — ewentualny refresh jest wyłącznie tłem. */
+            window.setTimeout(() => {
+                if (typeof crmRefreshTabIfChangedV6 === "function") {
+                    Promise.resolve(crmRefreshTabIfChangedV6("klienci", "wejscie:klienci"))
+                        .catch(error => console.warn("Tło Klientów V23:", error?.message || error));
+                }
+            }, 0);
+
             return true;
         }
 

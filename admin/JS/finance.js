@@ -20,6 +20,12 @@ function calculateFinanceReport(){
     const now =
         new Date();
 
+    const servicePriceMap = typeof crmGetServicePriceMapV25 === "function"
+        ? crmGetServicePriceMapV25()
+        : new Map((Array.isArray(currentServices) ? currentServices : []).map(service => [
+            String(service?.name || "").trim().toLowerCase(),
+            Number(service?.price) || 0
+        ]));
 
     const firstDayOfWeek =
         new Date(now);
@@ -64,24 +70,8 @@ function calculateFinanceReport(){
             return;
         }
 
-        const service =
-            currentServices.find(
-                s =>
-                s.name &&
-                app.service &&
-                s.name.trim()
-                .toLowerCase()
-                ===
-                app.service.trim()
-                .toLowerCase()
-            );
-
-        const price =
-            service
-            ?
-            Number(service.price)
-            :
-            0;
+        const serviceKey = String(app.service || "").trim().toLowerCase();
+        const price = servicePriceMap.get(serviceKey) || 0;
 
         const appDate =
             new Date(app.date);

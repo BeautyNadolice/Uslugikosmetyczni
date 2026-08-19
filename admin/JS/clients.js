@@ -147,98 +147,90 @@ function normalizeClientCounter(value) {
 }
 
 /* ----- CLI.6. renderClients (oryginalna linia 2329) ----- */
+function crmClientEscapeHtmlV251(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+function crmEnsureClientTableDelegationV251(tbody) {
+    if (!tbody || tbody.dataset.crmClientDelegationV251 === "1") return;
+
+    tbody.dataset.crmClientDelegationV251 = "1";
+    tbody.addEventListener("click", event => {
+        const button = event.target.closest("button[data-crm-client-action]");
+        if (!button || !tbody.contains(button)) return;
+
+        const phone = button.dataset.crmPhone || "";
+        const action = button.dataset.crmClientAction || "";
+
+        if (action === "edit" && typeof editClient === "function") {
+            editClient(phone);
+        } else if (action === "delete" && typeof deleteClient === "function") {
+            deleteClient(phone);
+        }
+    });
+}
+
 function renderClients(){
+    const tbody = document.getElementById("clientsTableBody");
+    if (!tbody) return;
 
-    const tbody =
-        document.getElementById(
-            "clientsTableBody"
-        );
+    crmEnsureClientTableDelegationV251(tbody);
 
-    if(!tbody) return;
-
-    tbody.innerHTML = "";
-
-    if(
-        !customersData ||
-        customersData.length === 0
-    ){
-
+    if (!Array.isArray(customersData) || customersData.length === 0) {
         tbody.innerHTML = `
-
             <tr>
-
-                <td colspan="6"
-                    style="text-align:center;">
-
-                    Brak klientów
-
-                </td>
-
+                <td colspan="6" style="text-align:center;">Brak klientów</td>
             </tr>
-
         `;
-
         return;
-
     }
 
-    customersData.forEach(client=>{
+    /*
+     * PERFORMANCE V25.1
+     * Budujemy całą tabelę jako jeden fragment HTML zamiast tworzyć i dopinać
+     * każdy <tr> osobno. Przy setkach klientów ogranicza to liczbę kosztownych
+     * operacji DOM/layout do jednego wstawienia.
+     */
+    const rows = new Array(customersData.length);
 
-        const tr =
-            document.createElement(
-                "tr"
-            );
+    for (let i = 0; i < customersData.length; i += 1) {
+        const client = customersData[i] || {};
+        const phone = String(client.phone || "");
 
-        tr.innerHTML = `
-
-            <td>
-                ${client.name || ""}
-            </td>
-
-            <td>
-                ${client.phone || ""}
-            </td>
-
-            <td>
-                ${normalizeClientCounter(client.visits)}
-            </td>
-
-            <td>
-                ${normalizeClientCounter(client.cancelled)}
-            </td>
-
-            <td>
-                ${client.lastVisit || "-"}
-            </td>
-
-            <td>
-
-                <button
-                    class="btn-secondary"
-                    onclick="editClient('${client.phone}')">
-
-                    Edytuj
-
-                </button>
-
-                <button
-                    class="btn-danger"
-                    onclick="deleteClient('${client.phone}')">
-
-                    Usuń
-
-                </button>
-
-            </td>
-
+        rows[i] = `
+            <tr>
+                <td>${crmClientEscapeHtmlV251(client.name || "")}</td>
+                <td>${crmClientEscapeHtmlV251(phone)}</td>
+                <td>${normalizeClientCounter(client.visits)}</td>
+                <td>${normalizeClientCounter(client.cancelled)}</td>
+                <td>${crmClientEscapeHtmlV251(client.lastVisit || "-")}</td>
+                <td>
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        data-crm-client-action="edit"
+                        data-crm-phone="${crmClientEscapeHtmlV251(phone)}">
+                        Edytuj
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-danger"
+                        data-crm-client-action="delete"
+                        data-crm-phone="${crmClientEscapeHtmlV251(phone)}">
+                        Usuń
+                    </button>
+                </td>
+            </tr>
         `;
+    }
 
-        tbody.appendChild(
-            tr
-        );
-
-    });
-
+    tbody.innerHTML = rows.join("");
 }
 
 /* ----- CLI.7. openAddClientModal (oryginalna linia 2427) ----- */
@@ -521,36 +513,38 @@ async function saveClientToCloud(clientData, oldPhone) {
 
     try {
 
-        const response =
-            await fetch(
-                APPS_SCRIPT_URL,
-                {
-                    method:
-                    "POST",
-
-                    headers: {
-                        "Content-Type":
-                        "text/plain"
-                    },
-
-                    body:
-                    JSON.stringify({
-                        action:
-                        "saveClient",
-
-                        oldPhone:
-                        oldPhone || "",
-
-                        client:
-                        clientData
-                    })
-                }
-            );
-
+        /*
+         * PERFORMANCE V22:
+         * - zapis korzysta ze wspólnej kolejki crmPost zamiast osobnego fetch();
+         * - po sukcesie NIE pobieramy ponownie całej listy Klientów;
+         *   saveClient() już zaktualizował customersData i wyrenderował tabelę lokalnie;
+         * - odświeżamy wyłącznie cache, więc kolejny start CRM nie przywróci
+         *   starej wersji klienta.
+         */
         const data =
-            await response.json();
+            typeof crmPost === "function"
+                ? await crmPost({
+                    action: "saveClient",
+                    oldPhone: oldPhone || "",
+                    client: clientData
+                })
+                : await (async () => {
+                    const response = await fetch(
+                        APPS_SCRIPT_URL,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain" },
+                            body: JSON.stringify({
+                                action: "saveClient",
+                                oldPhone: oldPhone || "",
+                                client: clientData
+                            })
+                        }
+                    );
+                    return response.json();
+                })();
 
-        if (data.success) {
+        if (data && data.success) {
 
             alert(
                 "Klient zapisany."
@@ -558,7 +552,15 @@ async function saveClientToCloud(clientData, oldPhone) {
 
             closeClientModal();
 
-            await loadClients();
+            if (typeof crmPerfMarkFreshV18 === "function") {
+                crmPerfMarkFreshV18(["clients"]);
+            }
+            if (typeof crmPerfWriteCacheV18 === "function") {
+                crmPerfWriteCacheV18({});
+            }
+            if (typeof crmPerfWritePersistentCacheV19 === "function") {
+                crmPerfWritePersistentCacheV19({});
+            }
 
             renderDashboard();
 
@@ -567,7 +569,7 @@ async function saveClientToCloud(clientData, oldPhone) {
             alert(
                 "Błąd zapisu klienta: " +
                 (
-                    data.error ||
+                    data?.error ||
                     "Nieznany błąd"
                 )
             );
@@ -599,50 +601,68 @@ async function deleteClient(phone) {
         return;
     }
 
+    const normalizedPhone = String(phone || "").trim();
+
     try {
 
-        const response =
-            await fetch(
-                APPS_SCRIPT_URL,
-                {
-                    method:
-                    "POST",
-
-                    headers: {
-                        "Content-Type":
-                        "text/plain"
-                    },
-
-                    body:
-                    JSON.stringify({
-                        action:
-                        "deleteClient",
-
-                        phone:
-                        phone
-                    })
-                }
-            );
-
+        /*
+         * PERFORMANCE V22:
+         * Po potwierdzonym zapisie serwera aktualizujemy Klientów od razu
+         * w RAM. Stary kod robił jeszcze pełny loadClients(), czyli drugi
+         * request do Google tylko po to, by odtworzyć stan już znany z odpowiedzi.
+         */
         const data =
-            await response.json();
+            typeof crmPost === "function"
+                ? await crmPost({
+                    action: "deleteClient",
+                    phone: normalizedPhone
+                })
+                : await (async () => {
+                    const response = await fetch(
+                        APPS_SCRIPT_URL,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain" },
+                            body: JSON.stringify({
+                                action: "deleteClient",
+                                phone: normalizedPhone
+                            })
+                        }
+                    );
+                    return response.json();
+                })();
 
-        if (data.success) {
+        if (data && data.success) {
+
+            if (Array.isArray(customersData)) {
+                customersData = customersData.filter(client =>
+                    String(client?.phone || "").trim() !== normalizedPhone
+                );
+            }
+
+            renderClients();
+            renderDashboard();
+
+            if (typeof crmPerfMarkFreshV18 === "function") {
+                crmPerfMarkFreshV18(["clients"]);
+            }
+            if (typeof crmPerfWriteCacheV18 === "function") {
+                crmPerfWriteCacheV18({});
+            }
+            if (typeof crmPerfWritePersistentCacheV19 === "function") {
+                crmPerfWritePersistentCacheV19({});
+            }
 
             alert(
                 "Klient usunięty."
             );
-
-            await loadClients();
-
-            renderDashboard();
 
         } else {
 
             alert(
                 "Błąd usuwania klienta: " +
                 (
-                    data.error ||
+                    data?.error ||
                     "Nieznany błąd"
                 )
             );
