@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
    <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -12,42 +15,51 @@
 </head>
 <body>
 
-    <div class="container">
-        <section class="profile-section">
-            <img src="https://via.placeholder.com/150" alt="Daria" class="avatar">
-            <h1>Daria</h1>
+    <main class="container" id="clientLanding">
+        <section class="profile-section" aria-labelledby="brandTitle">
+            <div class="brand-mark" aria-label="Daria">
+                <svg class="brand-mark-leaf" viewBox="0 0 44 44" aria-hidden="true">
+                    <path d="M22 35c-2-11 2-20 11-27" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+                    <path d="M25 26c5-1 9-4 11-9-5 0-9 3-11 9Z" fill="currentColor" opacity=".72"/>
+                    <path d="M20 31c-5-1-9-4-11-9 5 0 9 3 11 9Z" fill="currentColor" opacity=".55"/>
+                    <path d="M29 18c2-5 5-8 10-9-1 5-4 8-10 9Z" fill="currentColor" opacity=".48"/>
+                </svg>
+                <span>Daria</span>
+            </div>
+
+            <h1 id="brandTitle">Daria</h1>
             <div class="subtitle">Technik usług kosmetycznych</div>
-            <p class="bio">Dyplomowana specjalistka branży beauty w Polsce. Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs oraz idealna pielęgnacja ✨</p>
+
+            <div class="ornamental-divider" aria-hidden="true">
+                <span></span><b>✦</b><span></span>
+            </div>
+
+            <p class="bio">
+                <span>Dyplomowana specjalistka branży beauty w Polsce.</span>
+                <span>Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs</span>
+                <span>oraz idealna pielęgnacja ✨</span>
+            </p>
         </section>
 
-        <button class="cta-btn" onclick="openBookingModal()">✨ ZAREZERWUJ WIZYTĘ ✨</button>
+        <button class="cta-btn" onclick="openBookingModal()" type="button">
+            <span aria-hidden="true">✨</span>
+            <span>ZAREZERWUJ WIZYTĘ</span>
+            <span aria-hidden="true">✨</span>
+        </button>
 
-        <div style="margin-top: 15px; text-align: center;">
-            <a href="../admin/admin.html" style="
-                display: inline-block;
-                color: var(--text-muted, #777);
-                font-size: 12px;
-                text-decoration: none;
-                border: 1px dashed var(--accent-color, #c2a383);
-                padding: 6px 12px;
-                border-radius: 4px;
-                transition: all 0.2s ease;
-            " onmouseover="this.style.background='#f0e6dc'; this.style.color='var(--text-main, #333)'" 
-               onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted, #777)'">
-                ⚙️ Panel Administratora
-            </a>
+        <div class="admin-link-wrap">
+            <a href="../admin/admin.html" class="admin-panel-link">⚙️ Panel Administratora</a>
         </div>
 
-        <!-- Динамический контейнер для разделов галереи -->
-<section id="portfolio-container">
-    <!-- Сюда JS загрузит заголовки h3 и сетки gallery-grid -->
-</section>
-    </div>
+        <section id="portfolio-container" aria-live="polite">
+            <p class="portfolio-loading">Ładowanie galerii…</p>
+        </section>
+    </main>
 
     <div id="bookingModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <span class="close-btn" onclick="closeBookingModal()">&times;</span>
-            <h2 style="margin-bottom: 20px; color: var(--accent-color); font-family: 'Playfair Display', serif; text-align: center;">Rezerwacja wizyty</h2>
+            <h2 class="booking-modal-title">Rezerwacja wizyty</h2>
             
             <form id="bookingForm">
                 

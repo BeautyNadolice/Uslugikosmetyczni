@@ -407,36 +407,71 @@ function fetchJSONP(url) {
 async function loadPortfolio() {
   const container = document.getElementById("portfolio-container");
   if (!container) return;
-  container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Ładowanie galerii...</p>';
+
+  container.innerHTML = '<p class="portfolio-loading">Ładowanie galerii…</p>';
+
   try {
     const data = await fetchJSONP(`${APPS_SCRIPT_URL}?getPortfolio=true`);
-    container.innerHTML = ""; 
+    container.innerHTML = "";
+
     let loadedAny = false;
-    if (data && data.length > 0) {
+
+    if (Array.isArray(data) && data.length > 0) {
       data.forEach(category => {
+        const images = Array.isArray(category?.images) ? category.images : [];
+        if (!images.length) return;
+
+        const section = document.createElement("section");
+        section.className = "portfolio-section";
+
+        const rawCategory = String(category?.category || "Portfolio").trim();
+        const slug = rawCategory
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
+        if (slug) section.dataset.category = slug;
+
         const title = document.createElement("h3");
-        title.innerText = category.category;
-        container.appendChild(title);
+        title.textContent = rawCategory;
+
+        const titleLine = document.createElement("span");
+        titleLine.className = "portfolio-title-line";
+        titleLine.setAttribute("aria-hidden", "true");
+        title.appendChild(titleLine);
+
         const grid = document.createElement("div");
         grid.className = "gallery-grid";
-        category.images.forEach(img => {
+        if (images.length === 1) grid.classList.add("gallery-grid--single");
+
+        images.forEach(img => {
           const imgEl = document.createElement("img");
           imgEl.src = img.url;
-          imgEl.className = "gallery-item"; 
-          imgEl.alt = img.name || category.category;
-          imgEl.onerror = function() { this.src = "https://via.placeholder.com/300"; };
+          imgEl.className = "gallery-item";
+          imgEl.alt = img.name || rawCategory;
+          imgEl.loading = "lazy";
+          imgEl.decoding = "async";
+          imgEl.onerror = function() {
+            this.src = "https://via.placeholder.com/600x400?text=Daria";
+          };
           grid.appendChild(imgEl);
           loadedAny = true;
         });
-        container.appendChild(grid);
+
+        section.appendChild(title);
+        section.appendChild(grid);
+        container.appendChild(section);
       });
     }
+
     if (!loadedAny) {
-      container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">Brak zdjęć w galerii.</p>';
+      container.innerHTML = '<p class="portfolio-empty">Brak zdjęć w galerii.</p>';
     }
   } catch (error) {
     console.error("Błąd ładowania portfolio:", error);
-    container.innerHTML = '<p style="color: red; font-size: 14px; text-align: center;">Nie udało się załadować galerii.</p>';
+    container.innerHTML = '<p class="portfolio-error">Nie udało się załadować galerii.</p>';
   }
 }
 
