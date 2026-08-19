@@ -1967,7 +1967,14 @@ async function crmLoadSystemFastV191() {
             );
             metrics19.immediateRenderMs =
                 Math.round(performance.now() - visualStart);
-            window.crmPerfSuppressCalendarRenderV18 = true;
+
+            /*
+             * V19.4: skoro poprawny cache jest już widoczny, nie blokujemy
+             * ręcznych renderów Kalendarza podczas background bootstrap.
+             * Użytkownik może od razu zmieniać Dzień/Tydzień/Miesiąc,
+             * datę i korzystać z lokalnie pokazanych danych.
+             */
+            window.crmPerfSuppressCalendarRenderV18 = false;
         } else {
             const persistent = crmPerfReadPersistentCacheV19();
 
@@ -1983,7 +1990,12 @@ async function crmLoadSystemFastV191() {
                 );
                 metrics19.immediateRenderMs =
                     Math.round(performance.now() - visualStart);
-                window.crmPerfSuppressCalendarRenderV18 = true;
+
+                /*
+                 * V19.4: persistent cache został już wyrenderowany.
+                 * Świeży request Google działa dalej w tle, ale nie zamraża UI.
+                 */
+                window.crmPerfSuppressCalendarRenderV18 = false;
 
                 cached = persistent.data;
             }
@@ -2153,3 +2165,166 @@ window.crmRestartSystemLoadV2 = async function() {
 };
 
 /* KONIEC API PERFORMANCE V19.1 */
+
+
+/* ==========================================================================
+   API TRANSPORT V19.3 — STABILNY REDIRECT GOOGLE / SAFE READ RETRY
+   2026-08-19
+
+   Cel:
+   - nie zmieniać logiki zapisów;
+   - GET: przy chwilowym 404/błędzie transportu wykonać JEDNO ponowienie;
+   - POST tylko dla akcji CZYSTO ODCZYTOWYCH: przy chwilowym 404/błędzie
+     transportu wykonać JEDNO ponowienie;
+   - POST-y zmieniające dane NIGDY nie są automatycznie ponawiane;
+   - dla file:// zachowujemy istniejący JSONP V13;
+   - brak pollingu i brak cyklicznych retry.
+   ========================================================================== */
+
+const crmFetchJsonBeforeV193 = crmFetchJsonV12;
+const crmPostJsonBeforeV193 = crmPostJsonV12;
+
+const CRM_READ_ONLY_POST_ACTIONS_V193 = new Set([
+    "getAdminInbox",
+    "getContactFormRequests",
+    "getBookingRequests",
+    "getEffectiveSchedule",
+    "getFamilySchedule",
+    "getTestReports",
+    "runPoint35Diagnostics",
+    "getClientCRMProfile",
+    "getSmartNextVisit"
+]);
+
+function crmTransientRedirectErrorV193(error) {
+    const message = String(error?.message || error || "");
+    return (
+        /HTTP\s*404/i.test(message) ||
+        /Google Web App zwrócił błąd ładowania GET/i.test(message) ||
+        /Failed to fetch/i.test(message) ||
+        /NetworkError/i.test(message) ||
+        /Load failed/i.test(message)
+    );
+}
+
+function crmWaitV193(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+/*
+ * HTTPS / GitHub:
+ * normalny fetch -> przy chwilowym błędzie redirectu tylko 1 ponowienie fetch.
+ *
+ * file://:
+ * pozostaje dotychczasowy V13 JSONP, bo tam fetch po redirectach Google
+ * jest niestabilny z powodu origin file://.
+ */
+crmFetchJsonV12 = async function(url, options = {}) {
+    if (window.location && window.location.protocol === "file:") {
+        return crmFetchJsonBeforeV193(url, options);
+    }
+
+    try {
+        return await crmFetchJsonBeforeV193(url, options);
+    } catch (error) {
+        if (!crmTransientRedirectErrorV193(error)) {
+            throw error;
+        }
+
+        console.warn(
+            "GET Google: chwilowy błąd redirectu — jedno ponowienie V19.3:",
+            error?.message || error
+        );
+
+        await crmWaitV193(450);
+        return crmFetchJsonBeforeV193(url, options);
+    }
+};
+
+window.crmFetchJsonV12 = crmFetchJsonV12;
+window.crmFetchWholeJsonV11 = crmFetchJsonV12;
+
+/*
+ * POST:
+ * retry WYŁĄCZNIE dla akcji odczytowych.
+ * create/edit/delete/cancel/save itd. nigdy nie są tu ponawiane.
+ */
+crmPostJsonV12 = async function(payload, options = {}) {
+    const action = String(payload?.action || "");
+    const readOnly = CRM_READ_ONLY_POST_ACTIONS_V193.has(action);
+
+    try {
+        return await crmPostJsonBeforeV193(payload, options);
+    } catch (error) {
+        if (!readOnly || !crmTransientRedirectErrorV193(error)) {
+            throw error;
+        }
+
+        console.warn(
+            `POST read-only ${action}: chwilowy błąd redirectu — jedno ponowienie V19.3:`,
+            error?.message || error
+        );
+
+        await crmWaitV193(450);
+        return crmPostJsonBeforeV193(payload, options);
+    }
+};
+
+window.crmPostJsonV12 = crmPostJsonV12;
+
+/*
+ * Aktualizujemy klasyfikację crmTestPost, aby wszystkie odczyty miały
+ * wspólną kolejkę/prioritet odczytowy. Logika zapisu pozostaje bez zmian.
+ */
+crmTestPost = function(payload, options = {}) {
+    const action = String(payload?.action || "POST");
+    const readLike = CRM_READ_ONLY_POST_ACTIONS_V193;
+    const stablePayload = readLike.has(action)
+        ? JSON.stringify(payload || {})
+        : "";
+    const key = readLike.has(action)
+        ? `POST:${action}:${stablePayload}`
+        : "";
+
+    return crmServerLaneTaskV12(
+        key,
+        () => crmPostJsonV12(payload, {
+            timeoutMs:
+                Number(options.timeoutMs) ||
+                (readLike.has(action)
+                    ? 45000
+                    : CRM_SERVER_WRITE_TIMEOUT_V12)
+        }),
+        {
+            priority: readLike.has(action) ? 30 : 80
+        }
+    );
+};
+
+window.crmTestPost = crmTestPost;
+
+crmPost = async function(payload) {
+    const result = await crmTestPost(payload || {});
+    if (!result || typeof result !== "object") {
+        throw new Error("API zwróciło nieprawidłową odpowiedź");
+    }
+    return result;
+};
+
+crmExtendedPost = async function(action, payload) {
+    return crmTestPost(Object.assign({ action }, payload || {}));
+};
+
+window.crmTransportVersionV193 = "19.3-safe-read-retry";
+
+/* KONIEC API TRANSPORT V19.3 */
+
+/* ==========================================================================
+   ADMIN CALENDAR INTERACTION FIX V19.4 — 2026-08-19
+   Po wyrenderowaniu session/persistent cache Kalendarz pozostaje interaktywny
+   podczas background bootstrap. Brak oczekiwania na Google przy zmianie
+   Dzień / Tydzień / Miesiąc i innych lokalnych renderach.
+   ========================================================================== */
+window.crmCalendarInteractionFixV194 = "19.4-instant-calendar-view";
+/* KONIEC V19.4 */
+
