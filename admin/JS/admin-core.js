@@ -1337,7 +1337,7 @@ function crmEnsureUnifiedInboxModal() {
           <button type="button" id="crmUnifiedInboxSyncForm" class="btn-secondary"
                   title="Awaryjnie pobierz odpowiedzi bezpośrednio z Google Form">↻ Google Form</button>
           <button type="button" id="crmUnifiedInboxRefresh" class="btn-secondary">Odśwież</button>
-          <button type="button" id="crmUnifiedInboxClose" style="border:0;background:transparent;font-size:26px;cursor:pointer;">×</button>
+          <button type="button" id="crmUnifiedInboxClose" class="crm-interactive-symbol-control" style="border:0;background:transparent;font-size:26px;cursor:pointer;">×</button>
         </header>
 
         <nav style="padding:10px 20px;border-bottom:1px solid #eee;display:flex;gap:8px;flex-wrap:wrap;">
@@ -1655,7 +1655,7 @@ function crmEnsureContactDataConfirmModalV2() {
               Czy dane są poprawne? Jeśli nie — popraw je tutaj przed utworzeniem wizyty.
             </p>
           </div>
-          <button type="button" data-close style="border:0;background:transparent;font-size:25px;cursor:pointer;">×</button>
+          <button type="button" data-close class="crm-interactive-symbol-control" style="border:0;background:transparent;font-size:25px;cursor:pointer;">×</button>
         </div>
 
         <label style="display:block;margin-top:18px;font-weight:700;font-size:13px;">Imię i nazwisko</label>

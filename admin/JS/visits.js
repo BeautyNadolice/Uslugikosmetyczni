@@ -5,7 +5,10 @@
    ========================================================================== */
 
 
-/* ADMIN PERFORMANCE V24 2026-08-19
+/* ADMIN PERFORMANCE V25.2 2026-08-19
+   Bazuje na V25.1; zachowuje wszystkie optymalizacje V24/V25.1.
+
+   ADMIN PERFORMANCE V24 2026-08-19
    - zapis/edycja wizyty od razu aktualizuje appointmentsData także przy edycji;
    - blokada create/edit/delete od razu aktualizuje RAM i cache;
    - drugi odczyt Kalendarza po blokadzie jest wyłącznie w tle;
@@ -1682,20 +1685,32 @@ function crmPopulateNewVisitPanel(app) {
 
     const trashButton = document.getElementById("crmVisitTrashButton");
     if (trashButton) {
-        trashButton.hidden = !(isAppointment || isBlock);
-        trashButton.title = isBlock ? "Usuń blokadę" : "Anuluj wizytę";
-        trashButton.setAttribute("aria-label", isBlock ? "Usuń blokadę" : "Anuluj wizytę");
+        trashButton.hidden = !(isAppointment || isBlock || isExternal);
+
+        const trashTitle = isBlock
+            ? "Usuń blokadę"
+            : (isExternal ? "Usuń wydarzenie z Google Calendar" : "Anuluj wizytę");
+
+        trashButton.title = trashTitle;
+        trashButton.setAttribute("aria-label", trashTitle);
+
         trashButton.onclick = isBlock
             ? function(event) {
                 event.preventDefault();
                 event.stopPropagation();
                 deleteBlockTimeFromAdmin();
             }
-            : function(event) {
-                event.preventDefault();
-                event.stopPropagation();
-                crmToggleVisitTrashMenu();
-            };
+            : (isExternal
+                ? function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    deleteExternalCalendarEventFromAdmin();
+                }
+                : function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    crmToggleVisitTrashMenu();
+                });
     }
     const trashMenu = document.getElementById("crmVisitTrashMenu");
     if (trashMenu) trashMenu.hidden = true;
@@ -1803,7 +1818,10 @@ function crmApplyVisitPanelBusinessRules(app) {
     }
 
     const modal = document.getElementById("appointmentDetailsModal");
-    if (modal) modal.dataset.crmSource = String(source.code || "").toLowerCase();
+    if (modal) {
+        modal.dataset.crmSource = String(source.code || "").toLowerCase();
+        modal.dataset.crmEventType = String(app?.eventType || "").toLowerCase();
+    }
 
     const reservationId = document.getElementById("crmVisitReservationId");
     if (reservationId) reservationId.hidden = true;
@@ -2319,6 +2337,105 @@ deleteBlockTimeFromAdmin = async function() {
     }
 };
 
+
+/* ==========================================================================
+   ADMIN V25.2 — BEZPIECZNE USUWANIE ZEWNĘTRZNEGO GOOGLE EVENT
+   - tylko eventType="external";
+   - tylko dokładny eventId;
+   - bez statusów i historii CRM;
+   - po sukcesie natychmiastowa aktualizacja RAM/cache;
+   - lekka synchronizacja kontrolna w tle.
+   ========================================================================== */
+async function deleteExternalCalendarEventFromAdmin() {
+    const app = currentEditingAppointment;
+
+    if (!app || app.eventType !== "external") {
+        if (typeof crmToast === "function") {
+            crmToast("Nie wybrano zewnętrznego wydarzenia Google Calendar.", "error");
+        }
+        return;
+    }
+
+    if (isDeletingAppointment) return;
+
+    const eventId = String(app.eventId || "").trim();
+    if (!eventId) {
+        if (typeof crmToast === "function") {
+            crmToast("Brak Event ID — wydarzenia nie można bezpiecznie usunąć.", "error");
+        }
+        return;
+    }
+
+    const confirmed = typeof crmConfirm === "function"
+        ? await crmConfirm(
+            "Usunąć to wydarzenie z Google Calendar? Tej operacji nie zapisujemy jako anulowania wizyty CRM.",
+            "Usuń wydarzenie Google"
+        )
+        : window.confirm("Usunąć to wydarzenie z Google Calendar?");
+
+    if (!confirmed) return;
+
+    const trashButton = document.getElementById("crmVisitTrashButton");
+    isDeletingAppointment = true;
+    if (trashButton) trashButton.disabled = true;
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                action: "deleteExternalCalendarEvent",
+                eventId: eventId
+            })
+        });
+
+        const data = await response.json();
+        if (!data || !data.success) {
+            throw new Error((data && data.error) || "Nieznany błąd");
+        }
+
+        appointmentsData = (appointmentsData || []).filter(item =>
+            String(item?.eventId || "").trim() !== eventId
+        );
+
+        currentEditingAppointment = null;
+        closeAppointmentModal();
+
+        if (typeof crmWriteLocalCalendarCacheV24 === "function") {
+            crmWriteLocalCalendarCacheV24();
+        }
+        if (typeof renderBooksyCalendar === "function") renderBooksyCalendar();
+        if (typeof renderMiniMonthCalendar === "function") renderMiniMonthCalendar();
+        if (typeof renderDashboard === "function") renderDashboard();
+        if (typeof calculateFinanceReport === "function") calculateFinanceReport();
+
+        if (typeof crmToast === "function") {
+            crmToast(
+                data.alreadyMissing
+                    ? "Wydarzenie nie istnieje już w Google Calendar."
+                    : "Wydarzenie zostało usunięte z Google Calendar."
+            );
+        }
+
+        if (typeof crmScheduleCalendarSyncV24 === "function") {
+            crmScheduleCalendarSyncV24("po-usunieciu-external-google");
+        }
+    } catch (error) {
+        console.error("Usuwanie zewnętrznego Google Event:", error);
+        if (typeof crmToast === "function") {
+            crmToast(
+                "Nie udało się usunąć wydarzenia z Google Calendar: " +
+                (error?.message || error),
+                "error"
+            );
+        }
+    } finally {
+        isDeletingAppointment = false;
+        if (trashButton) trashButton.disabled = false;
+    }
+}
+/* KONIEC ADMIN V25.2 — EXTERNAL GOOGLE EVENT */
+
 /* KONIEC ADMIN FINAL 2026-08-07 */
 
 /* ==========================================================================
@@ -2404,12 +2521,10 @@ function crmEnsureAppointmentMinimizeButtonV7() {
     button = document.createElement("button");
     button.type = "button";
     button.id = "crmAppointmentMinimizeBtnV7";
+    button.className = "crm-panel-minimize-v172";
     button.title = "Zwiń i wróć do Kalendarza";
     button.setAttribute("aria-label", "Zwiń");
     button.textContent = "—";
-    button.style.cssText =
-        "margin-left:auto;margin-right:5px;border:0;background:#f6f1f3;" +
-        "width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;color:#655b60;";
 
     button.onclick = () => crmMinimizeAppointmentEditorV7();
 

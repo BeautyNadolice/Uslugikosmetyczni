@@ -191,15 +191,19 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   padding:0!important;
   line-height:1!important;
   cursor:pointer!important;
-  transition:color .16s ease,opacity .16s ease!important;
+  transition:color .14s ease,opacity .14s ease,transform .14s ease,text-shadow .14s ease!important;
 }
 #appointmentDetailsModal .crm-safe-close:hover,
 #appointmentDetailsModal .crm-safe-close:focus-visible{
   background:transparent!important;
   border-color:transparent!important;
-  transform:none!important;
-  opacity:.78!important;
+  transform:translateY(-2px) scale(1.14)!important;
+  opacity:1!important;
+  text-shadow:0 2px 7px rgba(0,0,0,.22)!important;
   outline:none!important;
+}
+#appointmentDetailsModal .crm-safe-close:active{
+  transform:translateY(0) scale(.98)!important;
 }
 
 /* Wszystkie elementy interaktywne panelu pokazują rękę i reakcję hover. */
@@ -555,7 +559,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   border-radius:0!important;
   box-shadow:none!important;
 }
-#appointmentDetailsModal .crm-safe-close:hover{background:var(--close-hover-background)!important;}
+#appointmentDetailsModal .crm-safe-close:hover{background:transparent!important;}
 
 /* ===== ZASTOSOWANIE ZMIENNYCH: STATUS ===== */
 #appointmentDetailsModal .crm-safe-status-copy{
