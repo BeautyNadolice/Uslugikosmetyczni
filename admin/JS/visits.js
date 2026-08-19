@@ -2823,3 +2823,691 @@ if (typeof closeCreateAppointmentModal === "function") {
     };
 }
 /* KONIEC VISITS FIRST VISIT V8 */
+
+
+/* ==========================================================================
+   ADMIN UX V17.2 — PANELE + DOLNY DOCK 2026-08-19
+
+   1) Minimalizacja Dodaj/Edytuj wizytę zostawia małą kartę na dole.
+   2) Zablokuj czas / Dodaj wolne dostaje taki sam boczny panel i minimalizację.
+   3) Można mieć dwa zachowane szkice; dock pokazuje osobne karty.
+   ========================================================================== */
+
+function crmV172EnsureMinimizedDock() {
+    let dock = document.getElementById("crmMinimizedPanelDockV172");
+    if (dock) return dock;
+
+    dock = document.createElement("div");
+    dock.id = "crmMinimizedPanelDockV172";
+    dock.setAttribute("aria-live", "polite");
+    document.body.appendChild(dock);
+    return dock;
+}
+
+function crmV172SetDockItem(kind, title, detail, onClick) {
+    const dock = crmV172EnsureMinimizedDock();
+    const id = `crmMinimizedDock_${kind}_V172`;
+
+    let button = document.getElementById(id);
+    if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.id = id;
+        button.className = "crm-minimized-dock-item-v172";
+        dock.appendChild(button);
+    }
+
+    button.innerHTML = "";
+
+    const icon = document.createElement("span");
+    icon.className = "crm-minimized-dock-icon-v172";
+    icon.textContent = kind === "block" ? "🔒" : "📅";
+
+    const copy = document.createElement("span");
+    copy.className = "crm-minimized-dock-copy-v172";
+
+    const strong = document.createElement("strong");
+    strong.textContent = title || (kind === "block" ? "Blokowanie" : "Rezerwacja");
+
+    const small = document.createElement("small");
+    small.textContent = detail || "Kliknij, aby wrócić";
+
+    copy.appendChild(strong);
+    copy.appendChild(small);
+
+    button.appendChild(icon);
+    button.appendChild(copy);
+
+    button.onclick = typeof onClick === "function" ? onClick : null;
+    button.style.display = "flex";
+    dock.hidden = false;
+
+    return button;
+}
+
+function crmV172ClearDockItem(kind) {
+    const button = document.getElementById(`crmMinimizedDock_${kind}_V172`);
+    if (button) button.remove();
+
+    const dock = document.getElementById("crmMinimizedPanelDockV172");
+    if (dock && !dock.querySelector(".crm-minimized-dock-item-v172")) {
+        dock.hidden = true;
+    }
+}
+
+function crmV172ShortDate(value) {
+    const raw = String(value || "").trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return raw;
+    return `${match[3]}.${match[2]}.${match[1]}`;
+}
+
+function crmV172AppointmentDockDetail() {
+    const name = String(document.getElementById("appointmentName")?.value || "").trim();
+    const heading = String(document.getElementById("modalTitleAppointment")?.textContent || "").trim();
+    if (name) return name;
+    if (/edytuj/i.test(heading)) return "Edycja wizyty";
+    return "Nowa wizyta";
+}
+
+function crmV172BlockDockDetail() {
+    const date = crmV172ShortDate(document.getElementById("block-date")?.value);
+    const start = String(document.getElementById("block-start-time")?.value || "").trim();
+    const end = String(document.getElementById("block-end-time")?.value || "").trim();
+    const title = String(document.getElementById("block-title")?.value || "").trim();
+
+    const time = start && end ? `${start}–${end}` : (start || end);
+    const parts = [date, time].filter(Boolean);
+    if (parts.length) return parts.join(" · ");
+    return title || "Blokada czasu";
+}
+
+/* --- REZERWACJA: nowy dock zamiast znikania formularza bez śladu. --- */
+if (typeof crmMinimizeAppointmentEditorV7 === "function") {
+    crmMinimizeAppointmentEditorV7 = function() {
+        const modal = document.getElementById("appointmentModal");
+        if (!modal) return;
+
+        modal.dataset.crmMinimized = "1";
+        modal.style.display = "none";
+
+        const oldStatus = document.getElementById("crmTaskStatusSave");
+        if (oldStatus) oldStatus.style.display = "none";
+
+        crmV172SetDockItem(
+            "appointment",
+            isSavingAppointment ? "Rezerwacja · zapisywanie…" : "Rezerwacja",
+            crmV172AppointmentDockDetail(),
+            crmRestoreAppointmentEditorV7
+        );
+    };
+    window.crmMinimizeAppointmentEditorV7 = crmMinimizeAppointmentEditorV7;
+}
+
+if (typeof crmRestoreAppointmentEditorV7 === "function") {
+    crmRestoreAppointmentEditorV7 = function() {
+        const modal = document.getElementById("appointmentModal");
+        if (!modal) return;
+
+        const blockModal = document.getElementById("blockTimeModal");
+        if (blockModal && blockModal.style.display !== "none") {
+            crmMinimizeBlockTimeEditorV172();
+        }
+
+        modal.dataset.crmMinimized = "0";
+        modal.style.display = "flex";
+        crmV172ClearDockItem("appointment");
+    };
+    window.crmRestoreAppointmentEditorV7 = crmRestoreAppointmentEditorV7;
+}
+
+/* Po realnym zamknięciu/zapisie usuwamy kartę Rezerwacja z dołu. */
+if (typeof closeCreateAppointmentModal === "function") {
+    const crmV172CloseCreateAppointmentBefore = closeCreateAppointmentModal;
+
+    closeCreateAppointmentModal = async function() {
+        const result = await crmV172CloseCreateAppointmentBefore.apply(this, arguments);
+        const modal = document.getElementById("appointmentModal");
+        const hidden = !modal || modal.style.display === "none";
+        const minimized = modal?.dataset.crmMinimized === "1";
+
+        if (hidden && (!minimized || !crmAppointmentSaveJobV7)) {
+            if (modal) modal.dataset.crmMinimized = "0";
+            crmV172ClearDockItem("appointment");
+        }
+        return result;
+    };
+}
+
+/* --- BLOKADA: taki sam minus jak w Rezerwacji. --- */
+function crmEnsureBlockTimeMinimizeButtonV172() {
+    const modal = document.getElementById("blockTimeModal");
+    if (!modal) return null;
+
+    let button = document.getElementById("crmBlockTimeMinimizeBtnV172");
+    if (button) return button;
+
+    const header = modal.querySelector(".modal-header");
+    const close = header?.querySelector(".modal-close");
+    if (!header) return null;
+
+    button = document.createElement("button");
+    button.type = "button";
+    button.id = "crmBlockTimeMinimizeBtnV172";
+    button.className = "crm-panel-minimize-v172";
+    button.title = "Zwiń blokowanie czasu";
+    button.setAttribute("aria-label", "Zwiń blokowanie czasu");
+    button.textContent = "—";
+    button.onclick = crmMinimizeBlockTimeEditorV172;
+
+    if (close) header.insertBefore(button, close);
+    else header.appendChild(button);
+
+    return button;
+}
+
+function crmMinimizeBlockTimeEditorV172() {
+    const modal = document.getElementById("blockTimeModal");
+    if (!modal) return;
+
+    modal.dataset.crmMinimized = "1";
+    modal.style.display = "none";
+
+    crmV172SetDockItem(
+        "block",
+        "Blokowanie",
+        crmV172BlockDockDetail(),
+        crmRestoreBlockTimeEditorV172
+    );
+}
+
+function crmRestoreBlockTimeEditorV172() {
+    const modal = document.getElementById("blockTimeModal");
+    if (!modal) return;
+
+    const appointmentModal = document.getElementById("appointmentModal");
+    if (appointmentModal && appointmentModal.style.display !== "none") {
+        crmMinimizeAppointmentEditorV7();
+    }
+
+    modal.dataset.crmMinimized = "0";
+    modal.style.display = "flex";
+    crmV172ClearDockItem("block");
+}
+
+window.crmMinimizeBlockTimeEditorV172 = crmMinimizeBlockTimeEditorV172;
+window.crmRestoreBlockTimeEditorV172 = crmRestoreBlockTimeEditorV172;
+
+/* Każde otwarcie Blokady ma już przycisk minimalizacji. */
+if (typeof openBlockTimeModal === "function") {
+    const crmV172OpenBlockTimeBefore = openBlockTimeModal;
+    openBlockTimeModal = function() {
+        const result = crmV172OpenBlockTimeBefore.apply(this, arguments);
+        const modal = document.getElementById("blockTimeModal");
+        if (modal) modal.dataset.crmMinimized = "0";
+        crmV172ClearDockItem("block");
+        crmEnsureBlockTimeMinimizeButtonV172();
+        return result;
+    };
+}
+
+if (typeof openEditBlockTimeModal === "function") {
+    const crmV172OpenEditBlockTimeBefore = openEditBlockTimeModal;
+    openEditBlockTimeModal = function() {
+        const result = crmV172OpenEditBlockTimeBefore.apply(this, arguments);
+        const modal = document.getElementById("blockTimeModal");
+        if (modal) modal.dataset.crmMinimized = "0";
+        crmV172ClearDockItem("block");
+        crmEnsureBlockTimeMinimizeButtonV172();
+        return result;
+    };
+}
+
+/* Anuluj/zapis Blokady usuwa jej kartę z docka. */
+if (typeof closeBlockTimeModal === "function") {
+    const crmV172CloseBlockTimeBefore = closeBlockTimeModal;
+    closeBlockTimeModal = function() {
+        const result = crmV172CloseBlockTimeBefore.apply(this, arguments);
+        const modal = document.getElementById("blockTimeModal");
+        if (modal) modal.dataset.crmMinimized = "0";
+        crmV172ClearDockItem("block");
+        return result;
+    };
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmEnsureBlockTimeMinimizeButtonV172();
+    }, 100);
+});
+
+window.crmAdminPanelsVersionV172 = "17.2-details-insights-block-dock";
+
+/* KONIEC ADMIN UX V17.2 */
+
+
+/* ==========================================================================
+   ADMIN UX V17.3 — INTELIGENTNY UKŁAD PRAWYCH PANELI
+   2026-08-19
+
+   Zasady:
+   - kliknięcie dnia w Miesiącu zawsze pokazuje „Dane z dnia”;
+   - „Dane z dnia” mają własny X;
+   - 2 otwarte panele: obok siebie;
+   - 3 otwarte panele:
+       [Wszystkie wizyty] [Szczegóły wizyty]
+                          [Dane z dnia]
+   - zamknięcie dowolnego panelu automatycznie przelicza układ.
+   ========================================================================== */
+
+let crmV173InsightsUserHidden = false;
+
+function crmV173IsVisible(node) {
+    if (!node) return false;
+    if (node.hidden) return false;
+    if (node.style.display === "none") return false;
+    return true;
+}
+
+function crmV173InsightsPanel() {
+    if (typeof crmEnsureCalendarInsights === "function") {
+        return crmEnsureCalendarInsights();
+    }
+    return document.getElementById("crmCalendarInsights");
+}
+
+function crmV173EnsureInsightsClose() {
+    const panel = crmV173InsightsPanel();
+    if (!panel) return null;
+
+    panel.classList.add("crm-v173-insights-panel");
+
+    let button = document.getElementById("crmInsightsCloseV173");
+    if (button) return button;
+
+    button = document.createElement("button");
+    button.type = "button";
+    button.id = "crmInsightsCloseV173";
+    button.className = "crm-v173-insights-close";
+    button.textContent = "×";
+    button.title = "Zamknij dane z dnia";
+    button.setAttribute("aria-label", "Zamknij dane z dnia");
+
+    button.onclick = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        crmV173SetInsightsVisible(false, true);
+    };
+
+    panel.appendChild(button);
+    return button;
+}
+
+function crmV173SetInsightsVisible(visible, userAction = false) {
+    const panel = crmV173InsightsPanel();
+    if (!panel) return;
+
+    if (visible) {
+        crmV173InsightsUserHidden = false;
+        panel.hidden = false;
+        panel.classList.remove("crm-v173-user-hidden");
+        document.body.classList.remove("crm-v173-insights-hidden");
+        document.body.classList.add("crm-v173-insights-open");
+        crmV173EnsureInsightsClose();
+    } else {
+        if (userAction) crmV173InsightsUserHidden = true;
+        panel.classList.add("crm-v173-user-hidden");
+        document.body.classList.remove("crm-v173-insights-open");
+        document.body.classList.add("crm-v173-insights-hidden");
+    }
+
+    crmV173UpdateRightPanels();
+}
+
+function crmV173UpdateRightPanels() {
+    const body = document.body;
+    if (!body) return;
+
+    const details = document.getElementById("appointmentDetailsModal");
+    const dayOverlay = document.getElementById("crmDayVisitsOverlay");
+    const insights = document.getElementById("crmCalendarInsights");
+
+    const detailsOpen = crmV173IsVisible(details);
+    const dayListOpen = crmV173IsVisible(dayOverlay);
+    const insightsOpen =
+        crmV173IsVisible(insights) &&
+        !insights?.classList.contains("crm-v173-user-hidden");
+
+    body.classList.toggle("crm-v173-details-open", detailsOpen);
+    body.classList.toggle("crm-v173-day-list-open", dayListOpen);
+    body.classList.toggle("crm-v173-insights-open", insightsOpen);
+    body.classList.toggle("crm-v173-insights-hidden", !insightsOpen);
+    body.classList.toggle(
+        "crm-v173-three-right-panels",
+        detailsOpen && dayListOpen && insightsOpen
+    );
+}
+
+function crmV173MarkSelectedMonthCell(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return;
+
+    const pad = value => String(value).padStart(2, "0");
+    const key =
+        date.getFullYear() + "-" +
+        pad(date.getMonth() + 1) + "-" +
+        pad(date.getDate());
+
+    document.querySelectorAll(".crm-month-cell.is-selected")
+        .forEach(node => node.classList.remove("is-selected"));
+
+    const cell = document.querySelector(
+        `.crm-month-cell[data-date="${key}"]`
+    );
+    if (cell) cell.classList.add("is-selected");
+}
+
+function crmV173SelectDateForInsights(date, options = {}) {
+    const next = new Date(date);
+    if (Number.isNaN(next.getTime())) return;
+
+    selectedCalendarDate = new Date(next);
+
+    if (typeof miniMonthDate !== "undefined") {
+        miniMonthDate = new Date(next);
+    }
+
+    crmV173SetInsightsVisible(true);
+
+    if (typeof crmFinalV3RenderInsights === "function") {
+        crmFinalV3RenderInsights();
+    } else if (typeof crmRenderCalendarInsights === "function") {
+        crmRenderCalendarInsights();
+    }
+
+    if (typeof renderMiniMonthCalendar === "function") {
+        renderMiniMonthCalendar();
+    }
+
+    crmV173MarkSelectedMonthCell(next);
+
+    if (options.renderCalendar && typeof renderBooksyCalendar === "function") {
+        renderBooksyCalendar();
+    }
+
+    requestAnimationFrame(() => {
+        crmV173EnsureInsightsClose();
+        crmV173UpdateRightPanels();
+    });
+}
+
+/* Kliknięcie zwykłego dnia w Miesiącu: panel dnia musi się pojawić. */
+if (typeof crmFinalV3SelectDate === "function") {
+    const crmV173SelectDateBefore = crmFinalV3SelectDate;
+    crmFinalV3SelectDate = function(date) {
+        crmV173SetInsightsVisible(true);
+        const result = crmV173SelectDateBefore.apply(this, arguments);
+        requestAnimationFrame(() => {
+            crmV173EnsureInsightsClose();
+            crmV173UpdateRightPanels();
+        });
+        return result;
+    };
+}
+
+/* Przełączenie na Miesiąc również przywraca panel wybranego dnia. */
+if (typeof setCalendarView === "function") {
+    const crmV173SetCalendarViewBefore = setCalendarView;
+    setCalendarView = function(mode) {
+        const result = crmV173SetCalendarViewBefore.apply(this, arguments);
+
+        if (String(mode || "").toLowerCase() === "month") {
+            crmV173SetInsightsVisible(true);
+            requestAnimationFrame(() => {
+                if (typeof crmFinalV3RenderInsights === "function") {
+                    crmFinalV3RenderInsights();
+                }
+                crmV173EnsureInsightsClose();
+                crmV173UpdateRightPanels();
+            });
+        }
+
+        return result;
+    };
+}
+
+/*
+ * +N pozostałe / Wszystkie wizyty:
+ * oprócz otwarcia listy wybieramy ten sam dzień dla „Danych z dnia”.
+ */
+if (typeof crmOpenDayVisitsList === "function") {
+    const crmV173OpenDayVisitsBefore = crmOpenDayVisitsList;
+    crmOpenDayVisitsList = function(date) {
+        crmV173SelectDateForInsights(date);
+        const result = crmV173OpenDayVisitsBefore.apply(this, arguments);
+        requestAnimationFrame(crmV173UpdateRightPanels);
+        return result;
+    };
+}
+
+if (typeof crmCloseDayVisitsList === "function") {
+    const crmV173CloseDayVisitsBefore = crmCloseDayVisitsList;
+    crmCloseDayVisitsList = function() {
+        const result = crmV173CloseDayVisitsBefore.apply(this, arguments);
+        requestAnimationFrame(crmV173UpdateRightPanels);
+        return result;
+    };
+}
+
+/* Szczegóły wizyty / zewnętrznego wydarzenia przeliczają układ po otwarciu. */
+if (typeof openAppointmentDetailsModal === "function") {
+    const crmV173OpenDetailsBefore = openAppointmentDetailsModal;
+    openAppointmentDetailsModal = function(item) {
+        if (item?.date) {
+            const date = typeof crmDayEventDate === "function"
+                ? crmDayEventDate(item)
+                : new Date(item.date);
+
+            if (date && !Number.isNaN(date.getTime())) {
+                crmV173SelectDateForInsights(date);
+            }
+        }
+
+        const result = crmV173OpenDetailsBefore.apply(this, arguments);
+        requestAnimationFrame(crmV173UpdateRightPanels);
+        return result;
+    };
+}
+
+if (typeof closeAppointmentModal === "function") {
+    const crmV173CloseDetailsBefore = closeAppointmentModal;
+    closeAppointmentModal = function() {
+        const result = crmV173CloseDetailsBefore.apply(this, arguments);
+        requestAnimationFrame(crmV173UpdateRightPanels);
+        return result;
+    };
+}
+
+/* Każde odświeżenie danych dnia przywraca X i poprawny układ. */
+if (typeof crmFinalV3RenderInsights === "function") {
+    const crmV173RenderInsightsBefore = crmFinalV3RenderInsights;
+    crmFinalV3RenderInsights = function() {
+        const result = crmV173RenderInsightsBefore.apply(this, arguments);
+        crmV173EnsureInsightsClose();
+        requestAnimationFrame(crmV173UpdateRightPanels);
+        return result;
+    };
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmV173EnsureInsightsClose();
+        crmV173UpdateRightPanels();
+    }, 300);
+});
+
+window.crmAdminRightPanelsVersionV173 =
+    "17.3-month-day-data-smart-right-panels";
+
+/* KONIEC ADMIN UX V17.3 */
+
+
+/* ==========================================================================
+   ADMIN UX V17.6 — ŹRÓDŁO WIZYTY W WIERSZU KLIENTA
+   2026-08-19
+   ========================================================================== */
+
+/*
+ * Oryginalna logika tworzy #crmVisitSourceBadge w zielonym nagłówku.
+ * Po uproszczeniu karty klienta badge nie powinien już wisieć pod nagłówkiem.
+ * Przenosimy go do wiersza klienta po każdym odświeżeniu panelu.
+ */
+if (typeof crmApplyVisitPanelBusinessRules === "function") {
+    const crmV176ApplyVisitPanelBusinessRulesBefore =
+        crmApplyVisitPanelBusinessRules;
+
+    crmApplyVisitPanelBusinessRules = function(app) {
+        const result =
+            crmV176ApplyVisitPanelBusinessRulesBefore.apply(this, arguments);
+
+        const badge = document.getElementById("crmVisitSourceBadge");
+        const clientCard = document.querySelector(
+            "#appointmentDetailsModal .crm-safe-client-card"
+        );
+
+        if (badge && clientCard) {
+            badge.classList.add("crm-v176-source-badge");
+            clientCard.appendChild(badge);
+        }
+
+        return result;
+    };
+}
+
+window.crmAdminDetailsVersionV176 =
+    "17.6-source-badge-client-row";
+
+/* KONIEC ADMIN UX V17.6 */
+
+
+/* ==========================================================================
+   ADMIN PANELS — CLEAN FINAL
+   2026-08-19
+
+   JEDYNA ZASADA:
+   - Dodaj wizytę / Zablokuj czas: panel po prawej;
+   - Szczegóły wizyty: panel po lewej;
+   - żadnego automatycznego zwijania Szczegółów;
+   - dolny dock tylko dla ręcznie zwijanych formularzy.
+   ========================================================================== */
+
+function crmPanelsCleanIsVisible(node) {
+    if (!node || node.hidden) return false;
+    const style = getComputedStyle(node);
+    return style.display !== "none" &&
+           style.visibility !== "hidden" &&
+           Number(style.opacity || 1) !== 0;
+}
+
+function crmPanelsCleanUpdateLayout() {
+    const details = document.getElementById("appointmentDetailsModal");
+    const appointment = document.getElementById("appointmentModal");
+    const block = document.getElementById("blockTimeModal");
+
+    const detailsOpen = crmPanelsCleanIsVisible(details);
+    const actionOpen =
+        crmPanelsCleanIsVisible(appointment) ||
+        crmPanelsCleanIsVisible(block);
+
+    document.body.classList.toggle(
+        "crm-final2-action-details",
+        detailsOpen && actionOpen
+    );
+
+    /*
+     * „Szczegóły wizyty” nie są już elementem automatycznego docka.
+     * Jeśli po starej wersji istnieje taka karta w DOM, usuń ją.
+     */
+    const staleDetailsDock =
+        document.getElementById("crmMinimizedDock_details_V172");
+
+    if (staleDetailsDock) {
+        staleDetailsDock.remove();
+    }
+}
+
+/* Szczegóły: po otwarciu tylko przelicz układ. */
+if (typeof openAppointmentDetailsModal === "function") {
+    const crmPanelsCleanOpenDetailsBefore =
+        openAppointmentDetailsModal;
+
+    openAppointmentDetailsModal = function() {
+        const result =
+            crmPanelsCleanOpenDetailsBefore.apply(this, arguments);
+
+        requestAnimationFrame(() => {
+            crmPanelsCleanUpdateLayout();
+        });
+
+        return result;
+    };
+}
+
+/* Szczegóły: po zamknięciu tylko przelicz układ. */
+if (typeof closeAppointmentModal === "function") {
+    const crmPanelsCleanCloseDetailsBefore =
+        closeAppointmentModal;
+
+    closeAppointmentModal = function() {
+        const result =
+            crmPanelsCleanCloseDetailsBefore.apply(this, arguments);
+
+        requestAnimationFrame(() => {
+            crmPanelsCleanUpdateLayout();
+        });
+
+        return result;
+    };
+}
+
+function crmPanelsCleanWatch(node) {
+    if (!node || node.dataset.crmPanelsCleanWatch === "1") return;
+
+    node.dataset.crmPanelsCleanWatch = "1";
+
+    new MutationObserver(() => {
+        requestAnimationFrame(
+            crmPanelsCleanUpdateLayout
+        );
+    }).observe(node, {
+        attributes: true,
+        attributeFilter: ["style", "class", "hidden"]
+    });
+}
+
+window.addEventListener("resize", () => {
+    requestAnimationFrame(
+        crmPanelsCleanUpdateLayout
+    );
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmPanelsCleanWatch(
+            document.getElementById("appointmentDetailsModal")
+        );
+        crmPanelsCleanWatch(
+            document.getElementById("appointmentModal")
+        );
+        crmPanelsCleanWatch(
+            document.getElementById("blockTimeModal")
+        );
+
+        crmPanelsCleanUpdateLayout();
+    }, 250);
+});
+
+window.crmAdminPanelsCleanFinal =
+    "details-left-action-right-no-auto-dock";
+
+/* KONIEC ADMIN PANELS — CLEAN FINAL */
+

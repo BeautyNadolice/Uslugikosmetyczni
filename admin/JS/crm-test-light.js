@@ -11,8 +11,8 @@
    BŁĄD = operacja nie wykonała się poprawnie.
    ========================================================================== */
 
-const CRM_TEST_LIGHT_VERSION = "6.0.0";
-const CRM_TEST_LIGHT_SCOPE = "PERFORMANCE_ACTIONS_AFTER_V20";
+const CRM_TEST_LIGHT_VERSION = "7.1.0";
+const CRM_TEST_LIGHT_SCOPE = "PERFORMANCE_INDEX_AFTER_V21";
 const CRM_ACTIONS_INDEX_URL_V5 =
     "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
 
@@ -32,7 +32,7 @@ function crmActionsCompactV5(value) {
             "success","status","eventId","appointmentId","operationId",
             "updated","deleted","deletedBy","duplicatePrevented",
             "calendarEventDeleted","calendarEventAlreadyMissing",
-            "newCount","count","requestId","error"
+            "newCount","count","requestId","error","perf"
         ].forEach(key => {
             if (Object.prototype.hasOwnProperty.call(value,key)) out[key] = value[key];
         });
@@ -63,10 +63,60 @@ function crmActionsAssertV5(report,condition,name,okDetails,failDetails) {
 
 async function crmActionsPostV5(payload, timeoutMs=60000) {
     if (typeof crmTestPost !== "function") throw new Error("Brak crmTestPost()");
-    return crmTestPost(
-        Object.assign({}, payload, {_perfActions:Date.now()}),
-        {timeoutMs}
+
+    const requestPayload = Object.assign(
+        {},
+        payload,
+        {_perfActions:Date.now()}
     );
+
+    /*
+     * V7.1 — chwilowy redirect Google może zwrócić HTTP 404 już po
+     * prawidłowym wykonaniu Apps Script.
+     *
+     * Retry jest dozwolony WYŁĄCZNIE dla bezpiecznych akcji testowych:
+     * - crmE2EFindFreeSlots: czysty odczyt,
+     * - crmE2EInspect: czysty odczyt,
+     * - crmE2ECleanup: idempotentny cleanup tylko po unikalnym markerze testu.
+     *
+     * Normalne create/edit/delete/cancel/save nadal NIE są tutaj ponawiane.
+     */
+    const retrySafeActionsV71 = new Set([
+        "crmE2EFindFreeSlots",
+        "crmE2EInspect",
+        "crmE2ECleanup"
+    ]);
+
+    const action = String(requestPayload?.action || "");
+
+    try {
+        return await crmTestPost(requestPayload, {timeoutMs});
+    } catch (error) {
+        const message = String(error?.message || error || "");
+        const transient =
+            /HTTP\s*404/i.test(message) ||
+            /Failed to fetch/i.test(message) ||
+            /NetworkError/i.test(message) ||
+            /Load failed/i.test(message);
+
+        if (!retrySafeActionsV71.has(action) || !transient) {
+            throw error;
+        }
+
+        console.warn(
+            `CRM Test Light V7.1: ${action} — chwilowy błąd transportu, jedno bezpieczne ponowienie.`,
+            message
+        );
+
+        await new Promise(resolve => window.setTimeout(resolve, 650));
+
+        return crmTestPost(
+            Object.assign({}, requestPayload, {
+                _perfActionsRetryV71: Date.now()
+            }),
+            {timeoutMs}
+        );
+    }
 }
 
 async function crmActionsGetV5(params, timeoutMs=50000) {
@@ -789,3 +839,11 @@ async function runCRMTestLight() {
 window.runCRMTestLight = runCRMTestLight;
 
 /* KONIEC CRM TEST LIGHT V5 */
+
+
+/* CRM TEST LIGHT V7 — INDEX PERFORMANCE V21 */
+window.crmTestLightPerformanceIndexV21 = "7.1.0";
+
+
+/* CRM TEST LIGHT V7.1 — SAFE DIAGNOSTIC TRANSPORT RETRY */
+window.crmTestLightSafeDiagnosticRetryV71 = "7.1.0";

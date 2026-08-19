@@ -133,7 +133,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
    ADMIN V10-SAFE: PRAWY PANEL BEZ ZMIANY HTML
    ========================================================== */
 #appointmentDetailsModal.crm-safe-visit-panel{position:fixed!important;inset:76px 12px 10px auto!important;width:352px!important;height:auto!important;padding:0!important;background:transparent!important;z-index:10020!important;}
-#appointmentDetailsModal .crm-safe-visit-surface{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fffdfd!important;border:1px solid #eadfe4!important;border-radius:18px!important;box-shadow:0 18px 44px rgba(65,43,54,.16)!important;}
+#appointmentDetailsModal .crm-safe-visit-surface{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fffdfd!important;border:1px solid var(--panel-border-color,#eee5e9)!important;border-radius:18px!important;box-shadow:var(--panel-shadow,0 9px 26px rgba(104,72,88,.06))!important;}
 #appointmentDetailsModal .crm-safe-header{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr) 92px;gap:9px;align-items:start;height:88px;padding:14px 13px 25px;color:#fff;background:linear-gradient(135deg,#69c6a0,#51b98d);border-radius:17px 17px 13px 13px;box-sizing:border-box;}
 #appointmentDetailsModal .crm-safe-close{display:grid;place-items:center;width:28px;height:28px;padding:0;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.46);border-radius:50%;font-size:19px;line-height:1;}
 #appointmentDetailsModal .crm-safe-status-copy{min-width:0;padding-top:4px;}#appointmentDetailsModal .crm-safe-status-copy h4{margin:0;color:#fff;font-size:14px;line-height:1.15;white-space:nowrap;}#appointmentDetailsModal .crm-safe-status-copy small{display:none;}
@@ -362,8 +362,8 @@ body.crm-v3-details-open #tab-kalendarz .calendar-three-columns{padding-right:0!
   --panel-bottom: 2px;                 /* odleglosc panelu od dolnej krawedzi ekranu */
   --panel-radius: 18px;                 /* zaokraglenie zewnetrznych rogow panelu */
   --panel-background: #fffdfd;          /* kolor tla calego panelu */
-  --panel-border-color: #eadfe4;        /* kolor cienkiej ramki panelu */
-  --panel-shadow: 0 18px 44px rgba(65,43,54,.16); /* cien calego panelu */
+  --panel-border-color: #eee5e9;        /* kolor cienkiej ramki panelu */
+  --panel-shadow: 0 9px 26px rgba(104,72,88,.06); /* cien calego panelu */
 
   /* ===== 2. ZIELONY NAGLOWEK ===== */
   --header-height: 88px;                /* wysokosc zielonego naglowka */

@@ -119,47 +119,6 @@
 
 
 /* ==========================================================
-   ADMIN V10.5: POPRAWNE NACHODZENIE KARTY KLIENTA
-   ==========================================================
-   Przyczyna wcześniejszego obcinania:
-   crm-safe-body miał overflow:auto, więc karta z ujemnym margin-top
-   była obcinana na górnej krawędzi białej części.
-
-   Teraz do góry przesuwa się CAŁA biała część panelu, a karta klienta
-   pozostaje wewnątrz niej. Dzięki temu karta jest nad zielonym nagłówkiem
-   i nie jest przez niego zakrywana.
-   ========================================================== */
-
-/* Zielony nagłówek jest dolną warstwą. */
-#appointmentDetailsModal .crm-safe-header{
-  position:relative!important;
-  z-index:1!important;
-  overflow:visible!important;
-}
-
-/* Biała część razem z kartą klienta wchodzi na zielony nagłówek. */
-#appointmentDetailsModal .crm-safe-body{
-  position:relative!important;
-  z-index:2!important;
-  margin-top:calc(-1 * var(--client-overlap))!important;
-  height:calc(100% - var(--header-height) + var(--client-overlap))!important;
-  padding-top:0!important;
-  overflow-x:visible!important;
-  overflow-y:auto!important;
-  box-sizing:border-box!important;
-}
-
-/* Karta nie wychodzi już poza własny kontener, więc nie jest obcinana. */
-#appointmentDetailsModal .crm-safe-client-card{
-  position:relative!important;
-  z-index:20!important;
-  width:calc(100% - (var(--client-side-gap) * 2))!important;
-  margin:0 var(--client-side-gap) 9px!important;
-}
-/* KONIEC ADMIN V10.5 */
-
-
-/* ==========================================================
    ADMIN V10.6: DOLNE ROGI ZIELONEGO I ZAKLADKA INFORMACJE
    ========================================================== */
 
@@ -1565,117 +1524,6 @@ body.crm-v3-details-open .crm-day-list-panel {
 /* KONIEC ADMIN V14.2 */
 
 /* ==========================================================
-   ADMIN V14.4: MENU STATUSU ZAWSZE NAD KARTA KLIENTA
-   Ten blok musi byc w overrides, poniewaz starsze V10.5 w tym samym
-   pliku ustawialo naglowek na z-index:1, a biala czesc na z-index:2.
-   ========================================================== */
-#appointmentDetailsModal.crm-safe-visit-panel {
-  isolation: isolate !important;
-}
-
-#appointmentDetailsModal .crm-safe-header {
-  position: relative !important;
-  z-index: 300 !important;
-  overflow: visible !important;
-  isolation: isolate !important;
-}
-
-#appointmentDetailsModal .crm-safe-status-btn {
-  position: relative !important;
-  z-index: 302 !important;
-}
-
-#appointmentDetailsModal .crm-safe-status-menu {
-  position: absolute !important;
-  z-index: 500 !important;
-  top: 49px !important;
-  right: 12px !important;
-  width: 190px !important;
-  max-height: min(240px, calc(100vh - 90px)) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-#appointmentDetailsModal .crm-safe-body {
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-#appointmentDetailsModal .crm-safe-client-card {
-  z-index: 20 !important;
-}
-/* KONIEC ADMIN V14.4 */
-
-/* ==========================================================
-   ADMIN V14.5: KARTA KLIENTA NAD ZIELONYM NAGLOWKIEM
-   Kolejnosc warstw:
-   1. zielone tlo naglowka
-   2. karta klienta nachodzaca na naglowek
-   3. rozwijane menu statusu nad karta klienta
-   ========================================================== */
-#appointmentDetailsModal.crm-safe-visit-panel {
-  isolation: isolate !important;
-}
-
-/* Naglowek nie tworzy osobnego kontekstu warstw, dzieki czemu jego menu
-   moze byc wyzej niz karta klienta znajdujaca sie w bialej czesci. */
-#appointmentDetailsModal .crm-safe-header {
-  position: relative !important;
-  z-index: auto !important;
-  isolation: auto !important;
-  overflow: visible !important;
-}
-
-#appointmentDetailsModal .crm-safe-body {
-  position: relative !important;
-  z-index: auto !important;
-  overflow: visible auto !important;
-}
-
-/* Karta klienta fizycznie nachodzi na dolna czesc zielonego pola. */
-#appointmentDetailsModal .crm-safe-client-card {
-  position: relative !important;
-  z-index: 40 !important;
-  margin-top: calc(-1 * var(--client-overlap)) !important;
-  background: #ffffff !important;
-}
-
-/* Przycisk pozostaje w naglowku, ale menu jest niezalezna warstwa nad karta. */
-#appointmentDetailsModal .crm-safe-status-btn {
-  position: relative !important;
-  z-index: 80 !important;
-}
-
-#appointmentDetailsModal .crm-safe-status-menu {
-  position: absolute !important;
-  z-index: 120 !important;
-  top: 49px !important;
-  right: 12px !important;
-}
-/* KONIEC ADMIN V14.5 */
-
-/* ==========================================================
-   ADMIN V14.6: POZYCJA KARTY KLIENTA JAK PRZED NAPRAWA MENU
-   Pozycja karty jest niezalezna od warstwy rozwijanego menu.
-   ========================================================== */
-#appointmentDetailsModal .crm-safe-client-card {
-  position: relative !important;
-  z-index: 40 !important;
-  margin-top: -18px !important;
-  margin-right: var(--client-side-gap) !important;
-  margin-bottom: 9px !important;
-  margin-left: var(--client-side-gap) !important;
-}
-
-/* Menu pozostaje ponad karta, ale nie steruje jej polozeniem. */
-#appointmentDetailsModal .crm-safe-status-menu {
-  z-index: 500 !important;
-}
-/* KONIEC ADMIN V14.6 */
-
-/* ==========================================================
    ADMIN V14.7: NOWA PROSBA O WIZYTE
    ========================================================== */
 .crm-request-notice-overlay[hidden] { display: none !important; }
@@ -2336,3 +2184,742 @@ body.crm-v3-details-open .crm-day-list-panel {
     }
 }
 /* KONIEC ADMIN UX V17 */
+
+/* ==========================================================================
+   ADMIN UX V17.1 — NIEBLOKUJĄCE FORMULARZE KALENDARZA
+   2026-08-19
+
+   Cel:
+   - Dodaj / Edytuj wizytę: bez rozmywania Kalendarza;
+   - Zablokuj czas / Dodaj wolne: nie blokuje całej strony;
+   - formularze pozostają klikalne, ale reszta CRM też jest aktywna.
+   ========================================================================== */
+
+/* Warstwa techniczna obu formularzy nie przyciemnia i nie rozmywa CRM. */
+#appointmentModal.modal-overlay,
+#blockTimeModal.modal-overlay {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/*
+ * Overlay nie przechwytuje kliknięć.
+ * Dzięki temu można nadal używać Kalendarza i pozostałych elementów ADMIN.
+ */
+#appointmentModal.modal-overlay,
+#blockTimeModal.modal-overlay {
+    pointer-events: none !important;
+}
+
+/* Sam formularz pozostaje normalnie interaktywny. */
+#appointmentModal.modal-overlay .modal-content,
+#blockTimeModal.modal-overlay .modal-content {
+    pointer-events: auto !important;
+}
+
+/*
+ * Blokada czasu pozostaje wizualnie w tym samym miejscu co dotychczas
+ * (środek ekranu), ale nie tworzy już blokującej warstwy nad stroną.
+ */
+#blockTimeModal.modal-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* KONIEC ADMIN UX V17.1 */
+
+
+/* ==========================================================================
+   ADMIN UX V17.2 — SZCZEGÓŁY + BLOKADA + DOLNY DOCK
+   2026-08-19
+   ========================================================================== */
+
+/*
+ * Szczegóły wizyty / wydarzenia nie przykrywają już prawego panelu
+ * „Dane z dnia”. Na szerokim ekranie panel szczegółów otwiera się
+ * bezpośrednio po jego lewej stronie.
+ */
+@media (min-width: 1051px) {
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: calc(var(--crm-insights-width, 360px) + 24px) !important;
+    }
+}
+
+/* Gdy stały panel dnia jest ukryty, szczegóły wracają do prawej krawędzi. */
+@media (max-width: 1050px) {
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: 8px !important;
+    }
+}
+
+/*
+ * ZABLOKUJ CZAS / DODAJ WOLNE:
+ * ten sam prawy, nieblokujący panel jak „Utwórz nową wizytę”.
+ */
+@media (min-width: 761px) {
+    #blockTimeModal.modal-overlay {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        pointer-events: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-end !important;
+        padding: 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    #blockTimeModal.modal-overlay .modal-content {
+        pointer-events: auto !important;
+        width: min(420px, calc(100vw - 24px)) !important;
+        max-width: 420px !important;
+        height: calc(100vh - 24px) !important;
+        max-height: calc(100vh - 24px) !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        border-radius: 18px !important;
+        box-shadow: 0 16px 42px rgba(48, 35, 42, 0.18) !important;
+    }
+}
+
+@media (max-width: 760px) {
+    #blockTimeModal.modal-overlay {
+        pointer-events: auto !important;
+    }
+}
+
+/* Przycisk „—” w nagłówku Blokady. */
+.crm-panel-minimize-v172 {
+    margin-left: auto !important;
+    margin-right: 5px !important;
+    width: 34px !important;
+    height: 34px !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    flex: 0 0 34px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: #f6f1f3 !important;
+    color: #655b60 !important;
+    font-size: 20px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+}
+
+/*
+ * DOLNY DOCK:
+ * po zwinięciu formularz nie znika „nie wiadomo gdzie”.
+ * Pojawia się mała karta Rezerwacja / Blokowanie.
+ */
+#crmMinimizedPanelDockV172 {
+    position: fixed !important;
+    z-index: 120000 !important;
+    left: 50% !important;
+    bottom: 16px !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    pointer-events: none !important;
+}
+
+#crmMinimizedPanelDockV172[hidden] {
+    display: none !important;
+}
+
+.crm-minimized-dock-item-v172 {
+    pointer-events: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    min-width: 190px !important;
+    max-width: 310px !important;
+    min-height: 48px !important;
+    padding: 8px 13px !important;
+    border: 1px solid #dfcdd5 !important;
+    border-radius: 14px !important;
+    background: rgba(255, 253, 254, .98) !important;
+    color: #493d43 !important;
+    box-shadow: 0 10px 28px rgba(72, 46, 59, .18) !important;
+    cursor: pointer !important;
+    text-align: left !important;
+}
+
+.crm-minimized-dock-item-v172:hover {
+    border-color: #c67b96 !important;
+    box-shadow: 0 12px 32px rgba(72, 46, 59, .23) !important;
+    transform: translateY(-1px) !important;
+}
+
+.crm-minimized-dock-icon-v172 {
+    flex: 0 0 auto !important;
+    font-size: 18px !important;
+}
+
+.crm-minimized-dock-copy-v172 {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.crm-minimized-dock-copy-v172 strong {
+    overflow: hidden !important;
+    color: #9f4669 !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.crm-minimized-dock-copy-v172 small {
+    overflow: hidden !important;
+    max-width: 250px !important;
+    color: #746a72 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+@media (max-width: 560px) {
+    #crmMinimizedPanelDockV172 {
+        left: 8px !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+        transform: none !important;
+    }
+
+    .crm-minimized-dock-item-v172 {
+        flex: 1 1 100% !important;
+        max-width: none !important;
+    }
+}
+
+/* KONIEC ADMIN UX V17.2 */
+
+
+/* ==========================================================================
+   ADMIN UX V17.3 — INTELIGENTNY UKŁAD PRAWYCH PANELI
+   ========================================================================== */
+
+#crmCalendarInsights.crm-v173-insights-panel {
+    position: relative;
+}
+
+#crmCalendarInsights.crm-v173-user-hidden {
+    display: none !important;
+}
+
+.crm-v173-insights-close {
+    position: absolute !important;
+    z-index: 30 !important;
+    top: 10px !important;
+    right: 10px !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: #f8eef2 !important;
+    color: #b35b7a !important;
+    font-size: 23px !important;
+    font-weight: 300 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+}
+
+.crm-v173-insights-close:hover {
+    background: #efdce4 !important;
+    color: #944261 !important;
+}
+
+/* Po zamknięciu „Danych z dnia” nie zostawiamy pustej trzeciej kolumny. */
+@media (min-width: 1251px) {
+    body.crm-v173-insights-hidden
+    #tab-kalendarz .calendar-three-columns {
+        grid-template-columns:
+            var(--crm-calendar-side, 255px)
+            minmax(660px, 1fr) !important;
+    }
+}
+
+/* ==========================================================
+   DESKTOP: DWA PANELE STOJĄ OBOK SIEBIE
+   ========================================================== */
+@media (min-width: 1251px) {
+
+    /* Szczegóły + Dane z dnia */
+    body.crm-v173-details-open.crm-v173-insights-open:not(.crm-v173-three-right-panels)
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: calc(var(--crm-insights-width, 360px) + 24px) !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        width: var(--crm-insights-width, 360px) !important;
+        height: auto !important;
+    }
+
+    /* Wszystkie wizyty + Dane z dnia */
+    body.crm-v173-day-list-open.crm-v173-insights-open:not(.crm-v173-details-open)
+    .crm-day-list-panel {
+        right: calc(var(--crm-insights-width, 360px) + 24px) !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        width: min(390px, calc(100vw - 24px)) !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /* Gdy Dane z dnia zamknięto: pojedynczy panel wraca do prawej krawędzi. */
+    body.crm-v173-insights-hidden.crm-v173-details-open:not(.crm-v173-day-list-open)
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        right: 8px !important;
+    }
+
+    body.crm-v173-insights-hidden.crm-v173-day-list-open:not(.crm-v173-details-open)
+    .crm-day-list-panel {
+        right: 8px !important;
+    }
+
+    /*
+     * Dwa panele bez Danych z dnia:
+     * Wszystkie wizyty po lewej, Szczegóły po prawej.
+     */
+    body.crm-v173-insights-hidden.crm-v173-details-open.crm-v173-day-list-open
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        right: 8px !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        width: var(--crm-insights-width, 360px) !important;
+        height: auto !important;
+    }
+
+    body.crm-v173-insights-hidden.crm-v173-details-open.crm-v173-day-list-open
+    .crm-day-list-panel {
+        right: calc(var(--crm-insights-width, 360px) + 24px) !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        width: min(390px, calc(100vw - 24px)) !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /* ======================================================
+       TRZY PANELE:
+       [Wszystkie wizyty] [Szczegóły]
+                          [Dane z dnia]
+       ====================================================== */
+
+    body.crm-v173-three-right-panels
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: 8px !important;
+        top: 14px !important;
+        bottom: calc(48vh + 4px) !important;
+        width: var(--crm-insights-width, 360px) !important;
+        height: auto !important;
+        padding: 0 !important;
+    }
+
+    body.crm-v173-three-right-panels
+    #appointmentDetailsModal .crm-safe-visit-surface,
+    body.crm-v173-three-right-panels
+    #appointmentDetailsModal .crm-visit-panel__surface {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+    }
+
+    body.crm-v173-three-right-panels
+    #crmCalendarInsights {
+        position: fixed !important;
+        z-index: 9635 !important;
+        left: auto !important;
+        right: 8px !important;
+        top: calc(52vh + 4px) !important;
+        bottom: 8px !important;
+        width: var(--crm-insights-width, 360px) !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        margin: 0 !important;
+    }
+
+    body.crm-v173-three-right-panels
+    .crm-day-list-panel {
+        right: calc(var(--crm-insights-width, 360px) + 24px) !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        width: min(390px, calc(100vw - var(--crm-insights-width, 360px) - 40px)) !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+}
+
+/* Na mniejszym ekranie zachowujemy prosty panel mobilny, bez 3 kolumn. */
+@media (max-width: 1250px) {
+    .crm-v173-insights-close {
+        top: 8px !important;
+        right: 8px !important;
+    }
+}
+
+/* KONIEC ADMIN UX V17.3 */
+
+
+/* ==========================================================================
+   ADMIN PANELS FINAL 2 — SZCZEGÓŁY OBOK DODAJ / BLOKUJ
+   ========================================================================== */
+
+@media (min-width: 1001px) {
+
+    /*
+     * Formularz Dodaj/Blokuj pozostaje przy prawej krawędzi.
+     * Szczegóły stoją bezpośrednio po jego lewej stronie.
+     */
+    body.crm-final2-action-details
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: 444px !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        width: min(var(--crm-insights-width, 360px), 360px) !important;
+        height: auto !important;
+        z-index: 11100 !important;
+    }
+
+    body.crm-final2-action-details
+    #appointmentModal.modal-overlay,
+    body.crm-final2-action-details
+    #blockTimeModal.modal-overlay {
+        z-index: 11050 !important;
+    }
+}
+
+/*
+ * Na węższym ekranie nie chowamy Szczegółów automatycznie.
+ * Mogą nachodzić na część kalendarza, ale nie na aktywny formularz.
+ */
+@media (max-width: 1000px) and (min-width: 761px) {
+    body.crm-final2-action-details
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: 8px !important;
+        right: auto !important;
+        width: min(360px, calc(100vw - 452px)) !important;
+        min-width: 300px !important;
+        top: 14px !important;
+        bottom: 8px !important;
+        height: auto !important;
+        z-index: 11100 !important;
+    }
+}
+
+/* KONIEC ADMIN PANELS FINAL 2 */
+
+
+/* ==========================================================================
+   ADMIN PANELS FINAL 3 — RÓWNE PANELE 360 PX
+   2026-08-19
+   ========================================================================== */
+
+:root {
+    --crm-action-panel-width: 360px;
+    --crm-details-panel-width: 360px;
+    --crm-panel-gap: 12px;
+    --crm-panel-edge: 12px;
+}
+
+/* Dodaj wizytę i Zablokuj czas mają identyczny rozmiar. */
+@media (min-width: 761px) {
+    #appointmentModal.modal-overlay,
+    #blockTimeModal.modal-overlay {
+        padding: var(--crm-panel-edge) !important;
+        align-items: flex-start !important;
+        justify-content: flex-end !important;
+        pointer-events: none !important;
+        box-sizing: border-box !important;
+    }
+
+    #appointmentModal.modal-overlay .modal-content,
+    #blockTimeModal.modal-overlay .modal-content {
+        width: var(--crm-action-panel-width) !important;
+        min-width: var(--crm-action-panel-width) !important;
+        max-width: var(--crm-action-panel-width) !important;
+        height: calc(100vh - (var(--crm-panel-edge) * 2)) !important;
+        max-height: calc(100vh - (var(--crm-panel-edge) * 2)) !important;
+        margin: 0 !important;
+        pointer-events: auto !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+}
+
+/* Szczegóły mają taką samą szerokość. */
+@media (min-width: 1001px) {
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        width: var(--crm-details-panel-width) !important;
+        max-width: var(--crm-details-panel-width) !important;
+    }
+
+    body.crm-final2-action-details
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: calc(
+            var(--crm-panel-edge) +
+            var(--crm-action-panel-width) +
+            var(--crm-panel-gap)
+        ) !important;
+        top: var(--crm-panel-edge) !important;
+        bottom: var(--crm-panel-edge) !important;
+        width: var(--crm-details-panel-width) !important;
+        max-width: var(--crm-details-panel-width) !important;
+        height: auto !important;
+    }
+}
+
+/* Na trochę węższym ekranie oba nadal zostają obok siebie. */
+@media (max-width: 1000px) and (min-width: 761px) {
+    :root {
+        --crm-action-panel-width: 340px;
+        --crm-details-panel-width: 340px;
+        --crm-panel-gap: 8px;
+        --crm-panel-edge: 8px;
+    }
+
+    body.crm-final2-action-details
+    #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: calc(
+            var(--crm-panel-edge) +
+            var(--crm-action-panel-width) +
+            var(--crm-panel-gap)
+        ) !important;
+        top: var(--crm-panel-edge) !important;
+        bottom: var(--crm-panel-edge) !important;
+        width: var(--crm-details-panel-width) !important;
+        min-width: 0 !important;
+        max-width: var(--crm-details-panel-width) !important;
+        height: auto !important;
+    }
+}
+
+/* KONIEC ADMIN PANELS FINAL 3 */
+
+/* ==========================================================================
+   ADMIN DETAILS — CANONICAL FINAL
+   2026-08-19
+
+   JEDYNA KOŃCOWA REGUŁA WYGLĄDU PANELU SZCZEGÓŁÓW.
+   Ramka i cień powierzchni są definiowane w styleadmin-calendar.css,
+   tak samo jak w panelu „Dane z dnia”.
+   ========================================================================== */
+
+:root {
+    --crm-details-overlap: 56px;
+    --crm-client-card-shift-y: 0px;
+}
+
+/* Zewnętrzny kontener nie ma własnej kolorowej ramki. */
+#appointmentDetailsModal.crm-safe-visit-panel {
+    isolation: isolate !important;
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+}
+
+/*
+ * Powierzchnia panelu:
+ * border i box-shadow NIE są tu nadpisywane.
+ * Pochodzą z właściwej reguły w styleadmin-calendar.css.
+ */
+#appointmentDetailsModal .crm-safe-visit-surface {
+    border-radius: 18px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+/* Zielony nagłówek pod nachodzącą białą częścią. */
+#appointmentDetailsModal .crm-safe-header {
+    position: relative !important;
+    z-index: 1 !important;
+    overflow: visible !important;
+}
+
+/* Tekst statusu i przyciski pozostają ponad białą częścią. */
+#appointmentDetailsModal .crm-safe-status-copy {
+    position: relative !important;
+    z-index: 110 !important;
+}
+
+#appointmentDetailsModal .crm-safe-close,
+#appointmentDetailsModal .crm-safe-status-btn,
+#appointmentDetailsModal #crmVisitTrashButton {
+    position: relative !important;
+    z-index: 120 !important;
+}
+
+/* Zmień status i koszyk są w jednej linii i tej samej wysokości. */
+#appointmentDetailsModal .crm-safe-status-btn,
+#appointmentDetailsModal #crmVisitTrashButton {
+    align-self: start !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    box-sizing: border-box !important;
+}
+
+#appointmentDetailsModal #crmVisitTrashButton {
+    width: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    transform: none !important;
+}
+
+#appointmentDetailsModal #crmVisitTrashButton svg {
+    display: block !important;
+    margin: 0 !important;
+}
+
+/* Menu statusu i kosza zawsze najwyżej. */
+#appointmentDetailsModal .crm-safe-status-menu,
+#appointmentDetailsModal #crmVisitTrashMenu {
+    z-index: 500 !important;
+}
+
+/* Biała część nachodzi na zielony nagłówek dokładnie o 56 px. */
+#appointmentDetailsModal .crm-safe-body {
+    position: relative !important;
+    z-index: 40 !important;
+    margin-top: calc(-1 * var(--crm-details-overlap)) !important;
+    height: calc(
+        100% - var(--header-height, 88px) + var(--crm-details-overlap)
+    ) !important;
+    padding-top: 0 !important;
+    padding-bottom: 12px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+}
+
+/* Jedna finalna karta klienta / wydarzenia. */
+#appointmentDetailsModal .crm-safe-client-card,
+#appointmentDetailsModal .crm-safe-client-card:hover,
+#appointmentDetailsModal .crm-safe-client-card:focus,
+#appointmentDetailsModal .crm-safe-client-card:focus-visible {
+    position: relative !important;
+    z-index: 60 !important;
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: 9px !important;
+    width: calc(100% - 16px) !important;
+    min-height: 62px !important;
+
+    margin-top: var(--crm-client-card-shift-y) !important;
+    margin-right: 8px !important;
+    margin-bottom: 9px !important;
+    margin-left: 8px !important;
+
+    padding: 10px !important;
+    border: 1px solid #ebe1e6 !important;
+    outline: 0 !important;
+    border-radius: 15px !important;
+    background: #ffffff !important;
+    box-shadow: 0 9px 22px rgba(80,54,67,.11) !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+}
+
+#appointmentDetailsModal .crm-safe-client-card.is-readonly {
+    cursor: default !important;
+}
+
+#appointmentDetailsModal .crm-safe-avatar {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    align-self: center !important;
+    box-shadow: none !important;
+}
+
+#appointmentDetailsModal .crm-safe-client-copy {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+}
+
+#appointmentDetailsModal .crm-safe-client-copy strong {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    color: #312b31 !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+}
+
+#appointmentDetailsModal .crm-safe-client-copy span {
+    color: #7c727a !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Badge źródła wizyty po prawej stronie. */
+#appointmentDetailsModal #crmVisitSourceBadge.crm-v176-source-badge {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 3px 6px !important;
+    border-radius: 999px !important;
+    font-size: 7px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    box-sizing: border-box !important;
+}
+
+#appointmentDetailsModal[data-crm-source="google"]
+#crmVisitSourceBadge.crm-v176-source-badge {
+    font-size: 7.5px !important;
+}
+
+#appointmentDetailsModal .crm-safe-tabs {
+    margin-top: 0 !important;
+}
+
+/* KONIEC ADMIN DETAILS — CANONICAL FINAL */
+
