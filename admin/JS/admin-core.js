@@ -2708,7 +2708,7 @@ crmRenderUnifiedInbox=function(){
         card.classList.add("crm-first-visit-inbox-card");
         const proposals=crmFirstVisitNormalizeProposalsV8(item);
         const oldMain=Array.from(card.querySelectorAll("div")).find(node=>node.textContent?.includes("Termin główny:"));
-        if(oldMain?.parentElement)oldMain.parentElement.remove();
+        if(oldMain)oldMain.remove();
         let info=card.querySelector(".crm-first-visit-inbox-info");
         if(!info){info=document.createElement("div");info.className="crm-first-visit-inbox-info";const actions=card.querySelector(".crm-inbox-actions");if(actions)card.insertBefore(info,actions);else card.appendChild(info);}
         const proposalHtml=proposals.length?proposals.map(row=>`
@@ -3760,3 +3760,232 @@ window.crmGetPerformanceSnapshotV191 = function() {
     };
 };
 /* KONIEC ADMIN PERFORMANCE V19.1 */
+
+
+/* ==========================================================================
+   ADMIN V25.2.5 — SKRZYNKA + BOCZNE PANELE CRUD
+   2026-08-20
+
+   1) Skrzynka: FIRST_VISIT nie usuwa już całej karty zgłoszenia.
+      Poprawka powyżej: usuwamy tylko stary blok „Termin główny / Alternatywny”.
+
+   2) Standardowe okna:
+      - Dodaj / Edytuj klienta
+      - Dodaj / Edytuj usługę
+      - Zarządzaj kategoriami
+      dostają przycisk „—” i mogą być minimalizowane tak jak Dodaj wizytę
+      i Zablokuj czas.
+
+   WAŻNE:
+   - pozycje X / — są ustawiane w styleadmin-overrides.css,
+   - wartości są takie same jak aktualnie w Dodaj wizytę / Zablokuj czas,
+   - brak zmian backendu i brak nowego deploymentu Apps Script.
+   ========================================================================== */
+
+(function crmInstallUtilitySidePanelsV2525() {
+    const configs = [
+        {
+            id: "clientModal",
+            kind: "client",
+            title: "Klient",
+            icon: "👤",
+            detail: () => String(document.getElementById("clientModalName")?.value || "").trim() ||
+                String(document.getElementById("clientModalTitle")?.textContent || "Klient").trim(),
+            openFunctions: ["openAddClientModal", "editClient"],
+            closeFunctions: ["closeClientModal"]
+        },
+        {
+            id: "serviceModal",
+            kind: "service",
+            title: "Usługa",
+            icon: "💅",
+            detail: () => String(document.getElementById("serviceName")?.value || "").trim() ||
+                String(document.getElementById("serviceModalTitle")?.textContent || "Usługa").trim(),
+            openFunctions: ["openAddServiceModal", "editService"],
+            closeFunctions: ["closeServiceModal"]
+        },
+        {
+            id: "categoryModal",
+            kind: "category",
+            title: "Kategorie",
+            icon: "🏷️",
+            detail: () => String(document.getElementById("categorySelectForEdit")?.value || "").trim() ||
+                "Zarządzanie kategoriami",
+            openFunctions: ["openCategoryModal"],
+            closeFunctions: ["closeCategoryModal"]
+        },
+        {
+            id: "crmContactDataConfirmModalV2",
+            kind: "contact-confirm",
+            title: "Dane klienta",
+            icon: "✓",
+            detail: () => String(document.getElementById("crmContactConfirmNameV2")?.value || "").trim() ||
+                "Sprawdź dane klienta",
+            openFunctions: ["crmConfirmContactDataV2"],
+            closeFunctions: [],
+            headerSelector: "section > div:first-child",
+            closeSelector: "[data-close]"
+        }
+    ];
+
+    function ensureDock() {
+        if (typeof crmV172EnsureMinimizedDock === "function") {
+            return crmV172EnsureMinimizedDock();
+        }
+        let dock = document.getElementById("crmMinimizedPanelDockV172");
+        if (dock) return dock;
+        dock = document.createElement("div");
+        dock.id = "crmMinimizedPanelDockV172";
+        dock.setAttribute("aria-live", "polite");
+        document.body.appendChild(dock);
+        return dock;
+    }
+
+    function clearDockItem(kind) {
+        const button = document.getElementById(`crmMinimizedDock_${kind}_V2525`);
+        if (button) button.remove();
+        const dock = document.getElementById("crmMinimizedPanelDockV172");
+        if (dock && !dock.querySelector(".crm-minimized-dock-item-v172")) {
+            dock.hidden = true;
+        }
+    }
+
+    function setDockItem(config) {
+        const dock = ensureDock();
+        const id = `crmMinimizedDock_${config.kind}_V2525`;
+        let button = document.getElementById(id);
+
+        if (!button) {
+            button = document.createElement("button");
+            button.type = "button";
+            button.id = id;
+            button.className = "crm-minimized-dock-item-v172";
+            dock.appendChild(button);
+        }
+
+        button.innerHTML = "";
+
+        const icon = document.createElement("span");
+        icon.className = "crm-minimized-dock-icon-v172";
+        icon.textContent = config.icon || "▣";
+
+        const copy = document.createElement("span");
+        copy.className = "crm-minimized-dock-copy-v172";
+
+        const strong = document.createElement("strong");
+        strong.textContent = config.title || "Panel";
+
+        const small = document.createElement("small");
+        let detail = "Kliknij, aby wrócić";
+        try { detail = config.detail?.() || detail; } catch (ignore) {}
+        small.textContent = detail;
+
+        copy.append(strong, small);
+        button.append(icon, copy);
+        button.onclick = () => restore(config);
+        button.style.display = "flex";
+        dock.hidden = false;
+    }
+
+    function minimize(config) {
+        const modal = document.getElementById(config.id);
+        if (!modal) return;
+        modal.dataset.crmMinimized = "1";
+        modal.style.display = "none";
+        setDockItem(config);
+    }
+
+    function restore(config) {
+        const modal = document.getElementById(config.id);
+        if (!modal) return;
+        modal.dataset.crmMinimized = "0";
+        modal.style.display = "flex";
+        clearDockItem(config.kind);
+    }
+
+    function ensureMinimizeButton(config) {
+        const modal = document.getElementById(config.id);
+        if (!modal) return null;
+
+        const buttonId = `crmUtilityMinimize_${config.kind}_V2525`;
+        let button = document.getElementById(buttonId);
+        if (button) return button;
+
+        const header = modal.querySelector(config.headerSelector || ".modal-header");
+        const close = header?.querySelector(config.closeSelector || ".modal-close");
+        if (!header) return null;
+
+        button = document.createElement("button");
+        button.type = "button";
+        button.id = buttonId;
+        button.className = "crm-panel-minimize-v172 crm-utility-minimize-v2525";
+        button.title = "Zwiń panel";
+        button.setAttribute("aria-label", "Zwiń panel");
+        button.textContent = "—";
+        button.onclick = () => minimize(config);
+
+        if (close) header.insertBefore(button, close);
+        else header.appendChild(button);
+
+        return button;
+    }
+
+    function wrapOpenFunction(functionName, config) {
+        const original = window[functionName];
+        if (typeof original !== "function" || original.__crmV2525Wrapped) return;
+
+        const wrapped = function() {
+            const result = original.apply(this, arguments);
+            const modal = document.getElementById(config.id);
+            if (modal) modal.dataset.crmMinimized = "0";
+            clearDockItem(config.kind);
+            ensureMinimizeButton(config);
+            return result;
+        };
+        wrapped.__crmV2525Wrapped = true;
+        window[functionName] = wrapped;
+    }
+
+    function wrapCloseFunction(functionName, config) {
+        const original = window[functionName];
+        if (typeof original !== "function" || original.__crmV2525Wrapped) return;
+
+        const wrapped = function() {
+            const result = original.apply(this, arguments);
+            const modal = document.getElementById(config.id);
+            if (modal) modal.dataset.crmMinimized = "0";
+            clearDockItem(config.kind);
+            return result;
+        };
+        wrapped.__crmV2525Wrapped = true;
+        window[functionName] = wrapped;
+    }
+
+    function install() {
+        configs.forEach(config => {
+            ensureMinimizeButton(config);
+            (config.openFunctions || []).forEach(name => wrapOpenFunction(name, config));
+            (config.closeFunctions || []).forEach(name => wrapCloseFunction(name, config));
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", install, { once: true });
+    } else {
+        install();
+    }
+
+    window.crmUtilityPanelsV2525 = {
+        install,
+        minimize: kind => {
+            const config = configs.find(item => item.kind === kind);
+            if (config) minimize(config);
+        },
+        restore: kind => {
+            const config = configs.find(item => item.kind === kind);
+            if (config) restore(config);
+        }
+    };
+})();
+
+/* KONIEC ADMIN V25.2.5 */
