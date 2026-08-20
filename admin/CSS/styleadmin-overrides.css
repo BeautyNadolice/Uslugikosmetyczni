@@ -1,3 +1,7 @@
+/* >>> UŻYTKOWNIK: RĘCZNA REGULACJA X / — ORAZ ROZMIARÓW PANELI „DODAJ” I „ZABLOKUJ”
+   jest na SAMYM KOŃCU tego pliku. Wyszukaj:  V25.2.6 CENTRUM REGULACJI
+   Tam zmieniaj wartości; nie trzeba szukać starszych reguł wyżej. <<< */
+
 /* ===== WSPOLNA SZYBKOSC ANIMACJI ===== */
 #appointmentDetailsModal button,
 #appointmentDetailsModal .crm-safe-client-card{
@@ -739,7 +743,7 @@ body.crm-v3-details-open #tab-kalendarz .calendar-layout-header > div:last-child
 .crm-day-list-panel>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px 15px;border-bottom:1px solid #eee5e9;background:linear-gradient(145deg,#fff,#fdf7fa);}
 .crm-day-list-panel>header span{color:#ad5577;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
 .crm-day-list-panel>header h3{margin:3px 0 0;color:#342d34;font-size:17px;text-transform:capitalize;}
-.crm-day-list-close{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:0;background:transparent;color:#9f5877;box-shadow:none;cursor:pointer;font-size:24px;font-weight:300;position:relative;top:-3px;transition:color .14s ease,transform .14s ease,text-shadow .14s ease;}
+.crm-day-list-close{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:0;background:transparent;color:#9f5877;box-shadow:none;cursor:pointer;font-size:24px;font-weight:300;transition:color .14s ease,transform .14s ease,text-shadow .14s ease;}
 .crm-day-list-close:hover,
 .crm-day-list-close:focus-visible{background:transparent;color:#7f3f5b;transform:translateY(-2px) scale(1.12);text-shadow:0 2px 7px rgba(159,88,119,.20);}
 .crm-day-list-close:active{transform:translateY(0) scale(.98);}
@@ -2343,8 +2347,6 @@ body.crm-v3-details-open .crm-day-list-panel {
     font-size: 20px !important;
     line-height: 1 !important;
     cursor: pointer !important;
-    position: relative !important;
-    top: -3px !important;
     transition: color .14s ease, transform .14s ease, text-shadow .14s ease !important;
 }
 
@@ -2472,11 +2474,15 @@ body.crm-v3-details-open .crm-day-list-panel {
     display: none !important;
 }
 
+/* ADMIN V25.2.3 — X panelu „Wybrany dzień”.
+ * WAŻNE: ten przycisk musi pozostać position:absolute.
+ * W poprzedniej wersji druga deklaracja position:relative kasowała pozycję
+ * top/right i przez to X wpadał w dół zawartości panelu.
+ * Regulacja TYLKO tego X: top / right poniżej.
+ */
 .crm-v173-insights-close {
     position: absolute !important;
     z-index: 30 !important;
-    top: 10px !important;
-    right: 10px !important;
     display: grid !important;
     place-items: center !important;
     width: 34px !important;
@@ -2491,8 +2497,6 @@ body.crm-v3-details-open .crm-day-list-panel {
     font-weight: 300 !important;
     line-height: 1 !important;
     cursor: pointer !important;
-    position: relative !important;
-    top: -3px !important;
     transition: color .14s ease, transform .14s ease, text-shadow .14s ease !important;
 }
 
@@ -2633,13 +2637,7 @@ body.crm-v3-details-open .crm-day-list-panel {
     }
 }
 
-/* Na mniejszym ekranie zachowujemy prosty panel mobilny, bez 3 kolumn. */
-@media (max-width: 1250px) {
-    .crm-v173-insights-close {
-        top: 8px !important;
-        right: 8px !important;
-    }
-}
+/* Na mniejszym ekranie układ paneli pozostaje responsywny; pozycję X nadal steruje centrum na końcu pliku. */
 
 /* KONIEC ADMIN UX V17.3 */
 
@@ -3018,3 +3016,346 @@ body.crm-v3-details-open .crm-day-list-panel {
 
 /* KONIEC ADMIN DETAILS — CANONICAL FINAL */
 
+/* ==========================================================================
+   ADMIN V25.2.5 — STANDARDOWE MODALE JAK „DODAJ WIZYTĘ / ZABLOKUJ CZAS”
+   2026-08-20
+
+   Obejmuje:
+   - #clientModal   — Dodaj / Edytuj klienta
+   - #serviceModal  — Dodaj / Edytuj usługę
+   - #categoryModal — Zarządzaj kategoriami
+   - #crmContactDataConfirmModalV2 — Sprawdź dane klienta ze Skrzynki
+
+   Nie zmienia:
+   - logowania,
+   - Szczegółów wizyty,
+   - Skrzynki,
+   - Danych z dnia,
+   - backendu.
+   ========================================================================== */
+
+@media (min-width: 761px) {
+    #clientModal.modal-overlay,
+    #serviceModal.modal-overlay,
+    #categoryModal.modal-overlay,
+    #crmContactDataConfirmModalV2 {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        pointer-events: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-end !important;
+        padding: var(--crm-panel-edge, 12px) !important;
+        box-sizing: border-box !important;
+    }
+
+    #clientModal.modal-overlay .modal-content,
+    #serviceModal.modal-overlay .modal-content,
+    #categoryModal.modal-overlay .modal-content,
+    #crmContactDataConfirmModalV2 > section {
+        pointer-events: auto !important;
+        width: var(--crm-action-panel-width, 360px) !important;
+        min-width: var(--crm-action-panel-width, 360px) !important;
+        max-width: var(--crm-action-panel-width, 360px) !important;
+        height: calc(100vh - (var(--crm-panel-edge, 12px) * 2)) !important;
+        max-height: calc(100vh - (var(--crm-panel-edge, 12px) * 2)) !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        border-radius: 18px !important;
+        box-shadow: 0 16px 42px rgba(48, 35, 42, 0.18) !important;
+    }
+}
+
+
+/* Telefon / mały tablet: pozostaje klasyczny modal, żeby nie ściskać formularza. */
+@media (max-width: 760px) {
+    #clientModal.modal-overlay,
+    #serviceModal.modal-overlay,
+    #categoryModal.modal-overlay,
+    #crmContactDataConfirmModalV2 {
+        pointer-events: auto !important;
+    }
+}
+
+/* KONIEC ADMIN V25.2.5 */
+
+/* ==========================================================================
+   ADMIN V25.2.6 — CENTRUM RĘCZNEJ REGULACJI X / — / PANELI
+   2026-08-20
+
+   >>> TO JEST JEDYNE MIEJSCE, KTÓRE UŻYTKOWNIK MA RĘCZNIE REGULOWAĆ. <<<
+
+   ZASADY:
+   - top:  bardziej ujemna wartość = WYŻEJ, większa wartość = NIŻEJ.
+   - left: wartość ujemna = W LEWO, dodatnia = W PRAWO.
+   - right (tylko przy X pozycjonowanym absolutnie):
+            większa wartość = bardziej W LEWO od prawej krawędzi,
+            mniejsza wartość = bardziej W PRAWO.
+   - Po każdej zmianie zapisz plik i zrób twarde odświeżenie strony.
+
+   WAŻNE:
+   Starsze reguły wyżej w pliku pozostają tylko bazą WYGLĄDU.
+   Stare reguły POZYCJI X / — zostały usunięte, żeby nie było dwóch miejsc
+   sterujących tym samym znakiem. Poniżej jest jedno centrum pozycji.
+   ========================================================================== */
+
+
+/* ========================================================================
+   A. ROZMIAR PANELU „DODAJ / EDYTUJ WIZYTĘ”
+   ========================================================================
+   ZMIENIAJ TYLKO DWIE WARTOŚCI:
+   - width:  360px  -> np. 340px / 320px, żeby panel był WĘŻSZY.
+   - height: calc(100vh - 24px) -> np. 760px albo 86vh, żeby był NIŻSZY.
+   ======================================================================== */
+@media (min-width: 761px) {
+    #appointmentModal.modal-overlay .modal-content {
+        width: 320px !important;                 /* <<< TU: SZEROKOŚĆ DODAJ */
+        min-width: 320px !important;             /* trzymaj TAKĄ SAMĄ jak width */
+        max-width: 320px !important;             /* trzymaj TAKĄ SAMĄ jak width */
+        height: calc(100vh - 24px) !important;   /* <<< TU: WYSOKOŚĆ DODAJ */
+        max-height: calc(100vh - 24px) !important; /* taka sama jak height */
+    }
+}
+
+
+/* ========================================================================
+   B. ROZMIAR PANELU „ZABLOKUJ CZAS / DODAJ WOLNE”
+   ========================================================================
+   ZMIENIAJ TYLKO DWIE WARTOŚCI analogicznie jak wyżej.
+   Jeśli podczas regulacji otwierasz jednocześnie „Szczegóły”, najczyściej
+   wygląda, gdy DODAJ i ZABLOKUJ mają tę samą szerokość.
+   ======================================================================== */
+@media (min-width: 761px) {
+    #blockTimeModal.modal-overlay .modal-content {
+        width: 320px !important;                 /* <<< TU: SZEROKOŚĆ ZABLOKUJ */
+        min-width: 320px !important;             /* trzymaj TAKĄ SAMĄ jak width */
+        max-width: 320px !important;             /* trzymaj TAKĄ SAMĄ jak width */
+        height: calc(100vh - 24px) !important;   /* <<< TU: WYSOKOŚĆ ZABLOKUJ */
+        max-height: calc(100vh - 24px) !important; /* taka sama jak height */
+    }
+}
+
+
+/* ========================================================================
+   1. WYBRANY DZIEŃ / DANE Z DNIA — X
+   ========================================================================
+   Ten X MUSI mieć position:absolute. Nie zmieniaj tego na relative.
+   ======================================================================== */
+#crmCalendarInsights #crmInsightsCloseV173,
+#crmCalendarInsights .crm-v173-insights-close {
+    position: absolute !important;
+    top: -4px !important;      /* <<< TU: X WYBRANY DZIEŃ — góra/dół */
+    right: 0px !important;    /* <<< TU: X WYBRANY DZIEŃ — lewo/prawo */
+    left: auto !important;
+}
+
+
+/* ========================================================================
+   2. SZCZEGÓŁY ZWYKŁEJ WIZYTY — X
+   ======================================================================== */
+#appointmentDetailsModal[data-crm-event-type="appointment"] .crm-safe-close {
+    position: relative !important;
+    top: -16px !important;     /* <<< TU: X SZCZEGÓŁY WIZYTY — góra/dół */
+    left: 0px !important;     /* <<< TU: X SZCZEGÓŁY WIZYTY — lewo/prawo */
+}
+
+/* Fallback, gdy typ wydarzenia nie został jeszcze ustawiony. */
+#appointmentDetailsModal:not([data-crm-event-type]) .crm-safe-close {
+    position: relative !important;
+    top: -3px !important;
+    left: 5px !important;
+}
+
+
+/* ========================================================================
+   3. SZCZEGÓŁY ZEWNĘTRZNEGO GOOGLE CALENDAR — X
+   ======================================================================== */
+#appointmentDetailsModal[data-crm-event-type="external"] .crm-safe-close {
+    position: relative !important;
+    top: -16px !important;     /* <<< TU: X EXTERNAL GOOGLE — góra/dół */
+    left: 5px !important;     /* <<< TU: X EXTERNAL GOOGLE — lewo/prawo */
+}
+
+
+/* ========================================================================
+   4. SZCZEGÓŁY BLOKADY — X
+   ======================================================================== */
+#appointmentDetailsModal[data-crm-event-type="block"] .crm-safe-close {
+    position: relative !important;
+    top: -16px !important;     /* <<< TU: X SZCZEGÓŁY BLOKADY — góra/dół */
+    left: 5px !important;     /* <<< TU: X SZCZEGÓŁY BLOKADY — lewo/prawo */
+}
+
+
+/* ========================================================================
+   5. DODAJ / EDYTUJ WIZYTĘ — X
+   ======================================================================== */
+#appointmentModal .modal-header > .modal-close {
+    position: relative !important;
+    top: -35px !important;     /* <<< TU: X DODAJ WIZYTĘ — góra/dół */
+    left: 15px !important;     /* <<< TU: X DODAJ WIZYTĘ — lewo/prawo */
+}
+
+
+/* ========================================================================
+   6. DODAJ / EDYTUJ WIZYTĘ — MINUS „—”
+   ======================================================================== */
+#appointmentModal #crmAppointmentMinimizeBtnV7 {
+    position: relative !important;
+    top: -35px !important;     /* <<< TU: — DODAJ WIZYTĘ — góra/dół */
+    left: 30px !important;     /* <<< TU: — DODAJ WIZYTĘ — lewo/prawo */
+    margin-right: 5px !important; /* odstęp między — i X */
+}
+
+
+/* ========================================================================
+   7. ZABLOKUJ CZAS / DODAJ WOLNE — X
+   ======================================================================== */
+#blockTimeModal .modal-header > .modal-close {
+    position: relative !important;
+    top: -35px !important;     /* <<< TU: X ZABLOKUJ — góra/dół */
+    left: 15px !important;     /* <<< TU: X ZABLOKUJ — lewo/prawo */
+}
+
+
+/* ========================================================================
+   8. ZABLOKUJ CZAS / DODAJ WOLNE — MINUS „—”
+   ======================================================================== */
+#blockTimeModal #crmBlockTimeMinimizeBtnV172 {
+    position: relative !important;
+    top: -35px !important;     /* <<< TU: — ZABLOKUJ — góra/dół */
+    left: 30px !important;     /* <<< TU: — ZABLOKUJ — lewo/prawo */
+    margin-right: 5px !important; /* odstęp między — i X */
+}
+
+
+/* ========================================================================
+   9. WSZYSTKIE WIZYTY — X
+   ======================================================================== */
+#crmDayVisitsOverlay .crm-day-list-close {
+    position: relative !important;
+    top: -16px !important;     /* <<< TU: X WSZYSTKIE WIZYTY — góra/dół */
+    left: 5px !important;     /* <<< TU: X WSZYSTKIE WIZYTY — lewo/prawo */
+}
+
+
+/* ========================================================================
+   10. SKRZYNKA / INBOX — X
+   ======================================================================== */
+#crmUnifiedInboxModal #crmUnifiedInboxClose {
+    position: relative !important;
+    top: -35px !important;     /* <<< TU: X SKRZYNKA — góra/dół */
+    left: 15px !important;     /* <<< TU: X SKRZYNKA — lewo/prawo */
+}
+
+
+/* ========================================================================
+   11. CENNIK — DODAJ / EDYTUJ USŁUGĘ — X
+   ======================================================================== */
+#serviceModal .modal-header > .modal-close {
+    position: relative !important;
+    top: -25px !important;    /* <<< TU: X USŁUGA — góra/dół */
+    left: 20px !important;    /* <<< TU: X USŁUGA — lewo/prawo */
+}
+
+/* 11A. CENNIK — DODAJ / EDYTUJ USŁUGĘ — MINUS „—” */
+#serviceModal .crm-utility-minimize-v2525 {
+    position: relative !important;
+    top: -25px !important;    /* <<< TU: — USŁUGA — góra/dół */
+    left: 35px !important;    /* <<< TU: — USŁUGA — lewo/prawo */
+    margin-right: 5px !important;
+}
+
+
+/* ========================================================================
+   12. CENNIK — ZARZĄDZAJ KATEGORIAMI — X
+   ======================================================================== */
+#categoryModal .modal-header > .modal-close {
+    position: relative !important;
+    top: -35px !important;    /* <<< TU: X KATEGORIE — góra/dół */
+    left: 20px !important;    /* <<< TU: X KATEGORIE — lewo/prawo */
+}
+
+/* 12A. CENNIK — ZARZĄDZAJ KATEGORIAMI — MINUS „—” */
+#categoryModal .crm-utility-minimize-v2525 {
+    position: relative !important;
+    top: -35px !important;    /* <<< TU: — KATEGORIE — góra/dół */
+    left: 35px !important;    /* <<< TU: — KATEGORIE — lewo/prawo */
+    margin-right: 5px !important;
+}
+
+
+/* ========================================================================
+   13. KLIENCI — DODAJ / EDYTUJ KLIENTA — X
+   ======================================================================== */
+#clientModal .modal-header > .modal-close {
+    position: relative !important;
+    top: -25px !important;    /* <<< TU: X KLIENT — góra/dół */
+    left: 20px !important;    /* <<< TU: X KLIENT — lewo/prawo */
+}
+
+/* 13A. KLIENCI — DODAJ / EDYTUJ KLIENTA — MINUS „—” */
+#clientModal .crm-utility-minimize-v2525 {
+    position: relative !important;
+    top: -25px !important;    /* <<< TU: — KLIENT — góra/dół */
+    left: 35px !important;    /* <<< TU: — KLIENT — lewo/prawo */
+    margin-right: 5px !important;
+}
+
+
+/* ========================================================================
+   14. NOWA PROŚBA O WIZYTĘ — DUŻE POWIADOMIENIE — X
+   ========================================================================
+   Ten X również jest pozycjonowany absolutnie.
+   ======================================================================== */
+#crmNewRequestsDialog .crm-request-notice-close {
+    position: absolute !important;
+    top: 12px !important;     /* <<< TU: X NOWA PROŚBA — góra/dół */
+    right: 14px !important;   /* <<< TU: X NOWA PROŚBA — lewo/prawo */
+    left: auto !important;
+}
+
+
+/* ========================================================================
+   15. MAŁE POWIADOMIENIE ADMIN — X
+   ======================================================================== */
+#crmRequestNoticeFinal .crm-request-notice-simple-close {
+    position: absolute !important;
+    top: 10px !important;     /* <<< TU: X MAŁE POWIADOMIENIE — góra/dół */
+    right: 12px !important;   /* <<< TU: X MAŁE POWIADOMIENIE — lewo/prawo */
+    left: auto !important;
+}
+
+
+/* ========================================================================
+   16. SKRZYNKA — „SPRAWDŹ DANE KLIENTA” — X
+   ======================================================================== */
+#crmContactDataConfirmModalV2 [data-close] {
+    position: relative !important;
+    top: -35px !important;    /* <<< TU: X SPRAWDŹ DANE — góra/dół */
+    left: 15px !important;    /* <<< TU: X SPRAWDŹ DANE — lewo/prawo */
+}
+
+/* 16A. SKRZYNKA — „SPRAWDŹ DANE KLIENTA” — MINUS „—” */
+#crmContactDataConfirmModalV2 .crm-utility-minimize-v2525 {
+    position: relative !important;
+    top: -35px !important;    /* <<< TU: — SPRAWDŹ DANE — góra/dół */
+    left: 30px !important;    /* <<< TU: — SPRAWDŹ DANE — lewo/prawo */
+    margin-right: 5px !important;
+}
+
+
+/* ========================================================================
+   17. LEGACY / AWARYJNY SZCZEGÓŁ WIZYTY — X
+   ========================================================================
+   Normalnie używany jest crm-safe-close. Ta reguła zabezpiecza starszy widok.
+   ======================================================================== */
+#appointmentDetailsModal .modal-header > .modal-close {
+    position: relative !important;
+    top: -3px !important;     /* <<< TU: X LEGACY SZCZEGÓŁY — góra/dół */
+    left: 0px !important;     /* <<< TU: X LEGACY SZCZEGÓŁY — lewo/prawo */
+}
+
+/* ======================= KONIEC V25.2.6 CENTRUM REGULACJI ======================= */
