@@ -3991,54 +3991,56 @@ window.crmGetPerformanceSnapshotV191 = function() {
 /* KONIEC ADMIN V25.2.5 */
 
 /* ==========================================================================
-   ADMIN V25.2.17 — PARKING WIELOPOZYCYJNY + RĘCZNE „—”
+   ADMIN V25.2.16 — JEDEN PANEL + PARKING + LICZNIKI + CZERWONY !
    2026-08-20
 
-   LOGIKA:
-   1. Parking powstaje normalnie TYLKO po świadomym kliknięciu „—”.
-   2. Wyjątek bezpieczeństwa: formularze mogące zawierać niezapisane dane
-      są automatycznie odkładane, gdy otwieramy inny konkurencyjny panel.
-   3. Panele podglądu (Szczegóły wizyty, Wszystkie wizyty, Skrzynka)
-      nie trafiają automatycznie do parkingu.
-   4. Zmiana głównej zakładki NIE tworzy parkingu.
-   5. Można mieć wiele zwiniętych:
-      - różnych wizyt,
-      - różnych klientów,
-      - różnych usług.
-   6. Parking jest tylko w RAM — nic nie jest dopisywane do trwałego cache.
-   7. Każda karta parkingu ma X, a przy 2+ pozycjach pojawia się
-      „Zamknij wszystko”.
+   ZASADY:
+   - tylko jeden zwykły panel boczny może być rozwinięty,
+   - otwarcie następnego panelu zwija poprzedni,
+   - „Wybrany dzień / Info dnia” nigdy nie jest automatycznie zwijany,
+   - Info dnia dostaje blur TYLKO gdy inny panel faktycznie go przykrywa,
+   - zmiana głównej zakładki zwija otwarty panel i pamięta jego zakładkę,
+   - zwinięte panele aktualnej zakładki są pokazane na dole lewego menu,
+     bez nagłówka — tylko małe karty,
+   - liczba przy zakładce = liczba zwiniętych paneli tej zakładki,
+   - czerwony ! przy Kalendarzu = nowa rezerwacja / prośba do sprawdzenia,
+   - brak MutationObserver; całość działa zdarzeniowo.
+
+   Nie zmienia:
+   - backendu,
+   - szerokości paneli,
+   - ręcznych odstępów,
+   - pozycji X / —.
    ========================================================================== */
 
-(function crmInstallPanelManagerV25217() {
-    if (window.crmPanelManagerV25217?.installed) return;
+(function crmInstallPanelManagerV25216() {
+    if (window.crmPanelManagerV25216?.installed) return;
 
     const CONFIGS = [
-        { id:"appointmentModal", kind:"appointment-form", title:"Wizyta", icon:"📅", mode:"display", form:true },
-        { id:"blockTimeModal", kind:"block-form", title:"Blokowanie", icon:"🔒", mode:"display", form:true },
-        { id:"appointmentDetailsModal", kind:"visit-details", title:"Szczegóły wizyty", icon:"🗓️", mode:"details", form:false },
-        { id:"crmDayVisitsOverlay", kind:"day-visits", title:"Wszystkie wizyty", icon:"📋", mode:"hidden", form:false },
-        { id:"crmUnifiedInboxModal", kind:"inbox", title:"Skrzynka", icon:"✉️", mode:"hidden", form:false },
-        { id:"clientModal", kind:"client", title:"Klient", icon:"👤", mode:"display", form:true },
-        { id:"serviceModal", kind:"service", title:"Usługa", icon:"💅", mode:"display", form:true },
-        { id:"categoryModal", kind:"category", title:"Kategorie", icon:"🏷️", mode:"display", form:true },
-        { id:"crmContactDataConfirmModalV2", kind:"contact-confirm", title:"Dane klienta", icon:"✓", mode:"display", form:true }
+        { id:'appointmentModal', kind:'appointment', title:'Wizyta', icon:'📅', mode:'display' },
+        { id:'blockTimeModal', kind:'block', title:'Blokowanie', icon:'🔒', mode:'display' },
+        { id:'appointmentDetailsModal', kind:'visit-details', title:'Szczegóły wizyty', icon:'🗓️', mode:'details' },
+        { id:'crmDayVisitsOverlay', kind:'day-visits', title:'Wszystkie wizyty', icon:'📋', mode:'hidden' },
+        { id:'crmUnifiedInboxModal', kind:'inbox', title:'Skrzynka', icon:'✉️', mode:'hidden' },
+        { id:'clientModal', kind:'client', title:'Klient', icon:'👤', mode:'display' },
+        { id:'serviceModal', kind:'service', title:'Usługa', icon:'💅', mode:'display' },
+        { id:'categoryModal', kind:'category', title:'Kategorie', icon:'🏷️', mode:'display' },
+        { id:'crmContactDataConfirmModalV2', kind:'contact-confirm', title:'Dane klienta', icon:'✓', mode:'display' }
     ];
 
     const BY_ID = new Map(CONFIGS.map(c => [c.id, c]));
-    const parked = new Map();
-    const panelSelector = CONFIGS.map(c => `#${c.id}`).join(",");
+    const minimized = new Map();
+    const panelSelector = CONFIGS.map(c => `#${c.id}`).join(',');
 
     let busy = false;
     let switchingTab = false;
-    let restoreContext = null;
-    let serial = 0;
 
     function getConfig(value) {
         if (!value) return null;
-        if (typeof value === "object" && value.id) return value;
-        const raw = String(value);
-        return BY_ID.get(raw) || CONFIGS.find(c => c.kind === raw) || null;
+        if (typeof value === 'object' && value.id) return value;
+        return BY_ID.get(String(value)) ||
+            CONFIGS.find(c => c.kind === String(value)) ||
+            null;
     }
 
     function getElement(value) {
@@ -4046,30 +4048,21 @@ window.crmGetPerformanceSnapshotV191 = function() {
         return c ? document.getElementById(c.id) : null;
     }
 
-    function clonePlain(value) {
-        if (value === undefined) return undefined;
-        try {
-            if (typeof structuredClone === "function") return structuredClone(value);
-        } catch (_) {}
-        try { return JSON.parse(JSON.stringify(value)); }
-        catch (_) { return value; }
-    }
-
     function activeTab() {
         try {
-            if (typeof crmDetectActiveTabV6 === "function") {
-                const value = crmDetectActiveTabV6();
-                if (value) return String(value);
+            if (typeof crmDetectActiveTabV6 === 'function') {
+                const result = crmDetectActiveTabV6();
+                if (result) return String(result);
             }
         } catch (_) {}
 
-        const page = Array.from(document.querySelectorAll(".tab-page"))
-            .find(node => {
-                try { return getComputedStyle(node).display !== "none"; }
+        const visiblePage = Array.from(document.querySelectorAll('.tab-page'))
+            .find(page => {
+                try { return getComputedStyle(page).display !== 'none'; }
                 catch (_) { return false; }
             });
 
-        return page?.id?.replace(/^tab-/, "") || "";
+        return visiblePage?.id?.replace(/^tab-/, '') || '';
     }
 
     function isVisible(value) {
@@ -4079,344 +4072,69 @@ window.crmGetPerformanceSnapshotV191 = function() {
 
         try {
             const style = getComputedStyle(el);
-            return style.display !== "none" &&
-                   style.visibility !== "hidden" &&
-                   style.opacity !== "0";
+            return style.display !== 'none' &&
+                   style.visibility !== 'hidden' &&
+                   style.opacity !== '0';
         } catch (_) {
             return false;
         }
     }
 
-    function formatTime(value) {
-        const d = new Date(value || "");
-        if (Number.isNaN(d.getTime())) return "";
-        return d.toLocaleTimeString("pl-PL", {
-            hour:"2-digit",
-            minute:"2-digit"
-        });
-    }
-
-    function stableVisitKey(app) {
-        if (!app) return "";
+    function panelDetail(c) {
         try {
-            if (typeof crmVisitStableKey === "function") {
-                const key = crmVisitStableKey(app);
-                if (key) return String(key);
+            if (c.id === 'appointmentModal') {
+                return String(document.getElementById('appointmentName')?.value || '').trim() ||
+                    String(document.getElementById('modalTitleAppointment')?.textContent || '').trim() ||
+                    c.title;
+            }
+            if (c.id === 'clientModal') {
+                return String(document.getElementById('clientModalName')?.value || '').trim() || c.title;
+            }
+            if (c.id === 'serviceModal') {
+                return String(document.getElementById('serviceName')?.value || '').trim() || c.title;
+            }
+            if (c.id === 'categoryModal') {
+                return String(document.getElementById('categorySelectForEdit')?.value || '').trim() ||
+                    'Zarządzanie kategoriami';
+            }
+            if (c.id === 'crmContactDataConfirmModalV2') {
+                return String(document.getElementById('crmContactConfirmNameV2')?.value || '').trim() ||
+                    'Sprawdź dane klienta';
+            }
+            if (c.id === 'crmDayVisitsOverlay') {
+                return String(document.querySelector('#crmDayVisitsOverlay h3')?.textContent || '').trim() ||
+                    c.title;
+            }
+            if (c.id === 'appointmentDetailsModal') {
+                return String(document.querySelector(
+                    '#appointmentDetailsModal .crm-safe-client-card strong'
+                )?.textContent || '').trim() || c.title;
             }
         } catch (_) {}
-
-        return String(
-            app.eventId ||
-            app.appointmentId ||
-            [app.date, app.phone, app.name, app.service].join("|")
-        );
-    }
-
-    function captureControls(root) {
-        if (!root) return [];
-
-        return Array.from(root.querySelectorAll("input,select,textarea"))
-            .map((node, index) => {
-                const item = {
-                    id: node.id || "",
-                    name: node.name || "",
-                    index,
-                    tag: node.tagName,
-                    type: String(node.type || "").toLowerCase(),
-                    value: node.value
-                };
-
-                if (item.type === "checkbox" || item.type === "radio") {
-                    item.checked = Boolean(node.checked);
-                }
-
-                if (node.tagName === "SELECT" && node.multiple) {
-                    item.selectedValues = Array.from(node.selectedOptions)
-                        .map(option => option.value);
-                }
-
-                return item;
-            });
-    }
-
-    function restoreControls(root, items) {
-        if (!root || !Array.isArray(items)) return;
-
-        const all = Array.from(root.querySelectorAll("input,select,textarea"));
-
-        items.forEach(item => {
-            let node = null;
-
-            if (item.id) {
-                try { node = root.querySelector(`#${CSS.escape(item.id)}`); }
-                catch (_) {}
-            }
-
-            if (!node && item.name) {
-                node = all.find(candidate => candidate.name === item.name) || null;
-            }
-
-            if (!node && Number.isInteger(item.index)) {
-                node = all[item.index] || null;
-            }
-
-            if (!node) return;
-
-            if (
-                (item.type === "checkbox" || item.type === "radio") &&
-                "checked" in item
-            ) {
-                node.checked = Boolean(item.checked);
-            }
-
-            if (
-                node.tagName === "SELECT" &&
-                node.multiple &&
-                Array.isArray(item.selectedValues)
-            ) {
-                const selected = new Set(item.selectedValues.map(String));
-                Array.from(node.options).forEach(option => {
-                    option.selected = selected.has(String(option.value));
-                });
-            } else {
-                node.value = item.value ?? "";
-            }
-        });
-
-        try {
-            if (typeof crmSyncFiveMinuteControlsFromHidden === "function") {
-                crmSyncFiveMinuteControlsFromHidden();
-            }
-        } catch (_) {}
-    }
-
-    function currentAppointmentClone() {
-        try {
-            if (typeof currentEditingAppointment !== "undefined") {
-                return clonePlain(currentEditingAppointment);
-            }
-        } catch (_) {}
-        return null;
-    }
-
-    function setCurrentAppointment(value) {
-        try {
-            if (typeof currentEditingAppointment !== "undefined") {
-                currentEditingAppointment = clonePlain(value);
-            }
-        } catch (_) {}
-    }
-
-    function nextUnique(prefix) {
-        serial += 1;
-        return `${prefix}:${Date.now()}:${serial}`;
-    }
-
-    function panelLabel(c, state) {
-        if (c.id === "serviceModal") {
-            return String(state.snapshot?.serviceName || "").trim() ||
-                   String(state.snapshot?.title || "").trim() ||
-                   "Usługa";
-        }
-
-        if (c.id === "clientModal") {
-            return String(state.snapshot?.clientName || "").trim() ||
-                   "Klient";
-        }
-
-        if (c.id === "appointmentDetailsModal") {
-            const app = state.app || {};
-            const name = String(app.name || "Wizyta").trim();
-            const time = formatTime(app.date);
-            return time ? `${name} · ${time}` : name;
-        }
-
-        if (c.id === "appointmentModal") {
-            const name = String(state.snapshot?.appointmentName || "").trim();
-            const time = formatTime(state.snapshot?.appointmentDateTime);
-            if (name && time) return `${name} · ${time}`;
-            return name || "Nowa wizyta";
-        }
-
-        if (c.id === "blockTimeModal") {
-            return String(state.snapshot?.blockTitle || "").trim() ||
-                   "Blokowanie";
-        }
-
-        if (c.id === "crmDayVisitsOverlay") {
-            return String(state.snapshot?.dayTitle || "").trim() ||
-                   "Wszystkie wizyty";
-        }
-
-        if (c.id === "categoryModal") {
-            return String(state.snapshot?.categoryName || "").trim() ||
-                   "Kategorie";
-        }
-
-        if (c.id === "crmContactDataConfirmModalV2") {
-            return String(state.snapshot?.contactName || "").trim() ||
-                   "Dane klienta";
-        }
-
         return c.title;
     }
 
-    function buildState(c, reason) {
-        const el = getElement(c);
-        const controls = captureControls(el);
-
-        const state = {
-            panelId: c.id,
-            kind: c.kind,
-            icon: c.icon,
-            ownerTab: activeTab(),
-            controls,
-            reason,
-            createdAt: Date.now(),
-            app: null,
-            snapshot: {}
-        };
-
-        if (c.id === "appointmentDetailsModal") {
-            state.app = currentAppointmentClone();
-        }
-
-        if (c.id === "appointmentModal") {
-            state.app = currentAppointmentClone();
-            state.snapshot.appointmentName =
-                document.getElementById("appointmentName")?.value || "";
-            state.snapshot.appointmentDateTime =
-                document.getElementById("appointmentDateTime")?.value || "";
-            state.snapshot.title =
-                document.getElementById("modalTitleAppointment")?.textContent || "";
-        }
-
-        if (c.id === "blockTimeModal") {
-            state.app = currentAppointmentClone();
-            state.snapshot.blockTitle =
-                document.getElementById("block-title")?.value || "";
-        }
-
-        if (c.id === "clientModal") {
-            state.snapshot.clientName =
-                document.getElementById("clientModalName")?.value || "";
-            state.snapshot.editPhone =
-                document.getElementById("editClientPhone")?.value || "";
-            state.snapshot.clientPhone =
-                document.getElementById("clientModalPhone")?.value || "";
-        }
-
-        if (c.id === "serviceModal") {
-            state.snapshot.serviceName =
-                document.getElementById("serviceName")?.value || "";
-            state.snapshot.editIndex =
-                document.getElementById("editServiceIndex")?.value || "-1";
-            state.snapshot.title =
-                document.getElementById("serviceModalTitle")?.textContent || "";
-        }
-
-        if (c.id === "categoryModal") {
-            state.snapshot.categoryName =
-                document.getElementById("categorySelectForEdit")?.value ||
-                document.querySelector("#categoryModal input")?.value ||
-                "";
-        }
-
-        if (c.id === "crmContactDataConfirmModalV2") {
-            state.snapshot.contactName =
-                document.getElementById("crmContactConfirmNameV2")?.value || "";
-        }
-
-        if (c.id === "crmDayVisitsOverlay") {
-            state.snapshot.dayTitle =
-                document.getElementById("crmDayVisitsTitle")?.textContent || "";
-            try {
-                if (typeof crmOpenDayListDate !== "undefined" && crmOpenDayListDate) {
-                    state.snapshot.dayDate = new Date(crmOpenDayListDate).toISOString();
-                }
-            } catch (_) {}
-        }
-
-        state.label = panelLabel(c, state);
-        return state;
-    }
-
-    function resolveParkingKey(c, state) {
-        const el = getElement(c);
-        const existing = el?.dataset.crmParkingEntryKeyV25217;
-        if (existing) return existing;
-
-        if (c.id === "appointmentDetailsModal") {
-            const visitKey = stableVisitKey(state.app);
-            return visitKey ? `visit:${visitKey}` : nextUnique("visit");
-        }
-
-        if (c.id === "clientModal") {
-            const phone = String(
-                state.snapshot.editPhone ||
-                state.snapshot.clientPhone ||
-                ""
-            ).trim();
-
-            return phone ? `client:${phone}` : nextUnique("client:new");
-        }
-
-        if (c.id === "serviceModal") {
-            const index = String(state.snapshot.editIndex ?? "-1");
-            return index !== "-1" ? `service:${index}` : nextUnique("service:new");
-        }
-
-        if (c.id === "appointmentModal") {
-            const eventId = String(
-                state.app?.eventId ||
-                state.app?.appointmentId ||
-                ""
-            ).trim();
-
-            return eventId ? `appointment:${eventId}` : nextUnique("appointment:new");
-        }
-
-        if (c.id === "blockTimeModal") {
-            const eventId = String(state.app?.eventId || "").trim();
-            return eventId ? `block:${eventId}` : nextUnique("block:new");
-        }
-
-        if (c.id === "categoryModal") {
-            const name = String(state.snapshot.categoryName || "").trim();
-            return name ? `category:${name}` : nextUnique("category");
-        }
-
-        if (c.id === "crmContactDataConfirmModalV2") {
-            const name = String(state.snapshot.contactName || "").trim();
-            return name ? `contact:${name}` : nextUnique("contact");
-        }
-
-        if (c.id === "crmDayVisitsOverlay") {
-            const date = String(state.snapshot.dayDate || "").trim();
-            return date ? `day-list:${date}` : nextUnique("day-list");
-        }
-
-        return c.id;
-    }
-
-    function clearActiveEntryIdentity(c) {
-        const el = getElement(c);
-        if (el) delete el.dataset.crmParkingEntryKeyV25217;
-    }
-
     /* ----------------------------------------------------------
-       MENU GŁÓWNE / LICZNIKI
+       GŁÓWNE MENU / LICZNIKI
        ---------------------------------------------------------- */
 
     function findTabHost(tabName) {
         if (!tabName) return null;
 
+        const exact = document.querySelector(
+            `.nav-btn[onclick*="'${tabName}'"],` +
+            `.nav-btn[onclick*='"${tabName}"'],` +
+            `[data-tab="${tabName}"],` +
+            `[data-tab-name="${tabName}"]`
+        );
+        if (exact) return exact;
+
         const candidates = Array.from(document.querySelectorAll(
-            ".nav-btn,.sidebar button,.sidebar a,.main-sidebar button,.main-sidebar a,nav button,nav a"
+            '.nav-btn,.sidebar button,.sidebar a,.main-sidebar button,.main-sidebar a,nav button,nav a'
         ));
 
         return candidates.find(node => {
-            const raw = String(node.getAttribute("onclick") || "");
+            const raw = String(node.getAttribute('onclick') || '');
             const match = raw.match(/switchTab\s*\(\s*["']([^"']+)["']/);
             return Boolean(match && match[1] === tabName);
         }) || null;
@@ -4426,17 +4144,17 @@ window.crmGetPerformanceSnapshotV191 = function() {
         const host = findTabHost(tabName);
         if (!host) return null;
 
-        host.classList.add("crm-panel-badge-host-v25217");
+        host.classList.add('crm-panel-badge-host-v25211');
 
         let badge = Array.from(
-            host.querySelectorAll(".crm-collapsed-panels-badge-v25217")
+            host.querySelectorAll('.crm-collapsed-panels-badge-v25211')
         ).find(node => node.dataset.crmTab === tabName);
 
         if (!badge) {
-            badge = document.createElement("span");
-            badge.className = "crm-collapsed-panels-badge-v25217";
+            badge = document.createElement('span');
+            badge.className = 'crm-collapsed-panels-badge-v25211';
             badge.dataset.crmTab = tabName;
-            badge.setAttribute("aria-hidden", "true");
+            badge.setAttribute('aria-hidden', 'true');
             host.appendChild(badge);
         }
 
@@ -4446,40 +4164,38 @@ window.crmGetPerformanceSnapshotV191 = function() {
     function syncCountBadges() {
         const counts = new Map();
 
-        parked.forEach(state => {
-            const tab = String(state.ownerTab || "").trim();
+        minimized.forEach(state => {
+            const tab = String(state.ownerTab || '').trim();
             if (!tab) return;
             counts.set(tab, (counts.get(tab) || 0) + 1);
         });
 
-        document.querySelectorAll(".crm-collapsed-panels-badge-v25217")
-            .forEach(badge => {
-                const tab = String(badge.dataset.crmTab || "");
-                if (!(counts.get(tab) > 0)) badge.remove();
-            });
+        document.querySelectorAll('.crm-collapsed-panels-badge-v25211').forEach(badge => {
+            const tab = String(badge.dataset.crmTab || '');
+            if (!(counts.get(tab) > 0)) badge.remove();
+        });
 
         counts.forEach((count, tabName) => {
             const badge = ensureCountBadge(tabName);
             if (!badge) return;
-
-            badge.textContent = count > 99 ? "99+" : String(count);
+            badge.textContent = count > 99 ? '99+' : String(count);
             badge.hidden = false;
-            badge.classList.add("is-visible");
+            badge.classList.add('is-visible');
             badge.title = `Zwinięte panele: ${count}`;
         });
     }
 
     /* ----------------------------------------------------------
-       PARKING — DÓŁ LEWEGO PASKA
+       PARKING PANELI — DÓŁ LEWEGO MENU
        ---------------------------------------------------------- */
 
     function findMainSidebar() {
-        const candidates = Array.from(
-            document.querySelectorAll(".sidebar,.main-sidebar,aside.sidebar")
-        );
+        const candidates = Array.from(document.querySelectorAll(
+            '.sidebar,.main-sidebar,aside.sidebar'
+        ));
 
         return candidates.find(node => {
-            const text = String(node.textContent || "");
+            const text = String(node.textContent || '');
             return /Dashboard/i.test(text) &&
                    /Kalendarz/i.test(text) &&
                    /Klienci/i.test(text);
@@ -4490,12 +4206,11 @@ window.crmGetPerformanceSnapshotV191 = function() {
         const sidebar = findMainSidebar();
         if (!sidebar) return null;
 
-        let parking = document.getElementById("crmPanelParkingV25217");
-
+        let parking = document.getElementById('crmPanelParkingV25215');
         if (!parking) {
-            parking = document.createElement("div");
-            parking.id = "crmPanelParkingV25217";
-            parking.setAttribute("aria-live", "polite");
+            parking = document.createElement('div');
+            parking.id = 'crmPanelParkingV25215';
+            parking.setAttribute('aria-live', 'polite');
             document.body.appendChild(parking);
         }
 
@@ -4505,118 +4220,79 @@ window.crmGetPerformanceSnapshotV191 = function() {
     function positionParking() {
         const sidebar = findMainSidebar();
         const parking = ensureParking();
-
         if (!sidebar || !parking || parking.hidden) return;
 
         const rect = sidebar.getBoundingClientRect();
         const sidePadding = 10;
 
         parking.style.setProperty(
-            "left",
+            'left',
             `${Math.round(rect.left + sidePadding)}px`,
-            "important"
+            'important'
         );
-
         parking.style.setProperty(
-            "width",
+            'width',
             `${Math.max(120, Math.round(rect.width - sidePadding * 2))}px`,
-            "important"
+            'important'
         );
-
-        parking.style.setProperty("bottom", "72px", "important");
-    }
-
-    function removeParked(key) {
-        if (!key) return;
-        parked.delete(key);
-        syncUi();
-    }
-
-    function closeAllForCurrentTab() {
-        const tab = activeTab();
-
-        Array.from(parked.entries()).forEach(([key, state]) => {
-            if (String(state.ownerTab || "") === String(tab || "")) {
-                parked.delete(key);
-            }
-        });
-
-        syncUi();
+        parking.style.setProperty('bottom', '72px', 'important');
     }
 
     function renderParking() {
         const parking = ensureParking();
         if (!parking) return;
 
-        const tab = activeTab();
-        const rows = Array.from(parked.entries())
-            .filter(([, state]) =>
-                String(state.ownerTab || "") === String(tab || "")
-            );
-
+        const currentTab = activeTab();
         parking.replaceChildren();
 
-        rows.forEach(([key, state]) => {
-            const row = document.createElement("div");
-            row.className = "crm-panel-parking-row-v25217";
+        const items = [];
 
-            const open = document.createElement("button");
-            open.type = "button";
-            open.className = "crm-panel-parking-item-v25217";
-            open.title = `Przywróć: ${state.label || "panel"}`;
-
-            const icon = document.createElement("span");
-            icon.className = "crm-panel-parking-icon-v25217";
-            icon.textContent = state.icon || "▣";
-
-            const label = document.createElement("strong");
-            label.textContent = state.label || "Panel";
-
-            open.append(icon, label);
-            open.onclick = event => {
-                event.preventDefault();
-                event.stopPropagation();
-                restoreEntry(key);
-            };
-
-            const close = document.createElement("button");
-            close.type = "button";
-            close.className = "crm-panel-parking-close-v25217";
-            close.textContent = "×";
-            close.title = "Zamknij tę zwiniętą kartę";
-            close.setAttribute("aria-label", "Zamknij zwiniętą kartę");
-            close.onclick = event => {
-                event.preventDefault();
-                event.stopPropagation();
-                removeParked(key);
-            };
-
-            row.append(open, close);
-            parking.appendChild(row);
+        minimized.forEach((state, id) => {
+            if (String(state.ownerTab || '') !== String(currentTab || '')) return;
+            const c = BY_ID.get(id);
+            if (c) items.push({ id, c, state });
         });
 
-        if (rows.length >= 2) {
-            const closeAll = document.createElement("button");
-            closeAll.type = "button";
-            closeAll.className = "crm-panel-parking-close-all-v25217";
-            closeAll.textContent = "Zamknij wszystko";
-            closeAll.onclick = event => {
+        items.forEach(({ id, c }) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'crm-panel-parking-item-v25215';
+            button.dataset.crmPanelId = id;
+            button.title = `Przywróć: ${c.title}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'crm-panel-parking-icon-v25215';
+            icon.textContent = c.icon || '▣';
+
+            const label = document.createElement('strong');
+            label.textContent = c.title;
+
+            button.append(icon, label);
+
+            button.onclick = event => {
                 event.preventDefault();
                 event.stopPropagation();
-                closeAllForCurrentTab();
+                restore(id);
             };
-            parking.appendChild(closeAll);
-        }
 
-        parking.hidden = rows.length === 0;
+            parking.appendChild(button);
+        });
+
+        parking.hidden = items.length === 0;
 
         if (!parking.hidden) {
             requestAnimationFrame(positionParking);
         }
     }
 
+    function syncUi() {
+        syncCountBadges();
+        renderParking();
+        syncInfoBlur();
+    }
+
     /* ----------------------------------------------------------
-       BLUR INFO DNIA — TYLKO REALNE PRZYKRYCIE
+       BLUR INFO DNIA — TYLKO PRZY REALNYM NAKŁADANIU
        ---------------------------------------------------------- */
 
     function rectanglesOverlap(a, b) {
@@ -4634,40 +4310,36 @@ window.crmGetPerformanceSnapshotV191 = function() {
         if (!el) return null;
 
         if (
-            c.id === "appointmentModal" ||
-            c.id === "blockTimeModal" ||
-            c.id === "clientModal" ||
-            c.id === "serviceModal" ||
-            c.id === "categoryModal"
+            c.id === 'appointmentModal' ||
+            c.id === 'blockTimeModal' ||
+            c.id === 'clientModal' ||
+            c.id === 'serviceModal' ||
+            c.id === 'categoryModal'
         ) {
-            return el.querySelector(".modal-content") || el;
+            return el.querySelector('.modal-content') || el;
         }
 
-        if (c.id === "crmContactDataConfirmModalV2") {
-            return el.querySelector(":scope > section") || el;
+        if (c.id === 'crmContactDataConfirmModalV2') {
+            return el.querySelector(':scope > section') || el;
         }
 
-        if (
-            c.id === "crmDayVisitsOverlay" ||
-            c.id === "crmUnifiedInboxModal"
-        ) {
-            return el.querySelector(".crm-day-list-panel") || el;
+        if (c.id === 'crmDayVisitsOverlay' || c.id === 'crmUnifiedInboxModal') {
+            return el.querySelector('.crm-day-list-panel') || el;
         }
 
         return el;
     }
 
     function syncInfoBlur() {
-        const info = document.getElementById("crmCalendarInsights");
+        const info = document.getElementById('crmCalendarInsights');
         let overlap = false;
 
         if (info) {
             try {
-                const style = getComputedStyle(info);
-
+                const infoStyle = getComputedStyle(info);
                 if (
-                    style.display !== "none" &&
-                    style.visibility !== "hidden"
+                    infoStyle.display !== 'none' &&
+                    infoStyle.visibility !== 'hidden'
                 ) {
                     const infoRect = info.getBoundingClientRect();
 
@@ -4687,171 +4359,104 @@ window.crmGetPerformanceSnapshotV191 = function() {
         }
 
         document.body.classList.toggle(
-            "crm-panel-manager-overlap-v25217",
+            'crm-panel-manager-overlap-v25213',
             overlap
         );
-    }
-
-    function syncUi() {
-        syncCountBadges();
-        renderParking();
-        syncInfoBlur();
+        document.body.classList.remove('crm-panel-manager-active-v25211');
     }
 
     /* ----------------------------------------------------------
-       MINUSY DLA PANELI PODGLĄDU
+       ZWIJANIE / PRZYWRACANIE
        ---------------------------------------------------------- */
 
-    function addSimpleMinus(container, beforeNode, id, title) {
-        if (!container || document.getElementById(id)) return;
-
-        const button = document.createElement("button");
-        button.type = "button";
-        button.id = id;
-        button.className = "crm-panel-minimize-v25217";
-        button.textContent = "—";
-        button.title = title || "Zwiń";
-        button.setAttribute("aria-label", title || "Zwiń");
-
-        if (beforeNode?.parentNode === container) {
-            container.insertBefore(button, beforeNode);
-        } else {
-            container.appendChild(button);
-        }
-    }
-
-    function ensureManualMinimizeButtons() {
-        const details = document.getElementById("appointmentDetailsModal");
-        const detailsHeader = details?.querySelector(".crm-safe-header");
-        const detailsClose = detailsHeader?.querySelector(".crm-safe-close");
-
-        if (detailsHeader && !document.getElementById("crmVisitDetailsMinimizeV25217")) {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.id = "crmVisitDetailsMinimizeV25217";
-            button.className =
-                "crm-panel-minimize-v25217 crm-visit-details-minimize-v25217";
-            button.textContent = "—";
-            button.title = "Zwiń tę wizytę";
-            button.setAttribute("aria-label", "Zwiń tę wizytę");
-            detailsHeader.appendChild(button);
-        }
-
-        const dayOverlay = document.getElementById("crmDayVisitsOverlay");
-        const dayHeader = dayOverlay?.querySelector(".crm-day-list-panel > header");
-        const dayClose = dayHeader?.querySelector(".crm-day-list-close");
-        addSimpleMinus(
-            dayHeader,
-            dayClose,
-            "crmDayVisitsMinimizeV25217",
-            "Zwiń listę wizyt"
-        );
-
-        const inbox = document.getElementById("crmUnifiedInboxModal");
-        const inboxHeader = inbox?.querySelector(".crm-day-list-panel > header");
-        const inboxClose = inboxHeader?.querySelector("#crmUnifiedInboxClose");
-        addSimpleMinus(
-            inboxHeader,
-            inboxClose,
-            "crmInboxMinimizeV25217",
-            "Zwiń Skrzynkę"
-        );
-    }
-
-    /* ----------------------------------------------------------
-       PARKOWANIE / ZAMYKANIE BIEŻĄCYCH PANELI
-       ---------------------------------------------------------- */
-
-    function hidePanelWithoutParking(c) {
+    function remember(c) {
         const el = getElement(c);
         if (!el) return;
 
-        clearActiveEntryIdentity(c);
+        const currentTab = activeTab();
 
-        if (c.id === "appointmentDetailsModal") {
-            try {
-                if (typeof closeAppointmentModal === "function") {
-                    closeAppointmentModal();
-                    return;
-                }
-            } catch (_) {}
+        if (!el.dataset.crmPanelOwnerTabV25216 && currentTab) {
+            el.dataset.crmPanelOwnerTabV25216 = currentTab;
         }
 
-        if (c.id === "crmDayVisitsOverlay") {
-            try {
-                if (typeof crmCloseDayVisitsList === "function") {
-                    crmCloseDayVisitsList();
-                    return;
-                }
-            } catch (_) {}
+        minimized.set(c.id, {
+            ownerTab: el.dataset.crmPanelOwnerTabV25216 || currentTab || '',
+            detail: panelDetail(c)
+        });
+
+        el.dataset.crmPanelManagerMinimizedV25216 = '1';
+        el.dataset.crmMinimized = '1';
+    }
+
+    function forget(value) {
+        const c = getConfig(value);
+        if (!c) return;
+
+        minimized.delete(c.id);
+
+        const el = getElement(c);
+        if (el) {
+            el.dataset.crmPanelManagerMinimizedV25216 = '0';
+            if (el.dataset.crmMinimized === '1') {
+                el.dataset.crmMinimized = '0';
+            }
         }
 
-        if (c.id === "crmUnifiedInboxModal") {
-            try {
-                if (typeof crmCloseUnifiedInboxPanelV5 === "function") {
-                    crmCloseUnifiedInboxPanelV5();
-                    return;
-                }
-            } catch (_) {}
+        syncUi();
+    }
+
+    function hidePanel(c) {
+        const el = getElement(c);
+        if (!el) return;
+
+        remember(c);
+
+        if (c.mode === 'hidden') {
+            el.hidden = true;
+        } else {
+            el.style.display = 'none';
         }
 
-        if (c.mode === "hidden") el.hidden = true;
-        else el.style.display = "none";
-
-        if (c.mode === "details") {
-            document.body.classList.remove("crm-v3-details-open");
+        if (c.mode === 'details') {
+            document.body.classList.remove('crm-v3-details-open');
+            try {
+                if (typeof crmToggleVisitStatusMenu === 'function') {
+                    crmToggleVisitStatusMenu(false);
+                }
+            } catch (_) {}
+            try {
+                if (typeof crmToggleVisitTrashMenu === 'function') {
+                    crmToggleVisitTrashMenu(false);
+                }
+            } catch (_) {}
         }
     }
 
-    function parkPanel(value, reason = "manual") {
+    function minimize(value) {
         const c = getConfig(value);
-        const el = getElement(c);
+        if (!c || !getElement(c) || busy) return false;
 
-        if (!c || !el) return false;
-
-        const state = buildState(c, reason);
-        const key = resolveParkingKey(c, state);
-
-        state.key = key;
-        state.label = panelLabel(c, state);
-
-        parked.set(key, state);
-
-        clearActiveEntryIdentity(c);
-
-        if (c.mode === "hidden") el.hidden = true;
-        else el.style.display = "none";
-
-        if (c.mode === "details") {
-            document.body.classList.remove("crm-v3-details-open");
+        busy = true;
+        try {
+            hidePanel(c);
+        } finally {
+            busy = false;
         }
 
         syncUi();
         return true;
     }
 
-    function prepareForOpening(targetId) {
+    function minimizeOthers(exceptId = '') {
         if (busy) return;
 
         busy = true;
 
         try {
             CONFIGS.forEach(c => {
-                if (!isVisible(c)) return;
-
-                /*
-                 * Ten sam formularz może zostać zastąpiony inną usługą/klientem.
-                 * Jeśli zawiera dane formularza — odkładamy go przed resetem.
-                 */
-                if (c.form) {
-                    parkPanel(c, "auto-safe");
-                } else {
-                    hidePanelWithoutParking(c);
-                }
+                if (c.id === exceptId) return;
+                if (isVisible(c)) hidePanel(c);
             });
-
-            const target = BY_ID.get(targetId);
-            if (target) clearActiveEntryIdentity(target);
         } finally {
             busy = false;
         }
@@ -4859,39 +4464,69 @@ window.crmGetPerformanceSnapshotV191 = function() {
         syncUi();
     }
 
-    function closeVisibleForTabChange() {
-        CONFIGS.forEach(c => {
-            if (isVisible(c)) {
-                hidePanelWithoutParking(c);
-            }
-        });
+    function markOpened(value) {
+        const c = getConfig(value);
+        const el = getElement(c);
+        if (!c || !el) return;
+
+        minimizeOthers(c.id);
+
+        minimized.delete(c.id);
+        el.dataset.crmPanelManagerMinimizedV25216 = '0';
+        el.dataset.crmMinimized = '0';
+
+        const currentTab = activeTab();
+        if (currentTab) {
+            el.dataset.crmPanelOwnerTabV25216 = currentTab;
+        }
 
         syncUi();
     }
 
-    /* ----------------------------------------------------------
-       PRZYWRACANIE SNAPSHOTÓW
-       ---------------------------------------------------------- */
+    function showPanel(c) {
+        const el = getElement(c);
+        if (!el) return false;
 
-    async function restoreEntry(key) {
-        const state = parked.get(key);
-        if (!state) return false;
+        minimizeOthers(c.id);
+        minimized.delete(c.id);
 
-        const c = BY_ID.get(state.panelId);
-        if (!c) {
-            parked.delete(key);
-            syncUi();
-            return false;
+        el.dataset.crmPanelManagerMinimizedV25216 = '0';
+        el.dataset.crmMinimized = '0';
+
+        if (c.mode === 'hidden') {
+            el.hidden = false;
+            el.style.removeProperty('display');
+        } else if (c.mode === 'details') {
+            el.style.display = 'flex';
+            document.body.classList.add('crm-v3-details-open');
+        } else {
+            el.style.display = 'flex';
         }
 
-        const ownerTab = String(state.ownerTab || "");
+        syncUi();
+        return true;
+    }
+
+    async function restore(value) {
+        const c = getConfig(value);
+        if (!c) return false;
+
+        const el = getElement(c);
+        const state = minimized.get(c.id) || {};
+        const ownerTab =
+            state.ownerTab ||
+            el?.dataset.crmPanelOwnerTabV25216 ||
+            '';
+
+        minimizeOthers(c.id);
+
         const currentTab = activeTab();
 
         if (
             ownerTab &&
             currentTab &&
             ownerTab !== currentTab &&
-            typeof switchTab === "function"
+            typeof switchTab === 'function'
         ) {
             switchingTab = true;
             try {
@@ -4901,226 +4536,99 @@ window.crmGetPerformanceSnapshotV191 = function() {
             }
         }
 
-        prepareForOpening(c.id);
-
-        parked.delete(key);
-
-        restoreContext = { key, state, panelId:c.id };
-
-        try {
-            if (c.id === "appointmentDetailsModal") {
-                if (state.app && typeof openAppointmentDetailsModal === "function") {
-                    openAppointmentDetailsModal(clonePlain(state.app));
-                }
-            } else if (c.id === "clientModal") {
-                const editPhone = String(state.snapshot?.editPhone || "").trim();
-
-                if (editPhone && typeof editClient === "function") {
-                    editClient(editPhone);
-                } else if (typeof openAddClientModal === "function") {
-                    openAddClientModal();
-                }
-
-                restoreControls(getElement(c), state.controls);
-            } else if (c.id === "serviceModal") {
-                const index = Number(state.snapshot?.editIndex);
-
-                if (
-                    Number.isInteger(index) &&
-                    index >= 0 &&
-                    typeof editService === "function"
-                ) {
-                    editService(index);
-                } else if (typeof openAddServiceModal === "function") {
-                    openAddServiceModal();
-                }
-
-                restoreControls(getElement(c), state.controls);
-            } else if (c.id === "appointmentModal") {
-                setCurrentAppointment(state.app);
-
-                const el = getElement(c);
-                if (el) el.style.display = "flex";
-
-                restoreControls(el, state.controls);
-            } else if (c.id === "blockTimeModal") {
-                setCurrentAppointment(state.app);
-
-                const el = getElement(c);
-                if (el) el.style.display = "flex";
-
-                restoreControls(el, state.controls);
-
-                try {
-                    if (typeof toggleBlockTimeFields === "function") {
-                        toggleBlockTimeFields();
-                    }
-                } catch (_) {}
-            } else if (c.id === "categoryModal") {
-                if (typeof openCategoryModal === "function") {
-                    openCategoryModal();
-                } else {
-                    const el = getElement(c);
-                    if (el) el.style.display = "flex";
-                }
-
-                restoreControls(getElement(c), state.controls);
-            } else if (c.id === "crmContactDataConfirmModalV2") {
-                const el = getElement(c);
-                if (el) el.style.display = "flex";
-                restoreControls(el, state.controls);
-            } else if (c.id === "crmUnifiedInboxModal") {
-                if (typeof crmOpenUnifiedInbox === "function") {
-                    await crmOpenUnifiedInbox();
-                }
-            } else if (c.id === "crmDayVisitsOverlay") {
-                if (
-                    state.snapshot?.dayDate &&
-                    typeof crmOpenDayVisitsList === "function"
-                ) {
-                    crmOpenDayVisitsList(new Date(state.snapshot.dayDate));
-                } else {
-                    const el = getElement(c);
-                    if (el) el.hidden = false;
-                }
-            }
-
-            const el = getElement(c);
-            if (el) {
-                el.dataset.crmParkingEntryKeyV25217 = key;
-            }
-
-            ensureManualMinimizeButtons();
-        } finally {
-            restoreContext = null;
-        }
-
-        syncUi();
-        return true;
+        return showPanel(c);
     }
 
     /* ----------------------------------------------------------
-       WRAPPERY OTWIERANIA
+       OTWIERANIE PANELI — WRAPPERY + BEZPIECZNY CLICK-FALLBACK
        ---------------------------------------------------------- */
 
     function wrapOpen(functionName, panelId) {
         const original = window[functionName];
 
         if (
-            typeof original !== "function" ||
-            original.__crmPanelManagerV25217
+            typeof original !== 'function' ||
+            original.__crmPanelManagerV25216
         ) {
             return;
         }
 
         const wrapped = function() {
-            const restoring =
-                restoreContext &&
-                restoreContext.panelId === panelId;
-
-            if (!restoring) {
-                prepareForOpening(panelId);
-            }
+            minimizeOthers(panelId);
 
             const result = original.apply(this, arguments);
 
             Promise.resolve(result).finally(() => {
                 const c = BY_ID.get(panelId);
-                const el = getElement(c);
-
-                if (el && isVisible(c)) {
-                    if (restoring) {
-                        el.dataset.crmParkingEntryKeyV25217 =
-                            restoreContext?.key || "";
-                    } else {
-                        clearActiveEntryIdentity(c);
-                    }
-                }
-
-                ensureManualMinimizeButtons();
-                syncUi();
+                if (c && isVisible(c)) markOpened(c);
             });
 
             return result;
         };
 
-        wrapped.__crmPanelManagerV25217 = true;
+        wrapped.__crmPanelManagerV25216 = true;
         wrapped.__crmPanelManagerOriginal = original;
         window[functionName] = wrapped;
     }
 
     function installOpenHooks() {
         [
-            ["openCreateModal", "appointmentModal"],
-            ["openBlockTimeModal", "blockTimeModal"],
-            ["openEditBlockTimeModal", "blockTimeModal"],
-            ["openAppointmentDetailsModal", "appointmentDetailsModal"],
-            ["crmOpenDayVisitsList", "crmDayVisitsOverlay"],
-            ["crmOpenUnifiedInbox", "crmUnifiedInboxModal"],
-            ["crmOpenAppointmentForContact", "appointmentModal"],
-            ["openAddClientModal", "clientModal"],
-            ["editClient", "clientModal"],
-            ["openAddServiceModal", "serviceModal"],
-            ["editService", "serviceModal"],
-            ["openCategoryModal", "categoryModal"],
-            ["crmConfirmContactDataV2", "crmContactDataConfirmModalV2"]
+            ['openCreateModal', 'appointmentModal'],
+            ['openBlockTimeModal', 'blockTimeModal'],
+            ['openEditBlockTimeModal', 'blockTimeModal'],
+            ['openAppointmentDetailsModal', 'appointmentDetailsModal'],
+            ['crmOpenDayVisitsList', 'crmDayVisitsOverlay'],
+            ['crmOpenUnifiedInbox', 'crmUnifiedInboxModal'],
+            ['crmOpenAppointmentForContact', 'appointmentModal'],
+            ['openAddClientModal', 'clientModal'],
+            ['editClient', 'clientModal'],
+            ['openAddServiceModal', 'serviceModal'],
+            ['editService', 'serviceModal'],
+            ['openCategoryModal', 'categoryModal'],
+            ['crmConfirmContactDataV2', 'crmContactDataConfirmModalV2']
         ].forEach(([name, id]) => wrapOpen(name, id));
     }
 
     /*
-     * Starsza funkcja V5 nie może już automatycznie tworzyć parkingu.
-     * Dla paneli podglądu po prostu zamyka konkurencyjny podgląd.
-     * Formularze zabezpiecza prepareForOpening().
+     * Stary V5 zamykał inne prawe konteksty.
+     * Teraz zamiast zamykania — zwijamy i zapamiętujemy.
      */
-    if (typeof crmCloseOtherRightContextsV5 === "function") {
+    if (typeof crmCloseOtherRightContextsV5 === 'function') {
         crmCloseOtherRightContextsV5 = function(except) {
             const exceptId =
-                except === "inbox" ? "crmUnifiedInboxModal" :
-                except === "day-list" ? "crmDayVisitsOverlay" :
-                except === "visit" ? "appointmentDetailsModal" :
-                "";
+                except === 'inbox' ? 'crmUnifiedInboxModal' :
+                except === 'day-list' ? 'crmDayVisitsOverlay' :
+                except === 'visit' ? 'appointmentDetailsModal' :
+                '';
 
-            CONFIGS.forEach(c => {
-                if (c.id === exceptId || !isVisible(c)) return;
-
-                if (c.form) {
-                    parkPanel(c, "auto-safe");
-                } else {
-                    hidePanelWithoutParking(c);
-                }
-            });
+            minimizeOthers(exceptId);
 
             try {
-                if (typeof crmToggleVisitStatusMenu === "function") {
+                if (typeof crmToggleVisitStatusMenu === 'function') {
                     crmToggleVisitStatusMenu(false);
                 }
             } catch (_) {}
 
             try {
-                if (typeof crmToggleVisitTrashMenu === "function") {
+                if (typeof crmToggleVisitTrashMenu === 'function') {
                     crmToggleVisitTrashMenu(false);
                 }
             } catch (_) {}
-
-            syncUi();
         };
     }
 
-    /* ----------------------------------------------------------
-       RĘCZNE „—” — JEDYNA ZWYKŁA DROGA DO PARKINGU
-       ---------------------------------------------------------- */
-
-    document.addEventListener("click", event => {
+    /*
+     * Ręczne „—”: przejmujemy tylko te przyciski.
+     * Pozostałych kliknięć menu nie blokujemy.
+     */
+    document.addEventListener('click', event => {
         const minus = event.target?.closest?.(
-            "#crmAppointmentMinimizeBtnV7," +
-            "#crmBlockTimeMinimizeBtnV172," +
-            "#clientModal .crm-utility-minimize-v2525," +
-            "#serviceModal .crm-utility-minimize-v2525," +
-            "#categoryModal .crm-utility-minimize-v2525," +
-            "#crmContactDataConfirmModalV2 .crm-utility-minimize-v2525," +
-            "#crmVisitDetailsMinimizeV25217," +
-            "#crmDayVisitsMinimizeV25217," +
-            "#crmInboxMinimizeV25217"
+            '#crmAppointmentMinimizeBtnV7,' +
+            '#crmBlockTimeMinimizeBtnV172,' +
+            '#clientModal .crm-utility-minimize-v2525,' +
+            '#serviceModal .crm-utility-minimize-v2525,' +
+            '#categoryModal .crm-utility-minimize-v2525,' +
+            '#crmContactDataConfirmModalV2 .crm-utility-minimize-v2525'
         );
 
         if (!minus) return;
@@ -5131,26 +4639,29 @@ window.crmGetPerformanceSnapshotV191 = function() {
         event.preventDefault();
         event.stopPropagation();
 
-        if (typeof event.stopImmediatePropagation === "function") {
+        if (typeof event.stopImmediatePropagation === 'function') {
             event.stopImmediatePropagation();
         }
 
-        parkPanel(panel.id, "manual");
+        minimize(panel.id);
     }, true);
 
-    /* X = zamknij, nigdy nie twórz parkingu. */
-    document.addEventListener("click", event => {
+    /*
+     * X = prawdziwe zamknięcie: usuń panel z parkingu/licznika,
+     * ale pozwól normalnej funkcji zamykającej wykonać się dalej.
+     */
+    document.addEventListener('click', event => {
         const close = event.target?.closest?.(
-            "#appointmentModal .modal-header > .modal-close," +
-            "#blockTimeModal .modal-header > .modal-close," +
-            "#appointmentDetailsModal .crm-safe-close," +
-            "#appointmentDetailsModal .modal-header > .modal-close," +
-            "#crmDayVisitsOverlay .crm-day-list-close," +
-            "#crmUnifiedInboxModal #crmUnifiedInboxClose," +
-            "#clientModal .modal-header > .modal-close," +
-            "#serviceModal .modal-header > .modal-close," +
-            "#categoryModal .modal-header > .modal-close," +
-            "#crmContactDataConfirmModalV2 [data-close]"
+            '#appointmentModal .modal-header > .modal-close,' +
+            '#blockTimeModal .modal-header > .modal-close,' +
+            '#appointmentDetailsModal .crm-safe-close,' +
+            '#appointmentDetailsModal .modal-header > .modal-close,' +
+            '#crmDayVisitsOverlay .crm-day-list-close,' +
+            '#crmUnifiedInboxModal #crmUnifiedInboxClose,' +
+            '#clientModal .modal-header > .modal-close,' +
+            '#serviceModal .modal-header > .modal-close,' +
+            '#categoryModal .modal-header > .modal-close,' +
+            '#crmContactDataConfirmModalV2 [data-close]'
         );
 
         if (!close) return;
@@ -5158,59 +4669,62 @@ window.crmGetPerformanceSnapshotV191 = function() {
         const panel = close.closest(panelSelector);
         if (!panel?.id || !BY_ID.has(panel.id)) return;
 
-        const c = BY_ID.get(panel.id);
-        clearActiveEntryIdentity(c);
-
         window.setTimeout(() => {
+            minimized.delete(panel.id);
+            const c = BY_ID.get(panel.id);
+            const el = getElement(c);
+            if (el) {
+                el.dataset.crmPanelManagerMinimizedV25216 = '0';
+                el.dataset.crmMinimized = '0';
+            }
             syncUi();
         }, 0);
     }, true);
 
     /*
-     * Zmiana dnia / nagłówka dnia / mini-kalendarza zamyka zwykły podgląd
-     * szczegółów. Nie odkłada go do parkingu.
+     * Fallback dla paneli otwieranych przez kliknięcie funkcją,
+     * której nie było jeszcze przy instalacji wrapperów.
+     * Niczego nie zatrzymujemy — tylko sprawdzamy wynik kliknięcia.
      */
-    document.addEventListener("click", event => {
-        const dayChange = event.target?.closest?.(
-            ".crm-3day-header," +
-            ".crm-week-day-header button," +
-            ".crm-month-cell[data-date]," +
-            ".mini-date-cell[data-date]"
+    document.addEventListener('click', () => {
+        const before = new Set(
+            CONFIGS.filter(c => isVisible(c)).map(c => c.id)
         );
 
-        if (!dayChange) return;
+        window.setTimeout(() => {
+            if (busy || switchingTab) return;
 
-        const details = BY_ID.get("appointmentDetailsModal");
+            const opened = CONFIGS
+                .filter(c => isVisible(c))
+                .find(c => !before.has(c.id));
 
-        if (details && isVisible(details)) {
-            hidePanelWithoutParking(details);
-            syncUi();
-        }
+            if (opened) markOpened(opened);
+            else syncInfoBlur();
+        }, 0);
     }, true);
 
     /* ----------------------------------------------------------
-       ZMIANA GŁÓWNEJ ZAKŁADKI — BEZ AUTOMATYCZNEGO PARKINGU
+       ZMIANA GŁÓWNEJ ZAKŁADKI
        ---------------------------------------------------------- */
 
     if (
-        typeof switchTab === "function" &&
-        !switchTab.__crmPanelManagerV25217
+        typeof switchTab === 'function' &&
+        !switchTab.__crmPanelManagerV25216
     ) {
         const originalSwitchTab = switchTab;
 
         switchTab = async function(tabName) {
             const before = activeTab();
-            const result = await originalSwitchTab.apply(this, arguments);
-            const after = activeTab();
+            const changing =
+                Boolean(tabName) &&
+                Boolean(before) &&
+                String(tabName) !== String(before);
 
-            if (
-                before &&
-                after &&
-                before !== after &&
-                !switchingTab
-            ) {
-                closeVisibleForTabChange();
+            if (changing && !switchingTab) {
+                minimizeOthers('');
             }
+
+            const result = await originalSwitchTab.apply(this, arguments);
 
             window.setTimeout(() => {
                 syncUi();
@@ -5220,36 +4734,36 @@ window.crmGetPerformanceSnapshotV191 = function() {
             return result;
         };
 
-        switchTab.__crmPanelManagerV25217 = true;
+        switchTab.__crmPanelManagerV25216 = true;
     }
 
     /* ----------------------------------------------------------
        CZERWONY ! — NOWA REZERWACJA / PROŚBA
        ---------------------------------------------------------- */
 
-    const ATTENTION_KEY = "crmCalendarAttentionV25217";
+    const ATTENTION_KEY = 'crmCalendarAttentionV25216';
 
     function readCalendarAttention() {
         try {
-            return localStorage.getItem(ATTENTION_KEY) === "1";
+            return localStorage.getItem(ATTENTION_KEY) === '1';
         } catch (_) {
             return false;
         }
     }
 
     function ensureCalendarAttentionBadge() {
-        const host = findTabHost("kalendarz");
+        const host = findTabHost('kalendarz');
         if (!host) return null;
 
-        host.classList.add("crm-panel-badge-host-v25217");
+        host.classList.add('crm-panel-badge-host-v25211');
 
-        let badge = host.querySelector(".crm-calendar-attention-badge-v25217");
+        let badge = host.querySelector('.crm-calendar-attention-badge-v25215');
 
         if (!badge) {
-            badge = document.createElement("span");
-            badge.className = "crm-calendar-attention-badge-v25217";
-            badge.textContent = "!";
-            badge.setAttribute("aria-hidden", "true");
+            badge = document.createElement('span');
+            badge.className = 'crm-calendar-attention-badge-v25215';
+            badge.textContent = '!';
+            badge.setAttribute('aria-hidden', 'true');
             host.appendChild(badge);
         }
 
@@ -5262,12 +4776,12 @@ window.crmGetPerformanceSnapshotV191 = function() {
 
         const show = readCalendarAttention();
         badge.hidden = !show;
-        badge.classList.toggle("is-visible", show);
+        badge.classList.toggle('is-visible', show);
     }
 
     function setCalendarAttention(value) {
         try {
-            if (value) localStorage.setItem(ATTENTION_KEY, "1");
+            if (value) localStorage.setItem(ATTENTION_KEY, '1');
             else localStorage.removeItem(ATTENTION_KEY);
         } catch (_) {}
 
@@ -5276,13 +4790,13 @@ window.crmGetPerformanceSnapshotV191 = function() {
 
     function installAttentionHooks() {
         if (
-            typeof crmShowSimpleAdminNotice === "function" &&
-            !crmShowSimpleAdminNotice.__crmAttentionV25217
+            typeof crmShowSimpleAdminNotice === 'function' &&
+            !crmShowSimpleAdminNotice.__crmAttentionV25216
         ) {
             const originalNotice = crmShowSimpleAdminNotice;
 
             crmShowSimpleAdminNotice = function(message) {
-                const text = String(message || "");
+                const text = String(message || '');
 
                 if (
                     /nowa|nowe/i.test(text) &&
@@ -5294,12 +4808,12 @@ window.crmGetPerformanceSnapshotV191 = function() {
                 return originalNotice.apply(this, arguments);
             };
 
-            crmShowSimpleAdminNotice.__crmAttentionV25217 = true;
+            crmShowSimpleAdminNotice.__crmAttentionV25216 = true;
         }
 
         if (
-            typeof crmOpenUnifiedInbox === "function" &&
-            !crmOpenUnifiedInbox.__crmAttentionV25217
+            typeof crmOpenUnifiedInbox === 'function' &&
+            !crmOpenUnifiedInbox.__crmAttentionV25216
         ) {
             const originalInbox = crmOpenUnifiedInbox;
 
@@ -5308,38 +4822,32 @@ window.crmGetPerformanceSnapshotV191 = function() {
                 return originalInbox.apply(this, arguments);
             };
 
-            crmOpenUnifiedInbox.__crmAttentionV25217 = true;
+            crmOpenUnifiedInbox.__crmAttentionV25216 = true;
         }
     }
 
     /* ----------------------------------------------------------
-       STARE API MINIMALIZACJI CRUD
+       STARE API MINIMALIZACJI CRUD -> NOWY MANAGER
        ---------------------------------------------------------- */
 
     function hookLegacyUtilityApi() {
         if (!window.crmUtilityPanelsV2525) return;
 
         const kindToId = {
-            client:"clientModal",
-            service:"serviceModal",
-            category:"categoryModal",
-            "contact-confirm":"crmContactDataConfirmModalV2"
+            client: 'clientModal',
+            service: 'serviceModal',
+            category: 'categoryModal',
+            'contact-confirm': 'crmContactDataConfirmModalV2'
         };
 
         window.crmUtilityPanelsV2525.minimize = kind => {
             const id = kindToId[kind];
-            if (id) parkPanel(id, "manual");
+            if (id) minimize(id);
         };
 
         window.crmUtilityPanelsV2525.restore = kind => {
             const id = kindToId[kind];
-            if (!id) return;
-
-            const entry = Array.from(parked.entries())
-                .reverse()
-                .find(([, state]) => state.panelId === id);
-
-            if (entry) restoreEntry(entry[0]);
+            if (id) restore(id);
         };
     }
 
@@ -5349,7 +4857,6 @@ window.crmGetPerformanceSnapshotV191 = function() {
 
     function install() {
         ensureParking();
-        ensureManualMinimizeButtons();
         installOpenHooks();
         installAttentionHooks();
         hookLegacyUtilityApi();
@@ -5358,7 +4865,6 @@ window.crmGetPerformanceSnapshotV191 = function() {
         syncCalendarAttention();
 
         window.setTimeout(() => {
-            ensureManualMinimizeButtons();
             installOpenHooks();
             installAttentionHooks();
             hookLegacyUtilityApi();
@@ -5367,34 +4873,34 @@ window.crmGetPerformanceSnapshotV191 = function() {
         }, 350);
 
         window.setTimeout(() => {
-            ensureManualMinimizeButtons();
             installOpenHooks();
             installAttentionHooks();
             hookLegacyUtilityApi();
             syncUi();
             syncCalendarAttention();
-        }, 1300);
+        }, 1200);
     }
 
-    window.addEventListener("resize", positionParking);
+    window.addEventListener('resize', positionParking);
 
-    window.crmPanelManagerV25217 = {
-        installed:true,
-        park:parkPanel,
-        restore:restoreEntry,
-        remove:removeParked,
-        closeAllForCurrentTab,
+    window.crmPanelManagerV25216 = {
+        installed: true,
+        minimize,
+        minimizeOthers,
+        restore,
+        forget,
         setCalendarAttention,
-        getParked:() =>
-            Array.from(parked.entries())
-                .map(([key, state]) => ({ key, ...state }))
+        getMinimized: () =>
+            Array.from(minimized.entries())
+                .map(([id, state]) => ({ id, ...state }))
     };
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", install, { once:true });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', install, { once:true });
     } else {
         install();
     }
 })();
 
-/* KONIEC ADMIN V25.2.17 */
+/* KONIEC ADMIN V25.2.16 */
+
