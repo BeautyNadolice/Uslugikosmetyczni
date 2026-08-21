@@ -5,17 +5,17 @@
    ========================================================== */
 
 :root {
-  --crm-bg: #f7f5f6;
+  --crm-bg: #fbf9fa;
   --crm-surface: #ffffff;
-  --crm-surface-soft: #fcfafb;
-  --crm-surface-muted: #f2eef0;
-  --crm-text: #292427;
-  --crm-text-soft: #746b70;
-  --crm-text-faint: #9b9297;
-  --crm-primary: #aa536e;
-  --crm-primary-dark: #874056;
-  --crm-primary-soft: #f5e7ec;
-  --crm-primary-pale: #fbf3f6;
+  --crm-surface-soft: #fefcfd;
+  --crm-surface-muted: #f7f2f4;
+  --crm-text: #272329;
+  --crm-text-soft: #777078;
+  --crm-text-faint: #a39ba1;
+  --crm-primary: #c85f80;
+  --crm-primary-dark: #a94a68;
+  --crm-primary-soft: #f9e7ed;
+  --crm-primary-pale: #fff5f8;
   --crm-success: #32946a;
   --crm-success-soft: #e8f5ef;
   --crm-warning: #d9a635;
@@ -25,11 +25,11 @@
   --crm-danger-soft: #fcebed;
   --crm-info: #557fc2;
   --crm-info-soft: #edf3fc;
-  --crm-border: #e8e1e4;
-  --crm-border-strong: #d9cfd3;
-  --crm-shadow-xs: 0 2px 8px rgba(73, 45, 56, .05);
-  --crm-shadow-sm: 0 8px 24px rgba(73, 45, 56, .07);
-  --crm-shadow-md: 0 18px 48px rgba(73, 45, 56, .12);
+  --crm-border: #eee7ea;
+  --crm-border-strong: #e2d8dc;
+  --crm-shadow-xs: 0 2px 10px rgba(73,45,56,.045);
+  --crm-shadow-sm: 0 12px 32px rgba(73,45,56,.065);
+  --crm-shadow-md: 0 22px 54px rgba(73,45,56,.11);
   --crm-radius-sm: 10px;
   --crm-radius-md: 16px;
   --crm-radius-lg: 22px;
@@ -48,7 +48,8 @@ body {
   min-height: 100vh;
   color: var(--crm-text);
   background:
-    radial-gradient(circle at 90% 0%, rgba(170,83,110,.06), transparent 28rem),
+    radial-gradient(circle at 12% 2%, rgba(234,188,202,.18), transparent 25rem),
+    radial-gradient(circle at 93% 7%, rgba(214,169,184,.12), transparent 30rem),
     var(--crm-bg);
   font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
   font-size: 14px;

@@ -1580,20 +1580,47 @@ function renderMonthCalendar(grid) {
     grid.style.setProperty("--crm-month-weeks", weekRows);
 
     const cells = [];
+
     for (let cellIndex = 0; cellIndex < totalCells; cellIndex++) {
         const dayNumber = cellIndex - leading + 1;
         const date = new Date(year, month, dayNumber);
         const inCurrentMonth = date.getMonth() === month;
-        const allDayEvents = crmMonthSortEvents(getCalendarEventsForDate(date));
-        const workShifts = allDayEvents.filter(item => item.eventType === "work_shift");
-        const events = allDayEvents.filter(item => item.eventType !== "work_shift");
+
+        const allDayEvents = crmMonthSortEvents(
+            getCalendarEventsForDate(date)
+        );
+        const workShifts = allDayEvents.filter(
+            item => item.eventType === "work_shift"
+        );
+        const events = allDayEvents.filter(
+            item => item.eventType !== "work_shift"
+        );
 
         const cell = document.createElement("section");
         cell.className = "calendar-month-day crm-month-cell";
-        cell.dataset.date = getFormattedISOBlockDate(date);
-        if (!inCurrentMonth) cell.classList.add("is-outside");
-        if (date.toDateString() === new Date().toDateString()) cell.classList.add("is-today");
-        if (date.toDateString() === selectedCalendarDate.toDateString()) cell.classList.add("is-selected");
+
+        if (inCurrentMonth) {
+            cell.dataset.date = getFormattedISOBlockDate(date);
+        } else {
+            cell.classList.add("is-outside");
+            cell.dataset.crmAdjacentDate = getFormattedISOBlockDate(date);
+            cell.setAttribute("aria-disabled", "true");
+            cell.title = "Dzień sąsiedniego miesiąca — tylko informacyjnie";
+        }
+
+        if (
+            inCurrentMonth &&
+            date.toDateString() === new Date().toDateString()
+        ) {
+            cell.classList.add("is-today");
+        }
+
+        if (
+            inCurrentMonth &&
+            date.toDateString() === selectedCalendarDate.toDateString()
+        ) {
+            cell.classList.add("is-selected");
+        }
 
         const top = document.createElement("div");
         top.className = "crm-month-cell-top";
@@ -1602,35 +1629,70 @@ function renderMonthCalendar(grid) {
         dayButton.type = "button";
         dayButton.className = "crm-month-day-number";
         dayButton.textContent = date.getDate();
-        dayButton.title = "Pokaż wszystkie wizyty tego dnia";
-        dayButton.addEventListener("click", () => crmOpenDayVisitsList(date));
 
         const count = document.createElement("button");
         count.type = "button";
         count.className = "crm-month-count";
         count.hidden = true;
-        count.addEventListener("click", () => crmOpenDayVisitsList(date));
+
+        if (inCurrentMonth) {
+            dayButton.title = "Pokaż wszystkie wizyty tego dnia";
+            dayButton.addEventListener(
+                "click",
+                () => crmOpenDayVisitsList(date)
+            );
+            count.addEventListener(
+                "click",
+                () => crmOpenDayVisitsList(date)
+            );
+        } else {
+            dayButton.disabled = true;
+            dayButton.tabIndex = -1;
+            dayButton.setAttribute("aria-disabled", "true");
+
+            count.disabled = true;
+            count.tabIndex = -1;
+            count.setAttribute("aria-disabled", "true");
+        }
 
         const shift = document.createElement("div");
         shift.className = "crm-month-shift";
         shift.hidden = true;
+
         top.append(dayButton, shift, count);
 
-        /* shift utworzony w górnym wierszu obok numeru dnia */
-        const shiftPlaceholder = null;
-
-        /* */
-        
         const body = document.createElement("div");
         body.className = "crm-month-events";
 
         cell.append(top, body);
         grid.appendChild(cell);
-        cells.push({ cell, date, events, workShifts });
+
+        cells.push({
+            cell,
+            date,
+            events,
+            workShifts,
+            inCurrentMonth
+        });
     }
 
     requestAnimationFrame(() => {
-        cells.forEach(data => crmRenderMonthCellEvents(data.cell, data.date, data.events, data.workShifts));
+        cells.forEach(data => {
+            crmRenderMonthCellEvents(
+                data.cell,
+                data.date,
+                data.events,
+                data.workShifts
+            );
+
+            if (!data.inCurrentMonth) {
+                data.cell.querySelectorAll("button").forEach(button => {
+                    button.disabled = true;
+                    button.tabIndex = -1;
+                    button.setAttribute("aria-disabled", "true");
+                });
+            }
+        });
     });
 }
 
@@ -2833,3 +2895,176 @@ if(typeof crmLightSyncCalendarData==="function"){
     };
 }
 /* KONIEC CALENDAR NETWORK V11 */
+
+/* ==========================================================================
+   CALENDAR V25.2.22 — DNI SĄSIEDNICH MIESIĘCY TYLKO INFORMACYJNIE
+   ========================================================================== */
+
+function crmMiniCalendarMonthLabelV25222(date) {
+    return new Intl.DateTimeFormat("pl-PL", {
+        month: "long",
+        year: "numeric"
+    }).format(date);
+}
+
+function crmMiniCalendarIsoV25222(date) {
+    if (typeof getFormattedISOBlockDate === "function") {
+        return getFormattedISOBlockDate(date);
+    }
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+crmV6EnhanceMiniCalendar = function() {
+    const grid = document.getElementById("mini-month-days-grid");
+    if (!grid) return;
+
+    const year = miniMonthDate.getFullYear();
+    const month = miniMonthDate.getMonth();
+
+    grid.querySelectorAll(".mini-date-cell:not(.crm-mini-adjacent-month)").forEach(cell => {
+        const day = Number(cell.textContent || 0);
+        if (!day) return;
+
+        const date = new Date(year, month, day, 12, 0, 0, 0);
+
+        cell.classList.toggle("today", crmV6SameCalendarDay(date, new Date()));
+        cell.classList.toggle("selected", crmV6SameCalendarDay(date, selectedCalendarDate));
+        cell.classList.remove("has-day-off", "has-holiday");
+
+        const presentation = crmV6DayPresentation(date);
+        if (presentation.holidayName) cell.classList.add("has-holiday");
+        else if (presentation.isDayOff) cell.classList.add("has-day-off");
+    });
+};
+
+renderMiniMonthCalendar = function() {
+    const grid = document.getElementById("mini-month-days-grid");
+    const title = document.getElementById("mini-month-title");
+    if (!grid) return;
+
+    const year = miniMonthDate.getFullYear();
+    const month = miniMonthDate.getMonth();
+    const first = new Date(year, month, 1, 12, 0, 0, 0);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    if (title) {
+        const label = crmMiniCalendarMonthLabelV25222(first);
+        title.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    }
+
+    grid.innerHTML = "";
+
+    const startOffset = (first.getDay() + 6) % 7;
+    const previousLastDay = new Date(year, month, 0).getDate();
+    const used = startOffset + daysInMonth;
+    const totalCells = Math.ceil(used / 7) * 7;
+    const fragment = document.createDocumentFragment();
+
+    for (let index = 0; index < totalCells; index += 1) {
+        const cell = document.createElement("div");
+
+        if (index < startOffset) {
+            const day = previousLastDay - startOffset + index + 1;
+            const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+
+            cell.className =
+                "mini-date-cell crm-mini-adjacent-month crm-mini-prev-month";
+            cell.textContent = String(day);
+            cell.dataset.crmAdjacentDate = crmMiniCalendarIsoV25222(date);
+            cell.setAttribute("aria-disabled", "true");
+            cell.title =
+                `${crmMiniCalendarMonthLabelV25222(date)} — dzień informacyjny`;
+
+            fragment.appendChild(cell);
+            continue;
+        }
+
+        const currentDay = index - startOffset + 1;
+
+        if (currentDay > daysInMonth) {
+            const day = currentDay - daysInMonth;
+            const date = new Date(year, month + 1, day, 12, 0, 0, 0);
+
+            cell.className =
+                "mini-date-cell crm-mini-adjacent-month crm-mini-next-month";
+            cell.textContent = String(day);
+            cell.dataset.crmAdjacentDate = crmMiniCalendarIsoV25222(date);
+            cell.setAttribute("aria-disabled", "true");
+            cell.title =
+                `${crmMiniCalendarMonthLabelV25222(date)} — dzień informacyjny`;
+
+            fragment.appendChild(cell);
+            continue;
+        }
+
+        const date = new Date(year, month, currentDay, 12, 0, 0, 0);
+
+        cell.className = "mini-date-cell";
+        cell.textContent = String(currentDay);
+        cell.dataset.date = crmMiniCalendarIsoV25222(date);
+
+        if (crmV6SameCalendarDay(date, new Date())) {
+            cell.classList.add("today");
+        }
+        if (crmV6SameCalendarDay(date, selectedCalendarDate)) {
+            cell.classList.add("selected");
+        }
+
+        const presentation = crmV6DayPresentation(date);
+        if (presentation.holidayName) cell.classList.add("has-holiday");
+        else if (presentation.isDayOff) cell.classList.add("has-day-off");
+
+        cell.onclick = event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            selectedCalendarDate = new Date(date);
+            displayedCalendarMonth = new Date(date);
+            miniMonthDate = new Date(date);
+
+            renderMiniMonthCalendar();
+            renderBooksyCalendar();
+        };
+
+        fragment.appendChild(cell);
+    }
+
+    grid.appendChild(fragment);
+
+    if (window.crmFirstVisitSelectionModeV8?.active) {
+        try {
+            const proposalDates = new Set(
+                crmFirstVisitProposalRowsCalendarV8()
+                    .map(row => String(row.date))
+            );
+
+            grid.querySelectorAll(
+                ".mini-date-cell[data-date]:not(.crm-mini-adjacent-month)"
+            ).forEach(cell => {
+                if (proposalDates.has(String(cell.dataset.date || ""))) {
+                    cell.classList.add("crm-first-visit-mini-proposed");
+                }
+            });
+        } catch (_) {}
+    }
+
+    try {
+        if (typeof crmApplyPendingRequestDayMarkers === "function") {
+            crmApplyPendingRequestDayMarkers();
+        }
+    } catch (_) {}
+};
+
+/* KONIEC CALENDAR V25.2.22 */
+
+/* ==========================================================================
+   CALENDAR V25.2.23 — DUŻY WIDOK MIESIĄCA
+   Dni poprzedniego i następnego miesiąca pozostają widoczne informacyjnie,
+   ale nie mają data-date i wszystkie ich przyciski są wyłączone.
+   ========================================================================== */
+/* KONIEC CALENDAR V25.2.23 */
+

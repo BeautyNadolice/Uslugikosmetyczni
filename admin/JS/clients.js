@@ -172,6 +172,12 @@ function crmEnsureClientTableDelegationV251(tbody) {
             editClient(phone);
         } else if (action === "delete" && typeof deleteClient === "function") {
             deleteClient(phone);
+        } else if (action === "waiting-inbox") {
+            if (typeof crmOpenUnifiedInbox === "function") {
+                crmOpenUnifiedInbox().catch?.(console.error);
+            } else if (typeof switchTab === "function") {
+                switchTab("kalendarz");
+            }
         }
     });
 }
@@ -260,20 +266,7 @@ function openAddClientModal() {
     ).value =
         "";
 
-    document.getElementById(
-        "clientModalVisits"
-    ).value =
-        "0";
-
-    document.getElementById(
-        "clientModalCancelled"
-    ).value =
-        "0";
-
-    document.getElementById(
-        "clientModalLastVisit"
-    ).value =
-        "";
+    crmSetClientHistoryInfoV261(null);
 
     document.getElementById(
         "clientModal"
@@ -332,6 +325,42 @@ function formatClientDateForInput(value) {
 
 }
 
+function formatClientDateForDisplayV261(value) {
+    const inputValue = formatClientDateForInput(value);
+    if (!inputValue) return "Brak";
+
+    const parts = inputValue.split("-");
+    if (parts.length !== 3) return inputValue;
+
+    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
+function crmSetClientHistoryInfoV261(client) {
+    const section = document.getElementById("clientHistoryInfoV261");
+    if (!section) return;
+
+    if (!client) {
+        section.hidden = true;
+        return;
+    }
+
+    section.hidden = false;
+
+    const visits = Number(client.visits) || 0;
+    const cancelled = Number(client.cancelled) || 0;
+    const lastVisit = formatClientDateForDisplayV261(client.lastVisit);
+
+    const visitsInfo = document.getElementById("clientModalVisitsInfoV261");
+    const cancelledInfo = document.getElementById("clientModalCancelledInfoV261");
+    const lastVisitInfo = document.getElementById("clientModalLastVisitInfoV261");
+
+    if (visitsInfo) visitsInfo.textContent = String(visits);
+    if (cancelledInfo) cancelledInfo.textContent = String(cancelled);
+    if (lastVisitInfo) lastVisitInfo.textContent = lastVisit;
+
+}
+
+
 /* ----- CLI.10. editClient (oryginalna linia 2519) ----- */
 function editClient(phone) {
 
@@ -371,22 +400,7 @@ function editClient(phone) {
     ).value =
         client.phone || "";
 
-    document.getElementById(
-        "clientModalVisits"
-    ).value =
-        client.visits || 0;
-
-    document.getElementById(
-        "clientModalCancelled"
-    ).value =
-        client.cancelled || 0;
-
-    document.getElementById(
-        "clientModalLastVisit"
-    ).value =
-        formatClientDateForInput(
-            client.lastVisit
-        );
+    crmSetClientHistoryInfoV261(client);
 
     document.getElementById(
         "clientModal"
@@ -413,24 +427,29 @@ function saveClientModalData() {
             "clientModalPhone"
         ).value.trim();
 
-    const visits =
-        Number(
-            document.getElementById(
-                "clientModalVisits"
-            ).value
-        ) || 0;
+    /*
+     * V26.1: statystyki klienta nie są edytowalne.
+     * Przy edycji bierzemy je z aktualnego rekordu pobranego z bazy/RAM,
+     * a przy nowym kliencie zaczynają od wartości zerowych.
+     */
+    const existingClient = oldPhone
+        ? customersData.find(item =>
+            item.phone &&
+            item.phone.toString().trim() === oldPhone
+        )
+        : null;
 
-    const cancelled =
-        Number(
-            document.getElementById(
-                "clientModalCancelled"
-            ).value
-        ) || 0;
+    const visits = existingClient
+        ? (Number(existingClient.visits) || 0)
+        : 0;
 
-    const lastVisit =
-        document.getElementById(
-            "clientModalLastVisit"
-        ).value;
+    const cancelled = existingClient
+        ? (Number(existingClient.cancelled) || 0)
+        : 0;
+
+    const lastVisit = existingClient
+        ? (existingClient.lastVisit || "")
+        : "";
 
     if (!name || !phone) {
         alert(
@@ -713,3 +732,1334 @@ function crmVisitClient(item) {
     if (item?.eventType === "external") return "Google Calendar";
     return String(item?.name || "Klient");
 }
+
+/* ==========================================================================
+   CLIENTS V25.2.22 — KOMPAKTOWY WIDOK CRM
+   ========================================================================== */
+
+const CRM_CLIENT_PROFILE_CACHE_KEY_V25222 = "crmClientProfileSummaryV25222";
+const CRM_CLIENT_PROFILE_CACHE_TTL_V25222 = 10 * 60 * 1000;
+
+const crmClientUiV25222 = {
+    query: "",
+    page: 1,
+    pageSize: 10,
+    bookingFilter: "all",
+    nextFilter: "all",
+    historyFilter: "all",
+    sort: "last_desc"
+};
+
+const crmClientProfileCacheV25222 = new Map();
+const crmClientProfileLoadingV25222 = new Set();
+
+function crmClientPhoneKeyV25222(value) {
+    return String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[\s()+-]+/g, "");
+}
+
+function crmClientPluralV25222(count, one, few, many) {
+    const n = Math.max(0, Number(count) || 0);
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (n === 1) return `${n} ${one}`;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) {
+        return `${n} ${few}`;
+    }
+    return `${n} ${many}`;
+}
+
+function crmClientFormatDateV25222(value) {
+    if (!value) return "—";
+    const date = value instanceof Date ? new Date(value) : new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value || "—");
+    return new Intl.DateTimeFormat("pl-PL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    }).format(date).replace(",", "");
+}
+
+function crmClientIsCancelledV25222(item) {
+    return /ANUL|CANCEL|ODRZUC/i.test(
+        String(item?.status || item?.crmStatus || "")
+    );
+}
+
+function crmClientAppointmentsV25222(phone) {
+    const key = crmClientPhoneKeyV25222(phone);
+    if (!key) return [];
+    return (Array.isArray(appointmentsData) ? appointmentsData : [])
+        .filter(item =>
+            item?.eventType === "appointment" &&
+            crmClientPhoneKeyV25222(item?.phone) === key
+        )
+        .filter(item => {
+            const date = new Date(item?.date || "");
+            return !Number.isNaN(date.getTime());
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function crmClientVisitSummaryV25222(client) {
+    const rows = crmClientAppointmentsV25222(client?.phone)
+        .filter(item => !crmClientIsCancelledV25222(item));
+    const now = new Date();
+
+    let last = null;
+    let next = null;
+
+    rows.forEach(item => {
+        const date = new Date(item.date);
+        if (date <= now) last = item;
+        else if (!next) next = item;
+    });
+
+    return { last, next };
+}
+
+function crmClientInitialsV25222(name) {
+    const parts = String(name || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (!parts.length) return "—";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function crmClientReadSessionProfilesV25222() {
+    try {
+        const raw = sessionStorage.getItem(CRM_CLIENT_PROFILE_CACHE_KEY_V25222);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return;
+
+        const now = Date.now();
+        Object.entries(parsed).forEach(([phone, entry]) => {
+            if (!entry || now - Number(entry.savedAt || 0) > CRM_CLIENT_PROFILE_CACHE_TTL_V25222) return;
+            crmClientProfileCacheV25222.set(phone, entry.summary || {});
+        });
+    } catch (_) {}
+}
+
+function crmClientWriteSessionProfilesV25222() {
+    try {
+        const payload = {};
+        crmClientProfileCacheV25222.forEach((summary, phone) => {
+            payload[phone] = {
+                savedAt: Date.now(),
+                summary
+            };
+        });
+        sessionStorage.setItem(
+            CRM_CLIENT_PROFILE_CACHE_KEY_V25222,
+            JSON.stringify(payload)
+        );
+    } catch (_) {}
+}
+
+crmClientReadSessionProfilesV25222();
+
+function crmClientProfileSummaryV25222(profile) {
+    const risk = profile?.risk || {};
+    return {
+        bookingMode: String(profile?.bookingMode || "STANDARDOWY"),
+        cancellations: Math.max(0, Number(risk.cancellations) || 0),
+        reschedules: Math.max(0, Number(risk.reschedules) || 0),
+        movedLater: Math.max(0, Number(risk.movedLater) || 0),
+        noShows: Math.max(0, Number(risk.noShows) || 0),
+        movedThenCancelled: Math.max(0, Number(risk.movedThenCancelled) || 0)
+    };
+}
+
+function crmClientIsStandardBookingV25222(mode) {
+    return String(mode || "STANDARDOWY").toUpperCase() === "STANDARDOWY";
+}
+
+function crmClientBookingButtonHtmlV25222(phone, profile) {
+    const escapedPhone = crmClientEscapeHtmlV251(phone);
+
+    if (!profile) {
+        return `
+            <select class="crm-client-booking-select-v25224 is-loading"
+                    disabled
+                    aria-label="Ładowanie trybu rezerwacji">
+                <option>Ładowanie…</option>
+            </select>`;
+    }
+
+    const rawMode = String(profile.bookingMode || "STANDARDOWY").toUpperCase();
+
+    /*
+     * Stary tryb REZERWACJA_OGRANICZONA nie jest już oferowany w UI.
+     * Jeżeli istnieje w starych danych, pokazujemy go jako „WYMAGA ZGODY”,
+     * ale nie zapisujemy niczego dopóki użytkownik sam nie zmieni wyboru.
+     */
+    const visibleMode =
+        rawMode === "TYLKO_KONTAKT"
+            ? "TYLKO_KONTAKT"
+            : (
+                rawMode === "STANDARDOWY"
+                    ? "STANDARDOWY"
+                    : "WYMAGA_POTWIERDZENIA"
+            );
+
+    const visualClass =
+        visibleMode === "STANDARDOWY"
+            ? "is-standard"
+            : (
+                visibleMode === "TYLKO_KONTAKT"
+                    ? "is-contact"
+                    : "is-confirm"
+            );
+
+    return `
+        <select class="crm-client-booking-select-v25224 ${visualClass}"
+                data-crm-client-action="booking-mode"
+                data-crm-phone="${escapedPhone}"
+                data-crm-original-mode="${crmClientEscapeHtmlV251(rawMode)}"
+                aria-label="Rezerwacja online klienta"
+                title="Wybierz sposób rezerwacji online">
+            <option value="STANDARDOWY"
+                    ${visibleMode === "STANDARDOWY" ? "selected" : ""}>
+                ✓ SAMODZIELNA
+            </option>
+            <option value="WYMAGA_POTWIERDZENIA"
+                    ${visibleMode === "WYMAGA_POTWIERDZENIA" ? "selected" : ""}>
+                ⚠ WYMAGA ZGODY
+            </option>
+            <option value="TYLKO_KONTAKT"
+                    ${visibleMode === "TYLKO_KONTAKT" ? "selected" : ""}>
+                ☎ TYLKO KONTAKT
+            </option>
+        </select>`;
+}
+
+function crmClientHistoryHtmlV25222(client, profile) {
+    const visits = normalizeClientCounter(client?.visits);
+    const cancellations = profile
+        ? profile.cancellations
+        : normalizeClientCounter(client?.cancelled);
+    const reschedules = profile ? profile.reschedules : 0;
+    const noShows = profile ? profile.noShows : 0;
+
+    return `
+        <strong class="crm-client-visits-v25222">
+            ${crmClientPluralV25222(visits, "wizyta", "wizyty", "wizyt")}
+        </strong>
+        <span>
+            ${crmClientPluralV25222(cancellations, "anulowana", "anulowane", "anulowanych")}
+            <i>•</i>
+            ${crmClientPluralV25222(reschedules, "przeniesienie", "przeniesienia", "przeniesień")}
+            <i>•</i>
+            ${crmClientPluralV25222(noShows, "nieobecność", "nieobecności", "nieobecności")}
+        </span>`;
+}
+
+function crmClientVisitCellHtmlV25222(item, fallbackDate) {
+    if (item) {
+        return `
+            <strong>${crmClientEscapeHtmlV251(crmClientFormatDateV25222(item.date))}</strong>
+            <span>${crmClientEscapeHtmlV251(item.service || "Wizyta")}</span>`;
+    }
+
+    if (fallbackDate) {
+        return `
+            <strong>${crmClientEscapeHtmlV251(crmClientFormatDateV25222(fallbackDate))}</strong>
+            <span>—</span>`;
+    }
+
+    return `<span class="crm-client-empty-v25222">Brak</span>`;
+}
+
+
+function crmClientVisibleBookingModeV263(profile) {
+    const raw = String(profile?.bookingMode || "STANDARDOWY").toUpperCase();
+    if (raw === "STANDARDOWY") return "STANDARDOWY";
+    if (raw === "TYLKO_KONTAKT") return "TYLKO_KONTAKT";
+    return "WYMAGA_POTWIERDZENIA";
+}
+
+function crmClientActiveFilterCountV263() {
+    return [
+        crmClientUiV25222.bookingFilter,
+        crmClientUiV25222.nextFilter,
+        crmClientUiV25222.historyFilter
+    ].filter(value => value && value !== "all").length;
+}
+
+function crmClientNeedsProfileFiltersV263(bookingFilter, historyFilter) {
+    return (bookingFilter && bookingFilter !== "all") ||
+           (historyFilter && historyFilter !== "all");
+}
+
+function crmClientLastTimestampV263(client) {
+    const summary = crmClientVisitSummaryV25222(client);
+    const raw = summary.last?.date || client?.lastVisit || "";
+    const value = new Date(raw).getTime();
+    return Number.isFinite(value) ? value : -Infinity;
+}
+
+function crmClientNextTimestampV263(client) {
+    const summary = crmClientVisitSummaryV25222(client);
+    const value = new Date(summary.next?.date || "").getTime();
+    return Number.isFinite(value) ? value : Infinity;
+}
+
+function crmClientSortRowsV263(rows) {
+    const mode = crmClientUiV25222.sort || "last_desc";
+    const result = rows.slice();
+
+    result.sort((a, b) => {
+        if (mode === "name_asc") {
+            return String(a?.name || "").localeCompare(
+                String(b?.name || ""),
+                "pl",
+                { sensitivity: "base" }
+            );
+        }
+
+        if (mode === "visits_desc") {
+            return normalizeClientCounter(b?.visits) - normalizeClientCounter(a?.visits) ||
+                String(a?.name || "").localeCompare(String(b?.name || ""), "pl", { sensitivity: "base" });
+        }
+
+        if (mode === "next_asc") {
+            return crmClientNextTimestampV263(a) - crmClientNextTimestampV263(b) ||
+                String(a?.name || "").localeCompare(String(b?.name || ""), "pl", { sensitivity: "base" });
+        }
+
+        return crmClientLastTimestampV263(b) - crmClientLastTimestampV263(a) ||
+            String(a?.name || "").localeCompare(String(b?.name || ""), "pl", { sensitivity: "base" });
+    });
+
+    return result;
+}
+
+function crmClientSyncToolbarStateV263() {
+    const badge = document.getElementById("crmClientsFilterBadgeV263");
+    const count = crmClientActiveFilterCountV263();
+    if (badge) {
+        badge.textContent = String(count);
+        badge.hidden = count === 0;
+    }
+
+    const filterButton = document.getElementById("crmClientsFilterBtnV263");
+    if (filterButton) {
+        filterButton.classList.toggle("is-active", count > 0);
+    }
+
+    const sort = document.getElementById("crmClientsSortV263");
+    if (sort && sort.value !== crmClientUiV25222.sort) {
+        sort.value = crmClientUiV25222.sort;
+    }
+}
+
+function crmClientSetFilterControlsV263(toolbar) {
+    const booking = toolbar?.querySelector("#crmClientsBookingFilterV263");
+    const next = toolbar?.querySelector("#crmClientsNextFilterV263");
+    const history = toolbar?.querySelector("#crmClientsHistoryFilterV263");
+    if (booking) booking.value = crmClientUiV25222.bookingFilter;
+    if (next) next.value = crmClientUiV25222.nextFilter;
+    if (history) history.value = crmClientUiV25222.historyFilter;
+}
+
+async function crmClientApplyFiltersV263(toolbar) {
+    const booking = toolbar?.querySelector("#crmClientsBookingFilterV263")?.value || "all";
+    const next = toolbar?.querySelector("#crmClientsNextFilterV263")?.value || "all";
+    const history = toolbar?.querySelector("#crmClientsHistoryFilterV263")?.value || "all";
+    const apply = toolbar?.querySelector("#crmClientsApplyFiltersV263");
+
+    if (crmClientNeedsProfileFiltersV263(booking, history)) {
+        const clients = Array.isArray(customersData) ? customersData : [];
+        if (apply) {
+            apply.disabled = true;
+            apply.textContent = "Ładowanie…";
+        }
+        try {
+            await crmLoadVisibleClientProfilesV25222(clients);
+        } finally {
+            if (apply) {
+                apply.disabled = false;
+                apply.textContent = "Zastosuj";
+            }
+        }
+    }
+
+    crmClientUiV25222.bookingFilter = booking;
+    crmClientUiV25222.nextFilter = next;
+    crmClientUiV25222.historyFilter = history;
+    crmClientUiV25222.page = 1;
+
+    const popover = toolbar?.querySelector("#crmClientsFiltersPopoverV263");
+    if (popover) popover.hidden = true;
+    renderClients();
+}
+
+function crmClientInstallToolbarOutsideCloseV263() {
+    if (document.documentElement.dataset.crmClientsToolbarOutsideV263 === "1") return;
+    document.documentElement.dataset.crmClientsToolbarOutsideV263 = "1";
+
+    document.addEventListener("click", event => {
+        const wrap = document.getElementById("crmClientsFilterWrapV263");
+        const popover = document.getElementById("crmClientsFiltersPopoverV263");
+        if (!wrap || !popover || popover.hidden) return;
+        if (!wrap.contains(event.target)) popover.hidden = true;
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        const popover = document.getElementById("crmClientsFiltersPopoverV263");
+        if (popover) popover.hidden = true;
+    });
+}
+
+function crmEnsureClientsChromeV25222() {
+    const tab = document.getElementById("tab-klienci");
+    const table = tab?.querySelector("table.admin-table");
+    const pageHeader = tab?.querySelector(".page-header");
+    if (!tab || !table || !pageHeader) return null;
+
+    table.classList.add("crm-clients-table-v25222");
+
+    const headerRow = table.querySelector("thead tr");
+    if (headerRow && headerRow.dataset.crmClientsV25222 !== "1") {
+        headerRow.dataset.crmClientsV25222 = "1";
+        headerRow.innerHTML = `
+            <th>KLIENT</th>
+            <th>HISTORIA</th>
+            <th>REZERWACJA ONLINE</th>
+            <th>OSTATNIA WIZYTA</th>
+            <th>NASTĘPNA WIZYTA</th>
+            <th>AKCJE</th>`;
+    }
+
+    let toolbar = document.getElementById("crmClientsToolbarV25222");
+    if (toolbar && toolbar.dataset.crmToolbarV263 !== "1") {
+        toolbar.remove();
+        toolbar = null;
+    }
+
+    if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.id = "crmClientsToolbarV25222";
+        toolbar.className = "crm-clients-toolbar-v25222";
+        toolbar.dataset.crmToolbarV263 = "1";
+        toolbar.innerHTML = `
+            <div class="crm-clients-count-v263">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span id="crmClientsCountV25222">0 klientów</span>
+            </div>
+
+            <label class="crm-clients-search-v25222">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-3.5-3.5"></path>
+                </svg>
+                <input id="crmClientsSearchV25222"
+                       type="search"
+                       autocomplete="off"
+                       placeholder="Szukaj klienta po imieniu, nazwisku lub numerze telefonu...">
+            </label>
+
+            <div id="crmClientsFilterWrapV263" class="crm-clients-filter-wrap-v263">
+                <button type="button" id="crmClientsFilterBtnV263" class="crm-clients-filter-btn-v263">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 6h16M7 12h10M10 18h4"></path>
+                    </svg>
+                    <span>Filtry</span>
+                    <span id="crmClientsFilterBadgeV263" class="crm-clients-filter-badge-v263" hidden>0</span>
+                </button>
+
+                <div id="crmClientsFiltersPopoverV263" class="crm-clients-filters-popover-v263" hidden>
+                    <div class="crm-clients-filter-title-v263">Filtry klientów</div>
+
+                    <label>
+                        <span>Rezerwacja online</span>
+                        <select id="crmClientsBookingFilterV263">
+                            <option value="all">Wszystkie</option>
+                            <option value="STANDARDOWY">Samodzielna</option>
+                            <option value="WYMAGA_POTWIERDZENIA">Wymaga zgody</option>
+                            <option value="TYLKO_KONTAKT">Tylko kontakt</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Następna wizyta</span>
+                        <select id="crmClientsNextFilterV263">
+                            <option value="all">Wszystkie</option>
+                            <option value="has_next">Ma zaplanowaną</option>
+                            <option value="no_next">Brak wizyty</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Historia</span>
+                        <select id="crmClientsHistoryFilterV263">
+                            <option value="all">Wszystkie</option>
+                            <option value="no_show">Ma nieobecności</option>
+                            <option value="cancelled">Ma anulowania</option>
+                            <option value="clean">Bez problemów</option>
+                        </select>
+                    </label>
+
+                    <div class="crm-clients-filter-actions-v263">
+                        <button type="button" id="crmClientsClearFiltersV263" class="btn-secondary">Wyczyść</button>
+                        <button type="button" id="crmClientsApplyFiltersV263" class="btn-primary">Zastosuj</button>
+                    </div>
+                </div>
+            </div>
+
+            <label class="crm-clients-sort-v263">
+                <span>Sortuj:</span>
+                <select id="crmClientsSortV263" aria-label="Sortuj klientów">
+                    <option value="last_desc">Ostatnia wizyta</option>
+                    <option value="next_asc">Następna wizyta</option>
+                    <option value="name_asc">Imię A–Z</option>
+                    <option value="visits_desc">Liczba wizyt</option>
+                </select>
+            </label>`;
+
+        pageHeader.insertAdjacentElement("afterend", toolbar);
+
+        const input = toolbar.querySelector("#crmClientsSearchV25222");
+        input?.addEventListener("input", () => {
+            crmClientUiV25222.query = String(input.value || "").trim().toLowerCase();
+            crmClientUiV25222.page = 1;
+            renderClients();
+        });
+
+        const filterButton = toolbar.querySelector("#crmClientsFilterBtnV263");
+        const popover = toolbar.querySelector("#crmClientsFiltersPopoverV263");
+        filterButton?.addEventListener("click", event => {
+            event.stopPropagation();
+            crmClientSetFilterControlsV263(toolbar);
+            if (popover) popover.hidden = !popover.hidden;
+        });
+        popover?.addEventListener("click", event => event.stopPropagation());
+
+        toolbar.querySelector("#crmClientsApplyFiltersV263")?.addEventListener("click", () => {
+            crmClientApplyFiltersV263(toolbar).catch(error => {
+                console.error("Filtry klientów:", error);
+                if (typeof crmToast === "function") crmToast("Nie udało się zastosować filtrów.", "error");
+            });
+        });
+
+        toolbar.querySelector("#crmClientsClearFiltersV263")?.addEventListener("click", () => {
+            crmClientUiV25222.bookingFilter = "all";
+            crmClientUiV25222.nextFilter = "all";
+            crmClientUiV25222.historyFilter = "all";
+            crmClientUiV25222.page = 1;
+            crmClientSetFilterControlsV263(toolbar);
+            if (popover) popover.hidden = true;
+            renderClients();
+        });
+
+        toolbar.querySelector("#crmClientsSortV263")?.addEventListener("change", event => {
+            crmClientUiV25222.sort = String(event.target.value || "last_desc");
+            crmClientUiV25222.page = 1;
+            renderClients();
+        });
+
+        crmClientInstallToolbarOutsideCloseV263();
+        crmClientSyncToolbarStateV263();
+    }
+
+    let wrap = table.parentElement;
+    if (!wrap?.classList.contains("crm-clients-table-wrap-v25222")) {
+        wrap = document.createElement("div");
+        wrap.className = "crm-clients-table-wrap-v25222";
+        table.parentNode.insertBefore(wrap, table);
+        wrap.appendChild(table);
+    }
+
+    let footer = document.getElementById("crmClientsFooterV25222");
+    if (!footer) {
+        footer = document.createElement("div");
+        footer.id = "crmClientsFooterV25222";
+        footer.className = "crm-clients-footer-v25222";
+        footer.innerHTML = `
+            <label>
+                Pokaż
+                <select id="crmClientsPageSizeV25222">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </label>
+            <div>
+                <span id="crmClientsRangeV25222">0 z 0</span>
+                <button type="button" id="crmClientsPrevV25222">‹</button>
+                <strong id="crmClientsPageV25222">1</strong>
+                <button type="button" id="crmClientsNextV25222">›</button>
+            </div>`;
+        wrap.insertAdjacentElement("afterend", footer);
+
+        footer.querySelector("#crmClientsPageSizeV25222")?.addEventListener("change", event => {
+            crmClientUiV25222.pageSize = Math.max(1, Number(event.target.value) || 10);
+            crmClientUiV25222.page = 1;
+            renderClients();
+        });
+
+        footer.querySelector("#crmClientsPrevV25222")?.addEventListener("click", () => {
+            crmClientUiV25222.page = Math.max(1, crmClientUiV25222.page - 1);
+            renderClients();
+        });
+
+        footer.querySelector("#crmClientsNextV25222")?.addEventListener("click", () => {
+            crmClientUiV25222.page += 1;
+            renderClients();
+        });
+    }
+
+    return { tab, table, toolbar, wrap, footer };
+}
+
+function crmClientsTabVisibleV25222() {
+    const tab = document.getElementById("tab-klienci");
+    if (!tab) return false;
+    try {
+        return getComputedStyle(tab).display !== "none";
+    } catch (_) {
+        return false;
+    }
+}
+
+
+function crmClientWaitingNormalizeNameV264(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+}
+
+function crmClientWaitingIsOpenV264(item) {
+    const raw = String(
+        item?.status ||
+        item?.readState ||
+        item?.state ||
+        "OCZEKUJE"
+    ).toUpperCase();
+
+    return !/OBSŁUŻ|OBSLUZ|DONE|ODRZUC|REJECT|ZREAL|ZAMKNI|ANUL/.test(raw);
+}
+
+function crmClientWaitingRowsV264() {
+    const clients = Array.isArray(customersData) ? customersData : [];
+
+    const existingPhones = new Set(
+        clients
+            .map(item => crmClientPhoneKeyV25222(item?.phone))
+            .filter(Boolean)
+    );
+
+    const existingNames = new Set(
+        clients
+            .map(item => crmClientWaitingNormalizeNameV264(item?.name))
+            .filter(Boolean)
+    );
+
+    /*
+     * V26.5:
+     * Jedynym źródłem oczekujących jest aktualna wspólna Skrzynka ADMIN.
+     * PRZECZYTANE nadal = oczekuje na obsłużenie.
+     * Znika dopiero po OBSŁUŻONE / decyzji biznesowej albo gdy osoba
+     * już istnieje w bazie klientów.
+     */
+    const inboxItems =
+        typeof crmUnifiedInboxItems !== "undefined" &&
+        Array.isArray(crmUnifiedInboxItems)
+            ? crmUnifiedInboxItems
+            : [];
+
+    const candidates = new Map();
+
+    const needsHandling = raw => {
+        if (!raw) return false;
+
+        if (typeof crmInboxNeedsHandlingV25221 === "function") {
+            return crmInboxNeedsHandlingV25221(raw);
+        }
+
+        const readState = String(raw?.readState || "NOWE")
+            .trim()
+            .toUpperCase();
+
+        if (readState === "OBSŁUŻONE" || readState === "OBSLUZONE") {
+            return false;
+        }
+
+        const type = String(raw?.type || "").trim().toUpperCase();
+        const status = String(raw?.status || "").trim().toUpperCase();
+
+        if (type === "BOOKING_REQUEST") {
+            return !status || status === "OCZEKUJE";
+        }
+
+        return true;
+    };
+
+    inboxItems.forEach(raw => {
+        if (!needsHandling(raw)) return;
+
+        const type = String(raw?.type || "").trim().toUpperCase();
+
+        if (type !== "BOOKING_REQUEST" && type !== "CONTACT_FORM") {
+            return;
+        }
+
+        const name = String(
+            raw?.name ||
+            raw?.client ||
+            raw?.clientName ||
+            "Nowa osoba"
+        ).trim();
+
+        const phone = String(
+            raw?.phone ||
+            raw?.clientPhone ||
+            raw?.telephone ||
+            raw?.tel ||
+            ""
+        ).trim();
+
+        const phoneKey = crmClientPhoneKeyV25222(phone);
+        const nameKey = crmClientWaitingNormalizeNameV264(name);
+
+        if (phoneKey && existingPhones.has(phoneKey)) return;
+        if (!phoneKey && nameKey && existingNames.has(nameKey)) return;
+
+        const dedupeKey = phoneKey
+            ? `PHONE:${phoneKey}`
+            : `NAME:${nameKey || String(raw?.id || "")}`;
+
+        const row = {
+            __crmWaitingV264: true,
+            __crmWaitingPriorityV264:
+                type === "BOOKING_REQUEST" ? 2 : 1,
+            requestType: type,
+            requestId: String(raw?.id || ""),
+            name: name || "Nowa osoba",
+            phone,
+            service: String(
+                raw?.service ||
+                raw?.title ||
+                raw?.message ||
+                ""
+            ).trim(),
+            main: String(
+                raw?.main ||
+                raw?.preferred ||
+                raw?.preferredDate ||
+                raw?.date ||
+                ""
+            ).trim(),
+            alternative: String(raw?.alternative || "").trim(),
+            createdAt: String(
+                raw?.createdAt ||
+                raw?.timestamp ||
+                ""
+            ).trim(),
+            readState: String(raw?.readState || "NOWE"),
+            status: String(raw?.status || "")
+        };
+
+        const previous = candidates.get(dedupeKey);
+
+        if (
+            !previous ||
+            row.__crmWaitingPriorityV264 >
+                previous.__crmWaitingPriorityV264
+        ) {
+            candidates.set(dedupeKey, row);
+        }
+    });
+
+    return Array.from(candidates.values()).sort((a, b) => {
+        const ta = new Date(a.createdAt || "").getTime();
+        const tb = new Date(b.createdAt || "").getTime();
+
+        const safeA = Number.isFinite(ta) ? ta : 0;
+        const safeB = Number.isFinite(tb) ? tb : 0;
+
+        return safeB - safeA;
+    });
+}
+
+function crmClientWaitingMatchesQueryV264(item, query) {
+    if (!query) return true;
+    const haystack = [
+        item?.name,
+        item?.phone,
+        item?.service,
+        item?.main,
+        item?.alternative
+    ].join(" ").toLowerCase();
+
+    return haystack.includes(query);
+}
+
+function crmClientWaitingNextHtmlV264(item) {
+    if (item?.requestType === "BOOKING_REQUEST") {
+        const main = crmClientEscapeHtmlV251(item?.main || "Prośba o termin");
+        const service = crmClientEscapeHtmlV251(item?.service || "Wizyta");
+        return `
+            <strong>${main}</strong>
+            <span>${service}</span>`;
+    }
+
+    return `
+        <strong>Prośba ze Skrzynki</strong>
+        <span>${crmClientEscapeHtmlV251(item?.service || "Pierwsza wizyta")}</span>`;
+}
+
+function crmClientWaitingRowHtmlV264(item) {
+    const name = String(item?.name || "Nowa osoba");
+    const phone = String(item?.phone || "");
+    const initials = crmClientInitialsV25222(name);
+
+    return `
+        <tr class="crm-client-waiting-v264"
+            data-crm-waiting-request-id="${crmClientEscapeHtmlV251(item?.requestId || "")}">
+            <td>
+                <div class="crm-client-person-v25222">
+                    <span class="crm-client-avatar-v25222 crm-client-waiting-avatar-v264">
+                        ${crmClientEscapeHtmlV251(initials)}
+                    </span>
+                    <span>
+                        <strong>${crmClientEscapeHtmlV251(name)}</strong>
+                        <small>${crmClientEscapeHtmlV251(phone || "Brak numeru telefonu")}</small>
+                    </span>
+                </div>
+            </td>
+            <td>
+                <div class="crm-client-history-v25222 crm-client-waiting-history-v264">
+                    <strong>Oczekuje na rejestrację</strong>
+                    <span>Jeszcze nie jest klientem w bazie</span>
+                </div>
+            </td>
+            <td>
+                <span class="crm-client-waiting-badge-v264">
+                    ⏳ OCZEKUJE
+                </span>
+            </td>
+            <td>
+                <div class="crm-client-visit-v25222">
+                    <span class="crm-client-empty-v25222">—</span>
+                </div>
+            </td>
+            <td>
+                <div class="crm-client-visit-v25222">
+                    ${crmClientWaitingNextHtmlV264(item)}
+                </div>
+            </td>
+            <td>
+                <div class="crm-client-actions-v25222">
+                    <button type="button"
+                            class="btn-secondary crm-client-waiting-open-v264"
+                            data-crm-client-action="waiting-inbox">
+                        Skrzynka
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+}
+
+function crmClientFilteredRowsV25222() {
+    const query = String(crmClientUiV25222.query || "").trim().toLowerCase();
+
+    let rows = Array.isArray(customersData) ? customersData.slice() : [];
+    let waitingRows = crmClientWaitingRowsV264();
+
+    if (query) {
+        rows = rows.filter(client => {
+            const haystack = `${client?.name || ""} ${client?.phone || ""}`.toLowerCase();
+            return haystack.includes(query);
+        });
+        waitingRows = waitingRows.filter(item =>
+            crmClientWaitingMatchesQueryV264(item, query)
+        );
+    }
+
+    if (crmClientUiV25222.nextFilter !== "all") {
+        rows = rows.filter(client => {
+            const hasNext = Boolean(crmClientVisitSummaryV25222(client).next);
+            return crmClientUiV25222.nextFilter === "has_next" ? hasNext : !hasNext;
+        });
+        waitingRows = [];
+    }
+
+    if (crmClientUiV25222.bookingFilter !== "all") {
+        rows = rows.filter(client => {
+            const key = crmClientPhoneKeyV25222(client?.phone);
+            const profile = crmClientProfileCacheV25222.get(key);
+            if (!profile) return false;
+            return crmClientVisibleBookingModeV263(profile) === crmClientUiV25222.bookingFilter;
+        });
+        waitingRows = [];
+    }
+
+    if (crmClientUiV25222.historyFilter !== "all") {
+        rows = rows.filter(client => {
+            const key = crmClientPhoneKeyV25222(client?.phone);
+            const profile = crmClientProfileCacheV25222.get(key);
+            if (!profile) return false;
+
+            const cancellations = Math.max(0, Number(profile.cancellations) || 0);
+            const reschedules = Math.max(0, Number(profile.reschedules) || 0);
+            const noShows = Math.max(0, Number(profile.noShows) || 0);
+
+            if (crmClientUiV25222.historyFilter === "no_show") return noShows > 0;
+            if (crmClientUiV25222.historyFilter === "cancelled") return cancellations > 0;
+            if (crmClientUiV25222.historyFilter === "clean") {
+                return cancellations === 0 && reschedules === 0 && noShows === 0;
+            }
+            return true;
+        });
+        waitingRows = [];
+    }
+
+    return [
+        ...waitingRows,
+        ...crmClientSortRowsV263(rows)
+    ];
+}
+
+function crmClientPatchProfileRowV25222(phone) {
+    const key = crmClientPhoneKeyV25222(phone);
+    const row = Array.from(
+        document.querySelectorAll("#clientsTableBody tr[data-crm-client-phone]")
+    ).find(node => crmClientPhoneKeyV25222(node.dataset.crmClientPhone) === key);
+
+    if (!row) return;
+
+    const client = (Array.isArray(customersData) ? customersData : [])
+        .find(item => crmClientPhoneKeyV25222(item?.phone) === key);
+    const profile = crmClientProfileCacheV25222.get(key);
+    if (!client || !profile) return;
+
+    const history = row.querySelector("[data-crm-client-history]");
+    const booking = row.querySelector("[data-crm-client-booking]");
+
+    if (history) history.innerHTML = crmClientHistoryHtmlV25222(client, profile);
+    if (booking) booking.innerHTML = crmClientBookingButtonHtmlV25222(client.phone, profile);
+}
+
+async function crmLoadClientProfileV25222(client) {
+    const phone = String(client?.phone || "");
+    const key = crmClientPhoneKeyV25222(phone);
+    if (!key || crmClientProfileCacheV25222.has(key) || crmClientProfileLoadingV25222.has(key)) return;
+
+    crmClientProfileLoadingV25222.add(key);
+
+    try {
+        const profile = await loadClientCRMProfile(phone);
+        const summary = crmClientProfileSummaryV25222(profile);
+        crmClientProfileCacheV25222.set(key, summary);
+        crmClientWriteSessionProfilesV25222();
+        crmClientPatchProfileRowV25222(phone);
+    } catch (error) {
+        console.warn("Profil klienta:", phone, error?.message || error);
+        const row = Array.from(
+            document.querySelectorAll("#clientsTableBody tr[data-crm-client-phone]")
+        ).find(node => crmClientPhoneKeyV25222(node.dataset.crmClientPhone) === key);
+        const booking = row?.querySelector("[data-crm-client-booking]");
+        if (booking) {
+            booking.innerHTML = `
+                <select class="crm-client-booking-select-v25224 is-error"
+                        disabled
+                        title="Nie udało się pobrać trybu rezerwacji">
+                    <option>—</option>
+                </select>`;
+        }
+    } finally {
+        crmClientProfileLoadingV25222.delete(key);
+    }
+}
+
+async function crmLoadVisibleClientProfilesV25222(clients) {
+    if (!crmClientsTabVisibleV25222()) return;
+
+    const queue = (clients || []).filter(client => {
+        const key = crmClientPhoneKeyV25222(client?.phone);
+        return key && !crmClientProfileCacheV25222.has(key) && !crmClientProfileLoadingV25222.has(key);
+    });
+
+    if (!queue.length) return;
+
+    let index = 0;
+    const worker = async () => {
+        while (index < queue.length) {
+            const current = queue[index++];
+            await crmLoadClientProfileV25222(current);
+        }
+    };
+
+    const workers = Array.from(
+        { length: Math.min(2, queue.length) },
+        () => worker()
+    );
+
+    await Promise.all(workers);
+}
+
+async function crmSaveClientBookingModeV25224(select) {
+    if (!select || select.disabled) return;
+
+    const phone = String(select.dataset.crmPhone || "");
+    const key = crmClientPhoneKeyV25222(phone);
+    const current = crmClientProfileCacheV25222.get(key);
+    if (!current) return;
+
+    const allowed = new Set([
+        "STANDARDOWY",
+        "WYMAGA_POTWIERDZENIA",
+        "TYLKO_KONTAKT"
+    ]);
+
+    const nextMode = String(select.value || "").toUpperCase();
+    if (!allowed.has(nextMode)) return;
+
+    const oldMode = String(current.bookingMode || "STANDARDOWY").toUpperCase();
+    const oldVisibleMode =
+        oldMode === "TYLKO_KONTAKT"
+            ? "TYLKO_KONTAKT"
+            : (
+                oldMode === "STANDARDOWY"
+                    ? "STANDARDOWY"
+                    : "WYMAGA_POTWIERDZENIA"
+            );
+
+    if (nextMode === oldVisibleMode && oldMode !== "REZERWACJA_OGRANICZONA") {
+        return;
+    }
+
+    select.disabled = true;
+    select.classList.add("is-saving");
+
+    try {
+        const response = await crmExtendedPost("setClientBookingMode", {
+            phone,
+            mode: nextMode,
+            reason: "Zmiana z listy Klienci",
+            changedBy: "MISTRZYNI"
+        });
+
+        if (!response || response.success !== true) {
+            throw new Error(
+                response?.error || "Nie udało się zmienić trybu rezerwacji"
+            );
+        }
+
+        current.bookingMode = nextMode;
+        crmClientProfileCacheV25222.set(key, current);
+        crmClientWriteSessionProfilesV25222();
+        crmClientPatchProfileRowV25222(phone);
+
+        if (typeof crmToast === "function") {
+            const message =
+                nextMode === "STANDARDOWY"
+                    ? "Klient może rezerwować samodzielnie."
+                    : (
+                        nextMode === "TYLKO_KONTAKT"
+                            ? "Klient może umówić wizytę tylko przez kontakt z salonem."
+                            : "Rezerwacje klienta wymagają zgody."
+                    );
+
+            crmToast(message);
+        }
+    } catch (error) {
+        select.value = oldVisibleMode;
+        select.disabled = false;
+        select.classList.remove("is-saving");
+
+        if (typeof crmToast === "function") {
+            crmToast(
+                error?.message || "Nie udało się zmienić trybu rezerwacji.",
+                "error"
+            );
+        } else {
+            alert(
+                error?.message || "Nie udało się zmienić trybu rezerwacji."
+            );
+        }
+    }
+}
+
+function crmEnsureClientTableActionsV25222(tbody) {
+    if (!tbody || tbody.dataset.crmClientActionsV25224 === "1") return;
+
+    tbody.dataset.crmClientActionsV25224 = "1";
+
+    tbody.addEventListener("change", event => {
+        const select = event.target.closest(
+            'select[data-crm-client-action="booking-mode"]'
+        );
+
+        if (!select || !tbody.contains(select)) return;
+
+        event.stopPropagation();
+
+        select.classList.remove(
+            "is-standard",
+            "is-confirm",
+            "is-contact"
+        );
+
+        if (select.value === "STANDARDOWY") {
+            select.classList.add("is-standard");
+        } else if (select.value === "TYLKO_KONTAKT") {
+            select.classList.add("is-contact");
+        } else {
+            select.classList.add("is-confirm");
+        }
+
+        crmSaveClientBookingModeV25224(select);
+    });
+}
+
+renderClients = function() {
+    const chrome = crmEnsureClientsChromeV25222();
+    const tbody = document.getElementById("clientsTableBody");
+    if (!tbody) return;
+
+    crmEnsureClientTableDelegationV251(tbody);
+    crmEnsureClientTableActionsV25222(tbody);
+
+    const filtered = crmClientFilteredRowsV25222();
+    const total = filtered.length;
+    const pageSize = Math.max(1, crmClientUiV25222.pageSize);
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    crmClientUiV25222.page = Math.min(Math.max(1, crmClientUiV25222.page), pages);
+
+    const fromIndex = (crmClientUiV25222.page - 1) * pageSize;
+    const visible = filtered.slice(fromIndex, fromIndex + pageSize);
+
+    if (!visible.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="crm-client-no-results-v25222">
+                    ${total === 0 && !crmClientUiV25222.query ? "Brak klientów" : "Brak wyników"}
+                </td>
+            </tr>`;
+    } else {
+        tbody.innerHTML = visible.map(client => {
+            if (client?.__crmWaitingV264) {
+                return crmClientWaitingRowHtmlV264(client);
+            }
+
+            const phone = String(client?.phone || "");
+            const key = crmClientPhoneKeyV25222(phone);
+            const profile = crmClientProfileCacheV25222.get(key);
+            const visits = crmClientVisitSummaryV25222(client);
+            const escapedPhone = crmClientEscapeHtmlV251(phone);
+            const name = String(client?.name || "");
+            const initials = crmClientInitialsV25222(name);
+
+            return `
+                <tr data-crm-client-phone="${escapedPhone}">
+                    <td>
+                        <div class="crm-client-person-v25222">
+                            <span class="crm-client-avatar-v25222">${crmClientEscapeHtmlV251(initials)}</span>
+                            <span>
+                                <strong>${crmClientEscapeHtmlV251(name || "Klient")}</strong>
+                                <small>${escapedPhone}</small>
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="crm-client-history-v25222" data-crm-client-history>
+                            ${crmClientHistoryHtmlV25222(client, profile)}
+                        </div>
+                    </td>
+                    <td data-crm-client-booking>
+                        ${crmClientBookingButtonHtmlV25222(phone, profile)}
+                    </td>
+                    <td>
+                        <div class="crm-client-visit-v25222">
+                            ${crmClientVisitCellHtmlV25222(visits.last, client?.lastVisit)}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="crm-client-visit-v25222">
+                            ${crmClientVisitCellHtmlV25222(visits.next, "")}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="crm-client-actions-v25222">
+                            <button type="button"
+                                    class="btn-secondary"
+                                    data-crm-client-action="edit"
+                                    data-crm-phone="${escapedPhone}">
+                                Edytuj
+                            </button>
+                            <button type="button"
+                                    class="btn-danger"
+                                    data-crm-client-action="delete"
+                                    data-crm-phone="${escapedPhone}">
+                                Usuń
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join("");
+    }
+
+    const count = document.getElementById("crmClientsCountV25222");
+    if (count) {
+        const allClientsCount = Array.isArray(customersData) ? customersData.length : 0;
+        const allWaitingCount = crmClientWaitingRowsV264().length;
+        const visibleWaitingCount = filtered.filter(item => item?.__crmWaitingV264).length;
+        const visibleClientsCount = total - visibleWaitingCount;
+
+        const narrowed =
+            visibleClientsCount !== allClientsCount ||
+            Boolean(crmClientUiV25222.query) ||
+            crmClientActiveFilterCountV263() > 0;
+
+        if (narrowed) {
+            count.textContent =
+                `${visibleClientsCount} z ${crmClientPluralV25222(allClientsCount, "klienta", "klientów", "klientów")}` +
+                (visibleWaitingCount > 0 ? ` • ${visibleWaitingCount} oczekuje` : "");
+        } else {
+            count.textContent =
+                crmClientPluralV25222(allClientsCount, "klient", "klientów", "klientów") +
+                (allWaitingCount > 0 ? ` • ${allWaitingCount} oczekuje` : "");
+        }
+    }
+
+    crmClientSyncToolbarStateV263();
+
+    const range = document.getElementById("crmClientsRangeV25222");
+    if (range) {
+        const first = total ? fromIndex + 1 : 0;
+        const last = total ? Math.min(total, fromIndex + visible.length) : 0;
+        range.textContent = `${first}–${last} z ${total}`;
+    }
+
+    const page = document.getElementById("crmClientsPageV25222");
+    if (page) page.textContent = String(crmClientUiV25222.page);
+
+    const prev = document.getElementById("crmClientsPrevV25222");
+    const next = document.getElementById("crmClientsNextV25222");
+    if (prev) prev.disabled = crmClientUiV25222.page <= 1;
+    if (next) next.disabled = crmClientUiV25222.page >= pages;
+
+    if (crmClientsTabVisibleV25222()) {
+        const actualClients = visible.filter(item => !item?.__crmWaitingV264);
+        crmLoadVisibleClientProfilesV25222(actualClients).catch(console.error);
+    }
+};;
+
+document.addEventListener("click", event => {
+    const nav = event.target?.closest?.(
+        '.nav-btn[onclick*="klienci"], [onclick*="switchTab"][onclick*="klienci"]'
+    );
+    if (!nav) return;
+    window.setTimeout(() => renderClients(), 0);
+}, true);
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmEnsureClientsChromeV25222();
+        if (crmClientsTabVisibleV25222()) renderClients();
+    }, 500);
+});
+
+/* KONIEC CLIENTS V25.2.22 */
+
+/* ==========================================================================
+   CLIENTS V25.2.24 — REZERWACJA ONLINE: DROPDOWN 3 OPCJE
+   ✓ SAMODZIELNA / ⚠ WYMAGA ZGODY / ☎ TYLKO KONTAKT
+   ========================================================================== */
+/* KONIEC CLIENTS V25.2.24 */
+/* ==========================================================================
+   CLIENTS V26.2 — DODAJ KLIENTA: TYLKO IMIĘ I TELEFON
+   Historia/statystyki nie są pokazywane przy tworzeniu klienta.
+   Przy edycji istniejącego klienta sekcja informacji pozostaje tylko do odczytu.
+   ========================================================================== */
+
+
+
+/* ==========================================================================
+   CLIENTS V26.3 — FILTRY I SORTOWANIE
+   Toolbar: licznik | wyszukiwarka | Filtry | Sortuj.
+   Bez dodatkowego przełącznika widoku.
+   ========================================================================== */
+
+/* ==========================================================================
+   CLIENTS V26.4 — OCZEKUJĄCY NA REJESTRACJĘ
+   Korzysta wyłącznie z danych Skrzynki już pobieranych przez ADMIN.
+   Brak dodatkowego pollingu i brak nowego requestu tylko dla zakładki Klienci.
+   ========================================================================== */
+function crmInstallWaitingClientRefreshV264() {
+    if (window.crmWaitingClientRefreshInstalledV264) return;
+    window.crmWaitingClientRefreshInstalledV264 = true;
+
+    const wrapAsync = name => {
+        const original = window[name];
+
+        if (
+            typeof original !== "function" ||
+            original.__crmWaitingV265
+        ) {
+            return;
+        }
+
+        const wrapped = async function() {
+            const result = await original.apply(this, arguments);
+
+            if (crmClientsTabVisibleV25222()) {
+                renderClients();
+            }
+
+            return result;
+        };
+
+        wrapped.__crmWaitingV265 = true;
+        window[name] = wrapped;
+    };
+
+    /*
+     * Najważniejsze: wspólna Skrzynka jest teraz źródłem oczekujących.
+     * Po każdym jej odświeżeniu lista Klienci aktualizuje się bez osobnego
+     * requestu do backendu.
+     */
+    wrapAsync("crmLoadUnifiedInbox");
+
+    window.addEventListener("focus", () => {
+        window.setTimeout(() => {
+            if (crmClientsTabVisibleV25222()) {
+                renderClients();
+            }
+        }, 250);
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) return;
+
+        window.setTimeout(() => {
+            if (crmClientsTabVisibleV25222()) {
+                renderClients();
+            }
+        }, 250);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    crmInstallWaitingClientRefreshV264();
+});
+/* KONIEC CLIENTS V26.4 */
+
+/* ==========================================================================
+   CLIENTS V26.5 — UNIFIED INBOX JAKO ŹRÓDŁO OCZEKUJĄCYCH
+   ========================================================================== */
+/* KONIEC CLIENTS V26.5 */
+
