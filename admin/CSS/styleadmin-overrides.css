@@ -3383,3 +3383,34 @@ body.crm-panel-manager-overlap-v25217 #tab-kalendarz #crmCalendarInsights {
         padding-left:   12px !important;
     }
 }
+
+#crmUnifiedInboxButton.crm-inbox-has-pending-v25221 {
+    border-color: #d7a3b4 !important;
+    background: #fff7fa !important;
+    box-shadow: 0 0 0 2px rgba(179,38,30,.06) !important;
+}
+
+#crmUnifiedInboxBadge {
+    flex: 0 0 auto !important;
+    font-weight: 850 !important;
+}
+
+#crmPanelParkingV25217 .crm-panel-parking-inbox-pending-v25221 {
+    display: inline-grid !important;
+    place-items: center !important;
+    flex: 0 0 auto !important;
+    min-width: 19px !important;
+    height: 19px !important;
+    margin-left: auto !important;
+    padding: 0 5px !important;
+    border: 2px solid #fff !important;
+    border-radius: 999px !important;
+    background: #b3261e !important;
+    color: #fff !important;
+    box-shadow: 0 3px 8px rgba(179,38,30,.22) !important;
+    font-size: 9px !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    pointer-events: none !important;
+}
+

@@ -4559,6 +4559,7 @@ window.crmGetPerformanceSnapshotV191 = function() {
         rows.forEach(([key, state]) => {
             const row = document.createElement("div");
             row.className = "crm-panel-parking-row-v25217";
+            row.dataset.crmPanelId = state.panelId || "";
 
             const open = document.createElement("button");
             open.type = "button";
@@ -4573,6 +4574,22 @@ window.crmGetPerformanceSnapshotV191 = function() {
             label.textContent = state.label || "Panel";
 
             open.append(icon, label);
+
+            if (state.panelId === "crmUnifiedInboxModal") {
+                const pending = Math.max(
+                    0,
+                    Number(window.crmInboxPendingActionCountV25221) || 0
+                );
+
+                if (pending > 0) {
+                    const attention = document.createElement("span");
+                    attention.className = "crm-panel-parking-inbox-pending-v25221";
+                    attention.textContent = pending > 99 ? "99+" : String(pending);
+                    attention.title = `Do obsłużenia w Skrzynce: ${pending}`;
+                    open.appendChild(attention);
+                }
+            }
+
             open.onclick = event => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -5297,19 +5314,6 @@ window.crmGetPerformanceSnapshotV191 = function() {
             crmShowSimpleAdminNotice.__crmAttentionV25217 = true;
         }
 
-        if (
-            typeof crmOpenUnifiedInbox === "function" &&
-            !crmOpenUnifiedInbox.__crmAttentionV25217
-        ) {
-            const originalInbox = crmOpenUnifiedInbox;
-
-            crmOpenUnifiedInbox = function() {
-                setCalendarAttention(false);
-                return originalInbox.apply(this, arguments);
-            };
-
-            crmOpenUnifiedInbox.__crmAttentionV25217 = true;
-        }
     }
 
     /* ----------------------------------------------------------
@@ -5385,6 +5389,7 @@ window.crmGetPerformanceSnapshotV191 = function() {
         remove:removeParked,
         closeAllForCurrentTab,
         setCalendarAttention,
+        refresh:syncUi,
         getParked:() =>
             Array.from(parked.entries())
                 .map(([key, state]) => ({ key, ...state }))
@@ -5398,3 +5403,310 @@ window.crmGetPerformanceSnapshotV191 = function() {
 })();
 
 /* KONIEC ADMIN V25.2.17 */
+
+/* ==========================================================================
+   ADMIN V25.2.21 — SKRZYNKA: DO OBSŁUŻENIA + MINUS PO RENDERZE
+   ========================================================================== */
+
+const CRM_INBOX_PENDING_COUNT_KEY_V25221 = "crmInboxPendingActionCountV25221";
+const CRM_INBOX_PENDING_COUNT_KEY_LEGACY_V25219 = "crmInboxPendingActionCountV25219";
+const CRM_INBOX_PENDING_RECONCILE_MS_V25221 = 10 * 60 * 1000;
+
+window.crmInboxPendingActionCountV25221 = (() => {
+    try {
+        const current = localStorage.getItem(CRM_INBOX_PENDING_COUNT_KEY_V25221);
+        if (current !== null) return Math.max(0, Number(current) || 0);
+
+        const legacy = localStorage.getItem(CRM_INBOX_PENDING_COUNT_KEY_LEGACY_V25219);
+        if (legacy !== null) return Math.max(0, Number(legacy) || 0);
+    } catch (_) {}
+
+    return 0;
+})();
+
+let crmInboxPendingKnownV25221 = (() => {
+    try {
+        return (
+            localStorage.getItem(CRM_INBOX_PENDING_COUNT_KEY_V25221) !== null ||
+            localStorage.getItem(CRM_INBOX_PENDING_COUNT_KEY_LEGACY_V25219) !== null
+        );
+    } catch (_) {
+        return false;
+    }
+})();
+
+let crmInboxPendingReconcileBusyV25221 = false;
+let crmInboxPendingLastFullCheckV25221 = 0;
+
+function crmInboxNeedsHandlingV25221(item) {
+    if (!item) return false;
+
+    const readState = typeof crmInboxStatusLabel === "function"
+        ? crmInboxStatusLabel(item.readState)
+        : String(item.readState || "NOWE").trim().toUpperCase();
+
+    if (readState === "OBSŁUŻONE" || readState === "OBSLUZONE") {
+        return false;
+    }
+
+    const type = String(item.type || "").trim().toUpperCase();
+    const requestType = String(item.requestType || "").trim().toUpperCase();
+    const status = String(item.status || "").trim().toUpperCase();
+
+    if (type === "BOOKING_REQUEST" || requestType === "FIRST_VISIT") {
+        if (status && status !== "OCZEKUJE") return false;
+        return true;
+    }
+
+    if (type === "CONTACT_FORM") {
+        return true;
+    }
+
+    return true;
+}
+
+function crmInboxPendingCountFromItemsV25221(items) {
+    return (Array.isArray(items) ? items : []).reduce(
+        (count, item) => count + (crmInboxNeedsHandlingV25221(item) ? 1 : 0),
+        0
+    );
+}
+
+function crmPersistInboxPendingCountV25221(count) {
+    try {
+        localStorage.setItem(
+            CRM_INBOX_PENDING_COUNT_KEY_V25221,
+            String(Math.max(0, Number(count) || 0))
+        );
+        localStorage.removeItem(CRM_INBOX_PENDING_COUNT_KEY_LEGACY_V25219);
+    } catch (_) {}
+}
+
+function crmApplyInboxPendingIndicatorsV25221(count) {
+    const pending = Math.max(0, Number(count) || 0);
+
+    window.crmInboxPendingActionCountV25221 = pending;
+    crmInboxPendingKnownV25221 = true;
+    crmPersistInboxPendingCountV25221(pending);
+
+    try {
+        if (typeof crmEnsureUnifiedInboxButton === "function") {
+            crmEnsureUnifiedInboxButton();
+        }
+    } catch (_) {}
+
+    const button = document.getElementById("crmUnifiedInboxButton");
+    const badge = document.getElementById("crmUnifiedInboxBadge");
+
+    if (badge) {
+        badge.textContent = pending > 99 ? "99+" : String(pending);
+        badge.style.display = pending > 0 ? "inline-flex" : "none";
+        badge.style.background = "#b3261e";
+        badge.title = pending > 0
+            ? `Do obsłużenia: ${pending}`
+            : "Brak wpisów wymagających obsługi";
+    }
+
+    if (button) {
+        button.classList.toggle("crm-inbox-has-pending-v25221", pending > 0);
+        button.title = pending > 0
+            ? `Skrzynka — ${pending} do obsłużenia`
+            : "Skrzynka";
+    }
+
+    try {
+        window.crmPanelManagerV25217?.setCalendarAttention?.(pending > 0);
+    } catch (_) {}
+
+    try {
+        window.crmPanelManagerV25217?.refresh?.();
+    } catch (_) {}
+
+    return pending;
+}
+
+function crmSyncInboxPendingFromCurrentItemsV25221() {
+    const items = Array.isArray(crmUnifiedInboxItems)
+        ? crmUnifiedInboxItems
+        : [];
+
+    return crmApplyInboxPendingIndicatorsV25221(
+        crmInboxPendingCountFromItemsV25221(items)
+    );
+}
+
+function crmEnsureInboxMinimizeButtonV25221() {
+    const modal = document.getElementById("crmUnifiedInboxModal");
+    const header = modal?.querySelector(".crm-day-list-panel > header");
+
+    if (!header) return null;
+
+    let button = document.getElementById("crmInboxMinimizeV25217");
+
+    if (button && header.contains(button)) {
+        return button;
+    }
+
+    if (button) button.remove();
+
+    button = document.createElement("button");
+    button.type = "button";
+    button.id = "crmInboxMinimizeV25217";
+    button.className = "crm-panel-minimize-v25217";
+    button.textContent = "—";
+    button.title = "Zwiń Skrzynkę";
+    button.setAttribute("aria-label", "Zwiń Skrzynkę");
+
+    const close = header.querySelector("#crmUnifiedInboxClose");
+
+    if (close?.parentNode === header) {
+        header.insertBefore(button, close);
+    } else {
+        header.appendChild(button);
+    }
+
+    return button;
+}
+
+const crmUpdateUnifiedInboxBadgeBeforeV25221 = crmUpdateUnifiedInboxBadge;
+crmUpdateUnifiedInboxBadge = function(counts = {}) {
+    const hasRead = Object.prototype.hasOwnProperty.call(counts || {}, "read");
+    const newCount = Math.max(0, Number(counts?.new) || 0);
+
+    if (hasRead) {
+        if (Array.isArray(crmUnifiedInboxItems)) {
+            crmSyncInboxPendingFromCurrentItemsV25221();
+        } else {
+            const readCount = Math.max(0, Number(counts?.read) || 0);
+            crmApplyInboxPendingIndicatorsV25221(newCount + readCount);
+        }
+        return;
+    }
+
+    const current = Math.max(
+        0,
+        Number(window.crmInboxPendingActionCountV25221) || 0
+    );
+
+    crmApplyInboxPendingIndicatorsV25221(
+        Math.max(current, newCount)
+    );
+};
+
+const crmRenderUnifiedInboxBeforeV25221 = crmRenderUnifiedInbox;
+crmRenderUnifiedInbox = function() {
+    const result = crmRenderUnifiedInboxBeforeV25221.apply(this, arguments);
+
+    crmSyncInboxPendingFromCurrentItemsV25221();
+    crmEnsureInboxMinimizeButtonV25221();
+
+    requestAnimationFrame(() => {
+        crmEnsureInboxMinimizeButtonV25221();
+        window.crmPanelManagerV25217?.refresh?.();
+    });
+
+    return result;
+};
+
+const crmOpenUnifiedInboxBeforeV25221 = crmOpenUnifiedInbox;
+crmOpenUnifiedInbox = async function() {
+    crmEnsureInboxMinimizeButtonV25221();
+
+    const result = await crmOpenUnifiedInboxBeforeV25221.apply(this, arguments);
+
+    crmSyncInboxPendingFromCurrentItemsV25221();
+    crmEnsureInboxMinimizeButtonV25221();
+
+    requestAnimationFrame(() => {
+        crmEnsureInboxMinimizeButtonV25221();
+        window.crmPanelManagerV25217?.refresh?.();
+    });
+
+    return result;
+};
+
+async function crmReconcileInboxPendingV25221(options = {}) {
+    if (
+        crmInboxPendingReconcileBusyV25221 ||
+        document.hidden ||
+        window.crmBootInProgressV2 ||
+        window.crmDiagnosticsNetworkModeV11
+    ) {
+        return;
+    }
+
+    const force = options.force === true;
+    const now = Date.now();
+
+    if (
+        !force &&
+        crmInboxPendingLastFullCheckV25221 > 0 &&
+        now - crmInboxPendingLastFullCheckV25221 < CRM_INBOX_PENDING_RECONCILE_MS_V25221
+    ) {
+        return;
+    }
+
+    crmInboxPendingReconcileBusyV25221 = true;
+    crmInboxPendingLastFullCheckV25221 = now;
+
+    try {
+        if (typeof crmLoadUnifiedInbox === "function") {
+            await crmLoadUnifiedInbox({ force:true, silent:false });
+            crmSyncInboxPendingFromCurrentItemsV25221();
+        }
+    } catch (error) {
+        console.warn(
+            "Synchronizacja pozycji do obsłużenia:",
+            error?.message || error
+        );
+    } finally {
+        crmInboxPendingReconcileBusyV25221 = false;
+    }
+}
+
+function crmInstallInboxPendingV25221() {
+    crmApplyInboxPendingIndicatorsV25221(
+        window.crmInboxPendingActionCountV25221
+    );
+
+    crmEnsureInboxMinimizeButtonV25221();
+
+    window.setTimeout(() => {
+        crmEnsureInboxMinimizeButtonV25221();
+
+        if (!crmInboxPendingKnownV25221) {
+            crmReconcileInboxPendingV25221({ force:true }).catch(console.error);
+        }
+    }, 2800);
+
+    window.setTimeout(() => {
+        crmEnsureInboxMinimizeButtonV25221();
+
+        if (!crmInboxPendingKnownV25221) {
+            crmReconcileInboxPendingV25221({ force:true }).catch(console.error);
+        }
+    }, 6500);
+}
+
+window.addEventListener("focus", () => {
+    crmReconcileInboxPendingV25221().catch(console.error);
+});
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        crmReconcileInboxPendingV25221().catch(console.error);
+    }
+});
+
+if (document.readyState === "loading") {
+    document.addEventListener(
+        "DOMContentLoaded",
+        crmInstallInboxPendingV25221,
+        { once:true }
+    );
+} else {
+    crmInstallInboxPendingV25221();
+}
+
+/* KONIEC ADMIN V25.2.21 */
+
