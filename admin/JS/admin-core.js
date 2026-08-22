@@ -2624,6 +2624,8 @@ function crmFirstVisitSetSelectionModeV8(item){
 function crmFirstVisitClearSelectionModeV8(){
     window.crmFirstVisitSelectionModeV8={active:false,item:null};
     window.crmPendingFirstVisitRequestForBooking=null;
+    const appointmentModal=document.getElementById("appointmentModal");
+    if(appointmentModal)delete appointmentModal.dataset.crmFirstVisitRequestIdV816;
     document.body.classList.remove("crm-first-visit-selection-active");
     const saveStatus=document.getElementById("crmTaskStatusSave");
     if(saveStatus&&!window.crmAppointmentSaveJobV7)saveStatus.style.display="none";
@@ -2661,25 +2663,62 @@ window.crmShowFirstVisitProposalsV8=crmShowFirstVisitProposalsV8;
 
 function crmOpenFirstVisitAppointmentV8(item,isoDateTime=""){
     if(!item)return;
+
     crmFirstVisitSetSelectionModeV8(item);
     window.crmPendingFirstVisitRequestForBooking=item;
     window.crmPendingContactRequestForBooking=null;
-    window.crmOpeningFirstVisitAppointmentV8 = true;
-    try {
-        if(typeof openCreateModal==="function")openCreateModal();
-    } finally {
-        window.crmOpeningFirstVisitAppointmentV8 = false;
+
+    const appointmentModal=document.getElementById("appointmentModal");
+    const alreadyOpen=Boolean(
+        appointmentModal &&
+        getComputedStyle(appointmentModal).display!=="none" &&
+        String(appointmentModal.dataset.crmFirstVisitRequestIdV816 || "")===String(item.id || "")
+    );
+
+    /*
+     * V26.16:
+     * Kliknięcie kolejnej propozycji / innej godziny dla TEJ SAMEJ prośby
+     * nie otwiera następnego formularza i nie parkuje poprzedniego.
+     * Aktualizujemy istniejący formularz 1:1.
+     */
+    if(!alreadyOpen){
+        window.crmOpeningFirstVisitAppointmentV8 = true;
+        try {
+            if(typeof openCreateModal==="function")openCreateModal();
+        } finally {
+            window.crmOpeningFirstVisitAppointmentV8 = false;
+        }
+        if(appointmentModal){
+            appointmentModal.dataset.crmFirstVisitRequestIdV816=String(item.id||"");
+        }
     }
+
     const set=(id,value)=>{const node=document.getElementById(id);if(node)node.value=value??"";};
-    set("appointmentName",item.name||"");
-    set("appointmentPhone",item.phone||"");
-    set("appointmentService",item.service||"");
-    set("appointmentDuration",Number(item.duration)||45);
+
+    /*
+     * Przy ponownym wyborze terminu nie resetujemy ręcznych poprawek
+     * w imieniu/usłudze. Uzupełniamy dane klienta tylko przy pierwszym otwarciu.
+     */
+    if(!alreadyOpen){
+        set("appointmentName",item.name||"");
+        set("appointmentPhone",item.phone||"");
+        set("appointmentService",item.service||"");
+        set("appointmentDuration",Number(item.duration)||45);
+    }
+
     if(isoDateTime)set("appointmentDateTime",isoDateTime);
+
     if(typeof crmSyncFiveMinuteControlsFromHidden==="function")crmSyncFiveMinuteControlsFromHidden();
-    const title=document.getElementById("modalTitleAppointment");if(title)title.textContent="Pierwsza wizyta – zapytanie online";
-    if(typeof handleAppointmentServiceInput==="function")handleAppointmentServiceInput();
-    const inbox=document.getElementById("crmUnifiedInboxModal");if(inbox)inbox.hidden=true;
+
+    const title=document.getElementById("modalTitleAppointment");
+    if(title)title.textContent="Pierwsza wizyta – zapytanie online";
+
+    if(!alreadyOpen && typeof handleAppointmentServiceInput==="function"){
+        handleAppointmentServiceInput();
+    }
+
+    const inbox=document.getElementById("crmUnifiedInboxModal");
+    if(inbox)inbox.hidden=true;
 }
 window.crmOpenFirstVisitAppointmentV8=crmOpenFirstVisitAppointmentV8;
 
@@ -4710,6 +4749,21 @@ window.crmGetPerformanceSnapshotV191 = function() {
     }
 
     function syncUi() {
+        const workPanelOpen = CONFIGS.some(c =>
+            c.id !== "crmDayVisitsOverlay" &&
+            isVisible(c)
+        );
+
+        /*
+         * CSS używa tej klasy wyłącznie do ustawienia warstw:
+         * panel roboczy nad „Wybrany dzień”, a „Wszystkie wizyty”
+         * obok niego, bez zamykania listy.
+         */
+        document.body.classList.toggle(
+            "crm-panel-work-open-v2617",
+            workPanelOpen
+        );
+
         syncCountBadges();
         renderParking();
         syncInfoBlur();
@@ -4853,21 +4907,47 @@ window.crmGetPerformanceSnapshotV191 = function() {
         busy = true;
 
         try {
-            CONFIGS.forEach(c => {
-                if (!isVisible(c)) return;
-
-                /*
-                 * Ten sam formularz może zostać zastąpiony inną usługą/klientem.
-                 * Jeśli zawiera dane formularza — odkładamy go przed resetem.
-                 */
-                if (c.form) {
-                    parkPanel(c, "auto-safe");
-                } else {
-                    hidePanelWithoutParking(c);
-                }
-            });
-
             const target = BY_ID.get(targetId);
+            const targetIsDayVisits = targetId === "crmDayVisitsOverlay";
+
+            /*
+             * V26.17 — układ ustalony dla Kalendarza:
+             *
+             * 1) „Wybrany dzień” (#crmCalendarInsights) jest stałą bazą
+             *    i NIE jest częścią konkurencji paneli.
+             *
+             * 2) „Wszystkie wizyty” jest niezależnym wyjątkiem.
+             *    Może pozostać otwarte razem z jednym panelem roboczym.
+             *
+             * 3) Wszystkie pozostałe panele robocze współdzielą jedno miejsce
+             *    NAD „Wybrany dzień”. W danej chwili aktywny jest tylko jeden.
+             *
+             * 4) Gdy otwieramy kolejny panel roboczy:
+             *    - formularz -> bezpiecznie do parkingu (z zachowaniem danych),
+             *    - podgląd -> zwykłe zamknięcie bez parkingu.
+             *
+             * 5) Otwieranie „Wszystkie wizyty” nie zamyka ani nie parkuje
+             *    aktualnego panelu roboczego.
+             */
+            if (!targetIsDayVisits) {
+                CONFIGS.forEach(c => {
+                    if (!isVisible(c)) return;
+
+                    // Niezależny panel „Wszystkie wizyty” zostaje na miejscu.
+                    if (c.id === "crmDayVisitsOverlay") return;
+
+                    /*
+                     * Ten sam formularz może zostać zastąpiony inną usługą/klientem.
+                     * Jeśli zawiera dane formularza — odkładamy go przed resetem.
+                     */
+                    if (c.form) {
+                        parkPanel(c, "auto-safe");
+                    } else {
+                        hidePanelWithoutParking(c);
+                    }
+                });
+            }
+
             if (target) clearActiveEntryIdentity(target);
         } finally {
             busy = false;
@@ -5097,15 +5177,29 @@ window.crmGetPerformanceSnapshotV191 = function() {
                 except === "visit" ? "appointmentDetailsModal" :
                 "";
 
-            CONFIGS.forEach(c => {
-                if (c.id === exceptId || !isVisible(c)) return;
+            /*
+             * V26.17:
+             * „Wszystkie wizyty” jest niezależnym panelem.
+             * Jeśli właśnie je otwieramy, nie ruszamy panelu roboczego.
+             * Jeśli otwieramy panel roboczy, nie ruszamy „Wszystkie wizyty”.
+             */
+            if (exceptId !== "crmDayVisitsOverlay") {
+                CONFIGS.forEach(c => {
+                    if (
+                        c.id === exceptId ||
+                        c.id === "crmDayVisitsOverlay" ||
+                        !isVisible(c)
+                    ) {
+                        return;
+                    }
 
-                if (c.form) {
-                    parkPanel(c, "auto-safe");
-                } else {
-                    hidePanelWithoutParking(c);
-                }
-            });
+                    if (c.form) {
+                        parkPanel(c, "auto-safe");
+                    } else {
+                        hidePanelWithoutParking(c);
+                    }
+                });
+            }
 
             try {
                 if (typeof crmToggleVisitStatusMenu === "function") {

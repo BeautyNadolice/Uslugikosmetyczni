@@ -4932,3 +4932,88 @@ body{background-image:radial-gradient(circle at 8% 0%,rgba(241,206,217,.22),tran
         padding-left:   12px !important;
     }
 }
+
+/* ===== ADMIN V26.17 — PANEL STACK NAD WYBRANY DZIEŃ ===== */
+
+/*
+ * UKŁAD:
+ * - „Wybrany dzień” zostaje stałą bazą.
+ * - Jeden zwykły panel roboczy otwiera się dokładnie NAD nim.
+ * - „Wszystkie wizyty” jest niezależnym wyjątkiem i może zostać otwarte
+ *   jednocześnie; wtedy lista odsuwa się w lewo od panelu roboczego.
+ *
+ * Nie zmieniamy pozycji ani grubości X / —.
+ */
+@media (min-width: 821px) {
+
+    /* Wszystkie zwykłe panele robocze nad „Wybrany dzień”. */
+    html body #appointmentDetailsModal.crm-safe-visit-panel {
+        left: auto !important;
+        right: 12px !important;
+        top: 12px !important;
+        bottom: 12px !important;
+        width: var(--crm-details-panel-width, 320px) !important;
+        max-width: var(--crm-details-panel-width, 320px) !important;
+        height: auto !important;
+        z-index: 11140 !important;
+    }
+
+    html body #appointmentModal.modal-overlay,
+    html body #blockTimeModal.modal-overlay,
+    html body #clientModal.modal-overlay,
+    html body #serviceModal.modal-overlay,
+    html body #categoryModal.modal-overlay,
+    html body #crmContactDataConfirmModalV2,
+    html body #crmUnifiedInboxModal {
+        z-index: 11140 !important;
+    }
+
+    html body #crmUnifiedInboxModal .crm-day-list-panel {
+        left: auto !important;
+        right: 12px !important;
+        top: 12px !important;
+        bottom: 12px !important;
+        width: var(--crm-action-panel-width, 320px) !important;
+        max-width: var(--crm-action-panel-width, 320px) !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /*
+     * „Wszystkie wizyty” nigdy nie zajmuje miejsca „Wybrany dzień”.
+     * Bez panelu roboczego zachowuje dotychczasową pozycję.
+     * Gdy panel roboczy jest otwarty, lista przesuwa się w lewo.
+     */
+    html body #crmDayVisitsOverlay {
+        z-index: 11020 !important;
+    }
+
+    html body.crm-panel-work-open-v2617
+    #crmDayVisitsOverlay .crm-day-list-panel {
+        left: auto !important;
+        right: calc(
+            12px +
+            var(--crm-action-panel-width, 320px) +
+            12px
+        ) !important;
+        top: 12px !important;
+        bottom: 12px !important;
+        width: min(320px, calc(100vw - 368px)) !important;
+        max-width: 320px !important;
+        height: auto !important;
+        max-height: none !important;
+        z-index: 11020 !important;
+    }
+
+    /*
+     * Warstwa bazowa pozostaje aktywna pod panelem.
+     * Żadnego blur i żadnego blokowania całej strony.
+     */
+    html body #tab-kalendarz #crmCalendarInsights {
+        filter: none !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+}
+
+/* ===== KONIEC ADMIN V26.17 ===== */

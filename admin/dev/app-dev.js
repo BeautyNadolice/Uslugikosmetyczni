@@ -14,16 +14,20 @@
 
     const PANELS = [
         {
-            key: "details",
-            name: "Szczegóły wizyty",
-            panel: "#appointmentDetailsModal.crm-safe-visit-panel",
-            close: "#appointmentDetailsModal .crm-safe-header > .crm-safe-close",
-            minus: "#appointmentDetailsModal #crmVisitDetailsMinimizeV25217",
+            key: "detailsAppointment",
+            name: "Szczegóły — wizyta CRM",
+            panel: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"]',
+            close: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-header > .crm-safe-close',
+            minus: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] #crmVisitDetailsMinimizeV25217',
+            headerText: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-status-copy',
+            statusButton: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] #crmVisitStatusButton',
             dark: true,
+            supportsHeaderText: true,
+            supportsStatusButton: true,
             open: () => {
                 const sample = {
                     eventType: "appointment",
-                    eventId: "DEV-V4-DEMO",
+                    eventId: "DEV-V4-DEMO-APPOINTMENT",
                     name: "Jan Kowalski",
                     phone: "48123456789",
                     service: "Manicure z pielęgnacją i kolorem",
@@ -31,7 +35,62 @@
                     date: new Date().toISOString(),
                     crmStatus: "COMPLETED",
                     status: "COMPLETED",
-                    bookingSource: "ADMIN"
+                    bookingSource: "FORM_FIRST",
+                    source: "FORM_FIRST"
+                };
+                if (typeof openAppointmentDetailsModal === "function") {
+                    openAppointmentDetailsModal(sample);
+                }
+            }
+        },
+        {
+            key: "detailsBlock",
+            name: "Szczegóły — blokada czasu",
+            panel: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"]',
+            close: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-header > .crm-safe-close',
+            minus: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] #crmVisitDetailsMinimizeV25217',
+            headerText: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-status-copy',
+            dark: true,
+            supportsHeaderText: true,
+            supportsStatusButton: false,
+            open: () => {
+                const sample = {
+                    eventType: "block",
+                    eventId: "DEV-V4-DEMO-BLOCK",
+                    name: "Zablokowane",
+                    phone: "",
+                    service: "Blokada czasu",
+                    duration: 60,
+                    date: new Date().toISOString(),
+                    source: "ADMIN",
+                    color: "#8c6b4f"
+                };
+                if (typeof openAppointmentDetailsModal === "function") {
+                    openAppointmentDetailsModal(sample);
+                }
+            }
+        },
+        {
+            key: "detailsExternal",
+            name: "Szczegóły — Google",
+            panel: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"]',
+            close: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-header > .crm-safe-close',
+            minus: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] #crmVisitDetailsMinimizeV25217',
+            headerText: '#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-status-copy',
+            dark: true,
+            supportsHeaderText: true,
+            supportsStatusButton: false,
+            open: () => {
+                const sample = {
+                    eventType: "external",
+                    eventId: "DEV-V4-DEMO-GOOGLE",
+                    name: "Wydarzenie Google",
+                    phone: "Google Calendar",
+                    service: "",
+                    duration: 45,
+                    date: new Date().toISOString(),
+                    source: "GOOGLE CALENDAR",
+                    color: "#777777"
                 };
                 if (typeof openAppointmentDetailsModal === "function") {
                     openAppointmentDetailsModal(sample);
@@ -133,7 +192,7 @@
     ];
 
     let state = {};
-    let selectedKey = "details";
+    let selectedKey = "detailsAppointment";
     let dirty = false;
 
     function num(value, fallback = 0) {
@@ -219,12 +278,12 @@
             minusWidth,
             minusStroke,
 
-            /* Szczegóły wizyty — pozycja całego bloku statusu:
-               ZREALIZOWANA / POTWIERDZONA / ANULOWANA / itd. */
-            statusTextX: 0,
-            statusTextY: 0,
+            /* Prawdziwy blok nagłówka:
+               ZREALIZOWANA / POTWIERDZONA / Szczegóły blokady / wydarzenie Google. */
+            headerTextX: 0,
+            headerTextY: 0,
 
-            /* Szczegóły wizyty — pozycja przycisku "Zmień status". */
+            /* Tylko wariant wizyty CRM. */
             statusButtonX: 0,
             statusButtonY: 0
         };
@@ -234,26 +293,31 @@
         const config = getPanelConfig(key);
         const defaults = defaultPanelState(config);
 
+        /*
+         * Migracja z poprzedniego DEV V4:
+         * stary wspólny "details" staje się bazą dla trzech prawdziwych wariantów.
+         */
+        if (
+            !state[key] &&
+            (key === "detailsAppointment" || key === "detailsBlock" || key === "detailsExternal") &&
+            state.details
+        ) {
+            state[key] = { ...state.details };
+        }
+
         if (!state[key]) {
             state[key] = defaults;
             return state[key];
         }
 
-        /*
-         * DEV V4.2 — migracja bez utraty ustawień:
-         * stare zapisane panele dostają tylko brakujące pola.
-         * Jeśli istniała poprzednia kontrolka completedStatusButtonX,
-         * jej wartość przechodzi do nowej statusButtonX.
-         */
         const old = state[key];
-
         state[key] = {
             ...defaults,
             ...old
         };
 
         if (
-            key === "details" &&
+            key === "detailsAppointment" &&
             old.statusButtonX === undefined &&
             old.completedStatusButtonX !== undefined
         ) {
@@ -341,20 +405,14 @@ ${config.minus}::after {
     display: none !important;
 }
 
-${config.key === "details" ? `
-/*
- * DEV V4.2 — PRAWDZIWY NAGŁÓWEK SZCZEGÓŁÓW
- * To są dwa niezależne elementy:
- * 1) blok tekstu statusu (ZREALIZOWANA / POTWIERDZONA / ANULOWANA / itd.)
- * 2) przycisk "Zmień status"
- *
- * Używamy właściwości translate, więc nie wyjmujemy elementów z grid/flex.
- */
-#appointmentDetailsModal.crm-safe-visit-panel .crm-safe-status-copy {
-    translate: ${px(values.statusTextX)} ${px(values.statusTextY)} !important;
+${config.supportsHeaderText && config.headerText ? `
+${config.headerText} {
+    translate: ${px(values.headerTextX)} ${px(values.headerTextY)} !important;
 }
+` : ""}
 
-#appointmentDetailsModal.crm-safe-visit-panel #crmVisitStatusButton {
+${config.supportsStatusButton && config.statusButton ? `
+${config.statusButton} {
     translate: ${px(values.statusButtonX)} ${px(values.statusButtonY)} !important;
 }
 ` : ""}
@@ -527,41 +585,19 @@ ${buildCss()}`;
                 ${controlRow("Grubość —", "minusStroke", .75, 8, .25)}
             </div>
 
-            ${config.key === "details" ? `
+            ${config.supportsHeaderText ? `
             <div class="crm-dev-v4-section">
-                <h4>Blok statusu</h4>
-                ${controlRow(
-                    "Tekst statusu — poziomo",
-                    "statusTextX",
-                    -150,
-                    150,
-                    1
-                )}
-                ${controlRow(
-                    "Tekst statusu — pionowo",
-                    "statusTextY",
-                    -100,
-                    100,
-                    1
-                )}
+                <h4>Tekst nagłówka / statusu</h4>
+                ${controlRow("Tekst — poziomo", "headerTextX", -150, 150, 1)}
+                ${controlRow("Tekst — pionowo", "headerTextY", -100, 100, 1)}
             </div>
+            ` : ""}
 
+            ${config.supportsStatusButton ? `
             <div class="crm-dev-v4-section">
                 <h4>Przycisk „Zmień status”</h4>
-                ${controlRow(
-                    "Przycisk — poziomo",
-                    "statusButtonX",
-                    -150,
-                    150,
-                    1
-                )}
-                ${controlRow(
-                    "Przycisk — pionowo",
-                    "statusButtonY",
-                    -100,
-                    100,
-                    1
-                )}
+                ${controlRow("Przycisk — poziomo", "statusButtonX", -150, 150, 1)}
+                ${controlRow("Przycisk — pionowo", "statusButtonY", -100, 100, 1)}
             </div>
             ` : ""}
         `;
@@ -715,6 +751,13 @@ ${buildCss()}`;
         "saveClientModalData(",
         "deleteSelectedCalendarItemFromAdmin(",
         "deleteBlockTimeFromAdmin(",
+        "deleteExternalCalendarEventFromAdmin(",
+        "crmVisitStatusAction(",
+        "crmVisitTrashAction(",
+        "completeCurrentAppointment(",
+        "markCurrentAppointmentNoShow(",
+        "cancelAppointmentWithHistory(",
+        "convertExternalToCRMAppointment(",
         "deleteCategoryFromModal(",
         "renameCategoryFromModal(",
         "addNewCategoryFromModal(",
@@ -722,6 +765,14 @@ ${buildCss()}`;
         "saveDraftsToCloud(",
         "saveSettings("
     ];
+
+    const BLOCKED_BUTTON_IDS = new Set([
+        "crmVisitTrashButton",
+        "deleteAppointmentBtn",
+        "saveAppointmentBtn",
+        "blockTimeSubmitBtn",
+        "saveSettingsBtn"
+    ]);
 
     function installSafeMode() {
         document.addEventListener(
@@ -733,9 +784,11 @@ ${buildCss()}`;
                 if (!button) return;
 
                 const onclick = String(button.getAttribute("onclick") || "");
-                const isBlocked = BLOCKED_ONCLICK_PATTERNS.some(
-                    pattern => onclick.includes(pattern)
-                );
+                const isBlocked =
+                    BLOCKED_BUTTON_IDS.has(button.id) ||
+                    BLOCKED_ONCLICK_PATTERNS.some(
+                        pattern => onclick.includes(pattern)
+                    );
 
                 if (!isBlocked) return;
 
