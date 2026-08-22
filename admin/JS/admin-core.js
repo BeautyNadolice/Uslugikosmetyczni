@@ -6012,74 +6012,29 @@ crmRenderUnifiedInbox = function() {
 
 /* KONIEC ADMIN FIRST VISIT V9 */
 
-/* ===== ADMIN/DEV V4 — SHARED LIVE LAYOUT BRIDGE ===== */
-(function crmInstallSharedDevLayoutV4() {
-    const STORAGE_KEY = "nailArtDevLayoutV4";
-    const STYLE_ID = "crmDevSavedLayoutStyleV4";
+/* ===== ADMIN/DEV V5 — PHYSICAL CSS ONLY / LEGACY CLEANUP ===== */
+(function crmDisableLegacyDevLayoutV5() {
+    const LEGACY_STORAGE_KEY = "nailArtDevLayoutV4";
+    const LEGACY_STYLE_ID = "crmDevSavedLayoutStyleV4";
 
-    function readPayload() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return null;
-
-            const parsed = JSON.parse(raw);
-            return parsed && typeof parsed.css === "string"
-                ? parsed
-                : null;
-        } catch (error) {
-            console.warn("ADMIN DEV V4 layout:", error);
-            return null;
-        }
-    }
-
-    function applySavedLayout() {
-        const payload = readPayload();
-
-        let style = document.getElementById(STYLE_ID);
-
-        if (!payload) {
-            if (style) style.remove();
-            return false;
-        }
-
-        if (!style) {
-            style = document.createElement("style");
-            style.id = STYLE_ID;
-            document.head.appendChild(style);
-        }
-
-        style.textContent = payload.css;
+    function clearLegacyLayout() {
+        try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (_) {}
+        document.getElementById(LEGACY_STYLE_ID)?.remove();
         return true;
     }
 
-    function clearSavedLayout() {
-        localStorage.removeItem(STORAGE_KEY);
-        document.getElementById(STYLE_ID)?.remove();
-    }
-
     /*
-     * Awaryjne wejście:
-     * admin.html?crmResetDevLayout=1
-     * usuwa zapis DEV zanim panel będzie używany.
+     * DEV V5 nie używa localStorage do przechowywania layoutu.
+     * Źródłem prawdy jest fizyczny plik:
+     * admin/CSS/styleadmin-overrides.css
      */
-    try {
-        const params = new URLSearchParams(location.search);
-        if (params.get("crmResetDevLayout") === "1") {
-            clearSavedLayout();
-        }
-    } catch (_) {}
+    clearLegacyLayout();
 
-    window.crmApplySavedDevLayoutV4 = applySavedLayout;
-    window.crmClearSavedDevLayoutV4 = clearSavedLayout;
-
-    if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            applySavedLayout,
-            { once:true }
-        );
-    } else {
-        applySavedLayout();
-    }
+    window.crmApplySavedDevLayoutV4 = function() {
+        clearLegacyLayout();
+        return false;
+    };
+    window.crmClearSavedDevLayoutV4 = clearLegacyLayout;
+    window.crmDevLayoutStorageModeV5 = "PHYSICAL_CSS_ONLY";
 })();
-/* ===== KONIEC ADMIN/DEV V4 BRIDGE ===== */
+/* ===== KONIEC ADMIN/DEV V5 ===== */

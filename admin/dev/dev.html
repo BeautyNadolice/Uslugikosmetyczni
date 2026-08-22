@@ -8,13 +8,16 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Nail-Art Daria CRM DEV V4</title>
+    <title>Nail-Art Daria CRM DEV V5</title>
 <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
 <!-- MODULY CSS ADMIN: kolejnosc zachowuje dotychczasowa kaskade -->
 <link rel="stylesheet" href="../CSS/styleadmin-base.css">
 <link rel="stylesheet" href="../CSS/styleadmin-components.css">
 <link rel="stylesheet" href="../CSS/styleadmin-calendar.css">
-<link rel="stylesheet" href="../CSS/styleadmin-overrides.css">
+<script>
+/* DEV SYNC V5: zawsze świeży plik układu. */
+document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?devsync=' + Date.now() + '">');
+</script>
 <link rel="stylesheet" href="dev.css">
 
 </head>
@@ -934,8 +937,10 @@
 <script src="../JS/settings-diagnostics.js"></script>
 <script src="../JS/crm-test-full.js"></script>
 <script src="../JS/crm-test-light.js"></script>
-<script src="../JS/admin-core.js"></script>
-<script src="app-dev.js"></script>
+<script src="../JS/admin-core.js?v=devsync5-20260822"></script>
+<script>
+document.write('<script src="app-dev.js?devsync=' + Date.now() + '"><\/script>');
+</script>
 
 </body>
 </html>

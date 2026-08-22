@@ -14,7 +14,10 @@
 <link rel="stylesheet" href="CSS/styleadmin-base.css">
 <link rel="stylesheet" href="CSS/styleadmin-components.css">
 <link rel="stylesheet" href="CSS/styleadmin-calendar.css">
-<link rel="stylesheet" href="CSS/styleadmin-overrides.css">
+<script>
+/* DEV SYNC V5: ten plik zmienia się bezpośrednio z DEV, więc nie wolno używać starego cache. */
+document.write('<link rel="stylesheet" href="CSS/styleadmin-overrides.css?devsync=' + Date.now() + '">');
+</script>
 
 </head>
 
@@ -933,7 +936,7 @@
 <script src="JS/settings-diagnostics.js"></script>
 <script src="JS/crm-test-full.js"></script>
 <script src="JS/crm-test-light.js"></script>
-<script src="JS/admin-core.js"></script>
+<script src="JS/admin-core.js?v=devsync5-20260822"></script>
 
 </body>
 </html>

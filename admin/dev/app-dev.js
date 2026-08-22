@@ -1,6 +1,6 @@
 
 /* ==========================================================================
-   NAIL-ART DEV V4 — REAL ADMIN EDITOR
+   NAIL-ART DEV V5 — REAL ADMIN EDITOR + PHYSICAL SAVE
    DEV ładuje dokładnie te same CSS/JS/DOM co ADMIN.
    Ten plik jest tylko narzędziem edycyjnym na wierzchu.
    ========================================================================== */
@@ -8,9 +8,14 @@
 (() => {
     "use strict";
 
-    const STORAGE_KEY = "nailArtDevLayoutV4";
-    const STYLE_ID = "crmDevLayoutStyleV4";
-    const EDITOR_ID = "crmDevEditorV4";
+    const LEGACY_STORAGE_KEY = "nailArtDevLayoutV4";
+    const SYNC_KEY_STORAGE = "nailArtDevSyncKeyV5";
+    const STYLE_ID = "crmDevLayoutStyleV5";
+    const EDITOR_ID = "crmDevEditorV4"; /* ID zostaje dla zgodności z dev.css */
+    const MANAGED_START = "/* ===== NAIL-ART DEV V5 MANAGED LAYOUT START ===== */";
+    const MANAGED_END = "/* ===== NAIL-ART DEV V5 MANAGED LAYOUT END ===== */";
+    const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
+    let localAdminFileHandle = null;
 
     const PANELS = [
         {
@@ -227,6 +232,48 @@
         }
     }
 
+    function computedTranslate(node) {
+        if (!node) return [0, 0];
+        try {
+            const raw = String(getComputedStyle(node).translate || "").trim();
+            if (!raw || raw === "none") return [0, 0];
+            const parts = raw.split(/\s+/);
+            const toPx = value => {
+                const match = String(value || "").match(/^(-?\d+(?:\.\d+)?)px$/i);
+                return match ? num(match[1], 0) : 0;
+            };
+            return [toPx(parts[0]), toPx(parts[1] || "0px")];
+        } catch (_) {
+            return [0, 0];
+        }
+    }
+
+    function appsScriptUrl() {
+        try {
+            return typeof APPS_SCRIPT_URL !== "undefined" && APPS_SCRIPT_URL
+                ? APPS_SCRIPT_URL
+                : FALLBACK_APPS_SCRIPT_URL;
+        } catch (_) {
+            return FALLBACK_APPS_SCRIPT_URL;
+        }
+    }
+
+    function runtimeMode() {
+        const host = String(location.hostname || "").toLowerCase();
+        if (host === "127.0.0.1" || host === "localhost") return "local-bridge";
+        if (location.protocol === "file:") return "local-file";
+        /* GitHub Pages dziś, ewentualna własna domena później. */
+        if (location.protocol === "https:" || location.protocol === "http:") return "github";
+        return "local-file";
+    }
+
+    function runtimeLabel() {
+        const mode = runtimeMode();
+        if (mode === "github") return "GITHUB — zapis bezpośrednio do repozytorium";
+        if (mode === "local-bridge") return "LOCAL — zapis fizyczny do pliku przez lokalny helper";
+        return "LOCAL — zapis fizyczny do wybranego styleadmin-overrides.css";
+    }
+
     function defaultPanelState(config) {
         const panel = el(config.panel);
         const close = el(config.close);
@@ -239,6 +286,14 @@
         const maxHeight = panel
             ? Math.round(panel.getBoundingClientRect().height || 560)
             : 560;
+
+        const [panelX, panelY] = computedTranslate(panel);
+        const [closeX, closeY] = computedTranslate(close);
+        const [minusX, minusY] = computedTranslate(minus);
+        const headerTextNode = config.headerText ? el(config.headerText) : null;
+        const statusButtonNode = config.statusButton ? el(config.statusButton) : null;
+        const [headerTextX, headerTextY] = computedTranslate(headerTextNode);
+        const [statusButtonX, statusButtonY] = computedTranslate(statusButtonNode);
 
         const closeSize = Math.max(
             8,
@@ -267,25 +322,25 @@
         return {
             width,
             height: maxHeight,
-            panelX: 0,
-            panelY: 0,
-            closeX: 0,
-            closeY: 0,
+            panelX,
+            panelY,
+            closeX,
+            closeY,
             closeSize,
             closeStroke,
-            minusX: 0,
-            minusY: 0,
+            minusX,
+            minusY,
             minusWidth,
             minusStroke,
 
             /* Prawdziwy blok nagłówka:
                ZREALIZOWANA / POTWIERDZONA / Szczegóły blokady / wydarzenie Google. */
-            headerTextX: 0,
-            headerTextY: 0,
+            headerTextX,
+            headerTextY,
 
             /* Tylko wariant wizyty CRM. */
-            statusButtonX: 0,
-            statusButtonY: 0
+            statusButtonX,
+            statusButtonY
         };
     }
 
@@ -294,7 +349,7 @@
         const defaults = defaultPanelState(config);
 
         /*
-         * Migracja z poprzedniego DEV V4:
+         * Migracja z poprzedniego DEV V5:
          * stary wspólny "details" staje się bazą dla trzech prawdziwych wariantów.
          */
         if (
@@ -335,7 +390,7 @@
         const color = colorFor(config);
 
         return `
-/* ${config.name} — DEV V4 / PRAWDZIWY DOM */
+/* ${config.name} — DEV V5 / PRAWDZIWY DOM */
 ${config.panel} {
     width: ${px(values.width)} !important;
     translate: ${px(values.panelX)} ${px(values.panelY)} !important;
@@ -448,74 +503,257 @@ ${config.statusButton} {
         if (panel) panel.classList.add("crm-dev-v4-selected-real");
     }
 
-    function loadSaved() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return;
+    function clearLegacyLayout() {
+        try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (_) {}
+        document.getElementById("crmDevSavedLayoutStyleV4")?.remove();
+    }
 
-            const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object" && parsed.panels) {
-                state = parsed.panels;
-            }
-        } catch (error) {
-            console.warn("DEV V4: nie udało się odczytać zapisu:", error);
+    function managedBlock(css) {
+        return `${MANAGED_START}\n/* Aktualizacja: ${new Date().toISOString()} */\n${String(css || "").trim()}\n${MANAGED_END}`;
+    }
+
+    function replaceManagedBlock(fullCss, generatedCss) {
+        const source = String(fullCss || "");
+        const block = managedBlock(generatedCss);
+        const startIndex = source.indexOf(MANAGED_START);
+        const endIndex = source.indexOf(MANAGED_END);
+
+        if (startIndex >= 0 && endIndex > startIndex) {
+            return source.slice(0, startIndex) + block + source.slice(endIndex + MANAGED_END.length);
+        }
+        return source.replace(/\s*$/, "") + "\n\n" + block + "\n";
+    }
+
+    async function postJson(url, payload, timeoutMs = 45000) {
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {"Content-Type":"text/plain"},
+                body: JSON.stringify(payload),
+                signal: controller ? controller.signal : undefined
+            });
+            const text = await response.text();
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${text.slice(0,300)}`);
+            let data;
+            try { data = JSON.parse(text); }
+            catch (_) { throw new Error("Serwer nie zwrócił JSON: " + text.slice(0,300)); }
+            return data;
+        } finally {
+            if (timer) clearTimeout(timer);
         }
     }
 
-    function saveToAdmin() {
-        const payload = {
-            version: 4,
-            savedAt: new Date().toISOString(),
-            css: buildCss(),
-            panels: state
-        };
+    function getSyncKey({required = true} = {}) {
+        let key = "";
+        try { key = String(localStorage.getItem(SYNC_KEY_STORAGE) || "").trim(); } catch (_) {}
+        if (!key && required) {
+            key = String(prompt("Podaj klucz DEV_SYNC_KEY skonfigurowany w Google Apps Script:") || "").trim();
+            if (key) {
+                try { localStorage.setItem(SYNC_KEY_STORAGE, key); } catch (_) {}
+            }
+        }
+        return key;
+    }
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        dirty = false;
+    function clearSyncKey() {
+        try { localStorage.removeItem(SYNC_KEY_STORAGE); } catch (_) {}
+    }
 
-        if (typeof window.crmApplySavedDevLayoutV4 === "function") {
-            window.crmApplySavedDevLayoutV4();
-        } else {
-            applyLive();
+    async function backupToDriveBeforeLocalWrite(oldContent, sourceLabel) {
+        const key = getSyncKey({required:true});
+        if (!key) throw new Error("Anulowano — przed zapisem wymagany jest backup na Google Drive.");
+        const result = await postJson(appsScriptUrl(), {
+            action: "backupDevLayoutToDrive",
+            devSyncKey: key,
+            source: sourceLabel,
+            content: String(oldContent || ""),
+            fileName: "styleadmin-overrides.css"
+        }, 60000);
+        if (!result?.success) {
+            if (String(result?.error || "").includes("DEV_SYNC_AUTH")) clearSyncKey();
+            throw new Error(result?.message || result?.error || "Nie udało się wykonać backupu na Google Drive.");
+        }
+        return result;
+    }
+
+    async function saveGithub(generatedCss) {
+        const key = getSyncKey({required:true});
+        if (!key) throw new Error("Brak DEV_SYNC_KEY.");
+
+        const result = await postJson(appsScriptUrl(), {
+            action: "saveDevLayoutToGithub",
+            devSyncKey: key,
+            css: generatedCss,
+            source: "GITHUB_DEV",
+            pageUrl: location.href
+        }, 90000);
+
+        if (!result?.success) {
+            if (String(result?.error || "").includes("DEV_SYNC_AUTH")) clearSyncKey();
+            throw new Error(result?.message || result?.error || "GitHub nie zapisał pliku.");
+        }
+        return result;
+    }
+
+    async function saveViaLocalBridge(generatedCss) {
+        const oldResponse = await fetch(`../CSS/styleadmin-overrides.css?devsync=${Date.now()}`, {cache:"no-store"});
+        if (!oldResponse.ok) throw new Error("Nie mogę odczytać lokalnego styleadmin-overrides.css.");
+        const oldContent = await oldResponse.text();
+
+        const backup = await backupToDriveBeforeLocalWrite(oldContent, "LOCAL_DEV_BRIDGE");
+        const result = await postJson(`${location.origin}/__dev/save-layout`, {
+            css: generatedCss
+        }, 30000);
+        if (!result?.success) throw new Error(result?.message || result?.error || "Lokalny helper nie zapisał pliku.");
+        return { ...result, driveBackupId: backup.backupFileId || "" };
+    }
+
+    function openHandleDb() {
+        return new Promise((resolve, reject) => {
+            if (!window.indexedDB) return resolve(null);
+            const request = indexedDB.open("NailArtDevSyncV5", 1);
+            request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains("handles")) db.createObjectStore("handles");
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function rememberLocalHandle(handle) {
+        try {
+            const db = await openHandleDb();
+            if (!db) return;
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction("handles", "readwrite");
+                tx.objectStore("handles").put(handle, "adminOverrides");
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+            db.close();
+        } catch (_) {}
+    }
+
+    async function restoreLocalHandle() {
+        try {
+            const db = await openHandleDb();
+            if (!db) return null;
+            const handle = await new Promise((resolve, reject) => {
+                const tx = db.transaction("handles", "readonly");
+                const req = tx.objectStore("handles").get("adminOverrides");
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => reject(req.error);
+            });
+            db.close();
+            return handle;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function getLocalAdminFileHandle() {
+        if (!localAdminFileHandle) localAdminFileHandle = await restoreLocalHandle();
+
+        if (localAdminFileHandle) {
+            try {
+                const permission = await localAdminFileHandle.queryPermission({mode:"readwrite"});
+                if (permission === "granted") return localAdminFileHandle;
+                if (await localAdminFileHandle.requestPermission({mode:"readwrite"}) === "granted") return localAdminFileHandle;
+            } catch (_) {
+                localAdminFileHandle = null;
+            }
         }
 
-        setStatus(
-            "Zapisano. ADMIN na tej samej przeglądarce użyje tych ustawień po odświeżeniu.",
-            "ok"
-        );
+        if (typeof window.showOpenFilePicker !== "function") {
+            throw new Error("Ta przeglądarka nie pozwala bezpośrednio zapisać pliku. Uruchom START_DEV_LOCAL.bat i otwórz DEV przez localhost.");
+        }
+
+        const handles = await window.showOpenFilePicker({
+            multiple: false,
+            types: [{description:"CSS ADMIN", accept:{"text/css":[".css"]}}]
+        });
+        const handle = handles?.[0];
+        if (!handle) throw new Error("Nie wybrano pliku.");
+        if (String(handle.name || "").toLowerCase() !== "styleadmin-overrides.css") {
+            throw new Error("Wybierz dokładnie plik admin/CSS/styleadmin-overrides.css.");
+        }
+        localAdminFileHandle = handle;
+        await rememberLocalHandle(handle);
+        return handle;
+    }
+
+    async function saveToPhysicalLocalFile(generatedCss) {
+        const handle = await getLocalAdminFileHandle();
+        const file = await handle.getFile();
+        const oldContent = await file.text();
+        const backup = await backupToDriveBeforeLocalWrite(oldContent, "LOCAL_DEV_FILE_PICKER");
+        const newContent = replaceManagedBlock(oldContent, generatedCss);
+        const writable = await handle.createWritable();
+        await writable.write(newContent);
+        await writable.close();
+        return {success:true, fileName:handle.name, driveBackupId:backup.backupFileId || ""};
+    }
+
+    async function saveToAdmin() {
+        const button = document.querySelector(`#${EDITOR_ID} [data-dev-save]`);
+        if (button?.disabled) return;
+        const generatedCss = buildCss();
+        const mode = runtimeMode();
+
+        if (button) {
+            button.disabled = true;
+            button.textContent = "Zapisywanie…";
+        }
+        setStatus("Tworzę backup i zapisuję prawdziwy plik ADMIN…", "warn");
+
+        try {
+            let result;
+            if (mode === "github") result = await saveGithub(generatedCss);
+            else if (mode === "local-bridge") result = await saveViaLocalBridge(generatedCss);
+            else result = await saveToPhysicalLocalFile(generatedCss);
+
+            dirty = false;
+            if (mode === "github") {
+                setStatus(
+                    `✓ Zapisano fizycznie do GitHub: admin/CSS/styleadmin-overrides.css. Backup Google Drive: ${result.backupFileId || "OK"}. Commit: ${result.commitSha || "OK"}. GitHub Pages może potrzebować kilkudziesięciu sekund na publikację.`,
+                    "ok"
+                );
+            } else {
+                setStatus(
+                    `✓ Zapisano fizycznie do lokalnego styleadmin-overrides.css. Backup Google Drive: ${result.driveBackupId || "OK"}. Ten plik możesz normalnie wysłać na GitHub.`,
+                    "ok"
+                );
+            }
+        } catch (error) {
+            console.error("DEV V5 save:", error);
+            setStatus("BŁĄD ZAPISU: " + (error?.message || String(error)), "warn");
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = runtimeMode() === "github"
+                    ? "Zapisz do GitHub / ADMIN"
+                    : "Zapisz do pliku ADMIN";
+            }
+        }
     }
 
     function resetSaved() {
-        if (!confirm("Usunąć wszystkie zapisane ustawienia DEV V4 i wrócić do CSS z plików ADMIN?")) {
-            return;
-        }
-
-        localStorage.removeItem(STORAGE_KEY);
-        state = {};
+        if (!confirm("Cofnąć tylko niezapisany podgląd i ponownie wczytać wartości z fizycznego CSS?")) return;
         dirty = false;
-
-        document.getElementById(STYLE_ID)?.remove();
-        document.getElementById("crmDevSavedLayoutStyleV4")?.remove();
-
-        setStatus("Usunięto zapis DEV V4. Odśwież ADMIN, aby wrócić do CSS z Drive.", "warn");
-        renderControls();
+        location.reload();
     }
 
     function downloadCss() {
-        const content =
-`/* NAIL-ART DEV V4 — finalny CSS z prawdziwego ADMIN
-   ${new Date().toLocaleString("pl-PL")}
-*/
-${buildCss()}`;
-
+        const content = `${managedBlock(buildCss())}\n`;
         const blob = new Blob([content], {type:"text/css;charset=utf-8"});
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-
         a.href = url;
-        a.download = "panel-layout-dev-v4.css";
+        a.download = "panel-layout-dev-v5-awaryjny.css";
         a.click();
-
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
@@ -635,7 +873,7 @@ ${buildCss()}`;
         try {
             await config.open?.();
         } catch (error) {
-            console.warn("DEV V4 open panel:", error);
+            console.warn("DEV V5 open panel:", error);
         }
 
         setTimeout(() => {
@@ -652,8 +890,8 @@ ${buildCss()}`;
         editor.innerHTML = `
             <div class="crm-dev-v4-head">
                 <div style="min-width:0;flex:1">
-                    <strong>🛠 DEV V4 — PRAWDZIWY ADMIN</strong>
-                    <small>Te same HTML / CSS / JS co produkcja</small>
+                    <strong>🛠 DEV V5 — PRAWDZIWY ADMIN</strong>
+                    <small id="crmDevSyncModeV5">Tryb zapisu: wykrywanie…</small>
                 </div>
                 <button class="crm-dev-v4-icon-btn"
                         type="button"
@@ -687,25 +925,25 @@ ${buildCss()}`;
                     <button class="crm-dev-v4-btn primary crm-dev-v4-wide"
                             type="button"
                             data-dev-save>
-                        Zapisz do ADMIN
+                        Zapisz do pliku ADMIN
                     </button>
 
                     <button class="crm-dev-v4-btn"
                             type="button"
                             data-dev-download>
-                        Pobierz CSS
+                        Eksport awaryjny
                     </button>
 
                     <button class="crm-dev-v4-btn danger"
                             type="button"
                             data-dev-reset>
-                        Reset DEV
+                        Cofnij podgląd
                     </button>
                 </div>
 
                 <div id="crmDevStatusV4"
                      class="crm-dev-v4-status">
-                    Gotowe. Wybierz panel.
+                    Gotowe. Wybierz panel i zapisz fizycznie do pliku.
                 </div>
             </div>
         `;
@@ -819,10 +1057,16 @@ ${buildCss()}`;
     }
 
     function init() {
-        document.body.classList.add("crm-dev-v4");
+        document.body.classList.add("crm-dev-v4", "crm-dev-v5");
 
-        loadSaved();
+        clearLegacyLayout();
         renderEditor();
+        const modeNode = document.getElementById("crmDevSyncModeV5");
+        if (modeNode) modeNode.textContent = runtimeLabel();
+        const saveButton = document.querySelector(`#${EDITOR_ID} [data-dev-save]`);
+        if (saveButton) saveButton.textContent = runtimeMode() === "github"
+            ? "Zapisz do GitHub / ADMIN"
+            : "Zapisz do pliku ADMIN";
         installSafeMode();
         markBlockedButtons();
 
