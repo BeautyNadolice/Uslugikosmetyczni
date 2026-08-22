@@ -1,6 +1,6 @@
 
 /* ==========================================================================
-   NAIL-ART DEV V5.1 — SAFE PANEL PATCH SAVE
+   NAIL-ART DEV V5.3 — REFRESH/OPEN STATE FIX + SAFE PANEL PATCH SAVE
    DEV ładuje dokładnie te same CSS/JS/DOM co ADMIN.
    Ten plik jest tylko narzędziem edycyjnym na wierzchu.
    ========================================================================== */
@@ -197,9 +197,10 @@
     ];
 
     let state = {};
-    let selectedKey = "detailsAppointment";
+    let selectedKey = null; /* V5.3: po odświeżeniu NIE otwieramy automatycznie żadnego panelu ADMIN */
     let dirty = false;
     const dirtyKeys = new Set();
+    const liveKeys = new Set(); /* tylko panele faktycznie zmienione w tej sesji */
 
     function num(value, fallback = 0) {
         const n = Number.parseFloat(value);
@@ -211,7 +212,8 @@
     }
 
     function getPanelConfig(key = selectedKey) {
-        return PANELS.find(item => item.key === key) || PANELS[0];
+        if (!key) return null;
+        return PANELS.find(item => item.key === key) || null;
     }
 
     function el(selector) {
@@ -276,6 +278,7 @@
     }
 
     function defaultPanelState(config) {
+        if (!config) return null;
         const panel = el(config.panel);
         const close = el(config.close);
         const minus = el(config.minus);
@@ -347,6 +350,7 @@
 
     function ensureState(key) {
         const config = getPanelConfig(key);
+        if (!config) return null;
         const defaults = defaultPanelState(config);
 
         /*
@@ -482,6 +486,13 @@ ${config.statusButton} {
             .join("\n");
     }
 
+    function buildLiveCss() {
+        return PANELS
+            .filter(config => liveKeys.has(config.key) && state[config.key])
+            .map(config => cssForPanel(config, state[config.key]))
+            .join("\n");
+    }
+
     function applyLive() {
         let style = document.getElementById(STYLE_ID);
         if (!style) {
@@ -489,7 +500,8 @@ ${config.statusButton} {
             style.id = STYLE_ID;
             document.head.appendChild(style);
         }
-        style.textContent = buildCss();
+        /* V5.2: samo otwarcie panelu NIE może nadpisywać fizycznego ADMIN CSS. */
+        style.textContent = buildLiveCss();
 
         highlightSelected();
     }
@@ -499,7 +511,9 @@ ${config.statusButton} {
             .querySelectorAll(".crm-dev-v4-selected-real")
             .forEach(node => node.classList.remove("crm-dev-v4-selected-real"));
 
+        if (!selectedKey) return;
         const config = getPanelConfig();
+        if (!config) return;
         const panel = el(config.panel);
         if (panel) panel.classList.add("crm-dev-v4-selected-real");
     }
@@ -833,7 +847,7 @@ ${managed}
                 );
             }
         } catch (error) {
-            console.error("DEV V5.1 save:", error);
+            console.error("DEV V5.3 save:", error);
             setStatus("BŁĄD ZAPISU: " + (error?.message || String(error)), "warn");
         } finally {
             if (button) {
@@ -849,6 +863,7 @@ ${managed}
         if (!confirm("Cofnąć tylko niezapisany podgląd i ponownie wczytać wartości z fizycznego CSS?")) return;
         dirty = false;
         dirtyKeys.clear();
+        liveKeys.clear();
         location.reload();
     }
 
@@ -901,8 +916,13 @@ ${managed}
     function renderControls() {
         const host = document.getElementById("crmDevControlsV4");
         if (!host) return;
+        if (!selectedKey) {
+            host.innerHTML = '<div class="crm-dev-v4-safe">Wybierz panel. Po odświeżeniu DEV nie otwiera już automatycznie żadnego okna ADMIN.</div>';
+            return;
+        }
 
         const config = getPanelConfig();
+        if (!config) return;
         const values = ensureState(selectedKey);
 
         host.innerHTML = `
@@ -955,12 +975,61 @@ ${managed}
 
                     ensureState(selectedKey)[key] = value;
                     dirtyKeys.add(selectedKey);
+                    liveKeys.add(selectedKey);
                     markDirty();
                     applyLive();
                 });
             });
 
         applyLive();
+    }
+
+    function panelFingerprint(config) {
+        const panel = el(config?.panel);
+        const close = config?.close ? el(config.close) : null;
+        const minus = config?.minus ? el(config.minus) : null;
+        if (!panel || (config?.close && !close) || (config?.minus && !minus)) return null;
+
+        const rectPart = node => {
+            if (!node) return "-";
+            const r = node.getBoundingClientRect();
+            const st = getComputedStyle(node);
+            return [
+                Math.round(r.left * 10) / 10,
+                Math.round(r.top * 10) / 10,
+                Math.round(r.width * 10) / 10,
+                Math.round(r.height * 10) / 10,
+                String(st.translate || "none"),
+                String(st.top || "auto"),
+                String(st.left || "auto"),
+                String(st.position || "static")
+            ].join("|");
+        };
+
+        return [rectPart(panel), rectPart(close), rectPart(minus)].join("##");
+    }
+
+    async function waitForPanelStable(config, timeoutMs = 4500) {
+        const started = Date.now();
+        let last = null;
+        let stableCount = 0;
+
+        /* CSS/fonty/admin-core mogą jeszcze kończyć pracę po samym DOMContentLoaded. */
+        try {
+            if (document.fonts?.ready) await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 700))]);
+        } catch (_) {}
+
+        while (Date.now() - started < timeoutMs) {
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const fp = panelFingerprint(config);
+            if (fp && fp === last) stableCount += 1;
+            else { last = fp; stableCount = fp ? 1 : 0; }
+
+            /* 6 identycznych próbek = min. kilka kolejnych klatek bez zmiany układu. */
+            if (stableCount >= 6) return true;
+            await new Promise(resolve => setTimeout(resolve, 45));
+        }
+        return !!panelFingerprint(config);
     }
 
     async function selectPanel(key) {
@@ -976,18 +1045,32 @@ ${managed}
             });
 
         const config = getPanelConfig(key);
+        if (!config) return;
 
         try {
             await config.open?.();
         } catch (error) {
-            console.warn("DEV V5.1 open panel:", error);
+            console.warn("DEV V5.3 open panel:", error);
         }
 
-        setTimeout(() => {
+        const ready = await waitForPanelStable(config);
+        if (!ready) {
+            console.warn("DEV V5.3: panel/X/minus nie ustabilizowały się przed odczytem:", key);
+        }
+
+        /*
+         * Baza zawsze pochodzi z aktualnego, fizycznego CSS ADMIN.
+         * V5.3 czyta ją dopiero gdy prawdziwy panel, X i — przestaną się ruszać.
+         * Dzięki temu refresh i kolejność inicjalizacji ADMIN nie zmieniają odczytu.
+         */
+        if (!dirtyKeys.has(key)) {
+            state[key] = defaultPanelState(config);
+        } else {
             ensureState(key);
-            renderControls();
-            highlightSelected();
-        }, 80);
+        }
+
+        renderControls();
+        highlightSelected();
     }
 
     function renderEditor() {
@@ -1177,18 +1260,17 @@ ${managed}
         installSafeMode();
         markBlockedButtons();
 
-        applyLive();
-
-        setTimeout(() => {
-            selectPanel(selectedKey);
-            markBlockedButtons();
-        }, 350);
+        /* V5.3: po refreshu nie dotykamy żadnego panelu ADMIN i niczego nie odczytujemy.
+           Użytkownik wybiera panel ręcznie; dopiero wtedy otwieramy go i czekamy na stabilny layout. */
+        renderControls();
+        setStatus("Gotowe. Wybierz panel — refresh nie zmienia już stanu okien ADMIN.", "ok");
+        setTimeout(markBlockedButtons, 350);
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init, {once:true});
-    } else {
+    if (document.readyState === "complete") {
         init();
+    } else {
+        window.addEventListener("load", init, {once:true});
     }
 
     window.addEventListener("beforeunload", event => {
