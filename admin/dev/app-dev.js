@@ -1,6 +1,6 @@
 
 /* ==========================================================================
-   NAIL-ART DEV V5 — REAL ADMIN EDITOR + PHYSICAL SAVE
+   NAIL-ART DEV V5.1 — SAFE PANEL PATCH SAVE
    DEV ładuje dokładnie te same CSS/JS/DOM co ADMIN.
    Ten plik jest tylko narzędziem edycyjnym na wierzchu.
    ========================================================================== */
@@ -199,6 +199,7 @@
     let state = {};
     let selectedKey = "detailsAppointment";
     let dirty = false;
+    const dirtyKeys = new Set();
 
     function num(value, fallback = 0) {
         const n = Number.parseFloat(value);
@@ -524,6 +525,104 @@ ${config.statusButton} {
         return source.replace(/\s*$/, "") + "\n\n" + block + "\n";
     }
 
+
+    function panelPatchStart(key) {
+        return `/* ===== NAIL-ART DEV V5 PANEL ${key} START ===== */`;
+    }
+
+    function panelPatchEnd(key) {
+        return `/* ===== NAIL-ART DEV V5 PANEL ${key} END ===== */`;
+    }
+
+    function panelPatchBlock(patch) {
+        const key = String(patch?.key || "").trim();
+        const css = String(patch?.css || "").trim();
+        if (!key || !css) throw new Error("Nieprawidłowy blok panelu DEV.");
+        return `${panelPatchStart(key)}
+${css}
+${panelPatchEnd(key)}`;
+    }
+
+    function legacyPanelComment(config) {
+        return `/* ${config.name} — DEV V5 / PRAWDZIWY DOM */`;
+    }
+
+    function nextPanelBoundary(body, fromIndex) {
+        const candidates = [];
+        PANELS.forEach(config => {
+            const legacy = body.indexOf(legacyPanelComment(config), fromIndex);
+            if (legacy >= 0) candidates.push(legacy);
+            const modern = body.indexOf(panelPatchStart(config.key), fromIndex);
+            if (modern >= 0) candidates.push(modern);
+        });
+        return candidates.length ? Math.min(...candidates) : body.length;
+    }
+
+    function mergePanelPatchesIntoCss(fullCss, patches) {
+        const source = String(fullCss || "");
+        const normalized = (Array.isArray(patches) ? patches : [])
+            .filter(item => item && String(item.key || "").trim() && String(item.css || "").trim());
+        if (!normalized.length) return source;
+
+        const startIndex = source.indexOf(MANAGED_START);
+        const endIndex = source.indexOf(MANAGED_END);
+        const hasManaged = startIndex >= 0 && endIndex > startIndex;
+
+        let body = hasManaged
+            ? source.slice(startIndex + MANAGED_START.length, endIndex)
+            : "";
+
+        normalized.forEach(patch => {
+            const key = String(patch.key).trim();
+            const config = getPanelConfig(key);
+            if (!config || config.key !== key) throw new Error(`Nieznany panel DEV: ${key}`);
+
+            const replacement = panelPatchBlock({key, css: patch.css});
+            const modernStart = body.indexOf(panelPatchStart(key));
+            const modernEnd = body.indexOf(panelPatchEnd(key));
+
+            if (modernStart >= 0 && modernEnd > modernStart) {
+                body = body.slice(0, modernStart) + replacement + body.slice(modernEnd + panelPatchEnd(key).length);
+                return;
+            }
+
+            const legacyStart = body.indexOf(legacyPanelComment(config));
+            if (legacyStart >= 0) {
+                const legacyEnd = nextPanelBoundary(body, legacyStart + legacyPanelComment(config).length);
+                body = body.slice(0, legacyStart) + replacement + body.slice(legacyEnd);
+                return;
+            }
+
+            body = body.replace(/\s*$/, "") + `
+
+${replacement}
+`;
+        });
+
+        const stamp = new Date().toISOString();
+        const managed = `${MANAGED_START}
+/* Aktualizacja panelowa V5.1: ${stamp} */${body.replace(/^\s*/, "\n").replace(/\s*$/, "\n")}${MANAGED_END}`;
+
+        if (hasManaged) {
+            return source.slice(0, startIndex) + managed + source.slice(endIndex + MANAGED_END.length);
+        }
+        return source.replace(/\s*$/, "") + `
+
+${managed}
+`;
+    }
+
+    function buildDirtyPanelPatches() {
+        return Array.from(dirtyKeys)
+            .map(key => {
+                const config = getPanelConfig(key);
+                const values = state[key];
+                if (!config || !values) return null;
+                return { key, css: cssForPanel(config, values) };
+            })
+            .filter(Boolean);
+    }
+
     async function postJson(url, payload, timeoutMs = 45000) {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
@@ -578,14 +677,14 @@ ${config.statusButton} {
         return result;
     }
 
-    async function saveGithub(generatedCss) {
+    async function saveGithub(panelPatches) {
         const key = getSyncKey({required:true});
         if (!key) throw new Error("Brak DEV_SYNC_KEY.");
 
         const result = await postJson(appsScriptUrl(), {
             action: "saveDevLayoutToGithub",
             devSyncKey: key,
-            css: generatedCss,
+            panels: panelPatches,
             source: "GITHUB_DEV",
             pageUrl: location.href
         }, 90000);
@@ -597,14 +696,14 @@ ${config.statusButton} {
         return result;
     }
 
-    async function saveViaLocalBridge(generatedCss) {
+    async function saveViaLocalBridge(panelPatches) {
         const oldResponse = await fetch(`../CSS/styleadmin-overrides.css?devsync=${Date.now()}`, {cache:"no-store"});
         if (!oldResponse.ok) throw new Error("Nie mogę odczytać lokalnego styleadmin-overrides.css.");
         const oldContent = await oldResponse.text();
 
         const backup = await backupToDriveBeforeLocalWrite(oldContent, "LOCAL_DEV_BRIDGE");
         const result = await postJson(`${location.origin}/__dev/save-layout`, {
-            css: generatedCss
+            panels: panelPatches
         }, 30000);
         if (!result?.success) throw new Error(result?.message || result?.error || "Lokalny helper nie zapisał pliku.");
         return { ...result, driveBackupId: backup.backupFileId || "" };
@@ -685,12 +784,12 @@ ${config.statusButton} {
         return handle;
     }
 
-    async function saveToPhysicalLocalFile(generatedCss) {
+    async function saveToPhysicalLocalFile(panelPatches) {
         const handle = await getLocalAdminFileHandle();
         const file = await handle.getFile();
         const oldContent = await file.text();
         const backup = await backupToDriveBeforeLocalWrite(oldContent, "LOCAL_DEV_FILE_PICKER");
-        const newContent = replaceManagedBlock(oldContent, generatedCss);
+        const newContent = mergePanelPatchesIntoCss(oldContent, panelPatches);
         const writable = await handle.createWritable();
         await writable.write(newContent);
         await writable.close();
@@ -700,22 +799,28 @@ ${config.statusButton} {
     async function saveToAdmin() {
         const button = document.querySelector(`#${EDITOR_ID} [data-dev-save]`);
         if (button?.disabled) return;
-        const generatedCss = buildCss();
+        const panelPatches = buildDirtyPanelPatches();
         const mode = runtimeMode();
+
+        if (!panelPatches.length) {
+            setStatus("Brak nowych zmian do zapisania.", "ok");
+            return;
+        }
 
         if (button) {
             button.disabled = true;
             button.textContent = "Zapisywanie…";
         }
-        setStatus("Tworzę backup i zapisuję prawdziwy plik ADMIN…", "warn");
+        setStatus(`Tworzę backup i zapisuję ${panelPatches.length} zmieniony panel bez naruszania pozostałych…`, "warn");
 
         try {
             let result;
-            if (mode === "github") result = await saveGithub(generatedCss);
-            else if (mode === "local-bridge") result = await saveViaLocalBridge(generatedCss);
-            else result = await saveToPhysicalLocalFile(generatedCss);
+            if (mode === "github") result = await saveGithub(panelPatches);
+            else if (mode === "local-bridge") result = await saveViaLocalBridge(panelPatches);
+            else result = await saveToPhysicalLocalFile(panelPatches);
 
             dirty = false;
+            dirtyKeys.clear();
             if (mode === "github") {
                 setStatus(
                     `✓ Zapisano fizycznie do GitHub: admin/CSS/styleadmin-overrides.css. Backup Google Drive: ${result.backupFileId || "OK"}. Commit: ${result.commitSha || "OK"}. GitHub Pages może potrzebować kilkudziesięciu sekund na publikację.`,
@@ -728,7 +833,7 @@ ${config.statusButton} {
                 );
             }
         } catch (error) {
-            console.error("DEV V5 save:", error);
+            console.error("DEV V5.1 save:", error);
             setStatus("BŁĄD ZAPISU: " + (error?.message || String(error)), "warn");
         } finally {
             if (button) {
@@ -743,6 +848,7 @@ ${config.statusButton} {
     function resetSaved() {
         if (!confirm("Cofnąć tylko niezapisany podgląd i ponownie wczytać wartości z fizycznego CSS?")) return;
         dirty = false;
+        dirtyKeys.clear();
         location.reload();
     }
 
@@ -848,6 +954,7 @@ ${config.statusButton} {
                     const value = num(event.currentTarget.value, values[key] || 0);
 
                     ensureState(selectedKey)[key] = value;
+                    dirtyKeys.add(selectedKey);
                     markDirty();
                     applyLive();
                 });
@@ -873,7 +980,7 @@ ${config.statusButton} {
         try {
             await config.open?.();
         } catch (error) {
-            console.warn("DEV V5 open panel:", error);
+            console.warn("DEV V5.1 open panel:", error);
         }
 
         setTimeout(() => {
