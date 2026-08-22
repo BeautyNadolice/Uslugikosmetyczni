@@ -4267,3 +4267,643 @@ document.addEventListener(
 );
 
 // KONIEC INDEX V24.1
+
+// ======================================================================
+// INDEX FIRST VISIT UI V11 — DOCZELOWY FLOW 4 KROKI
+// 2026-08-22
+//
+// KROK 1: dane kontaktowe
+// KROK 2: kategoria + opis potrzeb + sposób kontaktu
+// KROK 3: preferowane terminy (do 3 dni, przedział max 2h),
+//         wiadomość opcjonalna + zgody
+// KROK 4: pełne podsumowanie + „Edytuj” + finalna wysyłka
+//
+// Zachowujemy istniejący backend createFirstVisitRequest i identyfikatory V9/V10,
+// żeby nie naruszać działającej integracji ADMIN/Google Apps Script.
+// ======================================================================
+
+function crmFirstVisitTimeMinutesV11(value) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return NaN;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return NaN;
+  return hours * 60 + minutes;
+}
+
+function crmFirstVisitProposalRowsV11() {
+  return (crmFirstVisitDaysV9 || [])
+    .filter(item => String(item?.date || "").trim())
+    .slice(0, CRM_FIRST_VISIT_MAX_DAYS_V9)
+    .map(item => ({
+      date: String(item.date || "").trim(),
+      start: String(item.start || "").trim(),
+      end: String(item.end || "").trim()
+    }));
+}
+
+function crmFirstVisitPreferredWindowV11(rows = crmFirstVisitProposalRowsV11()) {
+  return rows
+    .map(item => {
+      const date = crmFirstVisitFormatDateV10(item.date) || item.date;
+      const range = item.start && item.end
+        ? `${item.start}–${item.end}`
+        : "bez godzin";
+      return `${date}: ${range}`;
+    })
+    .join("; ");
+}
+
+function crmFirstVisitDescriptionV11() {
+  return String(
+    document.getElementById("crmFirstVisitMessageV9")?.value || ""
+  ).trim();
+}
+
+function crmFirstVisitOptionalNoteV11() {
+  return String(
+    document.getElementById("crmFirstVisitNoteV11")?.value || ""
+  ).trim();
+}
+
+function crmFirstVisitBackendMessageV11() {
+  const description = crmFirstVisitDescriptionV11();
+  const note = crmFirstVisitOptionalNoteV11();
+  if (!note) return description;
+  return `${description}\n\nWiadomość dodatkowa: ${note}`;
+}
+
+function crmFirstVisitFormMarkupV11() {
+  return `
+  <div
+    id="crmFirstVisitV10"
+    class="crm-first-visit-form crm-first-visit-v9 crm-first-visit-v10 crm-first-visit-v11">
+
+    <div class="crm-first-visit-head crm-first-visit-head-v10">
+      <div>
+        <span class="crm-first-visit-eyebrow">PIERWSZA WIZYTA</span>
+        <h2>Wyślij prośbę o termin</h2>
+        <p>
+          Podaj dane w 3 krótkich krokach, a w kroku 4 sprawdź wszystko przed wysłaniem.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="crm-first-visit-close"
+        aria-label="Zamknij">
+        ×
+      </button>
+    </div>
+
+    ${crmFirstVisitProgressMarkupV10()}
+
+    <form
+      id="crmFirstVisitFormV9"
+      class="crm-first-visit-wizard-form-v10"
+      autocomplete="on">
+
+      <!-- KROK 1 -->
+      <section class="crm-first-visit-step-v10" data-fv-step="1">
+        <div class="crm-first-visit-step-head-v10">
+          <span>KROK 1 Z 4</span>
+          <h3>Dane kontaktowe</h3>
+          <p>Podaj imię i numer telefonu.</p>
+        </div>
+
+        <div class="crm-first-visit-grid">
+          <label>
+            <span>Imię i nazwisko *</span>
+            <input
+              id="crmFirstVisitNameV9"
+              type="text"
+              autocomplete="name"
+              placeholder="Wpisz swoje imię i nazwisko"
+              required>
+          </label>
+
+          <label>
+            <span>Telefon *</span>
+            <input
+              id="crmFirstVisitPhoneV9"
+              type="tel"
+              autocomplete="tel"
+              placeholder="+48 512 345 678"
+              required>
+          </label>
+        </div>
+
+        ${crmFirstVisitStepFooterV10({ next: true, nextLabel: "Dalej", step: 1 })}
+      </section>
+
+      <!-- KROK 2 -->
+      <section class="crm-first-visit-step-v10" data-fv-step="2" hidden>
+        <div class="crm-first-visit-step-head-v10">
+          <span>KROK 2 Z 4</span>
+          <h3>Szczegóły wizyty</h3>
+          <p>Wybierz kategorię, opisz czego potrzebujesz i wybierz sposób kontaktu.</p>
+        </div>
+
+        <label class="crm-first-visit-field">
+          <span>Wybierz kategorię *</span>
+          <select id="crmFirstVisitCategoryV9" required>
+            <option value="">— Wybierz kategorię —</option>
+            ${crmFirstVisitCategoryOptionsV9()}
+          </select>
+        </label>
+
+        <label class="crm-first-visit-field">
+          <span>Opisz, czego potrzebujesz *</span>
+          <textarea
+            id="crmFirstVisitMessageV9"
+            rows="5"
+            minlength="5"
+            required
+            placeholder="Napisz, z czym przychodzisz, czego oczekujesz albo jaki efekt chcesz uzyskać..."></textarea>
+        </label>
+
+        ${crmFirstVisitContactMethodMarkupV9()}
+
+        ${crmFirstVisitStepFooterV10({ back: true, next: true, nextLabel: "Dalej", step: 2 })}
+      </section>
+
+      <!-- KROK 3 -->
+      <section class="crm-first-visit-step-v10" data-fv-step="3" hidden>
+        <div class="crm-first-visit-step-head-v10">
+          <span>KROK 3 Z 4</span>
+          <h3>Preferowane terminy</h3>
+          <p>
+            Dodaj od 1 do 3 preferowanych dni. Dla każdego dnia podaj przedział czasu
+            nie dłuższy niż 2 godziny. To tylko propozycje — salon potwierdzi termin.
+          </p>
+        </div>
+
+        <section class="crm-first-visit-preferences crm-first-visit-preferences-v10">
+          <div class="crm-first-visit-section-title">
+            <div>
+              <strong>Preferowane dni i godziny</strong>
+              <small>Do 3 dni · maksymalnie 2 godziny na każdy dzień.</small>
+            </div>
+
+            <button
+              type="button"
+              id="crmFirstVisitAddDayV9"
+              class="crm-first-visit-add-day">
+              + Dodaj dzień
+            </button>
+          </div>
+
+          <div id="crmFirstVisitDaysV9"></div>
+        </section>
+
+        <label class="crm-first-visit-field crm-first-visit-note-v11">
+          <span>Wiadomość <small>(opcjonalnie)</small></span>
+          <textarea
+            id="crmFirstVisitNoteV11"
+            rows="3"
+            maxlength="700"
+            placeholder="Dodatkowe informacje, które mogą być dla nas pomocne..."></textarea>
+        </label>
+
+        <div class="crm-first-visit-consents-v10 crm-first-visit-consents-step3-v11">
+          <label class="crm-first-visit-consent">
+            <input id="crmFirstVisitContactConsentV9" type="checkbox" required>
+            <span>
+              Zgadzam się na kontakt wybranym sposobem w celu ustalenia pierwszej wizyty. *
+            </span>
+          </label>
+
+          <label class="crm-first-visit-consent">
+            <input id="crmFirstVisitRodoV9" type="checkbox" required>
+            <span>
+              Wyrażam zgodę na przetwarzanie danych w celu obsługi mojego zapytania o wizytę.
+              Szczegóły w
+              <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
+            </span>
+          </label>
+        </div>
+
+        ${crmFirstVisitStepFooterV10({ back: true, next: true, nextLabel: "Podsumowanie", step: 3 })}
+      </section>
+
+      <!-- KROK 4 -->
+      <section class="crm-first-visit-step-v10" data-fv-step="4" hidden>
+        <div class="crm-first-visit-step-head-v10">
+          <span>KROK 4 Z 4</span>
+          <h3>Podsumowanie</h3>
+          <p>
+            Sprawdź wszystkie informacje. Przy każdej sekcji możesz kliknąć „Zmień”.
+            Nic nie zostanie wysłane, dopóki nie naciśniesz przycisku na dole.
+          </p>
+        </div>
+
+        <div id="crmFirstVisitReviewV10" class="crm-first-visit-review-v10"></div>
+
+        <div class="crm-first-visit-nav-v10 crm-first-visit-final-nav-v10">
+          <button type="button" class="crm-first-visit-back-v10" data-fv-back="3">
+            ← Wstecz
+          </button>
+
+          <button
+            id="crmFirstVisitSubmitV9"
+            type="submit"
+            class="crm-first-visit-submit">
+            Wyślij prośbę o termin
+          </button>
+        </div>
+      </section>
+
+      <div id="crmFirstVisitErrorV9" class="crm-first-visit-error" hidden></div>
+    </form>
+
+    <div id="crmFirstVisitSuccessV9" class="crm-first-visit-success" hidden>
+      <b>✓</b>
+      <strong>Prośba została wysłana</strong>
+      <p>
+        Salon sprawdzi informacje i zaproponowane terminy,
+        a następnie skontaktuje się z Tobą wybranym sposobem.
+      </p>
+    </div>
+  </div>`;
+}
+
+crmFirstVisitFormMarkupV10 = crmFirstVisitFormMarkupV11;
+
+crmFirstVisitAddDayV9 = function() {
+  if (!crmFirstVisitSelectedCategoryV9()) return;
+  if ((crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9) return;
+
+  crmFirstVisitDaysV9.push({
+    id: "D" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    date: "",
+    start: "",
+    end: ""
+  });
+
+  crmFirstVisitRenderDaysV9();
+};
+
+crmFirstVisitRenderDaysV9 = function() {
+  const host = document.getElementById("crmFirstVisitDaysV9");
+  const add = document.getElementById("crmFirstVisitAddDayV9");
+  if (!host) return;
+
+  const categorySelected = Boolean(crmFirstVisitSelectedCategoryV9());
+
+  if (add) {
+    add.disabled =
+      !categorySelected ||
+      (crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9;
+  }
+
+  if (!categorySelected) {
+    host.innerHTML =
+      '<div class="crm-first-visit-empty">Najpierw wybierz kategorię w kroku 2.</div>';
+    return;
+  }
+
+  if (!(crmFirstVisitDaysV9 || []).length) {
+    host.innerHTML =
+      '<div class="crm-first-visit-empty">Dodaj przynajmniej jeden preferowany dzień.</div>';
+    return;
+  }
+
+  host.innerHTML = crmFirstVisitDaysV9.map((item, index) => `
+    <article class="crm-first-visit-day-card crm-first-visit-range-card-v11" data-day-id="${item.id}">
+      <div class="crm-first-visit-day-head">
+        <strong>Dzień ${index + 1}</strong>
+        <button type="button" data-remove-day="${item.id}">Usuń</button>
+      </div>
+
+      <div class="crm-first-visit-range-row-v11">
+        <label class="crm-first-visit-range-date-v11">
+          <span>Data</span>
+          <input
+            type="text"
+            class="crm-first-visit-date"
+            data-day-date="${item.id}"
+            value="${crmFirstVisitEscapeV9(item.date || "")}"
+            placeholder="Wybierz datę"
+            readonly>
+        </label>
+
+        <label>
+          <span>Od</span>
+          <input
+            type="time"
+            data-day-start="${item.id}"
+            value="${crmFirstVisitEscapeV9(item.start || "")}">
+        </label>
+
+        <label>
+          <span>Do</span>
+          <input
+            type="time"
+            data-day-end="${item.id}"
+            value="${crmFirstVisitEscapeV9(item.end || "")}">
+        </label>
+      </div>
+
+      <div class="crm-first-visit-day-hint">
+        Przedział musi być dłuższy niż 0 i nie może przekraczać 2 godzin.
+      </div>
+    </article>
+  `).join("");
+
+  host.querySelectorAll("[data-remove-day]").forEach(button => {
+    button.onclick = () => crmFirstVisitRemoveDayV9(button.dataset.removeDay);
+  });
+
+  host.querySelectorAll("[data-day-start]").forEach(input => {
+    input.onchange = () => {
+      const row = crmFirstVisitDayStateV9(input.dataset.dayStart);
+      if (row) row.start = input.value || "";
+      crmFirstVisitClearErrorV10();
+    };
+  });
+
+  host.querySelectorAll("[data-day-end]").forEach(input => {
+    input.onchange = () => {
+      const row = crmFirstVisitDayStateV9(input.dataset.dayEnd);
+      if (row) row.end = input.value || "";
+      crmFirstVisitClearErrorV10();
+    };
+  });
+
+  host.querySelectorAll("[data-day-date]").forEach(input => {
+    const id = input.dataset.dayDate;
+    const item = crmFirstVisitDayStateV9(id);
+
+    if (typeof flatpickr === "function") {
+      flatpickr(input, {
+        locale: "pl",
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        maxDate: new Date().fp_incr(120),
+        disableMobile: true,
+        defaultDate: item?.date || null,
+        onChange: (_selected, dateStr) => {
+          const row = crmFirstVisitDayStateV9(id);
+          if (!row) return;
+          row.date = dateStr;
+          crmFirstVisitClearErrorV10();
+        }
+      });
+    }
+  });
+};
+
+const crmFirstVisitValidateStepV10BeforeV11 = crmFirstVisitValidateStepV10;
+crmFirstVisitValidateStepV10 = function(step) {
+  crmFirstVisitClearErrorV10();
+
+  if (step === 1) {
+    const name = String(document.getElementById("crmFirstVisitNameV9")?.value || "").trim();
+    const phone = String(document.getElementById("crmFirstVisitPhoneV9")?.value || "").trim();
+    const phoneDigits = phone.replace(/\D/g, "");
+
+    if (!name) {
+      crmFirstVisitShowErrorV10("Wpisz imię i nazwisko.");
+      return false;
+    }
+
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      crmFirstVisitShowErrorV10("Wpisz poprawny numer telefonu.");
+      return false;
+    }
+
+    return true;
+  }
+
+  if (step === 2) {
+    const category = crmFirstVisitSelectedCategoryV9();
+    const description = crmFirstVisitDescriptionV11();
+    const contactMethod = String(
+      document.querySelector('input[name="crmFirstVisitContactV9"]:checked')?.value || ""
+    ).trim();
+    const email = String(document.getElementById("crmFirstVisitEmailV9")?.value || "").trim();
+
+    if (!category) {
+      crmFirstVisitShowErrorV10("Wybierz kategorię.");
+      return false;
+    }
+
+    if (description.length < 5) {
+      crmFirstVisitShowErrorV10("Napisz krótko, czego potrzebujesz.");
+      return false;
+    }
+
+    if (!contactMethod) {
+      crmFirstVisitShowErrorV10("Wybierz sposób kontaktu: WhatsApp, SMS lub E-mail.");
+      return false;
+    }
+
+    if (contactMethod === "EMAIL") {
+      const input = document.getElementById("crmFirstVisitEmailV9");
+      if (!email || (input && !input.checkValidity())) {
+        crmFirstVisitShowErrorV10("Podaj poprawny adres e-mail.");
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  if (step === 3) {
+    const rows = crmFirstVisitProposalRowsV11();
+    const contactConsent = Boolean(document.getElementById("crmFirstVisitContactConsentV9")?.checked);
+    const rodo = Boolean(document.getElementById("crmFirstVisitRodoV9")?.checked);
+
+    if (!rows.length) {
+      crmFirstVisitShowErrorV10("Dodaj przynajmniej jeden preferowany dzień.");
+      return false;
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row.date || !row.start || !row.end) {
+        crmFirstVisitShowErrorV10(`Uzupełnij datę oraz godziny „od–do” dla dnia ${i + 1}.`);
+        return false;
+      }
+
+      const start = crmFirstVisitTimeMinutesV11(row.start);
+      const end = crmFirstVisitTimeMinutesV11(row.end);
+      const duration = end - start;
+
+      if (!Number.isFinite(start) || !Number.isFinite(end) || duration <= 0) {
+        crmFirstVisitShowErrorV10(`Godzina końcowa w dniu ${i + 1} musi być późniejsza niż początkowa.`);
+        return false;
+      }
+
+      if (duration > 120) {
+        crmFirstVisitShowErrorV10(`Przedział w dniu ${i + 1} może mieć maksymalnie 2 godziny.`);
+        return false;
+      }
+    }
+
+    if (!contactConsent || !rodo) {
+      crmFirstVisitShowErrorV10("Zaznacz obie wymagane zgody.");
+      return false;
+    }
+
+    return true;
+  }
+
+  return true;
+};
+
+crmFirstVisitReviewMarkupV10 = function() {
+  const name = String(document.getElementById("crmFirstVisitNameV9")?.value || "").trim();
+  const phone = String(document.getElementById("crmFirstVisitPhoneV9")?.value || "").trim();
+  const category = crmFirstVisitSelectedCategoryV9();
+  const description = crmFirstVisitDescriptionV11();
+  const note = crmFirstVisitOptionalNoteV11();
+  const contactMethod = String(
+    document.querySelector('input[name="crmFirstVisitContactV9"]:checked')?.value || ""
+  ).trim();
+  const email = String(document.getElementById("crmFirstVisitEmailV9")?.value || "").trim();
+  const rows = crmFirstVisitProposalRowsV11();
+
+  const contactValue = contactMethod === "EMAIL"
+    ? `${crmFirstVisitContactLabelV10(contactMethod)} · ${email || "—"}`
+    : `${crmFirstVisitContactLabelV10(contactMethod)} · ${phone || "—"}`;
+
+  const termsMarkup = rows.map(item => `
+    <div class="crm-first-visit-review-term-v10 crm-first-visit-review-range-v11">
+      <b>${crmFirstVisitEscapeV9(crmFirstVisitFormatDateV10(item.date) || item.date)}</b>
+      <span>${crmFirstVisitEscapeV9(`${item.start}–${item.end}`)}</span>
+    </div>
+  `).join("");
+
+  return `
+    <article class="crm-first-visit-review-card-v10">
+      <div class="crm-first-visit-review-head-v10">
+        <div><span>1</span><strong>Dane kontaktowe</strong></div>
+        <button type="button" data-fv-edit="1">Zmień</button>
+      </div>
+      <dl>
+        <div><dt>Imię i nazwisko</dt><dd>${crmFirstVisitEscapeV9(name || "—")}</dd></div>
+        <div><dt>Telefon</dt><dd>${crmFirstVisitEscapeV9(phone || "—")}</dd></div>
+      </dl>
+    </article>
+
+    <article class="crm-first-visit-review-card-v10">
+      <div class="crm-first-visit-review-head-v10">
+        <div><span>2</span><strong>Szczegóły wizyty</strong></div>
+        <button type="button" data-fv-edit="2">Zmień</button>
+      </div>
+      <dl>
+        <div><dt>Kategoria</dt><dd>${crmFirstVisitEscapeV9(category?.name || "—")}</dd></div>
+        <div><dt>Opis potrzeb</dt><dd>${crmFirstVisitEscapeV9(description || "—")}</dd></div>
+        <div><dt>Sposób kontaktu</dt><dd>${crmFirstVisitEscapeV9(contactValue)}</dd></div>
+      </dl>
+    </article>
+
+    <article class="crm-first-visit-review-card-v10">
+      <div class="crm-first-visit-review-head-v10">
+        <div><span>3</span><strong>Preferowane terminy</strong></div>
+        <button type="button" data-fv-edit="3">Zmień</button>
+      </div>
+      <div class="crm-first-visit-review-terms-v10">${termsMarkup}</div>
+      <dl class="crm-first-visit-review-note-v11">
+        <div><dt>Wiadomość</dt><dd>${crmFirstVisitEscapeV9(note || "Brak")}</dd></div>
+        <div><dt>Zgody</dt><dd>Zaakceptowane</dd></div>
+      </dl>
+    </article>
+  `;
+};
+
+const crmFirstVisitSubmitV9BeforeV11 = crmFirstVisitSubmitV9;
+crmFirstVisitSubmitV9 = async function(event) {
+  event.preventDefault();
+
+  if (!crmFirstVisitValidateStepV10(1) ||
+      !crmFirstVisitValidateStepV10(2) ||
+      !crmFirstVisitValidateStepV10(3)) {
+    return;
+  }
+
+  const submit = document.getElementById("crmFirstVisitSubmitV9");
+  const error = document.getElementById("crmFirstVisitErrorV9");
+
+  if (error) {
+    error.hidden = true;
+    error.textContent = "";
+  }
+
+  const name = String(document.getElementById("crmFirstVisitNameV9")?.value || "").trim();
+  const phone = String(document.getElementById("crmFirstVisitPhoneV9")?.value || "").trim();
+  const category = crmFirstVisitSelectedCategoryV9();
+  const contactMethod = String(
+    document.querySelector('input[name="crmFirstVisitContactV9"]:checked')?.value || ""
+  ).trim();
+  const email = String(document.getElementById("crmFirstVisitEmailV9")?.value || "").trim();
+  const rows = crmFirstVisitProposalRowsV11();
+
+  const proposals = rows.map(item => ({
+    date: item.date,
+    times: [item.start, item.end]
+  }));
+
+  const preferredWindow = crmFirstVisitPreferredWindowV11(rows);
+  const message = crmFirstVisitBackendMessageV11();
+
+  if (submit) {
+    submit.disabled = true;
+    submit.textContent = "Wysyłanie…";
+  }
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "createFirstVisitRequest",
+        phone,
+        name,
+        categoryId: category?.id || "",
+        category: category?.name || "",
+        service: category?.name || "",
+        duration: category?.effectiveMinutes || 45,
+        message,
+        preferredWindow,
+        contactMethod,
+        email: contactMethod === "EMAIL" ? email : "",
+        contactConsent: "TAK",
+        rodo: "TAK",
+        proposals: JSON.stringify(proposals)
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data?.success) {
+      throw new Error(data?.message || data?.error || "Nie udało się wysłać prośby.");
+    }
+
+    const form = document.getElementById("crmFirstVisitFormV9");
+    if (form) form.hidden = true;
+
+    const success = document.getElementById("crmFirstVisitSuccessV9");
+    if (success) success.hidden = false;
+
+    window.setTimeout(() => {
+      const modal = document.getElementById("contact-form-modal");
+      if (modal) modal.style.display = "none";
+    }, 4200);
+  } catch (err) {
+    if (error) {
+      error.hidden = false;
+      error.textContent = err?.message || String(err);
+    }
+
+    if (submit) {
+      submit.disabled = false;
+      submit.textContent = "Wyślij prośbę o termin";
+    }
+  }
+};
+
+window.crmFirstVisitUiVersionV11 = "11.0-4-step-summary-range";
+
+// KONIEC INDEX FIRST VISIT UI V11
