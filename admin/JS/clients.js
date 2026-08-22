@@ -2063,3 +2063,1470 @@ document.addEventListener("DOMContentLoaded", () => {
    ========================================================================== */
 /* KONIEC CLIENTS V26.5 */
 
+/* ==========================================================================
+   CLIENTS V26.8 — LAZY HYDRATION SKRZYNKI TYLKO PO WEJŚCIU W KLIENTÓW
+
+   Cel:
+   - NIE dokładamy nic do bootstrapa ADMIN,
+   - NIE dokładamy nowego pingu,
+   - NIE czekamy na Skrzynkę przed pokazaniem Klientów,
+   - pełna Skrzynka jest pobierana najwyżej raz i dopiero po wejściu w Klientów,
+     jeśli nie ma jej jeszcze w RAM/cache,
+   - gdy ping widzi NOWE wpisy -> start od razu po renderze,
+   - gdy ping pokazuje 0 / nie jest jeszcze gotowy -> pełny odczyt wykonuje się
+     w idle/background, żeby wychwycić także PRZECZYTANE, ale nadal nieobsłużone.
+   ========================================================================== */
+
+let crmClientsInboxHydratePromiseV268 = null;
+let crmClientsInboxHydrationScheduledV268 = false;
+let crmClientsInboxHydrationRetryV268 = null;
+
+function crmClientsHasFullInboxCacheV268() {
+    try {
+        return Number(crmUnifiedInboxLastSuccessV3 || 0) > 0;
+    } catch (_) {
+        return false;
+    }
+}
+
+function crmClientsCancelInboxHydrationRetryV268() {
+    if (!crmClientsInboxHydrationRetryV268) return;
+    window.clearTimeout(crmClientsInboxHydrationRetryV268);
+    crmClientsInboxHydrationRetryV268 = null;
+}
+
+function crmClientsStartInboxHydrationV268() {
+    crmClientsInboxHydrationScheduledV268 = false;
+
+    if (!crmClientsTabVisibleV25222()) return;
+    if (crmClientsHasFullInboxCacheV268()) return;
+    if (crmClientsInboxHydratePromiseV268) return crmClientsInboxHydratePromiseV268;
+
+    /*
+     * Jeśli ADMIN jeszcze kończy swój normalny start albo działa diagnostyka,
+     * nie wchodzimy do kolejki. Spróbujemy dopiero później.
+     */
+    if (
+        window.crmBootInProgressV2 ||
+        window.crmDiagnosticsNetworkModeV11
+    ) {
+        crmClientsCancelInboxHydrationRetryV268();
+        crmClientsInboxHydrationRetryV268 = window.setTimeout(() => {
+            crmClientsInboxHydrationRetryV268 = null;
+            crmClientsScheduleInboxHydrationV268();
+        }, 500);
+        return;
+    }
+
+    if (typeof crmLoadUnifiedInbox !== "function") return;
+
+    /*
+     * silent:false jest celowe:
+     * finalna wersja crmLoadUnifiedInbox przy silent:true robi tylko lekki ping.
+     * Tutaj potrzebujemy PEŁNEJ listy, ale wyłącznie po wejściu w Klientów.
+     *
+     * force:false:
+     * - użyje istniejącego cache, jeśli jest aktualny,
+     * - skorzysta z istniejącego dedupe crmInboxPromiseV11,
+     * - nie uruchomi drugiego requestu, jeśli Skrzynka już się pobiera.
+     */
+    crmClientsInboxHydratePromiseV268 = Promise.resolve()
+        .then(() => crmLoadUnifiedInbox({ force: false }))
+        .then(() => {
+            if (crmClientsTabVisibleV25222()) {
+                renderClients();
+            }
+        })
+        .catch(error => {
+            console.warn(
+                "Klienci — ciche pobranie Skrzynki:",
+                error?.message || error
+            );
+        })
+        .finally(() => {
+            crmClientsInboxHydratePromiseV268 = null;
+        });
+
+    return crmClientsInboxHydratePromiseV268;
+}
+
+function crmClientsScheduleInboxHydrationV268() {
+    if (!crmClientsTabVisibleV25222()) return;
+    if (crmClientsHasFullInboxCacheV268()) return;
+    if (crmClientsInboxHydratePromiseV268) return;
+    if (crmClientsInboxHydrationScheduledV268) return;
+
+    crmClientsInboxHydrationScheduledV268 = true;
+
+    const pingNewCount = Number(window.crmInboxPingNewCountV25);
+
+    /*
+     * Jeśli obecny ping już wykrył nowe zgłoszenie, nie ma sensu czekać.
+     * To nadal dzieje się PO natychmiastowym renderze Klientów.
+     */
+    if (Number.isFinite(pingNewCount) && pingNewCount > 0) {
+        window.setTimeout(crmClientsStartInboxHydrationV268, 0);
+        return;
+    }
+
+    /*
+     * Ping liczy tylko NOWE. PRZECZYTANE, ale nadal nieobsłużone zgłoszenie
+     * też musi trafić do Klientów, dlatego przy ping=0 wykonujemy dokładnie
+     * jeden pełny odczyt dopiero w czasie bezczynności przeglądarki.
+     */
+    if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(
+            crmClientsStartInboxHydrationV268,
+            { timeout: 1200 }
+        );
+    } else {
+        window.setTimeout(crmClientsStartInboxHydrationV268, 220);
+    }
+}
+
+/*
+ * Render Klientów pozostaje natychmiastowy.
+ * Dopiero po nim uruchamiamy lazy hydration.
+ */
+const crmRenderClientsBeforeInboxHydrationV268 = renderClients;
+renderClients = function() {
+    const result = crmRenderClientsBeforeInboxHydrationV268.apply(this, arguments);
+
+    if (crmClientsTabVisibleV25222()) {
+        crmClientsScheduleInboxHydrationV268();
+    }
+
+    return result;
+};
+
+/*
+ * Dodatkowe zabezpieczenie wejścia przez nawigację:
+ * render wykonuje się natychmiast, hydration dopiero po nim.
+ */
+document.addEventListener("click", event => {
+    const nav = event.target?.closest?.(
+        '.nav-btn[onclick*="klienci"], [onclick*="switchTab"][onclick*="klienci"]'
+    );
+    if (!nav) return;
+
+    window.setTimeout(() => {
+        if (crmClientsTabVisibleV25222()) {
+            crmClientsScheduleInboxHydrationV268();
+        }
+    }, 0);
+}, true);
+
+/* KONIEC CLIENTS V26.8 */
+
+/* ==========================================================================
+   CLIENTS V26.9 — FINALNY WIDOK KLIENCI
+   2026-08-22
+
+   Widoki:
+   - Klienci stali
+   - Osoby oczekujące
+   - Historia
+
+   Osoby oczekujące:
+   - NOWE / PRZECZYTANE
+   - Imię i nazwisko
+   - Kategoria
+   - Preferowane widełki + opcjonalne konkretne terminy
+   - Sposób kontaktu
+   - Opis potrzeby
+   - przejście do konkretnego wpisu w Skrzynce
+
+   Historia:
+   - ładowana WYŁĄCZNIE po kliknięciu zakładki Historia
+   - nie wydłuża startu ADMIN ani zwykłego wejścia w Klientów
+
+   V26.8 lazy hydration pozostaje zachowany:
+   - brak nowego pollingu
+   - brak nowego pingu
+   - brak requestu przed pokazaniem Klientów
+   ========================================================================== */
+
+let crmClientsViewV269 = "steady";
+let crmClientsHistoryCacheV269 = null;
+let crmClientsHistoryLoadingV269 = null;
+let crmClientsHistoryErrorV269 = "";
+
+function crmClientsEscapeJsStringV269(value) {
+    return String(value ?? "")
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'");
+}
+
+function crmClientsInboxStateV269(item) {
+    if (typeof crmInboxStatusLabel === "function") {
+        return crmInboxStatusLabel(item?.readState);
+    }
+
+    const raw = String(item?.readState || "NOWE").trim().toUpperCase();
+    if (raw === "PRZECZYTANE") return "PRZECZYTANE";
+    if (raw === "OBSŁUŻONE" || raw === "OBSLUZONE") return "OBSŁUŻONE";
+    return "NOWE";
+}
+
+function crmClientsWaitingRowsV269() {
+    const base =
+        typeof crmClientWaitingRowsV264 === "function"
+            ? crmClientWaitingRowsV264()
+            : [];
+
+    const inbox =
+        typeof crmUnifiedInboxItems !== "undefined" &&
+        Array.isArray(crmUnifiedInboxItems)
+            ? crmUnifiedInboxItems
+            : [];
+
+    return base.map(item => {
+        const requestId = String(item?.requestId || "");
+        const raw = inbox.find(entry =>
+            String(entry?.id || "") === requestId
+        ) || {};
+
+        const category = String(
+            raw?.category ||
+            item?.category ||
+            raw?.service ||
+            item?.service ||
+            ""
+        ).trim();
+
+        const preferredWindow = String(
+            raw?.preferredWindow ||
+            raw?.availability ||
+            ""
+        ).trim();
+
+        const contactMethod = String(
+            raw?.contactMethod ||
+            raw?.preferredContact ||
+            ""
+        ).trim().toUpperCase();
+
+        return {
+            ...item,
+            inboxType: String(raw?.type || item?.requestType || ""),
+            firstVisitType: String(raw?.requestType || ""),
+            category,
+            preferredWindow,
+            contactMethod,
+            email: String(raw?.email || "").trim(),
+            message: String(raw?.message || item?.service || "").trim(),
+            proposals: Array.isArray(raw?.proposals) ? raw.proposals : [],
+            timestamp: Number(raw?.timestamp) || 0,
+            createdAt: raw?.createdAt || item?.createdAt || "",
+            readState: raw?.readState || item?.readState || "NOWE",
+            status: raw?.status || item?.status || ""
+        };
+    });
+}
+
+function crmClientsWaitingStatePriorityV269(item) {
+    const state = crmClientsInboxStateV269(item);
+    if (state === "NOWE") return 0;
+    if (state === "PRZECZYTANE") return 1;
+    return 2;
+}
+
+function crmClientsWaitingSortV269(rows) {
+    return rows.slice().sort((a, b) => {
+        const stateDiff =
+            crmClientsWaitingStatePriorityV269(a) -
+            crmClientsWaitingStatePriorityV269(b);
+
+        if (stateDiff) return stateDiff;
+
+        const ta = Number(a?.timestamp) || new Date(a?.createdAt || "").getTime() || 0;
+        const tb = Number(b?.timestamp) || new Date(b?.createdAt || "").getTime() || 0;
+
+        return tb - ta;
+    });
+}
+
+function crmClientsWaitingMatchesV269(item, query) {
+    if (!query) return true;
+
+    const proposals = Array.isArray(item?.proposals)
+        ? item.proposals.map(row =>
+            `${row?.date || ""} ${(row?.times || []).join(" ")}`
+        ).join(" ")
+        : "";
+
+    const haystack = [
+        item?.name,
+        item?.phone,
+        item?.category,
+        item?.service,
+        item?.message,
+        item?.preferredWindow,
+        item?.contactMethod,
+        item?.email,
+        item?.main,
+        item?.alternative,
+        proposals
+    ].join(" ").toLowerCase();
+
+    return haystack.includes(query);
+}
+
+function crmClientsProposalTextV269(item) {
+    const proposals = Array.isArray(item?.proposals) ? item.proposals : [];
+
+    const parts = proposals
+        .filter(row => row?.date)
+        .slice(0, 3)
+        .map(row => {
+            const times = Array.isArray(row?.times)
+                ? row.times.filter(Boolean).slice(0, 2)
+                : [];
+
+            return times.length
+                ? `${row.date}: ${times.join(" / ")}`
+                : `${row.date}: bez godziny`;
+        });
+
+    if (parts.length) return parts.join(" • ");
+
+    const oldMain = String(item?.main || "").trim();
+    const oldAlt = String(item?.alternative || "").trim();
+
+    return [oldMain, oldAlt].filter(Boolean).join(" • ");
+}
+
+function crmClientsContactMetaV269(item) {
+    const method = String(item?.contactMethod || "").trim().toUpperCase();
+
+    if (method === "WHATSAPP") {
+        return {
+            key: "whatsapp",
+            icon: "W",
+            label: "WhatsApp",
+            value: String(item?.phone || "")
+        };
+    }
+
+    if (method === "SMS") {
+        return {
+            key: "sms",
+            icon: "SMS",
+            label: "SMS",
+            value: String(item?.phone || "")
+        };
+    }
+
+    if (method === "EMAIL") {
+        return {
+            key: "email",
+            icon: "@",
+            label: "E-mail",
+            value: String(item?.email || "")
+        };
+    }
+
+    if (item?.email) {
+        return {
+            key: "email",
+            icon: "@",
+            label: "E-mail",
+            value: String(item.email)
+        };
+    }
+
+    return {
+        key: "phone",
+        icon: "☎",
+        label: "Telefon",
+        value: String(item?.phone || "")
+    };
+}
+
+function crmClientsStatusBadgeV269(item) {
+    const state = crmClientsInboxStateV269(item);
+    const cls =
+        state === "NOWE"
+            ? "is-new"
+            : (
+                state === "PRZECZYTANE"
+                    ? "is-read"
+                    : "is-handled"
+            );
+
+    return `
+      <span class="crm-clients-request-status-v269 ${cls}">
+        ${crmClientEscapeHtmlV251(state)}
+      </span>`;
+}
+
+function crmClientsWaitingPreferredHtmlV269(item) {
+    const windowText = String(item?.preferredWindow || "").trim();
+    const proposalText = crmClientsProposalTextV269(item);
+
+    if (!windowText && !proposalText) {
+        return `<span class="crm-client-empty-v25222">Nie podano</span>`;
+    }
+
+    return `
+      <div class="crm-clients-request-preference-v269">
+        ${windowText
+            ? `<strong>${crmClientEscapeHtmlV251(windowText)}</strong>`
+            : ""}
+        ${proposalText
+            ? `<small>${crmClientEscapeHtmlV251(proposalText)}</small>`
+            : ""}
+      </div>`;
+}
+
+function crmClientsWaitingContactHtmlV269(item) {
+    const meta = crmClientsContactMetaV269(item);
+
+    return `
+      <div class="crm-clients-request-contact-v269">
+        <span class="crm-clients-request-contact-icon-v269 is-${meta.key}">
+          ${crmClientEscapeHtmlV251(meta.icon)}
+        </span>
+        <span>
+          <strong>${crmClientEscapeHtmlV251(meta.label)}</strong>
+          <small>${crmClientEscapeHtmlV251(meta.value || "—")}</small>
+        </span>
+      </div>`;
+}
+
+function crmClientsWaitingRowHtmlV269(item) {
+    const name = String(item?.name || "Nowa osoba");
+    const category = String(item?.category || item?.service || "—");
+    const message = String(item?.message || "").trim();
+    const requestId = String(item?.requestId || item?.id || "");
+
+    return `
+      <tr class="crm-clients-request-row-v269"
+          data-crm-request-id="${crmClientEscapeHtmlV251(requestId)}">
+        <td>${crmClientsStatusBadgeV269(item)}</td>
+        <td>
+          <div class="crm-clients-request-person-v269">
+            <strong>${crmClientEscapeHtmlV251(name)}</strong>
+            <small>${crmClientEscapeHtmlV251(item?.phone || "Brak numeru")}</small>
+          </div>
+        </td>
+        <td>
+          <div class="crm-clients-request-category-v269">
+            <strong>${crmClientEscapeHtmlV251(category)}</strong>
+            ${message
+                ? `<small title="${crmClientEscapeHtmlV251(message)}">${crmClientEscapeHtmlV251(message)}</small>`
+                : ""}
+          </div>
+        </td>
+        <td>${crmClientsWaitingPreferredHtmlV269(item)}</td>
+        <td>${crmClientsWaitingContactHtmlV269(item)}</td>
+        <td>
+          <button type="button"
+                  class="btn-secondary crm-clients-request-open-v269"
+                  data-crm-waiting-open-v269="${crmClientEscapeHtmlV251(requestId)}">
+            Skrzynka
+          </button>
+        </td>
+      </tr>`;
+}
+
+function crmClientsHistoryRowHtmlV269(item) {
+    const name = String(item?.name || "Nowa osoba");
+    const category = String(item?.category || item?.service || "—");
+    const message = String(item?.message || "").trim();
+    const preferredWindow = String(item?.preferredWindow || "").trim();
+    const handledAt = String(item?.handledAt || item?.createdAt || "—");
+
+    return `
+      <tr class="crm-clients-request-row-v269 crm-clients-history-row-v269">
+        <td>
+          <span class="crm-clients-request-status-v269 is-handled">
+            OBSŁUŻONE
+          </span>
+        </td>
+        <td>
+          <div class="crm-clients-request-person-v269">
+            <strong>${crmClientEscapeHtmlV251(name)}</strong>
+            <small>${crmClientEscapeHtmlV251(item?.phone || "Brak numeru")}</small>
+          </div>
+        </td>
+        <td>
+          <div class="crm-clients-request-category-v269">
+            <strong>${crmClientEscapeHtmlV251(category)}</strong>
+            ${message
+                ? `<small title="${crmClientEscapeHtmlV251(message)}">${crmClientEscapeHtmlV251(message)}</small>`
+                : ""}
+          </div>
+        </td>
+        <td>
+          <div class="crm-clients-request-preference-v269">
+            ${preferredWindow
+                ? `<strong>${crmClientEscapeHtmlV251(preferredWindow)}</strong>`
+                : `<strong>${crmClientEscapeHtmlV251(crmClientsProposalTextV269(item) || "—")}</strong>`}
+            <small>${crmClientEscapeHtmlV251(
+                String(item?.businessStatus || item?.status || "")
+                    .replaceAll("_", " ")
+            )}</small>
+          </div>
+        </td>
+        <td>${crmClientsWaitingContactHtmlV269(item)}</td>
+        <td>
+          <div class="crm-clients-history-date-v269">
+            ${crmClientEscapeHtmlV251(handledAt)}
+          </div>
+        </td>
+      </tr>`;
+}
+
+function crmClientsEnsureTabsV269() {
+    const chrome = crmEnsureClientsChromeV25222();
+    const tab = chrome?.tab || document.getElementById("tab-klienci");
+    const pageHeader = tab?.querySelector(".page-header");
+
+    if (!tab || !pageHeader) return null;
+
+    let nav = document.getElementById("crmClientsViewsV269");
+
+    if (!nav) {
+        nav = document.createElement("nav");
+        nav.id = "crmClientsViewsV269";
+        nav.className = "crm-clients-views-v269";
+        nav.setAttribute("aria-label", "Widok klientów");
+
+        nav.innerHTML = `
+          <button type="button" data-crm-clients-view-v269="steady">
+            Klienci stali
+            <span id="crmClientsSteadyBadgeV269"></span>
+          </button>
+          <button type="button" data-crm-clients-view-v269="waiting">
+            Osoby oczekujące
+            <span id="crmClientsWaitingBadgeV269"></span>
+          </button>
+          <button type="button" data-crm-clients-view-v269="history">
+            Historia
+            <span id="crmClientsHistoryBadgeV269"></span>
+          </button>`;
+
+        pageHeader.insertAdjacentElement("afterend", nav);
+
+        nav.addEventListener("click", event => {
+            const button = event.target.closest("[data-crm-clients-view-v269]");
+            if (!button) return;
+
+            crmClientsViewV269 =
+                String(button.dataset.crmClientsViewV269 || "steady");
+
+            crmClientUiV25222.page = 1;
+            renderClients();
+
+            if (crmClientsViewV269 === "history") {
+                crmClientsLoadHistoryV269().catch(console.error);
+            }
+        });
+    }
+
+    return nav;
+}
+
+function crmClientsUpdateTabsV269() {
+    const nav = crmClientsEnsureTabsV269();
+    if (!nav) return;
+
+    const buttons = nav.querySelectorAll("[data-crm-clients-view-v269]");
+    buttons.forEach(button => {
+        const view = String(button.dataset.crmClientsViewV269 || "");
+        button.classList.toggle("is-active", view === crmClientsViewV269);
+        button.setAttribute(
+            "aria-current",
+            view === crmClientsViewV269 ? "page" : "false"
+        );
+    });
+
+    const steady = document.getElementById("crmClientsSteadyBadgeV269");
+    if (steady) {
+        steady.textContent =
+            String(Array.isArray(customersData) ? customersData.length : 0);
+    }
+
+    const waiting = document.getElementById("crmClientsWaitingBadgeV269");
+    if (waiting) {
+        let count = 0;
+
+        if (crmClientsHasFullInboxCacheV268()) {
+            count = crmClientsWaitingRowsV269().length;
+        } else {
+            count = Math.max(
+                0,
+                Number(window.crmInboxPendingActionCountV25221) ||
+                Number(window.crmInboxPingNewCountV25) ||
+                0
+            );
+        }
+
+        waiting.textContent = String(count);
+        waiting.hidden = count === 0;
+    }
+
+    const history = document.getElementById("crmClientsHistoryBadgeV269");
+    if (history) {
+        const count = Array.isArray(crmClientsHistoryCacheV269)
+            ? crmClientsHistoryCacheV269.length
+            : 0;
+
+        history.textContent = count ? String(count) : "";
+        history.hidden = !count;
+    }
+}
+
+function crmClientsSetHeaderV269(headers, mode) {
+    const table = document.querySelector("#tab-klienci table.admin-table");
+    const row = table?.querySelector("thead tr");
+
+    if (!table || !row) return;
+
+    table.classList.remove(
+        "crm-clients-mode-steady-v269",
+        "crm-clients-mode-waiting-v269",
+        "crm-clients-mode-history-v269"
+    );
+
+    table.classList.add(`crm-clients-mode-${mode}-v269`);
+
+    row.innerHTML = headers.map(value => `<th>${value}</th>`).join("");
+}
+
+function crmClientsConfigureToolbarV269() {
+    const toolbar = document.getElementById("crmClientsToolbarV25222");
+    if (!toolbar) return;
+
+    const steady = crmClientsViewV269 === "steady";
+    const filter = document.getElementById("crmClientsFilterWrapV263");
+    const sort = toolbar.querySelector(".crm-clients-sort-v263");
+    const search = document.getElementById("crmClientsSearchV25222");
+    const add = document.getElementById("addClientBtn");
+
+    if (filter) filter.style.display = steady ? "" : "none";
+    if (sort) sort.style.display = steady ? "" : "none";
+    if (add) add.style.display = steady ? "" : "none";
+
+    if (search) {
+        search.placeholder =
+            crmClientsViewV269 === "waiting"
+                ? "Szukaj osoby, kategorii, terminu lub kontaktu..."
+                : (
+                    crmClientsViewV269 === "history"
+                        ? "Szukaj w historii pierwszych wizyt..."
+                        : "Szukaj klienta po imieniu, nazwisku lub numerze telefonu..."
+                );
+    }
+}
+
+function crmClientsSteadyFilteredRowsV269() {
+    const query =
+        String(crmClientUiV25222.query || "").trim().toLowerCase();
+
+    let rows =
+        Array.isArray(customersData)
+            ? customersData.slice()
+            : [];
+
+    if (query) {
+        rows = rows.filter(client => {
+            const haystack =
+                `${client?.name || ""} ${client?.phone || ""}`
+                    .toLowerCase();
+
+            return haystack.includes(query);
+        });
+    }
+
+    if (crmClientUiV25222.nextFilter !== "all") {
+        rows = rows.filter(client => {
+            const hasNext =
+                Boolean(crmClientVisitSummaryV25222(client).next);
+
+            return crmClientUiV25222.nextFilter === "has_next"
+                ? hasNext
+                : !hasNext;
+        });
+    }
+
+    if (crmClientUiV25222.bookingFilter !== "all") {
+        rows = rows.filter(client => {
+            const key =
+                crmClientPhoneKeyV25222(client?.phone);
+
+            const profile =
+                crmClientProfileCacheV25222.get(key);
+
+            if (!profile) return false;
+
+            return (
+                crmClientVisibleBookingModeV263(profile) ===
+                crmClientUiV25222.bookingFilter
+            );
+        });
+    }
+
+    if (crmClientUiV25222.historyFilter !== "all") {
+        rows = rows.filter(client => {
+            const key =
+                crmClientPhoneKeyV25222(client?.phone);
+
+            const profile =
+                crmClientProfileCacheV25222.get(key);
+
+            if (!profile) return false;
+
+            const cancellations =
+                Math.max(0, Number(profile.cancellations) || 0);
+
+            const reschedules =
+                Math.max(0, Number(profile.reschedules) || 0);
+
+            const noShows =
+                Math.max(0, Number(profile.noShows) || 0);
+
+            if (crmClientUiV25222.historyFilter === "no_show") {
+                return noShows > 0;
+            }
+
+            if (crmClientUiV25222.historyFilter === "cancelled") {
+                return cancellations > 0;
+            }
+
+            if (crmClientUiV25222.historyFilter === "clean") {
+                return (
+                    cancellations === 0 &&
+                    reschedules === 0 &&
+                    noShows === 0
+                );
+            }
+
+            return true;
+        });
+    }
+
+    return crmClientSortRowsV263(rows);
+}
+
+function crmClientsSteadyRowHtmlV269(client) {
+    const phone = String(client?.phone || "");
+    const key = crmClientPhoneKeyV25222(phone);
+    const profile = crmClientProfileCacheV25222.get(key);
+    const visits = crmClientVisitSummaryV25222(client);
+    const escapedPhone = crmClientEscapeHtmlV251(phone);
+    const name = String(client?.name || "");
+    const initials = crmClientInitialsV25222(name);
+
+    return `
+      <tr data-crm-client-phone="${escapedPhone}">
+        <td>
+          <div class="crm-client-person-v25222">
+            <span class="crm-client-avatar-v25222">
+              ${crmClientEscapeHtmlV251(initials)}
+            </span>
+            <span>
+              <strong>${crmClientEscapeHtmlV251(name || "Klient")}</strong>
+              <small>${escapedPhone}</small>
+            </span>
+          </div>
+        </td>
+        <td>
+          <div class="crm-client-history-v25222" data-crm-client-history>
+            ${crmClientHistoryHtmlV25222(client, profile)}
+          </div>
+        </td>
+        <td data-crm-client-booking>
+          ${crmClientBookingButtonHtmlV25222(phone, profile)}
+        </td>
+        <td>
+          <div class="crm-client-visit-v25222">
+            ${crmClientVisitCellHtmlV25222(visits.last, client?.lastVisit)}
+          </div>
+        </td>
+        <td>
+          <div class="crm-client-visit-v25222">
+            ${crmClientVisitCellHtmlV25222(visits.next, "")}
+          </div>
+        </td>
+        <td>
+          <div class="crm-client-actions-v25222">
+            <button type="button"
+                    class="btn-secondary"
+                    data-crm-client-action="edit"
+                    data-crm-phone="${escapedPhone}">
+              Edytuj
+            </button>
+            <button type="button"
+                    class="btn-danger"
+                    data-crm-client-action="delete"
+                    data-crm-phone="${escapedPhone}">
+              Usuń
+            </button>
+          </div>
+        </td>
+      </tr>`;
+}
+
+function crmClientsUpdateFooterV269(total, visibleLength, fromIndex) {
+    const pages =
+        Math.max(
+            1,
+            Math.ceil(
+                total /
+                Math.max(1, crmClientUiV25222.pageSize)
+            )
+        );
+
+    crmClientUiV25222.page =
+        Math.min(
+            Math.max(1, crmClientUiV25222.page),
+            pages
+        );
+
+    const range =
+        document.getElementById(
+            "crmClientsRangeV25222"
+        );
+
+    if (range) {
+        const first = total ? fromIndex + 1 : 0;
+        const last = total
+            ? Math.min(total, fromIndex + visibleLength)
+            : 0;
+
+        range.textContent = `${first}–${last} z ${total}`;
+    }
+
+    const page =
+        document.getElementById(
+            "crmClientsPageV25222"
+        );
+
+    if (page) {
+        page.textContent =
+            String(crmClientUiV25222.page);
+    }
+
+    const prev =
+        document.getElementById(
+            "crmClientsPrevV25222"
+        );
+
+    const next =
+        document.getElementById(
+            "crmClientsNextV25222"
+        );
+
+    if (prev) {
+        prev.disabled =
+            crmClientUiV25222.page <= 1;
+    }
+
+    if (next) {
+        next.disabled =
+            crmClientUiV25222.page >= pages;
+    }
+}
+
+function crmClientsRenderSteadyV269(tbody) {
+    crmClientsSetHeaderV269(
+        [
+            "KLIENT",
+            "HISTORIA",
+            "REZERWACJA ONLINE",
+            "OSTATNIA WIZYTA",
+            "NASTĘPNA WIZYTA",
+            "AKCJE"
+        ],
+        "steady"
+    );
+
+    const filtered = crmClientsSteadyFilteredRowsV269();
+    const total = filtered.length;
+    const pageSize = Math.max(1, crmClientUiV25222.pageSize);
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+
+    crmClientUiV25222.page =
+        Math.min(
+            Math.max(1, crmClientUiV25222.page),
+            pages
+        );
+
+    const fromIndex =
+        (crmClientUiV25222.page - 1) *
+        pageSize;
+
+    const visible =
+        filtered.slice(
+            fromIndex,
+            fromIndex + pageSize
+        );
+
+    tbody.innerHTML =
+        visible.length
+            ? visible.map(crmClientsSteadyRowHtmlV269).join("")
+            : `
+              <tr>
+                <td colspan="6" class="crm-client-no-results-v25222">
+                  ${total === 0 && !crmClientUiV25222.query
+                    ? "Brak klientów"
+                    : "Brak wyników"}
+                </td>
+              </tr>`;
+
+    const count =
+        document.getElementById(
+            "crmClientsCountV25222"
+        );
+
+    if (count) {
+        const all =
+            Array.isArray(customersData)
+                ? customersData.length
+                : 0;
+
+        const narrowed =
+            total !== all ||
+            Boolean(crmClientUiV25222.query) ||
+            crmClientActiveFilterCountV263() > 0;
+
+        count.textContent =
+            narrowed
+                ? `${total} z ${crmClientPluralV25222(all, "klienta", "klientów", "klientów")}`
+                : crmClientPluralV25222(all, "klient", "klientów", "klientów");
+    }
+
+    crmClientSyncToolbarStateV263();
+    crmClientsUpdateFooterV269(total, visible.length, fromIndex);
+
+    if (crmClientsTabVisibleV25222()) {
+        crmLoadVisibleClientProfilesV25222(visible).catch(console.error);
+    }
+}
+
+function crmClientsRenderWaitingV269(tbody) {
+    crmClientsSetHeaderV269(
+        [
+            "STATUS",
+            "IMIĘ I NAZWISKO",
+            "KATEGORIA",
+            "PREFEROWANE TERMINY",
+            "KONTAKT",
+            "AKCJE"
+        ],
+        "waiting"
+    );
+
+    const fullInboxReady =
+        crmClientsHasFullInboxCacheV268();
+
+    if (!fullInboxReady) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="crm-client-no-results-v25222">
+              Synchronizowanie osób oczekujących…
+            </td>
+          </tr>`;
+
+        const count =
+            document.getElementById(
+                "crmClientsCountV25222"
+            );
+
+        if (count) {
+            count.textContent =
+                "Osoby oczekujące";
+        }
+
+        crmClientsUpdateFooterV269(0, 0, 0);
+        return;
+    }
+
+    const query =
+        String(crmClientUiV25222.query || "")
+            .trim()
+            .toLowerCase();
+
+    let rows =
+        crmClientsWaitingRowsV269()
+            .filter(item =>
+                crmClientsWaitingMatchesV269(
+                    item,
+                    query
+                )
+            );
+
+    rows = crmClientsWaitingSortV269(rows);
+
+    const total = rows.length;
+    const pageSize =
+        Math.max(
+            1,
+            crmClientUiV25222.pageSize
+        );
+
+    const pages =
+        Math.max(
+            1,
+            Math.ceil(total / pageSize)
+        );
+
+    crmClientUiV25222.page =
+        Math.min(
+            Math.max(1, crmClientUiV25222.page),
+            pages
+        );
+
+    const fromIndex =
+        (crmClientUiV25222.page - 1) *
+        pageSize;
+
+    const visible =
+        rows.slice(
+            fromIndex,
+            fromIndex + pageSize
+        );
+
+    if (!visible.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="crm-client-no-results-v25222">
+              ${query
+                ? "Brak wyników"
+                : "Brak osób oczekujących"}
+            </td>
+          </tr>`;
+    } else {
+        let html = "";
+        let lastState = "";
+
+        visible.forEach(item => {
+            const state =
+                crmClientsInboxStateV269(item);
+
+            if (state !== lastState) {
+                const count =
+                    rows.filter(row =>
+                        crmClientsInboxStateV269(row) === state
+                    ).length;
+
+                html += `
+                  <tr class="crm-clients-request-group-v269">
+                    <td colspan="6">
+                      ${crmClientEscapeHtmlV251(state)}
+                      <span>${count}</span>
+                    </td>
+                  </tr>`;
+
+                lastState = state;
+            }
+
+            html += crmClientsWaitingRowHtmlV269(item);
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    const count =
+        document.getElementById(
+            "crmClientsCountV25222"
+        );
+
+    if (count) {
+        count.textContent =
+            `${total} ${total === 1 ? "osoba oczekująca" : "osoby oczekujące"}`;
+    }
+
+    crmClientsUpdateFooterV269(
+        total,
+        visible.length,
+        fromIndex
+    );
+}
+
+function crmClientsHistoryMatchesV269(item, query) {
+    if (!query) return true;
+
+    const haystack = [
+        item?.name,
+        item?.phone,
+        item?.category,
+        item?.service,
+        item?.message,
+        item?.preferredWindow,
+        item?.contactMethod,
+        item?.email,
+        item?.status,
+        item?.handledAt
+    ].join(" ").toLowerCase();
+
+    return haystack.includes(query);
+}
+
+function crmClientsRenderHistoryV269(tbody) {
+    crmClientsSetHeaderV269(
+        [
+            "STATUS",
+            "IMIĘ I NAZWISKO",
+            "KATEGORIA",
+            "INFORMACJA",
+            "KONTAKT",
+            "DATA OBSŁUGI"
+        ],
+        "history"
+    );
+
+    if (crmClientsHistoryLoadingV269) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="crm-client-no-results-v25222">
+              Ładowanie historii…
+            </td>
+          </tr>`;
+
+        const count =
+            document.getElementById(
+                "crmClientsCountV25222"
+            );
+
+        if (count) {
+            count.textContent =
+                "Historia pierwszych wizyt";
+        }
+
+        crmClientsUpdateFooterV269(0, 0, 0);
+        return;
+    }
+
+    if (crmClientsHistoryErrorV269) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="crm-client-no-results-v25222">
+              Nie udało się pobrać historii.
+              <button type="button"
+                      class="btn-secondary"
+                      id="crmClientsHistoryRetryV269">
+                Spróbuj ponownie
+              </button>
+            </td>
+          </tr>`;
+
+        document.getElementById(
+            "crmClientsHistoryRetryV269"
+        )?.addEventListener("click", () => {
+            crmClientsHistoryCacheV269 = null;
+            crmClientsHistoryErrorV269 = "";
+            crmClientsLoadHistoryV269({ force:true }).catch(console.error);
+        });
+
+        crmClientsUpdateFooterV269(0, 0, 0);
+        return;
+    }
+
+    if (!Array.isArray(crmClientsHistoryCacheV269)) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="crm-client-no-results-v25222">
+              Historia zostanie pobrana po otwarciu tej zakładki.
+            </td>
+          </tr>`;
+
+        crmClientsUpdateFooterV269(0, 0, 0);
+        return;
+    }
+
+    const query =
+        String(crmClientUiV25222.query || "")
+            .trim()
+            .toLowerCase();
+
+    const rows =
+        crmClientsHistoryCacheV269
+            .filter(item =>
+                crmClientsHistoryMatchesV269(
+                    item,
+                    query
+                )
+            );
+
+    const total = rows.length;
+    const pageSize =
+        Math.max(
+            1,
+            crmClientUiV25222.pageSize
+        );
+
+    const pages =
+        Math.max(
+            1,
+            Math.ceil(total / pageSize)
+        );
+
+    crmClientUiV25222.page =
+        Math.min(
+            Math.max(1, crmClientUiV25222.page),
+            pages
+        );
+
+    const fromIndex =
+        (crmClientUiV25222.page - 1) *
+        pageSize;
+
+    const visible =
+        rows.slice(
+            fromIndex,
+            fromIndex + pageSize
+        );
+
+    tbody.innerHTML =
+        visible.length
+            ? visible.map(crmClientsHistoryRowHtmlV269).join("")
+            : `
+              <tr>
+                <td colspan="6" class="crm-client-no-results-v25222">
+                  ${query
+                    ? "Brak wyników"
+                    : "Brak obsłużonych pierwszych wizyt"}
+                </td>
+              </tr>`;
+
+    const count =
+        document.getElementById(
+            "crmClientsCountV25222"
+        );
+
+    if (count) {
+        count.textContent =
+            `${total} ${total === 1 ? "wpis w historii" : "wpisów w historii"}`;
+    }
+
+    crmClientsUpdateFooterV269(
+        total,
+        visible.length,
+        fromIndex
+    );
+}
+
+async function crmClientsLoadHistoryV269(options = {}) {
+    if (
+        Array.isArray(crmClientsHistoryCacheV269) &&
+        options.force !== true
+    ) {
+        if (crmClientsViewV269 === "history") {
+            renderClients();
+        }
+        return crmClientsHistoryCacheV269;
+    }
+
+    if (crmClientsHistoryLoadingV269) {
+        return crmClientsHistoryLoadingV269;
+    }
+
+    crmClientsHistoryErrorV269 = "";
+
+    const url =
+        `${APPS_SCRIPT_URL}?adminClientRequestHistory=true&limit=100&_crmClientsHistory=${Date.now()}`;
+
+    crmClientsHistoryLoadingV269 =
+        Promise.resolve()
+            .then(async () => {
+                if (crmClientsViewV269 === "history") {
+                    renderClients();
+                }
+
+                if (typeof crmQueuedGetV11 === "function") {
+                    return crmQueuedGetV11(
+                        url,
+                        {
+                            key: "adminClientRequestHistoryV269",
+                            priority: 55,
+                            timeoutMs: 30000
+                        }
+                    );
+                }
+
+                const response =
+                    await fetch(
+                        url,
+                        {
+                            method: "GET",
+                            cache: "no-store"
+                        }
+                    );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "HTTP " + response.status
+                    );
+                }
+
+                return response.json();
+            })
+            .then(data => {
+                if (
+                    !data?.success ||
+                    !Array.isArray(data?.items)
+                ) {
+                    throw new Error(
+                        data?.error ||
+                        "Nieprawidłowa odpowiedź historii"
+                    );
+                }
+
+                crmClientsHistoryCacheV269 =
+                    data.items;
+
+                return crmClientsHistoryCacheV269;
+            })
+            .catch(error => {
+                crmClientsHistoryErrorV269 =
+                    error?.message ||
+                    String(error);
+
+                throw error;
+            })
+            .finally(() => {
+                crmClientsHistoryLoadingV269 = null;
+
+                if (crmClientsViewV269 === "history") {
+                    renderClients();
+                }
+            });
+
+    return crmClientsHistoryLoadingV269;
+}
+
+async function crmClientsOpenInboxItemV269(requestId) {
+    if (typeof crmOpenUnifiedInbox !== "function") {
+        return;
+    }
+
+    await crmOpenUnifiedInbox();
+
+    const allButton =
+        document.querySelector(
+            '#crmUnifiedInboxModal [data-inbox-filter="ALL"]'
+        );
+
+    if (allButton) {
+        allButton.click();
+    }
+
+    window.setTimeout(() => {
+        const selector =
+            `[data-crm-inbox-id="${CSS.escape(String(requestId || ""))}"]`;
+
+        const card =
+            document.querySelector(selector);
+
+        if (card) {
+            card.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+
+            card.classList.add(
+                "crm-inbox-focus-v269"
+            );
+
+            window.setTimeout(() => {
+                card.classList.remove(
+                    "crm-inbox-focus-v269"
+                );
+            }, 1800);
+        }
+    }, 40);
+}
+
+function crmClientsInstallRequestActionsV269() {
+    const tbody =
+        document.getElementById(
+            "clientsTableBody"
+        );
+
+    if (
+        !tbody ||
+        tbody.dataset.crmRequestActionsV269 === "1"
+    ) {
+        return;
+    }
+
+    tbody.dataset.crmRequestActionsV269 = "1";
+
+    tbody.addEventListener("click", event => {
+        const button =
+            event.target.closest(
+                "[data-crm-waiting-open-v269]"
+            );
+
+        if (!button) return;
+
+        const id =
+            String(
+                button.dataset.crmWaitingOpenV269 ||
+                ""
+            );
+
+        crmClientsOpenInboxItemV269(id)
+            .catch(console.error);
+    });
+}
+
+/*
+ * FINALNY render.
+ * Nie wywołujemy starszego renderu mieszanego,
+ * dzięki czemu osoby oczekujące są już osobną zakładką.
+ */
+renderClients = function() {
+    const chrome =
+        crmEnsureClientsChromeV25222();
+
+    const tbody =
+        document.getElementById(
+            "clientsTableBody"
+        );
+
+    if (!tbody) return;
+
+    crmEnsureClientTableDelegationV251(tbody);
+    crmEnsureClientTableActionsV25222(tbody);
+    crmClientsInstallRequestActionsV269();
+    crmClientsEnsureTabsV269();
+    crmClientsConfigureToolbarV269();
+
+    if (crmClientsViewV269 === "waiting") {
+        crmClientsRenderWaitingV269(tbody);
+    } else if (crmClientsViewV269 === "history") {
+        crmClientsRenderHistoryV269(tbody);
+    } else {
+        crmClientsRenderSteadyV269(tbody);
+    }
+
+    crmClientsUpdateTabsV269();
+
+    /*
+     * V26.8: pełna Skrzynka tylko po renderze i tylko w tle.
+     * Zachowujemy to także dla nowego finalnego widoku.
+     */
+    if (crmClientsTabVisibleV25222()) {
+        crmClientsScheduleInboxHydrationV268();
+    }
+
+    return chrome;
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(() => {
+        crmClientsEnsureTabsV269();
+        crmClientsUpdateTabsV269();
+
+        if (crmClientsTabVisibleV25222()) {
+            renderClients();
+        }
+    }, 650);
+});
+
+/* KONIEC CLIENTS V26.9 */
+

@@ -5710,3 +5710,282 @@ if (document.readyState === "loading") {
 
 /* KONIEC ADMIN V25.2.21 */
 
+/* ==========================================================================
+   ADMIN FIRST VISIT V9 — PEŁNE DANE W SKRZYNCE
+   2026-08-22
+
+   Backend przekazuje teraz:
+   - category
+   - preferredWindow
+   - contactMethod
+   - email
+   - proposals
+   - message
+
+   Ten patch nie dodaje żadnego requestu ani pollingu.
+   Wyłącznie wzbogaca już wyrenderowaną Skrzynkę.
+   ========================================================================== */
+
+function crmInboxContactLabelV269(item) {
+    const method =
+        String(item?.contactMethod || "")
+            .trim()
+            .toUpperCase();
+
+    if (method === "WHATSAPP") {
+        return "WhatsApp";
+    }
+
+    if (method === "SMS") {
+        return "SMS";
+    }
+
+    if (method === "EMAIL") {
+        return "E-mail";
+    }
+
+    return item?.email ? "E-mail" : "Telefon";
+}
+
+function crmInboxContactValueV269(item) {
+    const method =
+        String(item?.contactMethod || "")
+            .trim()
+            .toUpperCase();
+
+    if (method === "EMAIL") {
+        return String(item?.email || "—");
+    }
+
+    return String(item?.phone || item?.email || "—");
+}
+
+const crmRenderUnifiedInboxBeforeFirstVisitV9 =
+    crmRenderUnifiedInbox;
+
+crmRenderUnifiedInbox = function() {
+    const result =
+        crmRenderUnifiedInboxBeforeFirstVisitV9
+            .apply(this, arguments);
+
+    const body =
+        document.getElementById(
+            "crmUnifiedInboxBody"
+        );
+
+    if (!body) return result;
+
+    const rows =
+        crmUnifiedInboxFilter === "ALL"
+            ? (crmUnifiedInboxItems || [])
+            : (crmUnifiedInboxItems || [])
+                .filter(item =>
+                    crmInboxStatusLabel(
+                        item.readState
+                    ) ===
+                    crmUnifiedInboxFilter
+                );
+
+    const cards =
+        Array.from(
+            body.querySelectorAll("article")
+        );
+
+    cards.forEach((card, index) => {
+        const item = rows[index];
+        if (!item) return;
+
+        card.dataset.crmInboxId =
+            String(item?.id || "");
+
+        if (
+            item.type !== "BOOKING_REQUEST" ||
+            item.requestType !== "FIRST_VISIT"
+        ) {
+            return;
+        }
+
+        const info =
+            card.querySelector(
+                ".crm-first-visit-inbox-info"
+            );
+
+        if (!info) return;
+
+        const proposals =
+            typeof crmFirstVisitNormalizeProposalsV8 === "function"
+                ? crmFirstVisitNormalizeProposalsV8(item)
+                : (
+                    Array.isArray(item?.proposals)
+                        ? item.proposals
+                        : []
+                );
+
+        const proposalHtml =
+            proposals.length
+                ? proposals
+                    .map(row => `
+                      <button type="button"
+                              class="crm-first-visit-date-chip"
+                              data-first-visit-date="${crmInboxEscape(row.date || "")}">
+                        <b>${crmInboxEscape(
+                            typeof crmFirstVisitFormatDayV8 === "function"
+                                ? crmFirstVisitFormatDayV8(row.date)
+                                : row.date
+                        )}</b>
+                        <span>${row.times?.length
+                            ? crmInboxEscape(row.times.join(" · "))
+                            : "dowolna godzina"}</span>
+                      </button>`)
+                    .join("")
+                : `
+                  <span class="crm-first-visit-no-proposals">
+                    Klient nie wskazał konkretnego dnia.
+                  </span>`;
+
+        const category =
+            item.category ||
+            item.service ||
+            "—";
+
+        const description =
+            String(item.message || "").trim();
+
+        const preferredWindow =
+            String(item.preferredWindow || "").trim();
+
+        const contactLabel =
+            crmInboxContactLabelV269(item);
+
+        const contactValue =
+            crmInboxContactValueV269(item);
+
+        info.innerHTML = `
+          <div class="crm-first-visit-inbox-service">
+            <span>Kategoria</span>
+            <strong>${crmInboxEscape(category)}</strong>
+            <small>${Number(item.duration) || 45} min</small>
+          </div>
+
+          ${description
+            ? `
+              <div class="crm-first-visit-inbox-description-v269">
+                <span>Opis klienta</span>
+                <strong>${crmInboxEscape(description)}</strong>
+              </div>`
+            : ""}
+
+          ${preferredWindow
+            ? `
+              <div class="crm-first-visit-inbox-window-v269">
+                <span>Preferowane widełki</span>
+                <strong>${crmInboxEscape(preferredWindow)}</strong>
+              </div>`
+            : ""}
+
+          <div class="crm-first-visit-inbox-contact-v269">
+            <span>Sposób kontaktu</span>
+            <strong>${crmInboxEscape(contactLabel)}</strong>
+            <small>${crmInboxEscape(contactValue)}</small>
+          </div>
+
+          <div class="crm-first-visit-inbox-proposals">
+            <span>Konkretne terminy</span>
+            <div>${proposalHtml}</div>
+          </div>`;
+
+        info
+            .querySelectorAll(
+                "[data-first-visit-date]"
+            )
+            .forEach(button => {
+                button.onclick = () => {
+                    if (
+                        typeof crmFirstVisitGoToDateV8 ===
+                        "function"
+                    ) {
+                        crmFirstVisitGoToDateV8(
+                            item,
+                            button.dataset.firstVisitDate
+                        );
+                    }
+                };
+            });
+    });
+
+    return result;
+};
+
+/* KONIEC ADMIN FIRST VISIT V9 */
+
+/* ===== ADMIN/DEV V4 — SHARED LIVE LAYOUT BRIDGE ===== */
+(function crmInstallSharedDevLayoutV4() {
+    const STORAGE_KEY = "nailArtDevLayoutV4";
+    const STYLE_ID = "crmDevSavedLayoutStyleV4";
+
+    function readPayload() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed.css === "string"
+                ? parsed
+                : null;
+        } catch (error) {
+            console.warn("ADMIN DEV V4 layout:", error);
+            return null;
+        }
+    }
+
+    function applySavedLayout() {
+        const payload = readPayload();
+
+        let style = document.getElementById(STYLE_ID);
+
+        if (!payload) {
+            if (style) style.remove();
+            return false;
+        }
+
+        if (!style) {
+            style = document.createElement("style");
+            style.id = STYLE_ID;
+            document.head.appendChild(style);
+        }
+
+        style.textContent = payload.css;
+        return true;
+    }
+
+    function clearSavedLayout() {
+        localStorage.removeItem(STORAGE_KEY);
+        document.getElementById(STYLE_ID)?.remove();
+    }
+
+    /*
+     * Awaryjne wejście:
+     * admin.html?crmResetDevLayout=1
+     * usuwa zapis DEV zanim panel będzie używany.
+     */
+    try {
+        const params = new URLSearchParams(location.search);
+        if (params.get("crmResetDevLayout") === "1") {
+            clearSavedLayout();
+        }
+    } catch (_) {}
+
+    window.crmApplySavedDevLayoutV4 = applySavedLayout;
+    window.crmClearSavedDevLayoutV4 = clearSavedLayout;
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            applySavedLayout,
+            { once:true }
+        );
+    } else {
+        applySavedLayout();
+    }
+})();
+/* ===== KONIEC ADMIN/DEV V4 BRIDGE ===== */

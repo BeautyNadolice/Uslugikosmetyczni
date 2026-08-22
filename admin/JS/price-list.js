@@ -43,81 +43,65 @@ async function loadServices() {
 
 /* ----- CEN.3. renderServicesTable (oryginalna linia 149) ----- */
 function renderServicesTable() {
-
-    const tbody =
-        document.getElementById(
-            "adminServicesTableBody"
-        );
-
+    const tbody = document.getElementById("adminServicesTableBody");
     if (!tbody) return;
 
-    tbody.innerHTML = "";
+    crmPreparePriceStructure();
 
-    if (
-        !currentServices ||
-        currentServices.length === 0
-    ) {
-
-        tbody.innerHTML =
-            `
-            <tr>
-                <td colspan="6"
-                    style="text-align:center;">
-                    Brak usług
-                </td>
-            </tr>
-            `;
-
-        return;
-
+    const table = tbody.closest("table");
+    if (table) {
+        const head = table.querySelector("thead tr");
+        if (head) head.innerHTML = "<th>Kategoria i usługi</th>";
     }
 
-    currentServices.forEach((service, index) => {
+    tbody.innerHTML = "";
+    const categories = crmCategoriesFromPrices();
 
-        const tr =
-            document.createElement("tr");
+    if (!categories.length) {
+        tbody.innerHTML = '<tr><td style="text-align:center">Brak kategorii i usług</td></tr>';
+        return;
+    }
 
-        tr.innerHTML = `
+    categories.forEach((category, categoryIndex) => {
+        const categoryRow = document.createElement("tr");
+        categoryRow.className = "crm-price-category-row";
+        categoryRow.innerHTML = `<td>
+          <details open class="crm-price-category" data-category-id="${category.id}">
+            <summary style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 0">
+              <span style="width:16px;height:16px;border-radius:4px;background:${category.color};display:inline-block"></span>
+              <strong style="flex:1">${category.name}</strong>
+              <span>${category.services.length} usług</span>
+              <button type="button" class="btn-secondary" ${categoryIndex === 0 ? "disabled" : ""} onclick="event.preventDefault();crmMoveCategory('${category.id}',-1)">↑</button>
+              <button type="button" class="btn-secondary" ${categoryIndex === categories.length - 1 ? "disabled" : ""} onclick="event.preventDefault();crmMoveCategory('${category.id}',1)">↓</button>
+              <input type="color" value="${category.color}" title="Kolor kategorii" onclick="event.stopPropagation()" onchange="crmChangeCategoryColor('${category.id}',this.value)">
+              <button type="button" class="btn-secondary" onclick="event.preventDefault();crmEditCategory('${category.id}')">Edytuj kategorię</button>
+            </summary>
 
-            <td>
-                ${service.category || ""}
-            </td>
+            ${crmFirstVisitCategoryControlHtmlV267(category)}
 
-            <td>
-                ${service.name || ""}
-            </td>
-
-            <td>
-                ${service.price || 0} zł
-            </td>
-
-            <td>
-                ${service.duration || 0} min
-            </td>
-
-            <td>
-                ${service.status || ""}
-            </td>
-
-            <td>
-    <button
-        class="btn-secondary"
-        onclick="editService(${index})">
-        Edytuj
-    </button>
-
-    <button
-        class="btn-danger"
-        onclick="deleteService(${index})">
-        Usuń
-    </button>
-</td>
-        `;
-
-        tbody.appendChild(tr);
-
+            <div style="overflow:auto">
+              <table style="width:100%">
+                <thead><tr><th>Kolejność</th><th>Usługa</th><th>Cena</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
+                <tbody>${category.services.map((item, serviceIndex) => `<tr>
+                  <td>
+                    <button type="button" class="btn-secondary" ${serviceIndex === 0 ? "disabled" : ""} onclick="crmMoveService('${item.service.serviceId}',-1)">↑</button>
+                    <button type="button" class="btn-secondary" ${serviceIndex === category.services.length - 1 ? "disabled" : ""} onclick="crmMoveService('${item.service.serviceId}',1)">↓</button>
+                  </td>
+                  <td>${item.service.name || ""}</td>
+                  <td>${Number(item.service.price || 0)} zł</td>
+                  <td>${Number(item.service.duration || 0)} min</td>
+                  <td>${item.service.status || ""}</td>
+                  <td>
+                    <button class="btn-secondary" onclick="editService(${item.serviceIndex})">Edytuj</button>
+                    <button class="btn-danger" onclick="deleteService(${item.serviceIndex})">Usuń</button>
+                  </td>
+                </tr>`).join("")}</tbody>
+              </table>
+            </div>
+          </details>
+        </td>`;
+        tbody.appendChild(categoryRow);
     });
-
 }
 
 /* ----- CEN.4. populateServiceNameDatalist (oryginalna linia 1192) ----- */
@@ -223,13 +207,41 @@ function editService(index) {
 
 /* ----- CEN.8. saveServiceModalData (oryginalna linia 3272) ----- */
 function saveServiceModalData() {
-    const index = parseInt(
-        document.getElementById("editServiceIndex").value,
-        10
-    );
+    const index = parseInt(document.getElementById("editServiceIndex").value, 10);
+    const previous = index >= 0 ? currentServices[index] : null;
+    const categoryName = document.getElementById("serviceCategory").value.trim();
+    const category = crmCategoriesFromPrices().find(item => item.name === categoryName);
 
     const serviceData = {
-        category: document.getElementById("serviceCategory").value.trim(),
+        ...(previous || {}),
+        serviceId: previous?.serviceId || crmPriceId("srv"),
+        category: categoryName,
+        categoryId: category?.id || previous?.categoryId || crmPriceId("cat"),
+        categoryOrder: category?.order || previous?.categoryOrder || crmCategoriesFromPrices().length + 1,
+        categoryColor: category?.color || previous?.categoryColor || "#b05c75",
+        serviceOrder:
+            previous?.categoryId === category?.id
+                ? previous.serviceOrder
+                : ((category?.services.length || 0) + 1),
+
+        firstVisitMode:
+            category
+                ? crmNormalizeFirstVisitModeV267(category.firstVisitMode)
+                : (
+                    previous?.category === categoryName
+                        ? crmNormalizeFirstVisitModeV267(previous?.firstVisitMode)
+                        : "AUTO"
+                ),
+
+        firstVisitManualMinutes:
+            category
+                ? Math.max(0, Number(category.firstVisitManualMinutes) || 0)
+                : (
+                    previous?.category === categoryName
+                        ? Math.max(0, Number(previous?.firstVisitManualMinutes) || 0)
+                        : 0
+                ),
+
         name: document.getElementById("serviceName").value.trim(),
         price: Number(document.getElementById("servicePrice").value) || 0,
         duration: Number(document.getElementById("serviceDuration").value) || 60,
@@ -239,22 +251,18 @@ function saveServiceModalData() {
     };
 
     if (!serviceData.category || !serviceData.name) {
-        alert("Wpisz kategorię i nazwę usługi.");
-        return;
+        return alert("Wpisz kategorię i nazwę usługi.");
     }
 
-    if (index >= 0) {
-        currentServices[index] = serviceData;
-    } else {
-        currentServices.push(serviceData);
-    }
+    if (index >= 0) currentServices[index] = serviceData;
+    else currentServices.push(serviceData);
 
+    crmNormalizePriceOrder();
+    crmSyncFirstVisitMetaV267();
     renderServicesTable();
-    syncCategoryColorsAndRefresh().catch(console.error);
-    buildColorsEditor();
     closeServiceModal();
 
-    alert("Usługa zapisana lokalnie. Następny krok: zapis szkicu do arkusza.");
+    alert("Usługa zapisana lokalnie. Zapisz szkic, a następnie opublikuj cennik.");
 }
 
 /* ----- CEN.9. getUniqueServiceCategories (oryginalna linia 3311) ----- */
@@ -487,6 +495,8 @@ async function saveDraftsToCloud() {
             return;
         }
 
+        crmSyncFirstVisitMetaV267();
+
         const payload = {
             action: "saveDraftPrices",
             prices: currentServices
@@ -661,34 +671,188 @@ function crmPriceId(prefix) {
     return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 }
 
+
+/* ==========================================================================
+   CENNIK V26.7 — CZAS PIERWSZEJ WIZYTY W KATEGORII
+   AUTO = najdłuższa opublikowana/aktywna usługa w kategorii.
+   MANUAL = czas ustawiony ręcznie.
+   ========================================================================== */
+function crmNormalizeFirstVisitModeV267(value) {
+    return String(value || "AUTO").trim().toUpperCase() === "MANUAL" ? "MANUAL" : "AUTO";
+}
+
+function crmFirstVisitServiceIsPublishedV267(service) {
+    const status = String(service?.status || "").trim().toUpperCase();
+    return ["OPUBLIKOWANY", "AKTYWNY", "PUBLISHED", "ACTIVE"].includes(status);
+}
+
+function crmCategoryAutoDurationV267(category) {
+    const durations = (Array.isArray(category?.services) ? category.services : [])
+        .map(item => item?.service || item)
+        .filter(crmFirstVisitServiceIsPublishedV267)
+        .map(service => Number(service?.duration) || 0)
+        .filter(value => value > 0);
+    return durations.length ? Math.max(...durations) : 0;
+}
+
+function crmCategoryFirstVisitEffectiveDurationV267(category) {
+    const mode = crmNormalizeFirstVisitModeV267(category?.firstVisitMode);
+    if (mode === "MANUAL") {
+        return Math.max(0, Number(category?.firstVisitManualMinutes) || 0);
+    }
+    return crmCategoryAutoDurationV267(category);
+}
+
+function crmApplyCategoryFirstVisitMetaV267(categoryId, mode, manualMinutes) {
+    const normalizedMode = crmNormalizeFirstVisitModeV267(mode);
+    const normalizedMinutes = Math.max(0, Math.round(Number(manualMinutes) || 0));
+    currentServices
+        .filter(service => service.categoryId === categoryId)
+        .forEach(service => {
+            service.firstVisitMode = normalizedMode;
+            service.firstVisitManualMinutes = normalizedMinutes;
+        });
+}
+
+function crmSyncFirstVisitMetaV267() {
+    crmCategoriesFromPrices().forEach(category => {
+        crmApplyCategoryFirstVisitMetaV267(
+            category.id,
+            category.firstVisitMode,
+            category.firstVisitManualMinutes
+        );
+    });
+}
+
+function crmToggleCategoryFirstVisitAutoV267(categoryId, checked) {
+    const category = crmCategoriesFromPrices().find(item => item.id === categoryId);
+    if (!category) return;
+
+    if (checked) {
+        crmApplyCategoryFirstVisitMetaV267(categoryId, "AUTO", category.firstVisitManualMinutes);
+    } else {
+        const autoDuration = crmCategoryAutoDurationV267(category);
+        const startingManual =
+            Number(category.firstVisitManualMinutes) > 0
+                ? Number(category.firstVisitManualMinutes)
+                : autoDuration;
+        crmApplyCategoryFirstVisitMetaV267(categoryId, "MANUAL", startingManual);
+    }
+    renderServicesTable();
+}
+
+function crmSetCategoryFirstVisitMinutesV267(categoryId, value) {
+    const minutes = Math.max(5, Math.min(480, Math.round(Number(value) || 0)));
+    if (!minutes) return;
+    crmApplyCategoryFirstVisitMetaV267(categoryId, "MANUAL", minutes);
+    renderServicesTable();
+}
+
+function crmFirstVisitCategoryControlHtmlV267(category) {
+    const mode = crmNormalizeFirstVisitModeV267(category.firstVisitMode);
+    const autoDuration = crmCategoryAutoDurationV267(category);
+    const effectiveDuration = crmCategoryFirstVisitEffectiveDurationV267(category);
+    const isAuto = mode === "AUTO";
+
+    const hint = isAuto
+        ? (
+            autoDuration > 0
+                ? `AUTO • najdłuższa opublikowana usługa: ${autoDuration} min`
+                : "AUTO • brak opublikowanych usług — kategoria nie będzie widoczna przy pierwszej wizycie"
+        )
+        : "MANUAL • system używa dokładnie wpisanego czasu";
+
+    return `
+      <section class="crm-first-visit-category-v267">
+        <div class="crm-first-visit-category-head-v267">
+          <div>
+            <strong>Czas pierwszej wizyty</strong>
+            <small>${hint}</small>
+          </div>
+          <label class="crm-first-visit-auto-v267">
+            <input type="checkbox"
+                   ${isAuto ? "checked" : ""}
+                   onchange="crmToggleCategoryFirstVisitAutoV267('${category.id}', this.checked)">
+            <span>Automatycznie dobieraj czas</span>
+          </label>
+        </div>
+
+        <div class="crm-first-visit-category-time-v267">
+          <label>Czas</label>
+          <div class="crm-first-visit-time-field-v267">
+            <input type="number"
+                   min="5"
+                   max="480"
+                   step="5"
+                   inputmode="numeric"
+                   value="${effectiveDuration > 0 ? effectiveDuration : ""}"
+                   placeholder="${isAuto && !autoDuration ? "—" : ""}"
+                   ${isAuto ? "disabled" : ""}
+                   onchange="crmSetCategoryFirstVisitMinutesV267('${category.id}', this.value)">
+            <span>min</span>
+          </div>
+          <span class="crm-first-visit-effective-v267">
+            Używany przez system:
+            <b>${effectiveDuration > 0 ? `${effectiveDuration} min` : "—"}</b>
+          </span>
+        </div>
+      </section>`;
+}
+/* KONIEC CENNIK V26.7 */
+
+
 /* ----- CEN.24. crmPreparePriceStructure (oryginalna linia 5285) ----- */
 function crmPreparePriceStructure() {
     const seenCategories = new Map();
+
     currentServices.forEach((service, index) => {
         service.serviceId = service.serviceId || crmPriceId("srv");
         service.serviceOrder = Number(service.serviceOrder) > 0 ? Number(service.serviceOrder) : index + 1;
+
         const name = String(service.category || "Inne").trim() || "Inne";
         service.category = name;
+
         if (!seenCategories.has(name)) {
             seenCategories.set(name, {
                 categoryId: service.categoryId || crmPriceId("cat"),
                 categoryOrder: Number(service.categoryOrder) > 0 ? Number(service.categoryOrder) : seenCategories.size + 1,
-                categoryColor: service.categoryColor || globalColors[name] || "#b05c75"
+                categoryColor: service.categoryColor || globalColors[name] || "#b05c75",
+                firstVisitMode: crmNormalizeFirstVisitModeV267(service.firstVisitMode),
+                firstVisitManualMinutes: Math.max(0, Number(service.firstVisitManualMinutes) || 0)
             });
         }
+
         const meta = seenCategories.get(name);
+
+        if (
+            meta.firstVisitMode === "AUTO" &&
+            crmNormalizeFirstVisitModeV267(service.firstVisitMode) === "MANUAL"
+        ) {
+            meta.firstVisitMode = "MANUAL";
+            meta.firstVisitManualMinutes = Math.max(0, Number(service.firstVisitManualMinutes) || 0);
+        }
+
         service.categoryId = meta.categoryId;
         service.categoryOrder = meta.categoryOrder;
         service.categoryColor = meta.categoryColor;
+        service.firstVisitMode = meta.firstVisitMode;
+        service.firstVisitManualMinutes = meta.firstVisitManualMinutes;
+
         globalColors[name] = meta.categoryColor;
     });
-    currentServices.sort((a, b) => Number(a.categoryOrder) - Number(b.categoryOrder) || Number(a.serviceOrder) - Number(b.serviceOrder));
+
+    currentServices.sort(
+        (a, b) =>
+            Number(a.categoryOrder) - Number(b.categoryOrder) ||
+            Number(a.serviceOrder) - Number(b.serviceOrder)
+    );
 }
 
 /* ----- CEN.25. crmCategoriesFromPrices (oryginalna linia 5308) ----- */
 function crmCategoriesFromPrices() {
     crmPreparePriceStructure();
     const map = new Map();
+
     currentServices.forEach((service, serviceIndex) => {
         if (!map.has(service.categoryId)) {
             map.set(service.categoryId, {
@@ -696,11 +860,24 @@ function crmCategoriesFromPrices() {
                 name: service.category,
                 color: service.categoryColor,
                 order: Number(service.categoryOrder),
+                firstVisitMode: crmNormalizeFirstVisitModeV267(service.firstVisitMode),
+                firstVisitManualMinutes: Math.max(0, Number(service.firstVisitManualMinutes) || 0),
                 services: []
             });
         }
-        map.get(service.categoryId).services.push({ service, serviceIndex });
+
+        const category = map.get(service.categoryId);
+        category.services.push({ service, serviceIndex });
+
+        if (
+            category.firstVisitMode === "AUTO" &&
+            crmNormalizeFirstVisitModeV267(service.firstVisitMode) === "MANUAL"
+        ) {
+            category.firstVisitMode = "MANUAL";
+            category.firstVisitManualMinutes = Math.max(0, Number(service.firstVisitManualMinutes) || 0);
+        }
     });
+
     return Array.from(map.values()).sort((a, b) => a.order - b.order);
 }
 

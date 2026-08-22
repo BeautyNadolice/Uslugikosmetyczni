@@ -1190,3 +1190,131 @@ select:disabled {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* ==========================================================================
+   INDEX FIRST VISIT V9 — KATEGORIA / OPIS / WIDEŁKI / KONTAKT
+   ========================================================================== */
+
+.crm-first-visit-v9 .crm-first-visit-head p {
+    max-width: 620px;
+}
+
+.crm-first-visit-v9 .crm-first-visit-field textarea {
+    line-height: 1.5;
+}
+
+.crm-first-visit-v9 #crmFirstVisitWindowV9 {
+    min-height: 74px;
+}
+
+.crm-first-visit-v9 .crm-first-visit-field small {
+    display: block;
+    margin-top: 6px;
+    color: #8a7d75;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.crm-first-visit-contact-method-v9 {
+    margin: 18px 0;
+    padding: 0;
+    border: 0;
+}
+
+.crm-first-visit-contact-method-v9 > legend {
+    margin-bottom: 9px;
+    color: #3e3936;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.crm-first-visit-contact-options-v9 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.crm-first-visit-contact-options-v9 label {
+    position: relative;
+    display: block;
+    margin: 0;
+    cursor: pointer;
+}
+
+.crm-first-visit-contact-options-v9 input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.crm-first-visit-contact-options-v9 span {
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 8px;
+    border: 1px solid #ded2c8;
+    border-radius: 10px;
+    background: #fff;
+    color: #514a46;
+    text-align: center;
+    transition:
+        border-color .16s ease,
+        background .16s ease,
+        box-shadow .16s ease;
+}
+
+.crm-first-visit-contact-options-v9 b {
+    font-size: 13px;
+}
+
+.crm-first-visit-contact-options-v9 small {
+    color: #8b817a;
+    font-size: 9.5px;
+    line-height: 1.25;
+}
+
+.crm-first-visit-contact-options-v9 input:checked + span {
+    border-color: #c2a383;
+    background: #fbf6f0;
+    box-shadow: 0 0 0 2px rgba(194, 163, 131, .12);
+}
+
+.crm-first-visit-contact-options-v9 input:focus-visible + span {
+    outline: 2px solid #c2a383;
+    outline-offset: 2px;
+}
+
+.crm-first-visit-email-dependent-v9 {
+    margin-top: 12px;
+}
+
+.crm-first-visit-email-dependent-v9[hidden] {
+    display: none !important;
+}
+
+.crm-first-visit-v9 .crm-first-visit-preferences {
+    margin-top: 18px;
+}
+
+.crm-first-visit-v9 .crm-first-visit-empty {
+    line-height: 1.45;
+}
+
+@media (max-width: 620px) {
+    .crm-first-visit-contact-options-v9 {
+        grid-template-columns: 1fr;
+    }
+
+    .crm-first-visit-contact-options-v9 span {
+        min-height: 54px;
+        align-items: flex-start;
+        text-align: left;
+        padding: 10px 12px;
+    }
+}
+
+/* KONIEC INDEX FIRST VISIT V9 */
+
