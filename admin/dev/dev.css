@@ -1,0 +1,237 @@
+
+/* ==========================================================================
+   NAIL-ART DEV V4 — REAL ADMIN EDITOR
+   Ten plik styluje WYŁĄCZNIE edytor. Nie udaje żadnych paneli ADMIN.
+   ========================================================================== */
+
+body.crm-dev-v4 {
+    --crm-dev-v4-panel: 330px;
+}
+
+#crmDevEditorV4,
+#crmDevEditorV4 * {
+    box-sizing: border-box;
+}
+
+#crmDevEditorV4 {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 2147483000;
+    width: min(var(--crm-dev-v4-panel), calc(100vw - 20px));
+    max-height: calc(100vh - 20px);
+    overflow: hidden;
+    border: 1px solid rgba(117, 81, 96, .28);
+    border-radius: 16px;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 18px 54px rgba(40, 27, 34, .22);
+    backdrop-filter: none !important;
+    color: #3b3136;
+    font: 12px/1.35 "Segoe UI", Arial, sans-serif;
+}
+
+#crmDevEditorV4.is-collapsed .crm-dev-v4-body {
+    display: none;
+}
+
+.crm-dev-v4-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 48px;
+    padding: 9px 10px;
+    border-bottom: 1px solid #eee4e8;
+    background: #fff8fb;
+}
+
+.crm-dev-v4-head strong {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: #a64e70;
+    font-size: 13px;
+}
+
+.crm-dev-v4-head small {
+    display: block;
+    margin-top: 2px;
+    color: #8d7e85;
+    font-size: 9px;
+}
+
+.crm-dev-v4-icon-btn {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid #e5d8de;
+    border-radius: 9px;
+    background: #fff;
+    color: #6a5d64;
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.crm-dev-v4-body {
+    max-height: calc(100vh - 70px);
+    overflow: auto;
+    padding: 10px;
+}
+
+.crm-dev-v4-safe {
+    margin-bottom: 10px;
+    padding: 8px 9px;
+    border: 1px solid #f0d7df;
+    border-radius: 10px;
+    background: #fff5f8;
+    color: #825a69;
+    font-size: 10px;
+}
+
+.crm-dev-v4-safe strong {
+    color: #b04469;
+}
+
+.crm-dev-v4-panel-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.crm-dev-v4-panel-list button,
+.crm-dev-v4-btn {
+    min-height: 34px;
+    border: 1px solid #e5d9de;
+    border-radius: 9px;
+    background: #fff;
+    color: #66585f;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.crm-dev-v4-panel-list button:hover,
+.crm-dev-v4-panel-list button.is-active,
+.crm-dev-v4-btn:hover {
+    border-color: #c77696;
+    background: #fff4f8;
+    color: #a44d6e;
+}
+
+.crm-dev-v4-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee6e9;
+}
+
+.crm-dev-v4-section:first-of-type {
+    margin-top: 0;
+}
+
+.crm-dev-v4-section h4 {
+    margin: 0 0 8px;
+    color: #574b51;
+    font-size: 11px;
+}
+
+.crm-dev-v4-row {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 82px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.crm-dev-v4-row label {
+    margin: 0 !important;
+    color: #786c72;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.crm-dev-v4-row input[type="number"] {
+    width: 82px;
+    height: 30px;
+    padding: 4px 7px;
+    border: 1px solid #e3d8dd;
+    border-radius: 8px;
+    background: #fff;
+    color: #4f4449;
+    font: inherit;
+}
+
+.crm-dev-v4-row input[type="number"]:focus {
+    outline: 2px solid rgba(190,105,138,.16);
+    border-color: #c97697;
+}
+
+.crm-dev-v4-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.crm-dev-v4-btn.primary {
+    border-color: #b95d80;
+    background: #b95d80;
+    color: #fff;
+}
+
+.crm-dev-v4-btn.danger {
+    border-color: #e5c8d2;
+    background: #fff6f8;
+    color: #a24264;
+}
+
+.crm-dev-v4-wide {
+    grid-column: 1 / -1;
+}
+
+.crm-dev-v4-status {
+    margin-top: 8px;
+    min-height: 30px;
+    padding: 7px 8px;
+    border-radius: 9px;
+    background: #f7f4f5;
+    color: #756970;
+    font-size: 9px;
+    white-space: pre-wrap;
+}
+
+.crm-dev-v4-status.is-ok {
+    background: #eef8f0;
+    color: #397347;
+}
+
+.crm-dev-v4-status.is-warn {
+    background: #fff5e8;
+    color: #8b642e;
+}
+
+/* Zaznaczenie PRAWDZIWEGO panelu w ADMIN podczas edycji. */
+.crm-dev-v4-selected-real {
+    outline: 2px dashed rgba(185, 93, 128, .78) !important;
+    outline-offset: 3px !important;
+}
+
+/* DEV safe mode: wizualnie oznaczamy operacje zapisu, ale ich layoutu nie ruszamy. */
+body.crm-dev-v4 [data-crm-dev-v4-blocked="1"] {
+    cursor: not-allowed !important;
+}
+
+/* Na małych ekranach panel może być zwężony. */
+@media (max-width: 700px) {
+    body.crm-dev-v4 {
+        --crm-dev-v4-panel: 300px;
+    }
+
+    #crmDevEditorV4 {
+        left: 6px;
+        top: 6px;
+        max-height: calc(100vh - 12px);
+    }
+}
+
+/* KONIEC DEV V4 */

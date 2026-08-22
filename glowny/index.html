@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+   <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main class="container" id="clientLanding">
+        <section class="profile-section" aria-labelledby="brandTitle">
+            <div class="brand-mark" aria-label="Daria">
+                <svg class="brand-mark-leaf" viewBox="0 0 44 44" aria-hidden="true">
+                    <path d="M22 35c-2-11 2-20 11-27" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+                    <path d="M25 26c5-1 9-4 11-9-5 0-9 3-11 9Z" fill="currentColor" opacity=".72"/>
+                    <path d="M20 31c-5-1-9-4-11-9 5 0 9 3 11 9Z" fill="currentColor" opacity=".55"/>
+                    <path d="M29 18c2-5 5-8 10-9-1 5-4 8-10 9Z" fill="currentColor" opacity=".48"/>
+                </svg>
+                <span>Daria</span>
+            </div>
+
+            <h1 id="brandTitle">Daria</h1>
+            <div class="subtitle">Technik usług kosmetycznych</div>
+
+            <div class="ornamental-divider" aria-hidden="true">
+                <span></span><b>✦</b><span></span>
+            </div>
+
+            <p class="bio">
+                <span>Dyplomowana specjalistka branży beauty w Polsce.</span>
+                <span>Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs</span>
+                <span>oraz idealna pielęgnacja ✨</span>
+            </p>
+        </section>
+
+        <button class="cta-btn" onclick="openBookingModal()" type="button">
+            <span aria-hidden="true">✨</span>
+            <span>ZAREZERWUJ WIZYTĘ</span>
+            <span aria-hidden="true">✨</span>
+        </button>
+
+        <div class="admin-link-wrap">
+            <a href="../admin/admin.html" class="admin-panel-link">⚙️ Panel Administratora</a>
+        </div>
+
+        <section id="portfolio-container" aria-live="polite">
+            <p class="portfolio-loading">Ładowanie galerii…</p>
+        </section>
+    </main>
+
+    <div id="bookingModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeBookingModal()">&times;</span>
+            <h2 class="booking-modal-title">Rezerwacja wizyty</h2>
+            
+            <form id="bookingForm">
+                
+                <div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Numer telefonu *</label>
+                    <div style="display: flex; gap: 10px; align-items: stretch;">
+                        <div class="phone-input-container" style="flex-grow: 1;">
+                            <input type="tel" id="clientPhone" required style="width: 100%;">
+                        </div>
+                        <button type="button" id="verifyPhoneBtn" class="verify-btn" style="height: 40px; min-width: 80px; margin: 0;">Sprawdź</button>
+                    </div>
+                    <div id="clientStatus" class="status-message" style="display: none; margin-top: 5px; font-size: 13px; font-weight: bold; min-height: 18px;"></div>
+                </div>
+
+                <div id="bookingVerifiedFields" hidden style="display:none;">
+
+                <div class="form-group">
+                    <label for="clientName" style="display:block; margin-bottom: 8px; font-weight: bold;">Imię i Nazwisko *</label>
+                    <input type="text" id="clientName" required disabled class="locked-input">
+                </div>
+
+                <div class="form-group">
+                    <label for="serviceType" style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz zabieg *</label>
+                    <select id="serviceType" required disabled>
+                        <option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="calendarInput" style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz dzień *</label>
+                    <input type="text" id="calendarInput" placeholder="Kliknij aby wybrać datę..." required disabled style="background: #fff; cursor: pointer;">
+                </div>
+
+                <div class="form-group">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz godzinę *</label>
+                    <div id="timeSlotsContainer" class="time-slots-grid">
+                        <p style="color: #c2a383; font-size: 14px; font-weight: bold;">Najpierw zweryfikuj numer telefonu...</p>
+                    </div>
+                    <input type="hidden" id="finalDateTime" required>
+                    <input type="hidden" id="selectedDuration" value="45">
+                </div>
+
+                <div id="bookingPolicyNotice" class="booking-policy-notice" style="display:none;"></div>
+                <div id="alternativeBookingSection" class="alternative-booking-section" style="display:none;">
+                    <h3>Termin alternatywny</h3>
+                    <p>Wybrany termin wymaga potwierdzenia. Prosimy wybrać dodatkowy termin na wypadek odrzucenia pierwszego.</p>
+                    <input type="text" id="alternativeCalendarInput" placeholder="Wybierz alternatywny dzień" readonly>
+                    <div id="alternativeTimeSlotsContainer" class="time-slots-grid"></div>
+                    <input type="hidden" id="alternativeDateTime">
+                </div>
+                <div id="priceDisplay" style="margin: 15px 0; font-weight: bold; color: var(--accent-color); font-size: 18px; text-align: center;"></div>
+
+                <div class="rodo-group">
+                    <input type="checkbox" id="rodoConsent" required disabled>
+                    <label for="rodoConsent" class="rodo-text">
+                        Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button>
+
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="contact-form-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content first-visit-modal-content">
+            <div class="crm-first-visit-loading">Ładowanie…</div>
+        </div>
+    </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
+    <script src="booking.js"></script>
+</body>
+</html>
