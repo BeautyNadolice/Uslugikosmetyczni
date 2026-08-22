@@ -2665,6 +2665,27 @@ function crmClientsUpdateTabsV269() {
 
         waiting.textContent = String(count);
         waiting.hidden = count === 0;
+
+        const waitingButton = waiting.closest(
+            '[data-crm-clients-view-v269="waiting"]'
+        );
+
+        if (waitingButton) {
+            waitingButton.classList.toggle(
+                "has-waiting-v273",
+                count > 0
+            );
+            waitingButton.setAttribute(
+                "data-waiting-count-v273",
+                String(count)
+            );
+            waitingButton.setAttribute(
+                "aria-label",
+                count > 0
+                    ? `Osoby oczekujące — ${count}`
+                    : "Osoby oczekujące"
+            );
+        }
     }
 
     const history = document.getElementById("crmClientsHistoryBadgeV269");
@@ -3530,3 +3551,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* KONIEC CLIENTS V26.9 */
 
+
+
+/* ==========================================================================
+   CLIENTS V27.3 — CZYTELNIEJSZE ZAKŁADKI + ALERT OCZEKUJĄCYCH
+   - większe zakładki
+   - klasa .has-waiting-v273 gdy count > 0
+   - bez nowych requestów / pollingu / zmian backendu
+   ========================================================================== */

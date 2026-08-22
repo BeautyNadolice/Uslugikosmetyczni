@@ -5018,843 +5018,122 @@ body{background-image:radial-gradient(circle at 8% 0%,rgba(241,206,217,.22),tran
 
 /* ===== KONIEC ADMIN V26.17 ===== */
 
-/* ===== NAIL-ART DEV V5 MANAGED LAYOUT START ===== */
-/* Pierwsza migracja z DEV V4: 2026-08-22.
-   Duże translate 344px dla panelu szczegółów usunięto celowo — pozycję nad
-   „Wybrany dzień” ustala końcowa reguła ADMIN V26.17. */
-/* Szczegóły — wizyta CRM — DEV V5 / PRAWDZIWY DOM */
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] {
-    width: 320px !important;
-    translate: 0px 0px !important;
+
+/* ==========================================================================
+   ADMIN V27.3 — KLIENCI: WIĘKSZE ZAKŁADKI + ALERT "OSOBY OCZEKUJĄCE"
+   2026-08-23
+   ========================================================================== */
+
+#tab-klienci .crm-clients-views-v269 {
+    gap: 26px !important;
+    margin: 4px 0 12px !important;
+    padding: 0 6px !important;
 }
 
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-header > .crm-safe-close {
-    position: relative !important;
-    translate: 0px 0px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
+#tab-klienci .crm-clients-views-v269 button {
+    min-height: 44px !important;
+    padding: 0 5px 11px !important;
+    gap: 8px !important;
+    border-radius: 10px 10px 0 0 !important;
+    color: #7e7178 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: .005em !important;
+    transition:
+        color .16s ease,
+        background .16s ease,
+        box-shadow .16s ease,
+        transform .16s ease !important;
 }
 
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-header > .crm-safe-close::before,
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-header > .crm-safe-close::after {
+#tab-klienci .crm-clients-views-v269 button::after {
+    left: 5px !important;
+    right: 5px !important;
+    height: 2.5px !important;
+}
+
+#tab-klienci .crm-clients-views-v269 button > span {
+    min-width: 21px !important;
+    height: 21px !important;
+    padding: 0 6px !important;
+    background: #f6ebef !important;
+    color: #9f506d !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    box-shadow: inset 0 0 0 1px rgba(190,105,137,.06) !important;
+}
+
+/* Gdy są osoby oczekujące — cały tab staje się czytelnym, ale lekkim alertem. */
+#tab-klienci
+.crm-clients-views-v269
+button[data-crm-clients-view-v269="waiting"].has-waiting-v273 {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,244,235,.88),
+            rgba(255,249,246,.70)
+        ) !important;
+    color: #9a5a43 !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(222,151,111,.18),
+        0 4px 14px rgba(151,90,58,.055) !important;
+}
+
+/* Mały sygnał przed tekstem — pojawia się tylko przy count > 0. */
+#tab-klienci
+.crm-clients-views-v269
+button[data-crm-clients-view-v269="waiting"].has-waiting-v273::before {
     content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
+    width: 7px !important;
+    height: 7px !important;
+    flex: 0 0 7px !important;
+    border-radius: 50% !important;
+    background: #e99062 !important;
+    box-shadow: 0 0 0 4px rgba(233,144,98,.12) !important;
+}
+
+/* Badge oczekujących jest wyraźniejszy niż zwykłe liczniki. */
+#tab-klienci
+.crm-clients-views-v269
+button[data-crm-clients-view-v269="waiting"].has-waiting-v273
+#crmClientsWaitingBadgeV269 {
+    background: #e9865e !important;
+    color: #fff !important;
+    box-shadow:
+        0 3px 9px rgba(191,93,55,.16),
+        inset 0 0 0 1px rgba(255,255,255,.22) !important;
+}
+
+/* Aktywna zakładka nadal ma priorytet wizualny. */
+#tab-klienci
+.crm-clients-views-v269
+button[data-crm-clients-view-v269="waiting"].has-waiting-v273.is-active {
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,239,231,.96),
+            rgba(255,248,245,.78)
+        ) !important;
+    color: #b05269 !important;
+}
+
+#tab-klienci
+.crm-clients-views-v269
+button[data-crm-clients-view-v269="waiting"].has-waiting-v273.is-active::after {
+    background: #c85e82 !important;
+}
+
+@media (max-width: 760px) {
+    #tab-klienci .crm-clients-views-v269 {
+        gap: 12px !important;
+        overflow-x: auto !important;
+        padding-bottom: 2px !important;
+    }
+
+    #tab-klienci .crm-clients-views-v269 button {
+        min-width: max-content !important;
+        font-size: 12px !important;
+    }
 }
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-header > .crm-safe-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-header > .crm-safe-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] #crmVisitDetailsMinimizeV25217 {
-    position: relative !important;
-    translate: -17px -53px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] #crmVisitDetailsMinimizeV25217::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] #crmVisitDetailsMinimizeV25217::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] .crm-safe-status-copy {
-    translate: 0px 0px !important;
-}
-
-
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="appointment"] #crmVisitStatusButton {
-    translate: 3px 0px !important;
-}
-
-
-
-/* Szczegóły — blokada czasu — DEV V5 / PRAWDZIWY DOM */
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-header > .crm-safe-close {
-    position: relative !important;
-    translate: -3px -2px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-header > .crm-safe-close::before,
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-header > .crm-safe-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-header > .crm-safe-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-header > .crm-safe-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] #crmVisitDetailsMinimizeV25217 {
-    position: relative !important;
-    translate: -15px -55px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] #crmVisitDetailsMinimizeV25217::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] #crmVisitDetailsMinimizeV25217::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="block"] .crm-safe-status-copy {
-    translate: 0px 0px !important;
-}
-
-
-
-
-
-/* Szczegóły — Google — DEV V5 / PRAWDZIWY DOM */
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-header > .crm-safe-close {
-    position: relative !important;
-    translate: -4px -2px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-header > .crm-safe-close::before,
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-header > .crm-safe-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-header > .crm-safe-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-header > .crm-safe-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] #crmVisitDetailsMinimizeV25217 {
-    position: relative !important;
-    translate: -16px -55px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] #crmVisitDetailsMinimizeV25217::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] #crmVisitDetailsMinimizeV25217::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-#appointmentDetailsModal.crm-safe-visit-panel[data-crm-event-type="external"] .crm-safe-status-copy {
-    translate: 0px 0px !important;
-}
-
-
-
-
-
-/* Dodaj wizytę — DEV V5 / PRAWDZIWY DOM */
-#appointmentModal .modal-content {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#appointmentModal .modal-header > .modal-close {
-    position: relative !important;
-    translate: 5px -5px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentModal .modal-header > .modal-close::before,
-#appointmentModal .modal-header > .modal-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#appointmentModal .modal-header > .modal-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#appointmentModal .modal-header > .modal-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#appointmentModal #crmAppointmentMinimizeBtnV7 {
-    position: relative !important;
-    translate: 17px -4px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#appointmentModal #crmAppointmentMinimizeBtnV7::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#appointmentModal #crmAppointmentMinimizeBtnV7::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Zablokuj czas — DEV V5 / PRAWDZIWY DOM */
-#blockTimeModal .modal-content {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#blockTimeModal .modal-header > .modal-close {
-    position: relative !important;
-    translate: 7px -4px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#blockTimeModal .modal-header > .modal-close::before,
-#blockTimeModal .modal-header > .modal-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#blockTimeModal .modal-header > .modal-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#blockTimeModal .modal-header > .modal-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#blockTimeModal #crmBlockTimeMinimizeBtnV172 {
-    position: relative !important;
-    translate: 16px -3px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#blockTimeModal #crmBlockTimeMinimizeBtnV172::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#blockTimeModal #crmBlockTimeMinimizeBtnV172::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Wszystkie wizyty — DEV V5 / PRAWDZIWY DOM */
-#crmDayVisitsOverlay .crm-day-list-panel {
-    width: 320px !important;
-    translate: 8px -3px !important;
-}
-
-#crmDayVisitsOverlay .crm-day-list-close {
-    position: relative !important;
-    translate: 77px -33px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#crmDayVisitsOverlay .crm-day-list-close::before,
-#crmDayVisitsOverlay .crm-day-list-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#crmDayVisitsOverlay .crm-day-list-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#crmDayVisitsOverlay .crm-day-list-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#crmDayVisitsOverlay #crmDayVisitsMinimizeV25217 {
-    position: relative !important;
-    translate: 127px -35px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#crmDayVisitsOverlay #crmDayVisitsMinimizeV25217::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#crmDayVisitsOverlay #crmDayVisitsMinimizeV25217::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Skrzynka — DEV V5 / PRAWDZIWY DOM */
-#crmUnifiedInboxModal .crm-day-list-panel {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#crmUnifiedInboxModal #crmUnifiedInboxClose {
-    position: relative !important;
-    translate: 0px 0px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#crmUnifiedInboxModal #crmUnifiedInboxClose::before,
-#crmUnifiedInboxModal #crmUnifiedInboxClose::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#crmUnifiedInboxModal #crmUnifiedInboxClose::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#crmUnifiedInboxModal #crmUnifiedInboxClose::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#crmUnifiedInboxModal #crmInboxMinimizeV25217 {
-    position: relative !important;
-    translate: 275px -67px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#crmUnifiedInboxModal #crmInboxMinimizeV25217::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#crmUnifiedInboxModal #crmInboxMinimizeV25217::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Klient — DEV V5 / PRAWDZIWY DOM */
-#clientModal .modal-content {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#clientModal .modal-header > .modal-close {
-    position: relative !important;
-    translate: 4px -5px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#clientModal .modal-header > .modal-close::before,
-#clientModal .modal-header > .modal-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#clientModal .modal-header > .modal-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#clientModal .modal-header > .modal-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#clientModal .crm-utility-minimize-v2525 {
-    position: relative !important;
-    translate: 20px -4px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#clientModal .crm-utility-minimize-v2525::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#clientModal .crm-utility-minimize-v2525::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Usługa — DEV V5 / PRAWDZIWY DOM */
-#serviceModal .modal-content {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#serviceModal .modal-header > .modal-close {
-    position: relative !important;
-    translate: 4px -4px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#serviceModal .modal-header > .modal-close::before,
-#serviceModal .modal-header > .modal-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#serviceModal .modal-header > .modal-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#serviceModal .modal-header > .modal-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#serviceModal .crm-utility-minimize-v2525 {
-    position: relative !important;
-    translate: 20px -3px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#serviceModal .crm-utility-minimize-v2525::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#serviceModal .crm-utility-minimize-v2525::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Kategoria — DEV V5 / PRAWDZIWY DOM */
-#categoryModal .modal-content {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#categoryModal .modal-header > .modal-close {
-    position: relative !important;
-    translate: 3px -6px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#categoryModal .modal-header > .modal-close::before,
-#categoryModal .modal-header > .modal-close::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#categoryModal .modal-header > .modal-close::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#categoryModal .modal-header > .modal-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#categoryModal .crm-utility-minimize-v2525 {
-    position: relative !important;
-    translate: 19px -5px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#categoryModal .crm-utility-minimize-v2525::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#categoryModal .crm-utility-minimize-v2525::after {
-    content: none !important;
-    display: none !important;
-}
-
-
-
-
-
-
-/* Dane klienta — DEV V5 / PRAWDZIWY DOM */
-#crmContactDataConfirmModalV2 > section {
-    width: 320px !important;
-    translate: 0px 0px !important;
-}
-
-#crmContactDataConfirmModalV2 [data-close] {
-    position: relative !important;
-    translate: 0px 13px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#crmContactDataConfirmModalV2 [data-close]::before,
-#crmContactDataConfirmModalV2 [data-close]::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 13px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform-origin: center !important;
-    pointer-events: none !important;
-}
-
-#crmContactDataConfirmModalV2 [data-close]::before {
-    transform: translate(-50%, -50%) rotate(45deg) !important;
-}
-
-#crmContactDataConfirmModalV2 [data-close]::after {
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-}
-
-#crmContactDataConfirmModalV2 .crm-utility-minimize-v2525 {
-    position: relative !important;
-    translate: 2px -2px !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    overflow: visible !important;
-}
-
-#crmContactDataConfirmModalV2 .crm-utility-minimize-v2525::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 14px !important;
-    height: 2px !important;
-    border: 0 !important;
-    border-radius: 999px !important;
-    background: #81737a !important;
-    box-shadow: none !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-#crmContactDataConfirmModalV2 .crm-utility-minimize-v2525::after {
-    content: none !important;
-    display: none !important;
-}
-/* ===== NAIL-ART DEV V5 MANAGED LAYOUT END ===== */

@@ -1202,14 +1202,12 @@ function crmDetectNewAppointments() {
     const fresh=crmNewRowsFromSeen(CRM_APPOINTMENT_SEEN_KEY,rows,crmAppointmentNoticeKey);
     if(!fresh.length)return [];
 
-    const first=fresh[0];
-    crmShowSimpleAdminNotice(
-        fresh.length===1
-            ? `Nowa wizyta: ${first.name||"Klient"}`
-            : `Nowe wizyty: ${fresh.length}`,
-        "Pokaż kalendarz",
-        ()=>{if(typeof switchTab==="function")switchTab("kalendarz");}
-    );
+    /*
+     * V27.2:
+     * Stary centralny popup "Nowe wizyty: N / Pokaż kalendarz" został usunięty.
+     * Wykrywanie i zapamiętywanie nowych wizyt pozostaje aktywne.
+     * Informacje dla operatora obsługuje Skrzynka / badge, bez zasłaniania Kalendarza.
+     */
     return fresh;
 }
 
@@ -6012,29 +6010,74 @@ crmRenderUnifiedInbox = function() {
 
 /* KONIEC ADMIN FIRST VISIT V9 */
 
-/* ===== ADMIN/DEV V5 — PHYSICAL CSS ONLY / LEGACY CLEANUP ===== */
-(function crmDisableLegacyDevLayoutV5() {
-    const LEGACY_STORAGE_KEY = "nailArtDevLayoutV4";
-    const LEGACY_STYLE_ID = "crmDevSavedLayoutStyleV4";
+/* ===== ADMIN/DEV V4 — SHARED LIVE LAYOUT BRIDGE ===== */
+(function crmInstallSharedDevLayoutV4() {
+    const STORAGE_KEY = "nailArtDevLayoutV4";
+    const STYLE_ID = "crmDevSavedLayoutStyleV4";
 
-    function clearLegacyLayout() {
-        try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (_) {}
-        document.getElementById(LEGACY_STYLE_ID)?.remove();
+    function readPayload() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed.css === "string"
+                ? parsed
+                : null;
+        } catch (error) {
+            console.warn("ADMIN DEV V4 layout:", error);
+            return null;
+        }
+    }
+
+    function applySavedLayout() {
+        const payload = readPayload();
+
+        let style = document.getElementById(STYLE_ID);
+
+        if (!payload) {
+            if (style) style.remove();
+            return false;
+        }
+
+        if (!style) {
+            style = document.createElement("style");
+            style.id = STYLE_ID;
+            document.head.appendChild(style);
+        }
+
+        style.textContent = payload.css;
         return true;
     }
 
-    /*
-     * DEV V5 nie używa localStorage do przechowywania layoutu.
-     * Źródłem prawdy jest fizyczny plik:
-     * admin/CSS/styleadmin-overrides.css
-     */
-    clearLegacyLayout();
+    function clearSavedLayout() {
+        localStorage.removeItem(STORAGE_KEY);
+        document.getElementById(STYLE_ID)?.remove();
+    }
 
-    window.crmApplySavedDevLayoutV4 = function() {
-        clearLegacyLayout();
-        return false;
-    };
-    window.crmClearSavedDevLayoutV4 = clearLegacyLayout;
-    window.crmDevLayoutStorageModeV5 = "PHYSICAL_CSS_ONLY";
+    /*
+     * Awaryjne wejście:
+     * admin.html?crmResetDevLayout=1
+     * usuwa zapis DEV zanim panel będzie używany.
+     */
+    try {
+        const params = new URLSearchParams(location.search);
+        if (params.get("crmResetDevLayout") === "1") {
+            clearSavedLayout();
+        }
+    } catch (_) {}
+
+    window.crmApplySavedDevLayoutV4 = applySavedLayout;
+    window.crmClearSavedDevLayoutV4 = clearSavedLayout;
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            applySavedLayout,
+            { once:true }
+        );
+    } else {
+        applySavedLayout();
+    }
 })();
-/* ===== KONIEC ADMIN/DEV V5 ===== */
+/* ===== KONIEC ADMIN/DEV V4 BRIDGE ===== */

@@ -1,0 +1,318 @@
+[
+  {
+    "id": "face",
+    "label": "Twarz",
+    "file": "face.png",
+    "keywords": [
+      "twarz",
+      "pielęgnacja twarzy",
+      "kosmetyka twarzy"
+    ]
+  },
+  {
+    "id": "skin",
+    "label": "Skóra",
+    "file": "skin.png",
+    "keywords": [
+      "skóra",
+      "dermatologia",
+      "pielęgnacja skóry"
+    ]
+  },
+  {
+    "id": "mask",
+    "label": "Maska",
+    "file": "mask.png",
+    "keywords": [
+      "maska",
+      "maseczka"
+    ]
+  },
+  {
+    "id": "eyes",
+    "label": "Oczy",
+    "file": "eyes.png",
+    "keywords": [
+      "oczy",
+      "oko",
+      "henna",
+      "stylizacja oczu"
+    ]
+  },
+  {
+    "id": "lashes",
+    "label": "Rzęsy",
+    "file": "lashes.png",
+    "keywords": [
+      "rzęsy",
+      "laminacja rzęs"
+    ]
+  },
+  {
+    "id": "brows",
+    "label": "Brwi",
+    "file": "brows.png",
+    "keywords": [
+      "brwi",
+      "henna brwi",
+      "laminacja brwi"
+    ]
+  },
+  {
+    "id": "lips",
+    "label": "Usta",
+    "file": "lips.png",
+    "keywords": [
+      "usta",
+      "lip",
+      "makijaż permanentny ust"
+    ]
+  },
+  {
+    "id": "makeup",
+    "label": "Makijaż",
+    "file": "makeup.png",
+    "keywords": [
+      "makijaż",
+      "makeup",
+      "wizaż"
+    ]
+  },
+  {
+    "id": "brush",
+    "label": "Pędzel",
+    "file": "brush.png",
+    "keywords": [
+      "pędzel",
+      "kosmetyka"
+    ]
+  },
+  {
+    "id": "manicure",
+    "label": "Manicure",
+    "file": "manicure.png",
+    "keywords": [
+      "manicure",
+      "dłonie"
+    ]
+  },
+  {
+    "id": "pedicure",
+    "label": "Pedicure",
+    "file": "pedicure.png",
+    "keywords": [
+      "pedicure",
+      "stopy"
+    ]
+  },
+  {
+    "id": "nails",
+    "label": "Paznokcie",
+    "file": "nails.png",
+    "keywords": [
+      "paznokcie",
+      "nail"
+    ]
+  },
+  {
+    "id": "face-massage",
+    "label": "Masaż twarzy",
+    "file": "face-massage.png",
+    "keywords": [
+      "masaż twarzy",
+      "masaż"
+    ]
+  },
+  {
+    "id": "depilation",
+    "label": "Depilacja",
+    "file": "depilation.png",
+    "keywords": [
+      "depilacja",
+      "wosk",
+      "wax"
+    ]
+  },
+  {
+    "id": "laser",
+    "label": "Laser",
+    "file": "laser.png",
+    "keywords": [
+      "laser",
+      "zabiegi laserowe"
+    ]
+  },
+  {
+    "id": "laser-hair-removal",
+    "label": "Depilacja laserowa",
+    "file": "laser-hair-removal.png",
+    "keywords": [
+      "depilacja laserowa",
+      "laser włos"
+    ]
+  },
+  {
+    "id": "hair",
+    "label": "Włosy",
+    "file": "hair.png",
+    "keywords": [
+      "włosy",
+      "fryzjer",
+      "hair"
+    ]
+  },
+  {
+    "id": "scissors",
+    "label": "Nożyczki",
+    "file": "scissors.png",
+    "keywords": [
+      "nożyczki",
+      "fryzjerstwo"
+    ]
+  },
+  {
+    "id": "body",
+    "label": "Ciało",
+    "file": "body.png",
+    "keywords": [
+      "ciało",
+      "zabiegi na ciało"
+    ]
+  },
+  {
+    "id": "spa",
+    "label": "SPA",
+    "file": "spa.png",
+    "keywords": [
+      "spa",
+      "relaks",
+      "kamienie"
+    ]
+  },
+  {
+    "id": "peeling",
+    "label": "Peeling",
+    "file": "peeling.png",
+    "keywords": [
+      "peeling",
+      "scrub"
+    ]
+  },
+  {
+    "id": "microneedling",
+    "label": "Mikronakłuwanie",
+    "file": "microneedling.png",
+    "keywords": [
+      "mikronakłuwanie",
+      "dermapen"
+    ]
+  },
+  {
+    "id": "mesotherapy",
+    "label": "Mezoterapia",
+    "file": "mesotherapy.png",
+    "keywords": [
+      "mezoterapia",
+      "igła",
+      "iniekcja"
+    ]
+  },
+  {
+    "id": "device",
+    "label": "Aparatura",
+    "file": "device.png",
+    "keywords": [
+      "aparatura",
+      "urządzenie",
+      "zabiegi aparaturowe"
+    ]
+  },
+  {
+    "id": "hifu",
+    "label": "HIFU",
+    "file": "hifu.png",
+    "keywords": [
+      "hifu",
+      "ultradźwięki"
+    ]
+  },
+  {
+    "id": "rf",
+    "label": "RF",
+    "file": "rf.png",
+    "keywords": [
+      "rf",
+      "radiofrekwencja"
+    ]
+  },
+  {
+    "id": "acne",
+    "label": "Trądzik",
+    "file": "acne.png",
+    "keywords": [
+      "trądzik",
+      "acne",
+      "skóra problematyczna"
+    ]
+  },
+  {
+    "id": "consultation",
+    "label": "Konsultacja",
+    "file": "consultation.png",
+    "keywords": [
+      "konsultacja",
+      "doradztwo"
+    ]
+  },
+  {
+    "id": "appointment",
+    "label": "Wizyta",
+    "file": "appointment.png",
+    "keywords": [
+      "wizyta",
+      "termin",
+      "kalendarz"
+    ]
+  },
+  {
+    "id": "wellness",
+    "label": "Wellness",
+    "file": "wellness.png",
+    "keywords": [
+      "wellness",
+      "relaks",
+      "lotos"
+    ]
+  },
+  {
+    "id": "universal",
+    "label": "Uniwersalna",
+    "file": "universal.png",
+    "keywords": [
+      "uniwersalna",
+      "inne",
+      "beauty"
+    ]
+  },
+  {
+    "id": "glow",
+    "label": "Blask",
+    "file": "glow.png",
+    "keywords": [
+      "blask",
+      "rozświetlenie",
+      "glow"
+    ]
+  },
+  {
+    "id": "package",
+    "label": "Pakiet / Zestaw usług",
+    "file": "package.png",
+    "keywords": [
+      "pakiet",
+      "zestaw usług",
+      "seria",
+      "voucher"
+    ]
+  }
+]

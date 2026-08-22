@@ -1155,3 +1155,990 @@ function crmApplyCategoryVisualsToLegacyCards() {
         card.style.borderLeftColor = palette.stripe;
     });
 }
+
+
+/* ==========================================================================
+   CENNIK PREMIUM V27.4 — FLOATING CLIENT PREVIEW
+   2026-08-23
+   - ikona kategorii: categoryIcon
+   - widoczność ikony dla klienta per kategoria: categoryIconClientVisible
+   - globalna widoczność ikon klienta: clientIconsGlobalVisible
+   - podgląd kolejności kategorii i usług dla klienta
+   - responsywna siatka 3 / 2 / 1
+   ========================================================================== */
+
+const CRM_PRICE_ICON_BASE_V27 = "Icons/Cennik/";
+const CRM_PRICE_ICON_FALLBACK_V27 = "universal";
+
+const CRM_PRICE_ICON_CATALOG_V27 = [
+  ["face","Twarz","face.png"],
+  ["skin","Skóra","skin.png"],
+  ["mask","Maska","mask.png"],
+  ["eyes","Oczy","eyes.png"],
+  ["lashes","Rzęsy","lashes.png"],
+  ["brows","Brwi","brows.png"],
+  ["lips","Usta","lips.png"],
+  ["makeup","Makijaż","makeup.png"],
+  ["brush","Pędzel","brush.png"],
+  ["manicure","Manicure","manicure.png"],
+  ["pedicure","Pedicure","pedicure.png"],
+  ["nails","Paznokcie","nails.png"],
+  ["face-massage","Masaż twarzy","face-massage.png"],
+  ["depilation","Depilacja","depilation.png"],
+  ["laser","Laser","laser.png"],
+  ["laser-hair-removal","Depilacja laserowa","laser-hair-removal.png"],
+  ["hair","Włosy","hair.png"],
+  ["scissors","Nożyczki","scissors.png"],
+  ["body","Ciało","body.png"],
+  ["spa","SPA","spa.png"],
+  ["peeling","Peeling","peeling.png"],
+  ["microneedling","Mikronakłuwanie","microneedling.png"],
+  ["mesotherapy","Mezoterapia","mesotherapy.png"],
+  ["device","Aparatura","device.png"],
+  ["hifu","HIFU","hifu.png"],
+  ["rf","RF","rf.png"],
+  ["acne","Trądzik","acne.png"],
+  ["consultation","Konsultacja","consultation.png"],
+  ["appointment","Wizyta","appointment.png"],
+  ["wellness","Wellness","wellness.png"],
+  ["universal","Uniwersalna","universal.png"],
+  ["glow","Blask","glow.png"],
+  ["package","Pakiet / Zestaw usług","package.png"]
+].map(([id,label,file]) => ({id,label,file}));
+
+function crmEscapeHtmlV27(value) {
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function crmNormTextV27(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("pl-PL")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g," ");
+}
+
+function crmGuessCategoryIconV27(name) {
+  const n = crmNormTextV27(name);
+  const rules = [
+    [/(depilacj.*laser|laser.*depilacj)/,"laser-hair-removal"],
+    [/(radiofrekw|(^|\s)rf(\s|$))/,"rf"],
+    [/hifu|ultradzw/,"hifu"],
+    [/mikronak|dermapen/,"microneedling"],
+    [/mezoter|igl/,"mesotherapy"],
+    [/tradz|acne|problem.*skor/,"acne"],
+    [/konsult|doradztw/,"consultation"],
+    [/pakiet|zestaw|seria|voucher/,"package"],
+    [/masaz.*twarz|twarz.*masaz/,"face-massage"],
+    [/manicure/,"manicure"],
+    [/pedicure/,"pedicure"],
+    [/paznok|nail/,"nails"],
+    [/rz[eę]s|lashes/,"lashes"],
+    [/oczy|oko|eye/,"eyes"],
+    [/brwi|brow/,"brows"],
+    [/usta|lip/,"lips"],
+    [/makij|makeup|wizaz/,"makeup"],
+    [/pedzel|brush/,"brush"],
+    [/depil|wosk|wax/,"depilation"],
+    [/laser/,"laser"],
+    [/wlos|fryz|hair/,"hair"],
+    [/nozycz|scissor/,"scissors"],
+    [/spa|relaks/,"spa"],
+    [/peeling|scrub/,"peeling"],
+    [/aparat|urzadz|technolog/,"device"],
+    [/cialo|body/,"body"],
+    [/maska|masecz/,"mask"],
+    [/skor|dermat/,"skin"],
+    [/twarz|kosmetyka.*twar|pielegnacja.*twar/,"face"],
+    [/wizyta|termin|kalendar/,"appointment"],
+    [/wellness|lotos/,"wellness"],
+    [/blask|rozswiet|glow/,"glow"]
+  ];
+  for (const [rx,id] of rules) if (rx.test(n)) return id;
+  return CRM_PRICE_ICON_FALLBACK_V27;
+}
+
+function crmGetIconMetaV27(iconId) {
+  return CRM_PRICE_ICON_CATALOG_V27.find(item => item.id === iconId)
+    || CRM_PRICE_ICON_CATALOG_V27.find(item => item.id === CRM_PRICE_ICON_FALLBACK_V27);
+}
+
+function crmPriceIconSrcV27(iconId) {
+  return CRM_PRICE_ICON_BASE_V27 + crmGetIconMetaV27(iconId).file;
+}
+
+function crmServiceCountTextV27(count) {
+  const n = Number(count) || 0;
+  if (n === 1) return "1 usługa";
+  if (n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14)) return `${n} usługi`;
+  return `${n} usług`;
+}
+
+
+function crmBoolV272(value, fallback = true) {
+  if (value === undefined || value === null || value === "") return Boolean(fallback);
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  const n = crmNormTextV27(value);
+  if (["nie","false","0","off","wyl","wył","ukryj","hidden"].includes(n)) return false;
+  if (["tak","true","1","on","wl","wł","pokaz","pokaż","visible"].includes(n)) return true;
+  return Boolean(fallback);
+}
+
+function crmClientIconsGlobalVisibleV272() {
+  const row = (currentServices || []).find(service =>
+    service && service.clientIconsGlobalVisible !== undefined &&
+    service.clientIconsGlobalVisible !== null &&
+    service.clientIconsGlobalVisible !== ""
+  );
+  return crmBoolV272(row?.clientIconsGlobalVisible, true);
+}
+
+function crmSetClientIconsGlobalVisibleV272(value) {
+  const next = Boolean(value);
+  (currentServices || []).forEach(service => {
+    service.clientIconsGlobalVisible = next;
+  });
+  crmEnsureClientPreviewControlsV272();
+  crmRenderClientPreviewV272();
+}
+
+function crmSetCategoryIconClientVisibleV272(categoryId, value) {
+  const next = Boolean(value);
+  (currentServices || [])
+    .filter(service => service.categoryId === categoryId)
+    .forEach(service => service.categoryIconClientVisible = next);
+  crmSyncCategoryEditorV27();
+  crmRenderClientPreviewV272();
+}
+
+/* V27: pełna normalizacja metadanych kategorii, z zachowaniem V26.7. */
+crmPreparePriceStructure = function() {
+  const seenCategories = new Map();
+  const iconSeeds = new Map();
+
+  currentServices.forEach(service => {
+    const name = String(service.category || "Inne").trim() || "Inne";
+    const icon = String(service.categoryIcon || "").trim();
+    if (!icon) return;
+    const order = Number(service.serviceOrder) > 0 ? Number(service.serviceOrder) : Number.MAX_SAFE_INTEGER;
+    const previous = iconSeeds.get(name);
+    if (!previous || order < previous.order) iconSeeds.set(name, {icon, order});
+  });
+
+  currentServices.forEach((service, index) => {
+    service.serviceId = service.serviceId || crmPriceId("srv");
+    service.serviceOrder = Number(service.serviceOrder) > 0 ? Number(service.serviceOrder) : index + 1;
+
+    const name = String(service.category || "Inne").trim() || "Inne";
+    service.category = name;
+
+    if (!seenCategories.has(name)) {
+      seenCategories.set(name, {
+        categoryId: service.categoryId || crmPriceId("cat"),
+        categoryOrder: Number(service.categoryOrder) > 0 ? Number(service.categoryOrder) : seenCategories.size + 1,
+        categoryColor: service.categoryColor || globalColors[name] || "#b05c75",
+        categoryIcon: iconSeeds.get(name)?.icon || crmGuessCategoryIconV27(name),
+        categoryIconClientVisible: crmBoolV272(service.categoryIconClientVisible, true),
+        clientIconsGlobalVisible: crmBoolV272(service.clientIconsGlobalVisible, crmClientIconsGlobalVisibleV272()),
+        firstVisitMode: crmNormalizeFirstVisitModeV267(service.firstVisitMode),
+        firstVisitManualMinutes: Math.max(0, Number(service.firstVisitManualMinutes) || 0)
+      });
+    }
+
+    const meta = seenCategories.get(name);
+
+    if (!meta.categoryIcon && service.categoryIcon) {
+      meta.categoryIcon = String(service.categoryIcon).trim();
+    }
+
+    if (
+      meta.firstVisitMode === "AUTO" &&
+      crmNormalizeFirstVisitModeV267(service.firstVisitMode) === "MANUAL"
+    ) {
+      meta.firstVisitMode = "MANUAL";
+      meta.firstVisitManualMinutes = Math.max(0, Number(service.firstVisitManualMinutes) || 0);
+    }
+
+    service.categoryId = meta.categoryId;
+    service.categoryOrder = meta.categoryOrder;
+    service.categoryColor = meta.categoryColor;
+    service.categoryIcon = meta.categoryIcon || crmGuessCategoryIconV27(name);
+    service.categoryIconClientVisible = crmBoolV272(meta.categoryIconClientVisible, true);
+    service.clientIconsGlobalVisible = crmBoolV272(meta.clientIconsGlobalVisible, true);
+    service.firstVisitMode = meta.firstVisitMode;
+    service.firstVisitManualMinutes = meta.firstVisitManualMinutes;
+
+    globalColors[name] = meta.categoryColor;
+  });
+
+  currentServices.sort(
+    (a,b) =>
+      Number(a.categoryOrder) - Number(b.categoryOrder) ||
+      Number(a.serviceOrder) - Number(b.serviceOrder)
+  );
+};
+
+crmCategoriesFromPrices = function() {
+  crmPreparePriceStructure();
+  const map = new Map();
+
+  currentServices.forEach((service, serviceIndex) => {
+    if (!map.has(service.categoryId)) {
+      map.set(service.categoryId, {
+        id: service.categoryId,
+        name: service.category,
+        color: service.categoryColor,
+        icon: service.categoryIcon || crmGuessCategoryIconV27(service.category),
+        iconClientVisible: crmBoolV272(service.categoryIconClientVisible, true),
+        clientIconsGlobalVisible: crmBoolV272(service.clientIconsGlobalVisible, true),
+        order: Number(service.categoryOrder),
+        firstVisitMode: crmNormalizeFirstVisitModeV267(service.firstVisitMode),
+        firstVisitManualMinutes: Math.max(0, Number(service.firstVisitManualMinutes) || 0),
+        services: []
+      });
+    }
+
+    const category = map.get(service.categoryId);
+    category.services.push({service, serviceIndex});
+
+    if (
+      category.firstVisitMode === "AUTO" &&
+      crmNormalizeFirstVisitModeV267(service.firstVisitMode) === "MANUAL"
+    ) {
+      category.firstVisitMode = "MANUAL";
+      category.firstVisitManualMinutes = Math.max(0, Number(service.firstVisitManualMinutes) || 0);
+    }
+  });
+
+  return Array.from(map.values()).sort((a,b) => a.order - b.order);
+};
+
+crmNormalizePriceOrder = function() {
+  const categories = crmCategoriesFromPrices();
+  categories.forEach((category, categoryIndex) => {
+    category.services.sort((a,b) => Number(a.service.serviceOrder) - Number(b.service.serviceOrder));
+    category.services.forEach((item, serviceIndex) => {
+      item.service.categoryOrder = categoryIndex + 1;
+      item.service.serviceOrder = serviceIndex + 1;
+      item.service.category = category.name;
+      item.service.categoryId = category.id;
+      item.service.categoryColor = category.color;
+      item.service.categoryIcon = category.icon || crmGuessCategoryIconV27(category.name);
+      item.service.categoryIconClientVisible = crmBoolV272(category.iconClientVisible, true);
+      item.service.clientIconsGlobalVisible = crmClientIconsGlobalVisibleV272();
+      item.service.firstVisitMode = crmNormalizeFirstVisitModeV267(category.firstVisitMode);
+      item.service.firstVisitManualMinutes = Math.max(0, Number(category.firstVisitManualMinutes) || 0);
+    });
+  });
+
+  currentServices.sort(
+    (a,b) =>
+      Number(a.categoryOrder) - Number(b.categoryOrder) ||
+      Number(a.serviceOrder) - Number(b.serviceOrder)
+  );
+};
+
+function crmSetCategoryIconV27(categoryId, iconId) {
+  const valid = crmGetIconMetaV27(iconId)?.id || CRM_PRICE_ICON_FALLBACK_V27;
+  currentServices
+    .filter(service => service.categoryId === categoryId)
+    .forEach(service => service.categoryIcon = valid);
+  renderServicesTable();
+  crmSyncCategoryEditorV27();
+}
+
+function crmSetCategoryColorV27(categoryId, color) {
+  crmChangeCategoryColor(categoryId, color);
+  crmSyncCategoryEditorV27();
+}
+
+function crmToggleCategorySettingsV27(categoryId) {
+  const panel = document.getElementById(`crm-price-advanced-${categoryId}`);
+  if (!panel) return;
+  panel.hidden = !panel.hidden;
+}
+
+function crmOpenCategoryEditorV27(categoryId) {
+  const category = crmCategoriesFromPrices().find(item => item.id === categoryId);
+  if (!category) return;
+
+  openCategoryModal();
+  const select = document.getElementById("categorySelectForEdit");
+  if (select) {
+    select.value = category.name;
+    select.dispatchEvent(new Event("change", {bubbles:true}));
+  }
+  crmEnsureIconPickerV27();
+  crmSyncCategoryEditorV27();
+}
+
+function crmCurrentCategoryForEditorV27() {
+  const select = document.getElementById("categorySelectForEdit");
+  const name = String(select?.value || "").trim();
+  return crmCategoriesFromPrices().find(item => item.name === name) || null;
+}
+
+function crmEnsureIconPickerV27() {
+  const modal = document.querySelector("#categoryModal .modal-content");
+  const select = document.getElementById("categorySelectForEdit");
+  if (!modal || !select) return;
+
+  if (!document.getElementById("crmCategoryLookV27")) {
+    const block = document.createElement("section");
+    block.id = "crmCategoryLookV27";
+    block.className = "crm-category-look-v27";
+    block.innerHTML = `
+      <div class="crm-category-look-head-v27">
+        <div>
+          <strong>Wygląd kategorii</strong>
+          <small>Ikona i kolor paska</small>
+        </div>
+        <label class="crm-category-color-v27">
+          <span>Kolor</span>
+          <input type="color" id="crmCategoryColorV27" value="#b05c75">
+        </label>
+      </div>
+      <label class="crm-category-client-icon-v272">
+        <span>
+          <b>Pokaż ikonę klientom</b>
+          <small>Działa, gdy globalne „Ikony klienta” są włączone.</small>
+        </span>
+        <span class="crm-switch-v272">
+          <input type="checkbox" id="crmCategoryIconClientVisibleV272" checked>
+          <i aria-hidden="true"></i>
+        </span>
+      </label>
+      <div class="crm-category-icon-search-v27">
+        <input type="search" id="crmCategoryIconSearchV27"
+               placeholder="Szukaj ikony, np. brwi, laser, manicure…"
+               autocomplete="off">
+      </div>
+      <div id="crmCategoryIconGridV27" class="crm-category-icon-grid-v27"></div>
+      <div class="crm-category-look-note-v27">
+        Zmiana jest lokalna. Użyj potem „Zapisz szkic”, aby zapisać ją w Cenniku.
+      </div>
+    `;
+    select.closest(".form-group")?.after(block);
+
+    const colorInput = block.querySelector("#crmCategoryColorV27");
+    colorInput?.addEventListener("change", () => {
+      const category = crmCurrentCategoryForEditorV27();
+      if (category) crmSetCategoryColorV27(category.id, colorInput.value);
+    });
+
+    const visibleInput = block.querySelector("#crmCategoryIconClientVisibleV272");
+    visibleInput?.addEventListener("change", () => {
+      const category = crmCurrentCategoryForEditorV27();
+      if (category) crmSetCategoryIconClientVisibleV272(category.id, visibleInput.checked);
+    });
+
+    const search = block.querySelector("#crmCategoryIconSearchV27");
+    search?.addEventListener("input", () => crmRenderIconGridV27(search.value));
+
+    select.addEventListener("change", crmSyncCategoryEditorV27);
+  }
+
+}
+
+function crmRenderIconGridV27(filterText = "") {
+  const grid = document.getElementById("crmCategoryIconGridV27");
+  if (!grid) return;
+
+  const category = crmCurrentCategoryForEditorV27();
+  const selected = category?.icon || CRM_PRICE_ICON_FALLBACK_V27;
+  const q = crmNormTextV27(filterText);
+
+  const catalog = CRM_PRICE_ICON_CATALOG_V27.filter(item => {
+    if (!q) return true;
+    return crmNormTextV27(`${item.label} ${item.id}`).includes(q);
+  });
+
+  grid.innerHTML = catalog.map(item => `
+    <button type="button"
+            class="crm-category-icon-choice-v27 ${item.id === selected ? "is-selected" : ""}"
+            data-icon-id="${crmEscapeHtmlV27(item.id)}"
+            title="${crmEscapeHtmlV27(item.label)}">
+      <img src="${crmEscapeHtmlV27(crmPriceIconSrcV27(item.id))}" alt="">
+      <span>${crmEscapeHtmlV27(item.label)}</span>
+    </button>
+  `).join("");
+
+  grid.querySelectorAll(".crm-category-icon-choice-v27").forEach(button => {
+    button.addEventListener("click", () => {
+      const current = crmCurrentCategoryForEditorV27();
+      if (!current) return;
+      crmSetCategoryIconV27(current.id, button.dataset.iconId);
+    });
+  });
+}
+
+function crmSyncCategoryEditorV27() {
+  crmEnsureIconPickerV27();
+  const category = crmCurrentCategoryForEditorV27();
+  const colorInput = document.getElementById("crmCategoryColorV27");
+  const visibleInput = document.getElementById("crmCategoryIconClientVisibleV272");
+  const search = document.getElementById("crmCategoryIconSearchV27");
+
+  if (colorInput && category) colorInput.value = category.color || "#b05c75";
+  if (visibleInput && category) visibleInput.checked = crmBoolV272(category.iconClientVisible, true);
+  crmRenderIconGridV27(search?.value || "");
+}
+
+const crmRenderCategoryModalListBeforeV27 = renderCategoryModalList;
+renderCategoryModalList = function() {
+  crmRenderCategoryModalListBeforeV27();
+  crmEnsureIconPickerV27();
+  crmSyncCategoryEditorV27();
+};
+
+const crmOpenCategoryModalBeforeV27 = openCategoryModal;
+openCategoryModal = function() {
+  crmOpenCategoryModalBeforeV27();
+  crmEnsureIconPickerV27();
+  crmSyncCategoryEditorV27();
+};
+
+crmEditCategory = function(categoryId) {
+  crmOpenCategoryEditorV27(categoryId);
+};
+
+
+function crmEnsureClientPreviewControlsV272() {
+  const tab = document.getElementById("tab-cennik");
+  const actionHost = tab?.querySelector(".page-header > div");
+  if (!actionHost) return;
+
+  let globalBtn = document.getElementById("crmClientIconsGlobalToggleV272");
+  if (!globalBtn) {
+    globalBtn = document.createElement("button");
+    globalBtn.type = "button";
+    globalBtn.id = "crmClientIconsGlobalToggleV272";
+    globalBtn.className = "crm-client-icons-toggle-v272";
+    globalBtn.addEventListener("click", () => {
+      crmSetClientIconsGlobalVisibleV272(!crmClientIconsGlobalVisibleV272());
+    });
+  }
+
+  let previewBtn = document.getElementById("crmClientPreviewOpenV272");
+  if (!previewBtn) {
+    previewBtn = document.createElement("button");
+    previewBtn.type = "button";
+    previewBtn.id = "crmClientPreviewOpenV272";
+    previewBtn.className = "crm-client-preview-open-v272";
+    previewBtn.textContent = "◉ Podgląd klienta";
+    previewBtn.addEventListener("click", crmOpenClientPreviewV272);
+  }
+
+  const saveBtn = Array.from(actionHost.querySelectorAll("button"))
+    .find(btn => /zapisz szkic/i.test(btn.textContent || ""));
+
+  if (!globalBtn.isConnected) {
+    if (saveBtn) actionHost.insertBefore(globalBtn, saveBtn);
+    else actionHost.appendChild(globalBtn);
+  }
+
+  if (!previewBtn.isConnected) {
+    if (saveBtn) actionHost.insertBefore(previewBtn, saveBtn);
+    else actionHost.appendChild(previewBtn);
+  }
+
+  const on = crmClientIconsGlobalVisibleV272();
+  globalBtn.textContent = `Ikony klienta: ${on ? "WŁ" : "WYŁ"}`;
+  globalBtn.classList.toggle("is-on", on);
+  globalBtn.classList.toggle("is-off", !on);
+  globalBtn.title = on
+    ? "Kliknij, aby ukryć wszystkie ikony kategorii klientom"
+    : "Kliknij, aby włączyć ikony kategorii klientom";
+}
+
+function crmEnsureClientPreviewModalV272() {
+  let windowEl = document.getElementById("crmClientPreviewBackdropV272");
+  if (windowEl) return windowEl;
+
+  windowEl = document.createElement("section");
+  windowEl.id = "crmClientPreviewBackdropV272";
+  windowEl.className = "crm-client-preview-window-v274";
+  windowEl.hidden = true;
+  windowEl.setAttribute("role", "dialog");
+  windowEl.setAttribute("aria-label", "Podgląd klienta");
+  windowEl.innerHTML = `
+    <header class="crm-client-preview-head-v272" data-drag-handle-v274>
+      <div>
+        <h2>Podgląd rejestracji klienta</h2>
+        <p>Kolejność kategorii i usług jest dokładnie taka jak w Cenniku.</p>
+      </div>
+      <div class="crm-client-preview-window-actions-v274">
+        <button type="button"
+                class="crm-client-preview-minimize-v274"
+                aria-label="Zwiń podgląd"
+                title="Zwiń">—</button>
+        <button type="button"
+                class="crm-client-preview-close-v272"
+                aria-label="Zamknij"
+                title="Zamknij">×</button>
+      </div>
+    </header>
+    <div class="crm-client-preview-body-v272">
+      <div class="crm-client-preview-phone-v272">
+        <section class="crm-client-preview-step-v272">
+          <h3>1. Wybierz kategorię</h3>
+          <p id="crmClientPreviewIconStateV272"></p>
+          <div id="crmClientPreviewCategoriesV272"
+               class="crm-client-preview-categories-v272"></div>
+        </section>
+        <section class="crm-client-preview-step-v272">
+          <h3>2. Wybierz usługę</h3>
+          <p id="crmClientPreviewSelectedCategoryV272">
+            Wybierz kategorię powyżej.
+          </p>
+          <div id="crmClientPreviewServicesV272"
+               class="crm-client-preview-services-v272"></div>
+        </section>
+      </div>
+    </div>`;
+
+  document.body.appendChild(windowEl);
+
+  const closeBtn = windowEl.querySelector(".crm-client-preview-close-v272");
+  const minimizeBtn = windowEl.querySelector(".crm-client-preview-minimize-v274");
+  const dragHandle = windowEl.querySelector("[data-drag-handle-v274]");
+
+  closeBtn?.addEventListener("click", crmCloseClientPreviewV272);
+
+  minimizeBtn?.addEventListener("click", () => {
+    const minimized = windowEl.classList.toggle("is-minimized-v274");
+    minimizeBtn.textContent = minimized ? "▢" : "—";
+    minimizeBtn.title = minimized ? "Rozwiń" : "Zwiń";
+    minimizeBtn.setAttribute(
+      "aria-label",
+      minimized ? "Rozwiń podgląd" : "Zwiń podgląd"
+    );
+    try {
+      localStorage.setItem(
+        "crmClientPreviewMinimizedV274",
+        minimized ? "1" : "0"
+      );
+    } catch (ignore) {}
+  });
+
+  let dragState = null;
+
+  dragHandle?.addEventListener("pointerdown", event => {
+    if (
+      event.button !== 0 ||
+      event.target.closest("button, input, select, textarea, a")
+    ) {
+      return;
+    }
+
+    const rect = windowEl.getBoundingClientRect();
+    dragState = {
+      dx: event.clientX - rect.left,
+      dy: event.clientY - rect.top
+    };
+
+    windowEl.classList.add("is-dragging-v274");
+    dragHandle.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  });
+
+  dragHandle?.addEventListener("pointermove", event => {
+    if (!dragState) return;
+
+    const width = windowEl.offsetWidth;
+    const height = windowEl.offsetHeight;
+    const maxLeft = Math.max(8, window.innerWidth - Math.min(width, window.innerWidth) - 8);
+    const maxTop = Math.max(8, window.innerHeight - Math.min(height, window.innerHeight) - 8);
+
+    const left = Math.max(
+      8,
+      Math.min(maxLeft, event.clientX - dragState.dx)
+    );
+    const top = Math.max(
+      8,
+      Math.min(maxTop, event.clientY - dragState.dy)
+    );
+
+    windowEl.style.left = `${left}px`;
+    windowEl.style.top = `${top}px`;
+    windowEl.style.right = "auto";
+    windowEl.style.bottom = "auto";
+  });
+
+  const stopDrag = event => {
+    if (!dragState) return;
+    dragState = null;
+    windowEl.classList.remove("is-dragging-v274");
+
+    try {
+      const rect = windowEl.getBoundingClientRect();
+      localStorage.setItem(
+        "crmClientPreviewPositionV274",
+        JSON.stringify({ left: rect.left, top: rect.top })
+      );
+    } catch (ignore) {}
+
+    try {
+      dragHandle.releasePointerCapture?.(event.pointerId);
+    } catch (ignore) {}
+  };
+
+  dragHandle?.addEventListener("pointerup", stopDrag);
+  dragHandle?.addEventListener("pointercancel", stopDrag);
+
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem("crmClientPreviewPositionV274") || "null"
+    );
+    if (
+      saved &&
+      Number.isFinite(Number(saved.left)) &&
+      Number.isFinite(Number(saved.top))
+    ) {
+      windowEl.style.left = `${Math.max(8, Number(saved.left))}px`;
+      windowEl.style.top = `${Math.max(8, Number(saved.top))}px`;
+      windowEl.style.right = "auto";
+      windowEl.style.bottom = "auto";
+    }
+  } catch (ignore) {}
+
+  try {
+    const minimized =
+      localStorage.getItem("crmClientPreviewMinimizedV274") === "1";
+    windowEl.classList.toggle("is-minimized-v274", minimized);
+    if (minimizeBtn) {
+      minimizeBtn.textContent = minimized ? "▢" : "—";
+      minimizeBtn.title = minimized ? "Rozwiń" : "Zwiń";
+    }
+  } catch (ignore) {}
+
+  return windowEl;
+}
+
+let crmClientPreviewSelectedCategoryIdV272 = "";
+
+function crmOpenClientPreviewV272() {
+  const windowEl = crmEnsureClientPreviewModalV272();
+  const categories = crmCategoriesFromPrices();
+
+  if (!crmClientPreviewSelectedCategoryIdV272 && categories.length) {
+    crmClientPreviewSelectedCategoryIdV272 = categories[0].id;
+  }
+
+  windowEl.hidden = false;
+  crmRenderClientPreviewV272();
+}
+
+function crmCloseClientPreviewV272() {
+  const windowEl = document.getElementById("crmClientPreviewBackdropV272");
+  if (windowEl) windowEl.hidden = true;
+}
+
+
+function crmClampClientPreviewWindowV274() {
+  const windowEl = document.getElementById("crmClientPreviewBackdropV272");
+  if (!windowEl || windowEl.hidden) return;
+
+  const rect = windowEl.getBoundingClientRect();
+  const left = Math.max(
+    8,
+    Math.min(rect.left, Math.max(8, window.innerWidth - Math.min(rect.width, window.innerWidth) - 8))
+  );
+  const top = Math.max(
+    8,
+    Math.min(rect.top, Math.max(8, window.innerHeight - Math.min(rect.height, window.innerHeight) - 8))
+  );
+
+  windowEl.style.left = `${left}px`;
+  windowEl.style.top = `${top}px`;
+  windowEl.style.right = "auto";
+  windowEl.style.bottom = "auto";
+}
+
+window.addEventListener("resize", () => {
+  window.requestAnimationFrame(crmClampClientPreviewWindowV274);
+});
+
+function crmRenderClientPreviewV272() {
+  const windowEl = document.getElementById("crmClientPreviewBackdropV272");
+  if (!windowEl || windowEl.hidden) {
+    crmEnsureClientPreviewControlsV272();
+    return;
+  }
+
+  const categories = crmCategoriesFromPrices();
+  const globalIcons = crmClientIconsGlobalVisibleV272();
+  const catHost = document.getElementById("crmClientPreviewCategoriesV272");
+  const serviceHost = document.getElementById("crmClientPreviewServicesV272");
+  const iconState = document.getElementById("crmClientPreviewIconStateV272");
+  const selectedLabel = document.getElementById("crmClientPreviewSelectedCategoryV272");
+
+  if (iconState) {
+    iconState.textContent = globalIcons
+      ? "Ikony są globalnie włączone. Ustawienie każdej kategorii może je osobno ukryć."
+      : "Ikony są globalnie wyłączone — klient zobaczy same nazwy.";
+  }
+
+  if (!categories.length) {
+    if (catHost) catHost.innerHTML = '<div class="crm-client-preview-empty-v272">Brak kategorii.</div>';
+    if (serviceHost) serviceHost.innerHTML = "";
+    return;
+  }
+
+  if (!categories.some(c => c.id === crmClientPreviewSelectedCategoryIdV272)) {
+    crmClientPreviewSelectedCategoryIdV272 = categories[0].id;
+  }
+
+  if (catHost) {
+    catHost.innerHTML = categories.map((category, index) => {
+      const showIcon = globalIcons && crmBoolV272(category.iconClientVisible, true);
+      const selected = category.id === crmClientPreviewSelectedCategoryIdV272;
+      return `
+        <button type="button"
+                class="crm-client-preview-cat-v272 ${selected ? "is-selected" : ""} ${showIcon ? "" : "no-icon"}"
+                style="--client-cat-color:${crmEscapeHtmlV27(category.color || "#b05c75")}"
+                data-category-id="${crmEscapeHtmlV27(category.id)}">
+          ${showIcon ? `<img src="${crmEscapeHtmlV27(crmPriceIconSrcV27(category.icon))}" alt="">` : ""}
+          <span>
+            <strong>${crmEscapeHtmlV27(category.name)}</strong>
+            <small>${index + 1}. ${crmEscapeHtmlV27(crmServiceCountTextV27(category.services.length))}</small>
+          </span>
+        </button>`;
+    }).join("");
+
+    catHost.querySelectorAll("[data-category-id]").forEach(button => {
+      button.addEventListener("click", () => {
+        crmClientPreviewSelectedCategoryIdV272 = button.dataset.categoryId;
+        crmRenderClientPreviewV272();
+      });
+    });
+  }
+
+  const category = categories.find(c => c.id === crmClientPreviewSelectedCategoryIdV272) || categories[0];
+  if (selectedLabel) {
+    selectedLabel.textContent = category
+      ? `Kategoria: ${category.name}`
+      : "Wybierz kategorię powyżej.";
+  }
+
+  if (serviceHost) {
+    if (!category?.services?.length) {
+      serviceHost.innerHTML = '<div class="crm-client-preview-empty-v272">Brak usług w tej kategorii.</div>';
+    } else {
+      const ordered = [...category.services]
+        .sort((a,b) => Number(a.service?.serviceOrder) - Number(b.service?.serviceOrder));
+
+      serviceHost.innerHTML = ordered.map((item, index) => {
+        const service = item.service || {};
+        return `
+          <div class="crm-client-preview-service-v272">
+            <b>${index + 1}. ${crmEscapeHtmlV27(service.name || "")}</b>
+            <span>${Number(service.price || 0)} zł</span>
+            <small>${Number(service.duration || 0)} min</small>
+          </div>`;
+      }).join("");
+    }
+  }
+
+  crmEnsureClientPreviewControlsV272();
+}
+
+function crmServiceStatusClassV27(status) {
+  const n = crmNormTextV27(status);
+  return /(opublik|aktywn|published|active)/.test(n) ? "is-published" : "is-draft";
+}
+
+renderServicesTable = function() {
+  const tbody = document.getElementById("adminServicesTableBody");
+  if (!tbody) return;
+
+  crmPreparePriceStructure();
+
+  const table = tbody.closest("table");
+  if (table) {
+    table.classList.add("crm-price-table-v27");
+    const head = table.querySelector("thead");
+    if (head) head.style.display = "none";
+  }
+
+  tbody.innerHTML = "";
+  const categories = crmCategoriesFromPrices();
+
+  if (!categories.length) {
+    tbody.innerHTML = '<tr class="crm-price-empty-v27"><td>Brak kategorii i usług</td></tr>';
+    crmEnsureClientPreviewControlsV272();
+    crmRenderClientPreviewV272();
+    return;
+  }
+
+  categories.forEach((category, categoryIndex) => {
+    const row = document.createElement("tr");
+    row.className = "crm-price-category-row crm-price-category-row-v27";
+
+    const icon = category.icon || crmGuessCategoryIconV27(category.name);
+    const firstVisitHtml =
+      typeof crmFirstVisitCategoryControlHtmlV267 === "function"
+        ? crmFirstVisitCategoryControlHtmlV267(category)
+        : "";
+
+    row.innerHTML = `
+      <td>
+        <article class="crm-price-card-v27" style="--crm-cat-color:${crmEscapeHtmlV27(category.color || "#b05c75")}">
+          <header class="crm-price-card-head-v27">
+            <span class="crm-price-stripe-v27" aria-hidden="true"></span>
+            <img class="crm-price-category-icon-v27"
+                 src="${crmEscapeHtmlV27(crmPriceIconSrcV27(icon))}"
+                 alt="">
+            <h3>${crmEscapeHtmlV27(category.name)}</h3>
+            <span class="crm-price-count-v27">${crmEscapeHtmlV27(crmServiceCountTextV27(category.services.length))}</span>
+            <div class="crm-price-head-actions-v27">
+              <button type="button" class="crm-price-icon-btn-v27"
+                      ${categoryIndex === 0 ? "disabled" : ""}
+                      title="Przesuń kategorię wyżej"
+                      aria-label="Przesuń kategorię wyżej"
+                      onclick="crmMoveCategory('${category.id}',-1)">↑</button>
+              <button type="button" class="crm-price-icon-btn-v27"
+                      ${categoryIndex === categories.length - 1 ? "disabled" : ""}
+                      title="Przesuń kategorię niżej"
+                      aria-label="Przesuń kategorię niżej"
+                      onclick="crmMoveCategory('${category.id}',1)">↓</button>
+              <button type="button" class="crm-price-icon-btn-v27"
+                      title="Edytuj kategorię"
+                      aria-label="Edytuj kategorię"
+                      onclick="crmOpenCategoryEditorV27('${category.id}')">⚙</button>
+              <button type="button" class="crm-price-icon-btn-v27 crm-price-more-v27"
+                      title="Ustawienia pierwszej wizyty"
+                      aria-label="Ustawienia pierwszej wizyty"
+                      onclick="crmToggleCategorySettingsV27('${category.id}')">⋮</button>
+            </div>
+          </header>
+
+          <div class="crm-price-advanced-v27" id="crm-price-advanced-${category.id}" hidden>
+            ${firstVisitHtml}
+          </div>
+
+          <div class="crm-price-services-v27">
+            <div class="crm-price-service-head-v27">
+              <span>Kolejność</span><span>Usługa</span><span>Cena</span>
+              <span>Czas</span><span>Status</span><span>Akcje</span>
+            </div>
+
+            ${category.services.map((item, serviceIndex) => {
+              const service = item.service || {};
+              const status = service.status || "Szkic";
+              return `
+                <div class="crm-price-service-row-v27">
+                  <div class="crm-price-order-v27">
+                    <button type="button" class="crm-price-icon-btn-v27 crm-price-row-btn-v27"
+                            ${serviceIndex === 0 ? "disabled" : ""}
+                            title="Przesuń usługę wyżej"
+                            onclick="crmMoveService('${service.serviceId}',-1)">↑</button>
+                    <button type="button" class="crm-price-icon-btn-v27 crm-price-row-btn-v27"
+                            ${serviceIndex === category.services.length - 1 ? "disabled" : ""}
+                            title="Przesuń usługę niżej"
+                            onclick="crmMoveService('${service.serviceId}',1)">↓</button>
+                  </div>
+                  <div class="crm-price-service-name-v27">${crmEscapeHtmlV27(service.name || "")}</div>
+                  <div>${Number(service.price || 0)} zł</div>
+                  <div>${Number(service.duration || 0)} min</div>
+                  <div><span class="crm-price-status-v27 ${crmServiceStatusClassV27(status)}">${crmEscapeHtmlV27(status)}</span></div>
+                  <div class="crm-price-row-actions-v27">
+                    <button type="button" class="crm-price-icon-btn-v27 crm-price-row-btn-v27"
+                            title="Edytuj usługę" aria-label="Edytuj usługę"
+                            onclick="editService(${item.serviceIndex})">✎</button>
+                    <button type="button" class="crm-price-icon-btn-v27 crm-price-row-btn-v27 is-danger"
+                            title="Usuń usługę" aria-label="Usuń usługę"
+                            onclick="deleteService(${item.serviceIndex})">⌫</button>
+                  </div>
+                </div>`;
+            }).join("")}
+          </div>
+        </article>
+      </td>`;
+
+    tbody.appendChild(row);
+  });
+
+  crmEnsureClientPreviewControlsV272();
+  crmRenderClientPreviewV272();
+};
+
+/* Zachowaj ikonę przy tworzeniu / przenoszeniu usługi. */
+const crmSaveServiceModalDataBeforeV27 = saveServiceModalData;
+saveServiceModalData = function() {
+  const categoryName = String(document.getElementById("serviceCategory")?.value || "").trim();
+  const categoryBefore = crmCategoriesFromPrices().find(item => item.name === categoryName);
+  const index = parseInt(document.getElementById("editServiceIndex")?.value || "-1", 10);
+
+  crmSaveServiceModalDataBeforeV27();
+
+  if (index >= 0 && currentServices[index] && categoryBefore) {
+    currentServices[index].categoryIcon = categoryBefore.icon || crmGuessCategoryIconV27(categoryBefore.name);
+    currentServices[index].categoryIconClientVisible = crmBoolV272(categoryBefore.iconClientVisible, true);
+    currentServices[index].clientIconsGlobalVisible = crmClientIconsGlobalVisibleV272();
+  }
+
+  crmPreparePriceStructure();
+  renderServicesTable();
+};
+
+/* Nowa kategoria od razu dostaje sugerowaną ikonę. */
+const crmAddNewCategoryFromModalBeforeV27 = addNewCategoryFromModal;
+addNewCategoryFromModal = function() {
+  const input = document.getElementById("categoryCreateName");
+  const name = String(input?.value || "").trim();
+  crmAddNewCategoryFromModalBeforeV27();
+
+  if (name) {
+    const category = crmCategoriesFromPrices().find(item => item.name === name);
+    if (category) {
+      const icon = crmGuessCategoryIconV27(name);
+      currentServices
+        .filter(service => service.categoryId === category.id)
+        .forEach(service => {
+          service.categoryIcon = icon;
+          service.categoryIconClientVisible = true;
+          service.clientIconsGlobalVisible = crmClientIconsGlobalVisibleV272();
+        });
+      renderServicesTable();
+      crmSyncCategoryEditorV27();
+    }
+  }
+};
+
+/* Po zmianie nazwy sugeruj ikonę tylko wtedy, gdy kategoria nadal ma fallback. */
+const crmRenameCategoryFromModalBeforeV27 = renameCategoryFromModal;
+renameCategoryFromModal = function() {
+  const select = document.getElementById("categorySelectForEdit");
+  const nameInput = document.getElementById("categoryNewName");
+  const oldName = String(select?.value || "").trim();
+  const requestedNewName = String(nameInput?.value || "").trim();
+  const oldCategory = crmCategoriesFromPrices().find(item => item.name === oldName);
+  const oldIcon = oldCategory?.icon || CRM_PRICE_ICON_FALLBACK_V27;
+
+  crmRenameCategoryFromModalBeforeV27();
+
+  if (oldCategory && oldIcon === CRM_PRICE_ICON_FALLBACK_V27) {
+    const newName = requestedNewName;
+    const category = crmCategoriesFromPrices().find(item => item.id === oldCategory.id);
+    if (category && newName) {
+      const icon = crmGuessCategoryIconV27(newName);
+      currentServices
+        .filter(service => service.categoryId === category.id)
+        .forEach(service => service.categoryIcon = icon);
+    }
+  }
+
+  renderServicesTable();
+  crmEnsureIconPickerV27();
+};
+
+/* KONIEC CENNIK PREMIUM V27 */
+

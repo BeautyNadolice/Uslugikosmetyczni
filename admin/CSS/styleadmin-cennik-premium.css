@@ -1,0 +1,960 @@
+
+/* ==========================================================================
+   NAIL-ART — CENNIK PREMIUM V27.2
+   RESPONSIVE 3/2/1 + CLIENT PREVIEW
+   - większe ikony kategorii
+   - krótszy slim stripe
+   - niższy nagłówek
+   - delikatniejsze akcje
+   - status 12 px
+   ========================================================================== */
+
+#tab-cennik {
+  --crm-price-ink: #2f2930;
+  --crm-price-muted: #7d7379;
+  --crm-price-border: rgba(190, 153, 168, .22);
+  --crm-price-soft: rgba(255, 249, 251, .92);
+  --crm-price-card: rgba(255,255,255,.92);
+  --crm-price-shadow: 0 8px 24px rgba(92, 55, 69, .055);
+}
+
+#tab-cennik .page-header {
+  align-items: center;
+  margin-bottom: 14px !important;
+  padding: 0 2px;
+}
+
+#tab-cennik .page-header h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 3vw, 46px);
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  color: var(--crm-price-ink);
+}
+
+#tab-cennik .page-header > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#tab-cennik .page-header button {
+  min-height: 40px;
+  border-radius: 12px !important;
+  padding: 9px 15px !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+}
+
+#tab-cennik .page-header .btn-primary {
+  background: linear-gradient(135deg,#dd6b89,#c44f78) !important;
+  border-color: transparent !important;
+}
+
+#tab-cennik .crm-price-table-v27 {
+  display: block;
+  width: 100%;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#tab-cennik .crm-price-table-v27 > thead {
+  display: none !important;
+}
+
+#tab-cennik #adminServicesTableBody {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+#tab-cennik .crm-price-category-row-v27 {
+  display: block;
+  min-width: 0;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#tab-cennik .crm-price-category-row-v27 > td {
+  display: block;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#tab-cennik .crm-price-card-v27 {
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid var(--crm-price-border);
+  border-radius: 14px;
+  background: var(--crm-price-card);
+  box-shadow: var(--crm-price-shadow);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  #tab-cennik .crm-price-card-v27:hover {
+    border-color: rgba(190, 132, 154, .32);
+    box-shadow: 0 10px 26px rgba(92,55,69,.07);
+  }
+}
+
+#tab-cennik .crm-price-card-head-v27 {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5px 38px minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 12px 8px 10px;
+  border-bottom: 1px solid rgba(195,160,174,.18);
+}
+
+#tab-cennik .crm-price-stripe-v27 {
+  display: block;
+  width: 4px;
+  height: 32px;
+  align-self: center;
+  border-radius: 999px;
+  background: var(--crm-cat-color, #c66a88);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--crm-cat-color, #c66a88) 24%, transparent);
+}
+
+#tab-cennik .crm-price-category-icon-v27 {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+#tab-cennik .crm-price-card-head-v27 h3 {
+  min-width: 0;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15.5px;
+  line-height: 1.18;
+  font-weight: 600;
+  color: #322b31;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#tab-cennik .crm-price-count-v27 {
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--crm-price-muted);
+  white-space: nowrap;
+}
+
+#tab-cennik .crm-price-head-actions-v27,
+#tab-cennik .crm-price-row-actions-v27,
+#tab-cennik .crm-price-order-v27 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#tab-cennik .crm-price-icon-btn-v27 {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 !important;
+  border: 1px solid rgba(205,164,179,.18) !important;
+  border-radius: 10px !important;
+  background: rgba(255,248,251,.72) !important;
+  color: #756b71 !important;
+  box-shadow: none !important;
+  font: 500 15px/1 system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  cursor: pointer;
+  transition: background .14s ease, border-color .14s ease, transform .14s ease, color .14s ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  #tab-cennik .crm-price-icon-btn-v27:not(:disabled):hover {
+    background: rgba(255,241,246,.92) !important;
+    border-color: rgba(207,116,150,.26) !important;
+    color: #b95779 !important;
+    transform: translateY(-1px);
+  }
+}
+
+#tab-cennik .crm-price-icon-btn-v27:disabled {
+  opacity: .28;
+  cursor: default;
+}
+
+#tab-cennik .crm-price-more-v27 {
+  font-size: 18px !important;
+  letter-spacing: 1px;
+}
+
+#tab-cennik .crm-price-services-v27 {
+  min-width: 0;
+}
+
+#tab-cennik .crm-price-service-head-v27,
+#tab-cennik .crm-price-service-row-v27 {
+  display: grid;
+  grid-template-columns: 84px minmax(150px,1.65fr) 70px 66px 112px 70px;
+  align-items: center;
+  column-gap: 8px;
+  min-width: 0;
+}
+
+#tab-cennik .crm-price-service-head-v27 {
+  min-height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(195,160,174,.14);
+  color: #756a70;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+#tab-cennik .crm-price-service-row-v27 {
+  min-height: 52px;
+  padding: 7px 12px;
+  color: #312b2f;
+  font-size: 12px;
+}
+
+#tab-cennik .crm-price-service-row-v27 + .crm-price-service-row-v27 {
+  border-top: 1px solid rgba(195,160,174,.12);
+}
+
+#tab-cennik .crm-price-service-name-v27 {
+  min-width: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+#tab-cennik .crm-price-row-btn-v27 {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 9px !important;
+  font-size: 13px !important;
+}
+
+#tab-cennik .crm-price-row-btn-v27.is-danger {
+  color: #d85f78 !important;
+  border-color: rgba(220,108,132,.20) !important;
+}
+
+#tab-cennik .crm-price-status-v27 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 3px 9px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+#tab-cennik .crm-price-status-v27.is-published {
+  color: #3f7a35;
+  background: rgba(133,194,114,.14);
+}
+
+#tab-cennik .crm-price-status-v27.is-draft {
+  color: #8c6d36;
+  background: rgba(222,186,101,.14);
+}
+
+#tab-cennik .crm-price-advanced-v27 {
+  padding: 8px 12px 10px;
+  background: linear-gradient(180deg,rgba(255,249,251,.7),rgba(255,255,255,.88));
+  border-bottom: 1px solid rgba(195,160,174,.14);
+}
+
+#tab-cennik .crm-price-advanced-v27[hidden] {
+  display: none !important;
+}
+
+/* First Visit V26.7 survives, but is now hidden under ⋮ by default. */
+#tab-cennik .crm-price-advanced-v27 .crm-first-visit-category-v267 {
+  margin: 0 !important;
+  padding: 10px !important;
+  border-radius: 11px !important;
+  box-shadow: none !important;
+}
+
+/* Empty state */
+#tab-cennik .crm-price-empty-v27 {
+  grid-column: 1 / -1;
+  display: block;
+}
+
+#tab-cennik .crm-price-empty-v27 td {
+  display: block;
+  padding: 28px;
+  text-align: center;
+  color: var(--crm-price-muted);
+}
+
+/* Category icon/color picker injected into existing modal */
+#categoryModal .crm-category-look-v27 {
+  margin: 14px 0 4px;
+  padding: 14px;
+  border: 1px solid rgba(197,150,168,.22);
+  border-radius: 14px;
+  background: rgba(255,249,251,.74);
+}
+
+#categoryModal .crm-category-look-head-v27 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+#categoryModal .crm-category-look-head-v27 > div {
+  display: grid;
+  gap: 2px;
+}
+
+#categoryModal .crm-category-look-head-v27 strong {
+  font-size: 14px;
+}
+
+#categoryModal .crm-category-look-head-v27 small {
+  color: #8a7b83;
+  font-size: 11px;
+}
+
+#categoryModal .crm-category-color-v27 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7f7078;
+  font-size: 11px;
+}
+
+#categoryModal .crm-category-color-v27 input[type="color"] {
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid rgba(197,150,168,.26);
+  border-radius: 9px;
+  background: #fff;
+}
+
+#categoryModal .crm-category-icon-search-v27 input {
+  width: 100%;
+  min-height: 40px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+#categoryModal .crm-category-icon-grid-v27 {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 7px;
+  max-height: 282px;
+  overflow: auto;
+  padding: 2px;
+}
+
+#categoryModal .crm-category-icon-choice-v27 {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 5px;
+  min-height: 78px;
+  padding: 7px 4px !important;
+  border: 1px solid rgba(197,150,168,.18) !important;
+  border-radius: 11px !important;
+  background: rgba(255,255,255,.82) !important;
+  color: #5f5359 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+#categoryModal .crm-category-icon-choice-v27 img {
+  width: 33px;
+  height: 33px;
+  object-fit: contain;
+}
+
+#categoryModal .crm-category-icon-choice-v27 span {
+  max-width: 100%;
+  font-size: 9px;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+#categoryModal .crm-category-icon-choice-v27.is-selected {
+  border-color: rgba(211,87,131,.58) !important;
+  background: rgba(255,239,245,.96) !important;
+  box-shadow: inset 0 0 0 1px rgba(211,87,131,.08) !important;
+}
+
+#categoryModal .crm-category-look-note-v27 {
+  margin-top: 9px;
+  color: #9a8991;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+@media (max-width: 1180px) {
+  #tab-cennik #adminServicesTableBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  #tab-cennik .page-header {
+    align-items: flex-start;
+  }
+
+  #tab-cennik .page-header > div {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #tab-cennik .crm-price-card-head-v27 {
+    grid-template-columns: 5px 34px minmax(0,1fr) auto;
+  }
+
+  #tab-cennik .crm-price-count-v27 {
+    display: none;
+  }
+
+  #tab-cennik .crm-price-head-actions-v27 {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+
+  #tab-cennik .crm-price-services-v27 {
+    overflow-x: auto;
+  }
+
+  #tab-cennik .crm-price-service-head-v27,
+  #tab-cennik .crm-price-service-row-v27 {
+    min-width: 660px;
+  }
+
+  #categoryModal .crm-category-icon-grid-v27 {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+}
+
+
+/* ==========================================================================
+   V27.4 — RESPONSIVE 3 / 2 / 1 + FLOATING PREVIEW
+   ========================================================================== */
+
+/* Szeroki ekran: 3 kolumny tylko wtedy, gdy jest miejsce na czytelną kartę. */
+@media (min-width: 1680px) {
+  #tab-cennik #adminServicesTableBody {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  #tab-cennik .crm-price-service-head-v27,
+  #tab-cennik .crm-price-service-row-v27 {
+    grid-template-columns: 58px minmax(118px,1.55fr) 54px 52px 88px 58px;
+    column-gap: 6px;
+  }
+
+  #tab-cennik .crm-price-service-head-v27 {
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 8px;
+  }
+
+  #tab-cennik .crm-price-service-row-v27 {
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 11px;
+  }
+
+  #tab-cennik .crm-price-status-v27 {
+    font-size: 10.5px;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  #tab-cennik .crm-price-row-btn-v27 {
+    width: 25px;
+    height: 25px;
+    min-width: 25px;
+    min-height: 25px;
+  }
+}
+
+/* Standardowy desktop: 2 kolumny. */
+@media (min-width: 1120px) and (max-width: 1679px) {
+  #tab-cennik #adminServicesTableBody {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Węższy ekran: 1 kolumna, bez ściskania treści. */
+@media (max-width: 1119px) {
+  #tab-cennik #adminServicesTableBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   V27.2 — TOOLBAR: PODGLĄD KLIENTA + GLOBALNA WIDOCZNOŚĆ IKON
+   ========================================================================== */
+
+#tab-cennik .crm-client-icons-toggle-v272,
+#tab-cennik .crm-client-preview-open-v272 {
+  min-height: 40px;
+  padding: 9px 13px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(197,150,168,.20) !important;
+  background: rgba(255,255,255,.82) !important;
+  color: #62565d !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+}
+
+#tab-cennik .crm-client-icons-toggle-v272.is-on {
+  background: rgba(239,248,235,.92) !important;
+  color: #4c783e !important;
+  border-color: rgba(126,178,111,.26) !important;
+}
+
+#tab-cennik .crm-client-icons-toggle-v272.is-off {
+  background: rgba(250,243,246,.92) !important;
+  color: #9b7180 !important;
+}
+
+#tab-cennik .crm-client-preview-open-v272 {
+  background: rgba(255,246,249,.92) !important;
+  color: #b05074 !important;
+}
+
+/* Per-kategoria: widoczność ikony dla klienta */
+#categoryModal .crm-category-client-icon-v272 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 2px;
+  padding: 10px 11px;
+  border: 1px solid rgba(197,150,168,.18);
+  border-radius: 11px;
+  background: rgba(255,255,255,.66);
+}
+
+#categoryModal .crm-category-client-icon-v272 > span {
+  display: grid;
+  gap: 2px;
+  color: #61545b;
+  font-size: 12px;
+}
+
+#categoryModal .crm-category-client-icon-v272 small {
+  color: #9a8991;
+  font-size: 10px;
+}
+
+#categoryModal .crm-switch-v272 {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+#categoryModal .crm-switch-v272 input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#categoryModal .crm-switch-v272 i {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #eadde2;
+  transition: .16s ease;
+}
+
+#categoryModal .crm-switch-v272 i::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 7px rgba(85,50,64,.16);
+  transition: .16s ease;
+}
+
+#categoryModal .crm-switch-v272 input:checked + i {
+  background: linear-gradient(135deg,#e97b96,#ca537b);
+}
+
+#categoryModal .crm-switch-v272 input:checked + i::after {
+  transform: translateX(18px);
+}
+
+/* ==========================================================================
+   V27.2 — PODGLĄD KLIENTA
+   ========================================================================== */
+
+.crm-client-preview-backdrop-v272 {
+  position: fixed;
+  inset: 0;
+  z-index: 15050;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(48,37,43,.22);
+  backdrop-filter: blur(3px);
+}
+
+.crm-client-preview-backdrop-v272[hidden] {
+  display: none !important;
+}
+
+.crm-client-preview-modal-v272 {
+  width: min(960px, calc(100vw - 28px));
+  max-height: min(780px, calc(100vh - 28px));
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  border: 1px solid rgba(189,147,164,.24);
+  border-radius: 22px;
+  background: #fffafb;
+  box-shadow: 0 30px 80px rgba(84,49,63,.20);
+}
+
+.crm-client-preview-head-v272 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(195,160,174,.18);
+  background: linear-gradient(180deg,#fff,#fff9fb);
+}
+
+.crm-client-preview-head-v272 h2 {
+  margin: 0 0 3px;
+  font: 600 23px/1.1 Georgia, "Times New Roman", serif;
+  color: #372d33;
+}
+
+.crm-client-preview-head-v272 p {
+  margin: 0;
+  color: #897981;
+  font-size: 11px;
+}
+
+.crm-client-preview-close-v272 {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(197,150,168,.20);
+  border-radius: 11px;
+  background: #fff;
+  color: #77676f;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.crm-client-preview-body-v272 {
+  overflow: auto;
+  padding: 18px;
+}
+
+.crm-client-preview-phone-v272 {
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 18px;
+  border: 1px solid rgba(192,151,167,.20);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(242,193,207,.14), transparent 34%),
+    #fff;
+  box-shadow: 0 12px 34px rgba(86,54,66,.06);
+}
+
+.crm-client-preview-step-v272 + .crm-client-preview-step-v272 {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(195,160,174,.16);
+}
+
+.crm-client-preview-step-v272 h3 {
+  margin: 0 0 5px;
+  font: 600 18px/1.15 Georgia, "Times New Roman", serif;
+  color: #3a3035;
+}
+
+.crm-client-preview-step-v272 > p {
+  margin: 0 0 12px;
+  color: #8c7d84;
+  font-size: 11px;
+}
+
+.crm-client-preview-categories-v272 {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+}
+
+.crm-client-preview-cat-v272 {
+  display: grid;
+  grid-template-columns: 38px minmax(0,1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 60px;
+  padding: 9px 11px;
+  border: 1px solid rgba(197,150,168,.18);
+  border-radius: 14px;
+  background: rgba(255,252,253,.94);
+  color: #4a3d44;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-client-preview-cat-v272.no-icon {
+  grid-template-columns: minmax(0,1fr);
+}
+
+.crm-client-preview-cat-v272.is-selected {
+  border-color: color-mix(in srgb,var(--client-cat-color,#d46b8b) 55%, #eadce2);
+  box-shadow: inset 3px 0 0 var(--client-cat-color,#d46b8b);
+  background: rgba(255,247,250,.98);
+}
+
+.crm-client-preview-cat-v272 img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.crm-client-preview-cat-v272 strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.crm-client-preview-cat-v272 small {
+  display: block;
+  margin-top: 2px;
+  color: #97878e;
+  font-size: 9.5px;
+}
+
+.crm-client-preview-services-v272 {
+  display: grid;
+  gap: 7px;
+}
+
+.crm-client-preview-service-v272 {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 45px;
+  padding: 9px 11px;
+  border: 1px solid rgba(197,150,168,.16);
+  border-radius: 12px;
+  background: rgba(255,255,255,.88);
+  color: #44383e;
+  font-size: 11px;
+}
+
+.crm-client-preview-service-v272 b {
+  font-weight: 600;
+}
+
+.crm-client-preview-service-v272 span,
+.crm-client-preview-service-v272 small {
+  white-space: nowrap;
+  color: #75686f;
+}
+
+.crm-client-preview-empty-v272 {
+  padding: 15px;
+  border: 1px dashed rgba(197,150,168,.28);
+  border-radius: 12px;
+  color: #9b8b92;
+  text-align: center;
+  font-size: 11px;
+}
+
+@media (max-width: 680px) {
+  .crm-client-preview-categories-v272 {
+    grid-template-columns: 1fr;
+  }
+  .crm-client-preview-service-v272 {
+    grid-template-columns: 1fr auto;
+  }
+  .crm-client-preview-service-v272 small {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   V27.4 — PODGLĄD KLIENTA JAKO PŁYWAJĄCE OKNO ROBOCZE
+   - bez backdrop / bez blokowania strony
+   - draggable
+   - minimize / close
+   - live preview
+   ========================================================================== */
+
+.crm-client-preview-window-v274 {
+  position: fixed !important;
+  z-index: 15050 !important;
+  left: auto;
+  right: 18px;
+  top: 86px;
+  width: min(760px, calc(100vw - 36px));
+  max-height: min(760px, calc(100vh - 104px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  padding: 0 !important;
+  border: 1px solid rgba(189,147,164,.24);
+  border-radius: 20px;
+  background: #fffafb;
+  box-shadow:
+    0 24px 70px rgba(84,49,63,.18),
+    0 2px 10px rgba(84,49,63,.06);
+  backdrop-filter: none !important;
+  pointer-events: auto !important;
+}
+
+.crm-client-preview-window-v274[hidden] {
+  display: none !important;
+}
+
+/* Stare blokujące tło z V27.2 nie obowiązuje już tego okna. */
+.crm-client-preview-window-v274.crm-client-preview-backdrop-v272 {
+  inset: auto !important;
+  place-items: initial !important;
+  padding: 0 !important;
+  background: #fffafb !important;
+  backdrop-filter: none !important;
+}
+
+.crm-client-preview-window-v274 .crm-client-preview-head-v272 {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  padding: 14px 15px 13px;
+}
+
+.crm-client-preview-window-v274.is-dragging-v274
+.crm-client-preview-head-v272 {
+  cursor: grabbing;
+}
+
+.crm-client-preview-window-actions-v274 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.crm-client-preview-minimize-v274,
+.crm-client-preview-window-v274 .crm-client-preview-close-v272 {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(197,150,168,.18);
+  border-radius: 10px;
+  background: rgba(255,255,255,.86);
+  color: #77676f;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: .15s ease;
+}
+
+.crm-client-preview-minimize-v274:hover,
+.crm-client-preview-window-v274 .crm-client-preview-close-v272:hover {
+  background: #fff2f6;
+  color: #b45074;
+  border-color: rgba(202,92,132,.25);
+}
+
+.crm-client-preview-window-v274 .crm-client-preview-body-v272 {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.crm-client-preview-window-v274 .crm-client-preview-phone-v272 {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 15px;
+  border-radius: 16px;
+}
+
+/* Zwinięty preview: zostaje tylko kompaktowa belka. */
+.crm-client-preview-window-v274.is-minimized-v274 {
+  width: min(420px, calc(100vw - 36px));
+  max-height: none;
+  grid-template-rows: auto;
+}
+
+.crm-client-preview-window-v274.is-minimized-v274
+.crm-client-preview-body-v272 {
+  display: none !important;
+}
+
+.crm-client-preview-window-v274.is-minimized-v274
+.crm-client-preview-head-v272 p {
+  display: none;
+}
+
+.crm-client-preview-window-v274.is-minimized-v274
+.crm-client-preview-head-v272 h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Preview ma być roboczy, ale nie powinien pożerać całego ekranu. */
+@media (max-width: 900px) {
+  .crm-client-preview-window-v274 {
+    width: min(640px, calc(100vw - 20px));
+    right: 10px;
+    top: 70px;
+    max-height: calc(100vh - 80px);
+  }
+}
+
+@media (max-width: 600px) {
+  .crm-client-preview-window-v274 {
+    left: 8px !important;
+    right: 8px !important;
+    top: 62px !important;
+    width: auto !important;
+    max-height: calc(100vh - 70px);
+  }
+}
