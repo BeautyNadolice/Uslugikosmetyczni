@@ -78,9 +78,24 @@ async function showAdminPanel() {
 /* ----- CORE.9. logout (oryginalna linia 112) ----- */
 function logout() {
 
-    localStorage.clear();
+    /*
+     * LOGOUT FIX:
+     * - nie czyścimy całego localStorage, bo przechowuje też ustawienia ADMIN/DEV,
+     * - nie przechodzimy na stronę klienta,
+     * - wracamy jawnie do wejścia ADMIN.
+     *
+     * Gdy właściwe logowanie ADMIN zostanie ponownie włączone,
+     * w tym miejscu można podpiąć czyszczenie konkretnego tokenu/sesji.
+     */
+    try {
+        sessionStorage.clear();
+    } catch (ignore) {}
 
-    location.reload();
+    const adminUrl = new URL("admin.html", window.location.href);
+    adminUrl.search = "";
+    adminUrl.hash = "";
+
+    window.location.replace(adminUrl.href);
 
 }
 
