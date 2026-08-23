@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
     <link rel="apple-touch-icon" href="icons/app-192.png">
-    <link rel="manifest" href="manifest.webmanifest?v=21.0">
+    <link rel="manifest" href="manifest.webmanifest?v=21.2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
@@ -59,32 +59,22 @@
         </section>
     </main>
 
-    <!-- INDEX V21 CLEAN: telefon jest bramką; po pełnej weryfikacji system przechodzi do 3 kroków rezerwacji. -->
     <div id="bookingModal" class="modal-overlay booking-app-overlay-v13" style="display:none;">
         <div class="modal-content booking-app-shell-v13" role="dialog" aria-modal="true" aria-labelledby="bookingTitleV13">
             <button class="close-btn booking-close-v13" onclick="closeBookingModal()" type="button" aria-label="Zamknij">×</button>
-
             <header class="booking-wizard-head-v13">
                 <span class="booking-wizard-eyebrow-v13">REZERWACJA</span>
                 <h2 id="bookingTitleV13" class="booking-modal-title">Umów wizytę</h2>
                 <div id="bookingProgressV14" class="booking-progress-v13 booking-progress-v14" aria-label="Postęp rezerwacji" hidden>
-                    <span data-booking-progress="2"><b>1</b><small>Zabieg</small></span>
-                    <i></i>
-                    <span data-booking-progress="3"><b>2</b><small>Termin</small></span>
-                    <i></i>
+                    <span data-booking-progress="2"><b>1</b><small>Zabieg</small></span><i></i>
+                    <span data-booking-progress="3"><b>2</b><small>Termin</small></span><i></i>
                     <span data-booking-progress="4"><b>3</b><small>Podsumowanie</small></span>
                 </div>
                 <div id="bookingModeBannerV20" class="booking-mode-banner-v20" hidden></div>
             </header>
-
             <form id="bookingForm" class="booking-wizard-form-v13" autocomplete="on">
                 <section class="booking-step-v13" data-booking-step="1">
-                    <div class="booking-step-title-v13">
-                        <span>WERYFIKACJA</span>
-                        <h3>Twój numer telefonu</h3>
-                        <p>Sprawdzimy, czy jesteś już w naszej bazie klientów.</p>
-                    </div>
-
+                    <div class="booking-step-title-v13"><span>WERYFIKACJA</span><h3>Twój numer telefonu</h3><p>Sprawdzimy, czy jesteś już w naszej bazie klientów.</p></div>
                     <div class="form-group">
                         <label for="clientPhone">Numer telefonu *</label>
                         <div class="booking-phone-row-v13">
@@ -93,125 +83,188 @@
                         </div>
                         <div id="clientStatus" class="status-message" style="display:none;"></div>
                     </div>
-
                     <div id="bookingVerifiedFields" hidden style="display:none;">
-                        <div class="booking-verified-client-v13">
-                            <span>Klient</span>
-                            <strong id="bookingVerifiedNamePreviewV13">—</strong>
-                            <input type="text" id="clientName" required disabled class="locked-input" aria-label="Imię i nazwisko klienta">
-                        </div>
-
-                        <div class="booking-nav-v13 booking-nav-end-v13 booking-after-verify-nav-v14" hidden>
-                            <button type="button" class="booking-next-v13" data-booking-next="2">Dalej</button>
-                        </div>
-
+                        <div class="booking-verified-client-v13"><span>Klient</span><strong id="bookingVerifiedNamePreviewV13">—</strong><input type="text" id="clientName" required disabled class="locked-input" aria-label="Imię i nazwisko klienta"></div>
+                        <div class="booking-nav-v13 booking-nav-end-v13 booking-after-verify-nav-v14" hidden><button type="button" class="booking-next-v13" data-booking-next="2">Dalej</button></div>
                         <section class="booking-step-v13" data-booking-step="2" hidden>
-                            <div class="booking-step-title-v13">
-                                <span>KROK 1 Z 3</span>
-                                <h3>Wybierz zabieg</h3>
-                                <p>Najpierw wybierz kategorię, potem konkretną usługę.</p>
-                            </div>
-                            <div id="bookingServicesLoadingV20" class="booking-services-loading-v20" hidden>
-                                <span class="crm-first-visit-spinner-v12" aria-hidden="true"></span>
-                                <span>Ładowanie zabiegów…</span>
-                            </div>
-                            <select id="serviceType" class="crm-index-service-select-v12" required disabled aria-hidden="true" tabindex="-1">
-                                <option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>
-                            </select>
+                            <div class="booking-step-title-v13"><span>KROK 1 Z 3</span><h3>Wybierz zabieg</h3><p>Najpierw wybierz kategorię, potem konkretną usługę.</p></div>
+                            <div id="bookingServicesLoadingV20" class="booking-services-loading-v20" hidden><span class="crm-first-visit-spinner-v12" aria-hidden="true"></span><span>Ładowanie zabiegów…</span></div>
+                            <select id="serviceType" class="crm-index-service-select-v12" required disabled aria-hidden="true" tabindex="-1"><option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option></select>
                             <div id="crmIndexServicePickerV12" class="crm-index-service-picker-v12"></div>
                             <div id="priceDisplay" class="booking-price-v13"></div>
-                            <div class="booking-nav-v13">
-                                <button type="button" class="booking-back-v13" data-booking-back="1">Wstecz</button>
-                                <button type="button" class="booking-next-v13" data-booking-next="3">Dalej</button>
-                            </div>
+                            <div class="booking-nav-v13"><button type="button" class="booking-back-v13" data-booking-back="1">Wstecz</button><button type="button" class="booking-next-v13" data-booking-next="3">Dalej</button></div>
                         </section>
-
                         <section class="booking-step-v13" data-booking-step="3" hidden>
-                            <div class="booking-step-title-v13">
-                                <span>KROK 2 Z 3</span>
-                                <h3>Wybierz termin</h3>
-                                <p>Pokażemy tylko terminy dostępne dla wybranego zabiegu.</p>
-                            </div>
-                            <div class="form-group">
-                                <label for="calendarInput">Dzień *</label>
-                                <input type="text" id="calendarInput" placeholder="Wybierz datę" required disabled readonly>
-                            </div>
-                            <div class="form-group">
-                                <label>Godzina *</label>
-                                <div id="timeSlotsContainer" class="time-slots-grid"></div>
-                                <input type="hidden" id="finalDateTime" required>
-                                <input type="hidden" id="selectedDuration" value="45">
-                            </div>
+                            <div class="booking-step-title-v13"><span>KROK 2 Z 3</span><h3>Wybierz termin</h3><p>Pokażemy tylko terminy dostępne dla wybranego zabiegu.</p></div>
+                            <div class="form-group"><label for="calendarInput">Dzień *</label><input type="text" id="calendarInput" placeholder="Wybierz datę" required disabled readonly></div>
+                            <div class="form-group"><label>Godzina *</label><div id="timeSlotsContainer" class="time-slots-grid"></div><input type="hidden" id="finalDateTime" required><input type="hidden" id="selectedDuration" value="45"></div>
                             <div id="bookingPolicyNotice" class="booking-policy-notice" style="display:none;"></div>
-                            <div id="alternativeBookingSection" class="alternative-booking-section" style="display:none;">
-                                <h3>Termin alternatywny</h3>
-                                <p>Ten termin wymaga potwierdzenia. Wybierz drugi, zwykły termin na wypadek odrzucenia pierwszego.</p>
-                                <input type="text" id="alternativeCalendarInput" placeholder="Wybierz alternatywny dzień" readonly>
-                                <div id="alternativeTimeSlotsContainer" class="time-slots-grid"></div>
-                                <input type="hidden" id="alternativeDateTime">
-                            </div>
-                            <div class="booking-nav-v13">
-                                <button type="button" class="booking-back-v13" data-booking-back="2">Wstecz</button>
-                                <button type="button" class="booking-next-v13" data-booking-next="4">Podsumowanie</button>
-                            </div>
+                            <div id="alternativeBookingSection" class="alternative-booking-section" style="display:none;"><h3>Termin alternatywny</h3><p>Ten termin wymaga potwierdzenia. Wybierz drugi, zwykły termin na wypadek odrzucenia pierwszego.</p><input type="text" id="alternativeCalendarInput" placeholder="Wybierz alternatywny dzień" readonly><div id="alternativeTimeSlotsContainer" class="time-slots-grid"></div><input type="hidden" id="alternativeDateTime"></div>
+                            <div class="booking-nav-v13"><button type="button" class="booking-back-v13" data-booking-back="2">Wstecz</button><button type="button" class="booking-next-v13" data-booking-next="4">Podsumowanie</button></div>
                         </section>
-
                         <section class="booking-step-v13" data-booking-step="4" hidden>
-                            <div class="booking-step-title-v13">
-                                <span>KROK 3 Z 3</span>
-                                <h3>Sprawdź rezerwację</h3>
-                                <p>Przed wysłaniem upewnij się, że wszystko się zgadza.</p>
-                            </div>
+                            <div class="booking-step-title-v13"><span>KROK 3 Z 3</span><h3>Sprawdź rezerwację</h3><p>Przed wysłaniem upewnij się, że wszystko się zgadza.</p></div>
                             <div id="bookingReviewV13" class="booking-review-v13"></div>
                             <section id="bookingContactPrefsV20" class="booking-contact-prefs-v20">
-                                <div class="booking-contact-prefs-head-v20">
-                                    <strong>Sposób kontaktu</strong>
-                                    <small>Wybierz co najmniej jedną opcję.</small>
-                                </div>
-                                <div class="booking-contact-options-v20">
-                                    <label><input type="checkbox" id="bookingContactWhatsappV20" value="WHATSAPP"><span>WhatsApp</span></label>
-                                    <label><input type="checkbox" id="bookingContactEmailV20" value="EMAIL"><span>E-mail</span></label>
-                                </div>
-                                <label id="bookingContactEmailFieldV20" class="booking-contact-email-v20" hidden>
-                                    <span>Adres e-mail</span>
-                                    <input type="email" id="bookingContactEmailAddressV20" autocomplete="email" placeholder="twoj@email.pl">
-                                </label>
+                                <div class="booking-contact-prefs-head-v20"><strong>Sposób kontaktu</strong><small>Wybierz co najmniej jedną opcję.</small></div>
+                                <div class="booking-contact-options-v20"><label><input type="checkbox" id="bookingContactWhatsappV20" value="WHATSAPP"><span>WhatsApp</span></label><label><input type="checkbox" id="bookingContactEmailV20" value="EMAIL"><span>E-mail</span></label></div>
+                                <label id="bookingContactEmailFieldV20" class="booking-contact-email-v20" hidden><span>Adres e-mail</span><input type="email" id="bookingContactEmailAddressV20" autocomplete="email" placeholder="twoj@email.pl"></label>
                             </section>
-                            <div class="rodo-group booking-rodo-v13">
-                                <input type="checkbox" id="rodoConsent" required disabled>
-                                <label for="rodoConsent" class="rodo-text">
-                                    Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
-                                </label>
-                            </div>
-                            <div class="booking-nav-v13 booking-nav-final-v13">
-                                <button type="button" class="booking-back-v13" data-booking-back="3">Wstecz</button>
-                                <button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button>
-                            </div>
+                            <div class="rodo-group booking-rodo-v13"><input type="checkbox" id="rodoConsent" required disabled><label for="rodoConsent" class="rodo-text">Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *</label></div>
+                            <div class="booking-nav-v13 booking-nav-final-v13"><button type="button" class="booking-back-v13" data-booking-back="3">Wstecz</button><button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button></div>
                         </section>
                     </div>
-
                     <div id="bookingWizardErrorV13" class="booking-wizard-error-v13" hidden></div>
                 </section>
             </form>
         </div>
     </div>
 
-    <!-- FIRST_VISIT: pusta rama; JS od razu pokazuje loader, potem właściwy 4-krokowy wizard. -->
-    <div id="contact-form-modal" class="modal-overlay first-visit-app-overlay-v13" style="display:none;">
-        <div class="modal-content first-visit-modal-content"></div>
-    </div>
+    <div id="contact-form-modal" class="modal-overlay first-visit-app-overlay-v13" style="display:none;"><div class="modal-content first-visit-modal-content"></div></div>
 
     <div id="pwaIosHelpV13" class="pwa-ios-help-v13" hidden>
-        <div>
-            <button type="button" id="pwaIosCloseV13" aria-label="Zamknij">×</button>
-            <strong>Dodaj Daria Beauty do ekranu głównego</strong>
-            <p>Na iPhone: dotknij <b>Udostępnij</b>, a potem <b>Dodaj do ekranu początkowego</b>.</p>
-        </div>
+        <div><button type="button" id="pwaIosCloseV13" aria-label="Zamknij">×</button><strong>Dodaj Daria Beauty do ekranu głównego</strong><p>Na iPhone: dotknij <b>Udostępnij</b>, a potem <b>Dodaj do ekranu początkowego</b>.</p></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
     <script src="booking.js?v=21.1"></script>
+    <script>
+    (() => {
+      let installPrompt = null;
+      let installTimer = null;
+      let installAccepted = false;
+
+      const standalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+      function ensureStatusUi() {
+        let box = document.getElementById('pwaInstallStatusV22');
+        if (box) return box;
+
+        const style = document.createElement('style');
+        style.textContent = `
+          #pwaInstallStatusV22[hidden]{display:none!important}
+          #pwaInstallStatusV22{position:fixed;inset:0;z-index:99999;background:rgba(28,24,20,.42);display:flex;align-items:flex-end;justify-content:center;padding:16px;box-sizing:border-box}
+          #pwaInstallStatusV22 .pwa-status-card{width:min(440px,100%);background:#fffdf9;border-radius:20px;padding:22px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 18px 60px rgba(0,0,0,.22);font-family:Montserrat,Arial,sans-serif;color:#2c2c2c;text-align:center}
+          #pwaInstallStatusV22 .pwa-status-icon{width:56px;height:56px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:#f8f2eb;color:#b38f72;font-size:28px}
+          #pwaInstallStatusV22 h3{margin:0 0 8px;font-size:20px}
+          #pwaInstallStatusV22 p{margin:0;color:#6f6b67;font-size:14px;line-height:1.5}
+          #pwaInstallStatusV22 .pwa-progress{height:6px;background:#eee8e1;border-radius:999px;overflow:hidden;margin:18px 0 4px}
+          #pwaInstallStatusV22 .pwa-progress>span{display:block;height:100%;width:38%;background:#c2a383;border-radius:999px;animation:pwaMoveV22 1.1s ease-in-out infinite alternate}
+          #pwaInstallStatusV22 .pwa-actions{display:flex;gap:10px;margin-top:18px}
+          #pwaInstallStatusV22 button{flex:1;border:0;border-radius:12px;padding:12px 14px;font:600 14px Montserrat,Arial,sans-serif;cursor:pointer}
+          #pwaInstallStatusV22 .pwa-primary{background:#c2a383;color:#fff}
+          #pwaInstallStatusV22 .pwa-secondary{background:#f2eee9;color:#4a4540}
+          @keyframes pwaMoveV22{from{transform:translateX(-5%)}to{transform:translateX(165%)}}
+        `;
+        document.head.appendChild(style);
+
+        box = document.createElement('div');
+        box.id = 'pwaInstallStatusV22';
+        box.hidden = true;
+        box.innerHTML = '<div class="pwa-status-card" role="status" aria-live="polite"><div class="pwa-status-icon">＋</div><h3></h3><p></p><div class="pwa-progress" hidden><span></span></div><div class="pwa-actions" hidden></div></div>';
+        document.body.appendChild(box);
+        return box;
+      }
+
+      function showStatus(title, text, mode = 'loading') {
+        const box = ensureStatusUi();
+        const icon = box.querySelector('.pwa-status-icon');
+        const h3 = box.querySelector('h3');
+        const p = box.querySelector('p');
+        const progress = box.querySelector('.pwa-progress');
+        const actions = box.querySelector('.pwa-actions');
+        h3.textContent = title;
+        p.textContent = text;
+        actions.innerHTML = '';
+        actions.hidden = true;
+        progress.hidden = mode !== 'loading';
+        icon.textContent = mode === 'success' ? '✓' : mode === 'error' ? '!' : '＋';
+        box.hidden = false;
+
+        if (mode === 'success') {
+          const open = document.createElement('button');
+          open.className = 'pwa-primary';
+          open.textContent = 'Otwórz Daria Beauty';
+          open.onclick = () => { window.location.href = './'; };
+          const close = document.createElement('button');
+          close.className = 'pwa-secondary';
+          close.textContent = 'Zamknij';
+          close.onclick = () => { box.hidden = true; };
+          actions.append(open, close);
+          actions.hidden = false;
+        } else if (mode === 'error') {
+          const retry = document.createElement('button');
+          retry.className = 'pwa-primary';
+          retry.textContent = 'Spróbuj ponownie';
+          retry.onclick = () => window.location.reload();
+          const close = document.createElement('button');
+          close.className = 'pwa-secondary';
+          close.textContent = 'Zamknij';
+          close.onclick = () => { box.hidden = true; };
+          actions.append(retry, close);
+          actions.hidden = false;
+        }
+      }
+
+      window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        installPrompt = event;
+      });
+
+      window.addEventListener('appinstalled', () => {
+        installAccepted = false;
+        if (installTimer) clearTimeout(installTimer);
+        try { localStorage.setItem('dariaPwaInstalledV22', String(Date.now())); } catch (_) {}
+        const btn = document.getElementById('pwaInstallBtn');
+        if (btn) btn.hidden = true;
+        showStatus('Daria Beauty została zainstalowana ✓', 'Aplikacja jest już dostępna na Twoim telefonie.', 'success');
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('pwaInstallBtn');
+        if (!btn || standalone()) return;
+
+        btn.addEventListener('click', async event => {
+          if (!installPrompt) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+
+          showStatus('Potwierdź instalację', 'Po potwierdzeniu poczekaj chwilę, aż telefon zakończy instalację.', 'loading');
+
+          const prompt = installPrompt;
+          installPrompt = null;
+
+          try {
+            await prompt.prompt();
+            const choice = await prompt.userChoice;
+
+            if (!choice || choice.outcome !== 'accepted') {
+              installAccepted = false;
+              document.getElementById('pwaInstallStatusV22').hidden = true;
+              btn.hidden = false;
+              return;
+            }
+
+            installAccepted = true;
+            showStatus('Instalowanie Daria Beauty…', 'Czekamy na potwierdzenie zakończenia instalacji przez telefon.', 'loading');
+
+            if (installTimer) clearTimeout(installTimer);
+            installTimer = setTimeout(() => {
+              if (!installAccepted) return;
+              installAccepted = false;
+              showStatus('Telefon nie potwierdził instalacji', 'Sprawdź listę aplikacji. Jeśli Daria Beauty tam nie ma, spróbuj ponownie.', 'error');
+              btn.hidden = false;
+            }, 20000);
+          } catch (error) {
+            installAccepted = false;
+            showStatus('Nie udało się uruchomić instalacji', 'Spróbuj ponownie za chwilę.', 'error');
+            btn.hidden = false;
+          }
+        }, true);
+      });
+    })();
+    </script>
 </body>
 </html>
