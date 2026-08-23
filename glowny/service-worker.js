@@ -1,10 +1,10 @@
-const CACHE_NAME = "daria-index-v21-5-pwa-install-status";
+const CACHE_NAME = "daria-index-v21-6-pwa-simple";
 const CORE = [
   "./",
   "./index.html",
   "./style.css?v=21.1",
   "./booking.js?v=21.1",
-  "./manifest.webmanifest?v=21.2",
+  "./manifest.webmanifest?v=21.3",
   "./icons/app-192.png",
   "./icons/app-512.png"
 ];
