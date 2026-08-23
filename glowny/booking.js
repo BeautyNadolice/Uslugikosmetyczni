@@ -2306,15 +2306,6 @@ function crmFirstVisitContactMethodMarkupV9() {
             <small>na podany numer telefonu</small>
           </span>
         </label>
-
-        <label>
-          <input type="radio" name="crmFirstVisitContactV9" value="SMS" required>
-          <span>
-            <b>SMS</b>
-            <small>na podany numer telefonu</small>
-          </span>
-        </label>
-
         <label>
           <input type="radio" name="crmFirstVisitContactV9" value="EMAIL" required>
           <span>
@@ -2933,7 +2924,7 @@ async function crmFirstVisitSubmitV9(event) {
 
   if (!contactMethod) {
     fail(
-      "Wybierz sposób kontaktu: WhatsApp, SMS lub E-mail."
+      "Wybierz sposób kontaktu: WhatsApp lub E-mail."
     );
     return;
   }
@@ -3228,7 +3219,6 @@ function crmFirstVisitContactLabelV10(value) {
   const key = String(value || "").toUpperCase();
 
   if (key === "WHATSAPP") return "WhatsApp";
-  if (key === "SMS") return "SMS";
   if (key === "EMAIL") return "E-mail";
 
   return "—";
@@ -3269,7 +3259,7 @@ function crmFirstVisitProgressMarkupV10() {
     {
       no: 3,
       title: "Preferowane terminy",
-      copy: "Do 3 dni, maks. 2 godziny"
+      copy: "Wybierz dogodny czas"
     },
     {
       no: 4,
@@ -3689,7 +3679,7 @@ function crmFirstVisitValidateStepV10(step) {
 
     if (!contactMethod) {
       crmFirstVisitShowErrorV10(
-        "Wybierz sposób kontaktu: WhatsApp, SMS lub E-mail."
+        "Wybierz sposób kontaktu: WhatsApp lub E-mail."
       );
       return false;
     }
@@ -4682,8 +4672,8 @@ function crmFirstVisitFormMarkupV11() {
           <span>KROK 3 Z 4</span>
           <h3>Preferowane terminy</h3>
           <p>
-            Dodaj od 1 do 3 preferowanych dni. Dla każdego dnia podaj przedział czasu
-            nie dłuższy niż 2 godziny. To tylko propozycje — salon potwierdzi termin.
+            Wybierz od 1 do 3 dni i podaj dogodny przedział godzin.
+            To tylko propozycje terminów. Potwierdzenie otrzymasz poprzez wybrany wcześniej sposób kontaktu.
           </p>
         </div>
 
@@ -4691,7 +4681,6 @@ function crmFirstVisitFormMarkupV11() {
           <div class="crm-first-visit-section-title">
             <div>
               <strong>Preferowane dni i godziny</strong>
-              <small>Do 3 dni · maksymalnie 2 godziny na każdy dzień.</small>
             </div>
 
             <button
@@ -4928,7 +4917,7 @@ crmFirstVisitValidateStepV10 = function(step) {
     }
 
     if (!contactMethod) {
-      crmFirstVisitShowErrorV10("Wybierz sposób kontaktu: WhatsApp, SMS lub E-mail.");
+      crmFirstVisitShowErrorV10("Wybierz sposób kontaktu: WhatsApp lub E-mail.");
       return false;
     }
 
@@ -5488,7 +5477,6 @@ crmFirstVisitRenderDaysV9 = function() {
           <label><span>Od</span><select data-day-start="${item.id}">${crmFirstVisitTimeOptionsV13(work.startMin, work.endMin - 15, item.start || "")}</select></label>
           <label><span>Do</span><select data-day-end="${item.id}" ${item.start ? "" : "disabled"}>${crmFirstVisitTimeOptionsV13(endFrom, endTo, item.end || "")}</select></label>
         </div>
-        <div class="crm-first-visit-day-hint">Godziny pracy salonu: <strong>${work.start}–${work.end}</strong>. Maksymalny przedział: 2 godziny.</div>
       </article>`;
   }).join("");
 
@@ -5775,7 +5763,7 @@ crmFirstVisitValidateStepV10 = function(step) {
     return false;
   }
   if (!contactMethod) {
-    crmFirstVisitShowErrorV10("Wybierz sposób kontaktu: WhatsApp, SMS lub E-mail.");
+    crmFirstVisitShowErrorV10("Wybierz sposób kontaktu: WhatsApp lub E-mail.");
     return false;
   }
   if (contactMethod === "EMAIL") {
@@ -5837,3 +5825,99 @@ window.crmIndexUiVersionV14 = "14.0-mobile-calendar-optional-category";
   });
 })();
 // KONIEC INDEX V15
+
+// ============================================================================
+// INDEX V16 — FIRST_VISIT: pełny kalendarz w kroku 3
+// ============================================================================
+crmFirstVisitRenderDaysV9 = function() {
+  const host = document.getElementById("crmFirstVisitDaysV9");
+  const add = document.getElementById("crmFirstVisitAddDayV9");
+  if (!host) return;
+
+  if (add) add.disabled = (crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9;
+  if (!(crmFirstVisitDaysV9 || []).length) {
+    host.innerHTML = '<div class="crm-first-visit-empty">Dodaj przynajmniej jeden preferowany dzień.</div>';
+    return;
+  }
+
+  const work = crmFirstVisitWorkBoundsV13();
+  host.innerHTML = crmFirstVisitDaysV9.map((item, index) => {
+    const startMin = item.start ? crmFirstVisitTimeMinutesV11(item.start) : NaN;
+    const endFrom = Number.isFinite(startMin) ? startMin + 15 : work.startMin + 15;
+    const endTo = Number.isFinite(startMin) ? Math.min(startMin + 120, work.endMin) : work.endMin;
+
+    return `
+      <article class="crm-first-visit-day-card crm-first-visit-range-card-v11 crm-first-visit-day-card-v16" data-day-id="${item.id}">
+        <div class="crm-first-visit-day-head">
+          <strong>Dzień ${index + 1}</strong>
+          <button type="button" data-remove-day="${item.id}">Usuń</button>
+        </div>
+
+        <div class="crm-first-visit-calendar-field-v16">
+          <span class="crm-first-visit-calendar-label-v16">Data</span>
+          <input type="text"
+                 class="crm-first-visit-date crm-first-visit-date-v16"
+                 data-day-date="${item.id}"
+                 value="${crmFirstVisitEscapeV9(item.date || "")}"
+                 aria-label="Wybierz datę dla dnia ${index + 1}"
+                 readonly>
+        </div>
+
+        <div class="crm-first-visit-range-row-v11 crm-first-visit-range-row-v13 crm-first-visit-time-row-v16">
+          <label><span>Od</span><select data-day-start="${item.id}">${crmFirstVisitTimeOptionsV13(work.startMin, work.endMin - 15, item.start || "")}</select></label>
+          <label><span>Do</span><select data-day-end="${item.id}" ${item.start ? "" : "disabled"}>${crmFirstVisitTimeOptionsV13(endFrom, endTo, item.end || "")}</select></label>
+        </div>
+      </article>`;
+  }).join("");
+
+  host.querySelectorAll("[data-remove-day]").forEach(button => {
+    button.onclick = () => crmFirstVisitRemoveDayV9(button.dataset.removeDay);
+  });
+
+  host.querySelectorAll("[data-day-start]").forEach(input => {
+    input.onchange = () => {
+      const row = crmFirstVisitDayStateV9(input.dataset.dayStart);
+      if (row) {
+        row.start = input.value || "";
+        row.end = "";
+      }
+      crmFirstVisitClearErrorV10();
+      crmFirstVisitRenderDaysV9();
+    };
+  });
+
+  host.querySelectorAll("[data-day-end]").forEach(input => {
+    input.onchange = () => {
+      const row = crmFirstVisitDayStateV9(input.dataset.dayEnd);
+      if (row) row.end = input.value || "";
+      crmFirstVisitClearErrorV10();
+    };
+  });
+
+  host.querySelectorAll("[data-day-date]").forEach(input => {
+    const id = input.dataset.dayDate;
+    const item = crmFirstVisitDayStateV9(id);
+    if (typeof flatpickr !== "function") return;
+
+    flatpickr(input, {
+      locale: "pl",
+      dateFormat: "Y-m-d",
+      minDate: "today",
+      maxDate: crmEndOfNextMonthV14(),
+      disableMobile: true,
+      allowInput: false,
+      inline: true,
+      showMonths: 1,
+      monthSelectorType: "static",
+      defaultDate: item?.date || null,
+      onChange: (_selected, dateStr) => {
+        const row = crmFirstVisitDayStateV9(id);
+        if (row) row.date = dateStr;
+        crmFirstVisitClearErrorV10();
+      }
+    });
+  });
+};
+
+window.crmIndexUiVersionV16 = "16.0-first-visit-inline-calendar";
+// KONIEC INDEX V16
