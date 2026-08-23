@@ -5901,6 +5901,24 @@ async function crmOpenExistingClientContactV20(phone, name) {
     if (p) p.textContent = "Dane zostały rozpoznane na podstawie numeru telefonu.";
   }
 
+  // TYLKO_KONTAKT: tekst kroku 2 jest neutralny dla istniejącego klienta,
+  // a nie jak formularz pierwszej wizyty.
+  const step2 = root.querySelector('[data-fv-step="2"]');
+  if (step2) {
+    const step2Intro = step2.querySelector(".crm-first-visit-step-head-v10 p");
+    if (step2Intro) {
+      step2Intro.textContent = "Jeśli chcesz, wybierz kategorię i dodaj wiadomość dotyczącą wizyty lub terminu.";
+    }
+
+    const message = document.getElementById("crmFirstVisitMessageV9");
+    if (message) {
+      const messageField = message.closest(".crm-first-visit-field");
+      const messageLabel = messageField ? messageField.querySelector("span") : null;
+      if (messageLabel) messageLabel.textContent = "Wiadomość do salonu *";
+      message.placeholder = "Dodaj informacje dotyczące wizyty lub terminu.";
+    }
+  }
+
   const nameInput = document.getElementById("crmFirstVisitNameV9");
   const phoneInput = document.getElementById("crmFirstVisitPhoneV9");
   if (nameInput) nameInput.readOnly = true;
