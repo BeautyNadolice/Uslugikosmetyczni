@@ -74,6 +74,7 @@
                     <i></i>
                     <span data-booking-progress="4"><b>3</b><small>Podsumowanie</small></span>
                 </div>
+                <div id="bookingModeBannerV20" class="booking-mode-banner-v20" hidden></div>
             </header>
 
             <form id="bookingForm" class="booking-wizard-form-v13" autocomplete="on">
@@ -109,6 +110,10 @@
                                 <span>KROK 1 Z 3</span>
                                 <h3>Wybierz zabieg</h3>
                                 <p>Najpierw wybierz kategorię, potem konkretną usługę.</p>
+                            </div>
+                            <div id="bookingServicesLoadingV20" class="booking-services-loading-v20" hidden>
+                                <span class="crm-first-visit-spinner-v12" aria-hidden="true"></span>
+                                <span>Ładowanie zabiegów…</span>
                             </div>
                             <select id="serviceType" class="crm-index-service-select-v12" required disabled aria-hidden="true" tabindex="-1">
                                 <option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>
@@ -158,6 +163,20 @@
                                 <p>Przed wysłaniem upewnij się, że wszystko się zgadza.</p>
                             </div>
                             <div id="bookingReviewV13" class="booking-review-v13"></div>
+                            <section id="bookingContactPrefsV20" class="booking-contact-prefs-v20">
+                                <div class="booking-contact-prefs-head-v20">
+                                    <strong>Sposób kontaktu</strong>
+                                    <small>Wybierz co najmniej jedną opcję.</small>
+                                </div>
+                                <div class="booking-contact-options-v20">
+                                    <label><input type="checkbox" id="bookingContactWhatsappV20" value="WHATSAPP"><span>WhatsApp</span></label>
+                                    <label><input type="checkbox" id="bookingContactEmailV20" value="EMAIL"><span>E-mail</span></label>
+                                </div>
+                                <label id="bookingContactEmailFieldV20" class="booking-contact-email-v20" hidden>
+                                    <span>Adres e-mail</span>
+                                    <input type="email" id="bookingContactEmailAddressV20" autocomplete="email" placeholder="twoj@email.pl">
+                                </label>
+                            </section>
                             <div class="rodo-group booking-rodo-v13">
                                 <input type="checkbox" id="rodoConsent" required disabled>
                                 <label for="rodoConsent" class="rodo-text">
@@ -193,6 +212,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
-    <script src="booking.js?v=14.0"></script>
+    <script src="booking.js?v=20.0"></script>
 </body>
 </html>

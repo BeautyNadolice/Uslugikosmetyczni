@@ -931,9 +931,13 @@ select:disabled {
     line-height: 1.45;
 }
 
-.crm-first-visit-consent input {
-    margin-top: 3px;
-    flex: 0 0 auto;
+.crm-first-visit-consent input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    min-height: 0;
+    padding: 0;
+    margin: 2px 0 0;
+    flex: 0 0 14px;
 }
 
 .crm-first-visit-consent a {
@@ -1705,7 +1709,7 @@ select:disabled {
 }
 
 .crm-first-visit-consents-v10 .crm-first-visit-consent {
-    margin: 6px 0;
+    margin: 3px 0;
 }
 
 .crm-first-visit-consents-v10
@@ -2877,3 +2881,131 @@ body.crm-modal-open-v15 .modal-overlay {
     gap: 10px !important;
   }
 }
+
+/* ========================================================================== 
+   INDEX V20 — status klienta / kontakt / loader usług
+   ========================================================================== */
+.booking-mode-banner-v20 {
+    margin: 8px 24px 0;
+    padding: 11px 14px;
+    display: grid;
+    gap: 3px;
+    border: 1px solid #e2c79f;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fffaf2, #fdf5e8);
+    color: #5b4636;
+    text-align: left;
+    box-shadow: 0 4px 14px rgba(111, 81, 56, .05);
+}
+.booking-mode-banner-v20[hidden] { display: none !important; }
+.booking-mode-banner-v20 strong {
+    color: #4a372a;
+    font-size: 12px;
+    font-weight: 800;
+}
+.booking-mode-banner-v20 span {
+    color: #65564b;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.booking-services-loading-v20 {
+    min-height: 132px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #66594f;
+    font-size: 12px;
+    font-weight: 650;
+}
+.booking-services-loading-v20[hidden] { display: none !important; }
+
+.booking-contact-prefs-v20 {
+    margin: 14px 0 10px;
+    padding: 13px 14px;
+    border: 1px solid #e6d8ca;
+    border-radius: 13px;
+    background: #fdfaf7;
+    text-align: left;
+}
+.booking-contact-prefs-head-v20 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+}
+.booking-contact-prefs-head-v20 strong {
+    color: #43372f;
+    font-size: 12px;
+}
+.booking-contact-prefs-head-v20 small {
+    color: #8e8178;
+    font-size: 9.5px;
+}
+.booking-contact-options-v20 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.booking-contact-options-v20 label {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+.booking-contact-options-v20 input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.booking-contact-options-v20 span {
+    min-height: 40px;
+    display: grid;
+    place-items: center;
+    padding: 8px 12px;
+    border: 1px solid #ded2c7;
+    border-radius: 10px;
+    background: #fff;
+    color: #5b5048;
+    font-size: 11px;
+    font-weight: 750;
+    transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+.booking-contact-options-v20 input:checked + span {
+    border-color: #c6a27f;
+    background: #fbf3eb;
+    color: #594536;
+    box-shadow: 0 0 0 2px rgba(198,162,127,.10);
+}
+.booking-contact-email-v20 {
+    display: block;
+    margin-top: 10px;
+}
+.booking-contact-email-v20[hidden] { display: none !important; }
+.booking-contact-email-v20 > span {
+    display: block;
+    margin-bottom: 5px;
+    color: #62564e;
+    font-size: 10px;
+    font-weight: 700;
+}
+.booking-contact-email-v20 input {
+    width: 100%;
+}
+.crm-existing-client-contact-v20 .crm-first-visit-head-v10 h2 {
+    color: #9a7456;
+}
+.crm-existing-client-contact-v20 #crmFirstVisitNameV9,
+.crm-existing-client-contact-v20 #crmFirstVisitPhoneV9 {
+    background: #f7f2ed;
+    color: #5f554e;
+    cursor: default;
+}
+
+@media (max-width: 520px) {
+    .booking-mode-banner-v20 { margin: 7px 14px 0; }
+    .booking-contact-prefs-head-v20 { display: grid; gap: 2px; }
+    .booking-contact-options-v20 { grid-template-columns: 1fr 1fr; }
+}
+/* KONIEC INDEX V20 */
