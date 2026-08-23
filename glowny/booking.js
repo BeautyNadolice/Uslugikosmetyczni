@@ -501,7 +501,7 @@ function crmIndexIconPathV12(icon, categoryName) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "");
-  return `admin/Icons/Cennik/${clean || "universal"}.png`;
+  return `../admin/Icons/Cennik/${clean || "universal"}.png`;
 }
 
 function crmIndexServiceMetaV12(item) {
