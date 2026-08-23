@@ -1,9 +1,9 @@
-const CACHE_NAME = "daria-index-v14";
+const CACHE_NAME = "daria-index-v21-1";
 const CORE = [
   "./",
   "./index.html",
-  "./style.css?v=14.0",
-  "./booking.js?v=14.0",
+  "./style.css?v=21.1",
+  "./booking.js?v=21.1",
   "./manifest.webmanifest?v=14.0",
   "./icons/app-192.png",
   "./icons/app-512.png"

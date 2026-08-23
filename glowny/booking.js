@@ -678,27 +678,8 @@ document.addEventListener("DOMContentLoaded", () => {
       preferredCountries: ["pl", "ua", "by"],
       utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
-    phoneInput.addEventListener("blur", checkExistingClient);
-    phoneInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        checkExistingClient();
-      }
-    });
-    phoneInput.addEventListener("input", () => {
-      isClientApproved = false;
-      document.getElementById("clientName").value = "";
-      const statusEl = document.getElementById("clientStatus");
-      if (statusEl) {
-        statusEl.innerHTML = "";
-        statusEl.style.display = "none";
-      }
-      toggleFormState(false); 
-    });
   }
 
-  const verifyBtn = document.getElementById("verifyPhoneBtn");
-  if (verifyBtn) { verifyBtn.addEventListener("click", checkExistingClient); }
   const serviceSelect = document.getElementById("serviceType");
   if (serviceSelect) { serviceSelect.addEventListener("change", onServiceChange); }
   const bookingForm = document.getElementById("bookingForm");
@@ -932,7 +913,7 @@ function displayTimeSlots(selectedDateStr) {
   });
 }
 
-async function checkExistingClient() {
+async function crmLegacyCheckExistingClientUnusedV1() {
   const statusEl = document.getElementById("clientStatus");
   const phoneInput = document.getElementById("clientPhone");
   if (!statusEl || !phoneInput) return;
@@ -1417,7 +1398,6 @@ displayTimeSlots = function(dateStr) {
 // ==========================================================
 // INDEX V3: RESET PO WERYFIKACJI I ZWYKLY TERMIN ALTERNATYWNY
 // ==========================================================
-const _checkExistingClientBeforeStateFix = checkExistingClient;
 const _submitFormBeforeAlternativeFix = submitForm;
 
 function resetBookingDependentStateV3() {
@@ -1445,13 +1425,6 @@ function resetBookingDependentStateV3() {
 }
 
 let phoneVerificationInProgressV3 = false;
-checkExistingClient = async function() {
-  if (phoneVerificationInProgressV3) return;
-  phoneVerificationInProgressV3 = true;
-  resetBookingDependentStateV3();
-  try { await _checkExistingClientBeforeStateFix(); }
-  finally { phoneVerificationInProgressV3 = false; }
-};
 
 renderAlternativeSlots = function(dateStr) {
   const container = document.getElementById("alternativeTimeSlotsContainer");
@@ -1495,18 +1468,6 @@ submitForm = async function(event) {
   return _submitFormBeforeAlternativeFix(event);
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  const phone = document.getElementById("clientPhone");
-  const verify = document.getElementById("verifyPhoneBtn");
-  if (phone) {
-    phone.removeEventListener("blur", _checkExistingClientBeforeStateFix);
-    phone.addEventListener("input", resetBookingDependentStateV3);
-  }
-  if (verify) {
-    verify.removeEventListener("click", _checkExistingClientBeforeStateFix);
-    verify.addEventListener("click", checkExistingClient);
-  }
-});
 // KONIEC INDEX V3
 
 // ==========================================================
@@ -1591,26 +1552,7 @@ closeBookingModal = function() {
   resetBookingSessionV4();
 };
 
-/* Jedno stabilne podpiecie przycisku. Wczesniejsze referencje funkcji mogly
-   pozostac po nadpisaniu checkExistingClient i blokowac druga weryfikacje. */
-document.addEventListener("DOMContentLoaded", () => {
-  const verifyButton = document.getElementById("verifyPhoneBtn");
-  const phone = document.getElementById("clientPhone");
-
-  if (verifyButton) {
-    const cleanButton = verifyButton.cloneNode(true);
-    verifyButton.replaceWith(cleanButton);
-    cleanButton.addEventListener("click", event => {
-      event.preventDefault();
-      checkExistingClient();
-    });
-  }
-
-  if (phone) {
-    phone.onblur = null;
-    phone.addEventListener("input", () => resetBookingSessionV4({ keepPhone: true }));
-  }
-});
+/* V21.1: obsługę telefonu przejmuje jeden kontroler poniżej. */
 // KONIEC INDEX V4
 
 // ==========================================================
@@ -1631,12 +1573,6 @@ function crmClearVerifiedPhoneV5() {
   isClientApproved = false;
 }
 
-const _checkExistingClientBeforeV5 = checkExistingClient;
-checkExistingClient = async function() {
-  await _checkExistingClientBeforeV5();
-  if (isClientApproved) crmVerifiedPhoneTokenV5 = crmNormalizePhoneTokenV5();
-  else crmVerifiedPhoneTokenV5 = "";
-};
 
 const _submitFormBeforeV5 = submitForm;
 submitForm = async function(event) {
@@ -1899,43 +1835,8 @@ function crmShowIncompletePhoneV6() {
   toggleFormState(false);
 }
 
-const _checkExistingClientBeforeV6 = checkExistingClient;
-checkExistingClient = async function() {
-  crmLimitPhoneDigitsV6();
 
-  const current = crmPhoneNationalDigitsV6().length;
-  const expected = crmPhoneExpectedDigitsV6();
-
-  if (current !== expected) {
-    crmShowIncompletePhoneV6();
-    return;
-  }
-
-  return _checkExistingClientBeforeV6();
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  const phone = document.getElementById("clientPhone");
-  if (!phone || phone.dataset.crmPhoneLimitV6 === "1") return;
-
-  phone.dataset.crmPhoneLimitV6 = "1";
-  phone.setAttribute("inputmode", "numeric");
-  phone.setAttribute("pattern", "[0-9]*");
-  phone.setAttribute("autocomplete", "tel");
-
-  crmEnsurePhoneLengthHintV6();
-  crmUpdatePhoneLengthHintV6();
-
-  phone.addEventListener("beforeinput", crmPhoneBlockNonDigitsBeforeInputV19);
-  phone.addEventListener("input", crmLimitPhoneDigitsV6);
-  phone.addEventListener("paste", () => window.setTimeout(crmLimitPhoneDigitsV6, 0));
-
-  phone.addEventListener("countrychange", () => {
-    if (typeof crmClearVerifiedPhoneV5 === "function") crmClearVerifiedPhoneV5();
-    if (typeof resetBookingSessionV4 === "function") resetBookingSessionV4({ keepPhone: true });
-    crmLimitPhoneDigitsV6();
-  });
-});
+/* V21.1: listenery telefonu V6 scalono w jednym kontrolerze. */
 
 // KONIEC INDEX V6
 
@@ -3137,20 +3038,7 @@ function crmSyncBookingVerifiedFieldsV231() {
   crmSetBookingVerifiedFieldsVisibleV231(Boolean(isClientApproved));
 }
 
-/*
- * Owijamy finalną wersję checkExistingClient, więc nie zmieniamy
- * istniejącej logiki V3/V4/V5/V6 ani sposobu pobierania klienta.
- */
-const _checkExistingClientBeforeProgressiveV231 = checkExistingClient;
-checkExistingClient = async function() {
-  crmSetBookingVerifiedFieldsVisibleV231(false);
-
-  try {
-    return await _checkExistingClientBeforeProgressiveV231();
-  } finally {
-    crmSyncBookingVerifiedFieldsV231();
-  }
-};
+/* V21.1: widocznością pól po weryfikacji steruje jeden kontroler telefonu. */
 
 /*
  * Każde nowe otwarcie zaczyna od samego telefonu.
@@ -4436,83 +4324,9 @@ function crmShowInvalidPhoneV241() {
   toggleFormState(false);
 }
 
-/*
- * Owijamy FINALNĄ wersję checkExistingClient.
- * Nie zmieniamy pobierania klienta ani normalnej logiki rezerwacji.
- */
-const _checkExistingClientBeforeV241 =
-  checkExistingClient;
+/* V21.1: walidacja V24.1 jest używana przez jeden kontroler telefonu. */
 
-checkExistingClient =
-  async function() {
-    if (
-      typeof crmLimitPhoneDigitsV6 === "function"
-    ) {
-      crmLimitPhoneDigitsV6();
-    }
-
-    const state =
-      crmPhoneValidationStateV241();
-
-    /*
-     * Brak pełnej długości obsłuży dotychczasowy V6.
-     */
-    if (!state.completeLength) {
-      return _checkExistingClientBeforeV241();
-    }
-
-    /*
-     * Pełna długość != poprawny numer.
-     * Jeśli biblioteka potrafi już zweryfikować format,
-     * nie wpuszczamy błędnego numeru do starego komunikatu „9 cyfr”.
-     */
-    if (
-      state.canValidate &&
-      !state.valid
-    ) {
-      crmShowInvalidPhoneV241();
-      crmUpdatePhoneLengthHintV241();
-      return;
-    }
-
-    return _checkExistingClientBeforeV241();
-  };
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-    const phone =
-      document.getElementById(
-        "clientPhone"
-      );
-
-    if (!phone) return;
-
-    /*
-     * Po załadowaniu utils / zmianie kraju odśwież status,
-     * żeby nie zostało stare zielone „Numer kompletny”.
-     */
-    window.setTimeout(
-      crmUpdatePhoneLengthHintV241,
-      120
-    );
-
-    window.setTimeout(
-      crmUpdatePhoneLengthHintV241,
-      800
-    );
-
-    phone.addEventListener(
-      "countrychange",
-      crmUpdatePhoneLengthHintV241
-    );
-
-    phone.addEventListener(
-      "blur",
-      crmUpdatePhoneLengthHintV241
-    );
-  }
-);
+/* V21.1: odświeżanie walidacji telefonu obsługuje jeden kontroler. */
 
 // KONIEC INDEX V24.1
 
@@ -5594,7 +5408,7 @@ function crmSetupPwaV13() {
   window.addEventListener("appinstalled", () => { btn.hidden = true; });
 
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    navigator.serviceWorker.register("service-worker.js?v=14.0").catch(error => console.warn("PWA service worker:", error));
+    navigator.serviceWorker.register("service-worker.js?v=21.1").catch(error => console.warn("PWA service worker:", error));
   }
 }
 
@@ -5651,35 +5465,7 @@ crmBookingUpdateProgressV13 = function() {
   if (progress) progress.hidden = !(isClientApproved && crmBookingStepV13 >= 2);
 };
 
-// Po prawidłowej weryfikacji klient od razu przechodzi do pierwszego właściwego kroku: Zabieg.
-const crmCheckExistingClientBeforeV14 = checkExistingClient;
-checkExistingClient = async function() {
-  const result = await crmCheckExistingClientBeforeV14.apply(this, arguments);
-  crmBookingUpdateVerifiedNameV13();
-  if (isClientApproved) {
-    crmBookingGoStepV13(2, false);
-  } else {
-    crmBookingUpdateProgressV13();
-  }
-  return result;
-};
-
-// Stary listener mógł zostać podpięty wcześniej; kliknięcie i Enter kierujemy na najnowszą funkcję.
-document.addEventListener("click", event => {
-  if (event.target?.closest?.("#verifyPhoneBtn")) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    checkExistingClient();
-  }
-}, true);
-
-document.addEventListener("keydown", event => {
-  if (event.target?.id === "clientPhone" && event.key === "Enter") {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    checkExistingClient();
-  }
-}, true);
+// V21.1: przejście po weryfikacji oraz klik/Enter obsługuje jeden kontroler telefonu.
 
 // Kalendarz zwykłej rezerwacji: pełny, stale widoczny, tylko bieżący i następny miesiąc.
 initCalendar = function(defaultDate = "") {
@@ -5950,7 +5736,6 @@ window.crmIndexUiVersionV16 = "16.0-first-visit-inline-calendar";
 // - normalna rezerwacja pamięta preferowany WhatsApp/E-mail na tym urządzeniu,
 // - picker usług jest ukryty do końca ładowania danych.
 // ============================================================================
-const CRM_ADMIN_PROFILE_URL_V20 = "https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
 let crmClientBookingModeV20 = "STANDARDOWY";
 let crmClientRestrictionReasonV20 = "";
 let crmExistingClientContactV20 = null;
@@ -5979,22 +5764,6 @@ function crmBookingModeBannerV20(mode = crmClientBookingModeV20) {
   `;
 }
 
-async function crmFetchClientProfileV20(phone) {
-  const response = await fetch(CRM_ADMIN_PROFILE_URL_V20, {
-    method: "POST",
-    cache: "no-store",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ action: "getClientCRMProfile", phone })
-  });
-  const text = await response.text();
-  let data;
-  try { data = JSON.parse(text); }
-  catch (_) { throw new Error("Nieprawidłowa odpowiedź profilu klienta."); }
-  if (!response.ok || !data?.success || !data?.profile) {
-    throw new Error(data?.error || "Nie udało się pobrać statusu rezerwacji klienta.");
-  }
-  return data.profile;
-}
 
 function crmContactStorageKeyV20(phone = "") {
   return "nailArtContactPrefsV20:" + String(phone || "").replace(/\D/g, "");
@@ -6157,54 +5926,7 @@ async function crmOpenExistingClientContactV20(phone, name) {
   }
 }
 
-const crmCheckExistingClientBeforeV20 = checkExistingClient;
-checkExistingClient = async function() {
-  crmClientBookingModeV20 = "STANDARDOWY";
-  crmClientRestrictionReasonV20 = "";
-  crmExistingClientContactV20 = null;
-  crmBookingModeBannerV20("STANDARDOWY");
-
-  await crmCheckExistingClientBeforeV20();
-  if (!isClientApproved) return;
-
-  // V14 przechodził od razu do kroku „Zabieg”. Na czas dodatkowego
-  // sprawdzania statusu klienta wracamy do ekranu weryfikacji, żeby nie
-  // mignął pusty picker ani tekst „Wybierz kategorię…”.
-  crmBookingGoStepV13(1, false);
-  const statusEl = document.getElementById("clientStatus");
-  if (statusEl) {
-    statusEl.style.display = "block";
-    statusEl.style.color = "#746b65";
-    statusEl.textContent = "Sprawdzanie uprawnień rezerwacji…";
-  }
-
-  const fullPhone = crmCurrentVerifiedPhoneV20();
-  try {
-    const profile = await crmFetchClientProfileV20(fullPhone);
-    crmClientBookingModeV20 = crmNormalizeBookingModeV20(profile?.bookingMode);
-    crmClientRestrictionReasonV20 = String(profile?.restrictionReason || "").trim();
-  } catch (error) {
-    // Jeżeli dodatkowy odczyt statusu chwilowo nie działa, nie blokujemy
-    // istniejącego klienta i zachowujemy dotychczasową rezerwację standardową.
-    console.warn("Status rezerwacji klienta:", error?.message || error);
-    crmClientBookingModeV20 = "STANDARDOWY";
-  }
-
-  if (crmClientBookingModeV20 === "TYLKO_KONTAKT") {
-    const name = String(document.getElementById("clientName")?.value || "").trim();
-    if (statusEl) statusEl.textContent = "Numer zweryfikowany.";
-    await crmOpenExistingClientContactV20(fullPhone, name);
-    return;
-  }
-
-  if (statusEl) {
-    statusEl.style.color = "green";
-    statusEl.textContent = "Klient zweryfikowany pomyślnie!";
-  }
-  crmBookingModeBannerV20(crmClientBookingModeV20);
-  crmSyncContactPrefsUiV20(true);
-  crmBookingGoStepV13(2, false);
-};
+/* V21.1: status klienta pobiera bezpośrednio Booking Apps Script w jednym zapytaniu. */
 
 const crmBookingGoStepBeforeV20 = crmBookingGoStepV13;
 crmBookingGoStepV13 = function(target, validate = true) {
@@ -6424,5 +6146,277 @@ document.addEventListener("DOMContentLoaded", () => {
   crmSyncContactPrefsUiV20(true);
 });
 
-window.crmIndexUiVersionV20 = "20.0-client-status-contact-loading";
+
+// ============================================================================
+// INDEX V21.1 — JEDEN KONTROLER TELEFONU I STATUSU KLIENTA
+// 2026-08-23
+// Źródło prawdy: Booking Apps Script -> arkusz Klienci + najnowszy wpis
+// z arkusza „Ograniczenia klientów”. Bez fallbacku do STANDARDOWY przy błędzie.
+// ============================================================================
+let crmPhoneVerificationRunV211 = 0;
+let crmPhoneVerificationBusyV211 = false;
+
+function crmPhoneStatusV211(message, kind = "neutral") {
+  const status = document.getElementById("clientStatus");
+  if (!status) return;
+  status.style.display = message ? "block" : "none";
+  status.style.color =
+    kind === "error" ? "#b3261e" :
+    kind === "success" ? "#26823a" :
+    "#746b65";
+  status.textContent = message || "";
+}
+
+function crmPhoneResetVerificationV211(options = {}) {
+  const keepPhone = options.keepPhone !== false;
+  const phone = document.getElementById("clientPhone");
+  const value = keepPhone && phone ? phone.value : "";
+
+  crmPhoneVerificationRunV211 += 1;
+  crmPhoneVerificationBusyV211 = false;
+  isClientApproved = false;
+  crmClientBookingModeV20 = "STANDARDOWY";
+  crmClientRestrictionReasonV20 = "";
+  crmExistingClientContactV20 = null;
+  crmVerifiedPhoneTokenV5 = "";
+
+  if (typeof resetBookingDependentStateV3 === "function") {
+    resetBookingDependentStateV3();
+  } else {
+    toggleFormState(false);
+  }
+
+  if (phone && keepPhone) phone.value = value;
+  crmSetBookingVerifiedFieldsVisibleV231(false);
+  crmBookingModeBannerV20("STANDARDOWY");
+  crmPhoneStatusV211("");
+  crmBookingUpdateProgressV13();
+}
+
+function crmPhoneSanitizeAndLimitV211() {
+  const phone = document.getElementById("clientPhone");
+  if (!phone) return "";
+
+  const raw = String(phone.value || "");
+  let digits = raw.replace(/\D/g, "");
+  const expected = Math.max(1, Number(crmPhoneExpectedDigitsV6()) || 9);
+  if (digits.length > expected) digits = digits.slice(0, expected);
+
+  if (phone.value !== digits) phone.value = digits;
+  crmUpdatePhoneLengthHintV241();
+  return digits;
+}
+
+function crmPhoneValidatedNumberV211() {
+  crmPhoneSanitizeAndLimitV211();
+  const state = crmPhoneValidationStateV241();
+
+  if (state.current !== state.expected) {
+    crmShowIncompletePhoneV6();
+    crmSetBookingVerifiedFieldsVisibleV231(false);
+    return null;
+  }
+
+  if (state.canValidate && !state.valid) {
+    crmShowInvalidPhoneV241();
+    crmSetBookingVerifiedFieldsVisibleV231(false);
+    return null;
+  }
+
+  try {
+    if (iti && typeof iti.getNumber === "function") {
+      const number = String(iti.getNumber() || "").replace(/\s+/g, "");
+      if (/^\+\d{7,15}$/.test(number)) return number;
+    }
+  } catch (_) {}
+
+  const country = crmPhoneCountryV6();
+  const dial = String(country?.dialCode || "").replace(/\D/g, "");
+  const digits = crmPhoneNationalDigitsV6();
+  if (dial && digits) return `+${dial}${digits}`;
+  return null;
+}
+
+async function checkExistingClient() {
+  if (crmPhoneVerificationBusyV211) return;
+
+  const phone = crmPhoneValidatedNumberV211();
+  if (!phone) return;
+
+  const run = ++crmPhoneVerificationRunV211;
+  crmPhoneVerificationBusyV211 = true;
+
+  const verify = document.getElementById("verifyPhoneBtn");
+  if (verify) {
+    verify.disabled = true;
+    verify.textContent = "Sprawdzanie…";
+  }
+
+  crmPhoneResetVerificationV211({ keepPhone: true });
+  // reset podbija licznik, więc ten request dostaje własny aktualny token
+  const requestRun = ++crmPhoneVerificationRunV211;
+  crmPhoneVerificationBusyV211 = true;
+  crmPhoneStatusV211("Sprawdzanie danych i uprawnień rezerwacji…");
+
+  try {
+    const data = await fetchJSONP(
+      `${APPS_SCRIPT_URL}?phone=${encodeURIComponent(phone)}&_clientV211=${Date.now()}`
+    );
+
+    if (requestRun !== crmPhoneVerificationRunV211) return;
+
+    if (!data || data.success === false) {
+      throw new Error(data?.error || "Nie udało się sprawdzić klienta.");
+    }
+
+    if (!data.found || !data.name) {
+      const status = document.getElementById("clientStatus");
+      document.getElementById("clientName").value = "";
+      isClientApproved = false;
+      crmSetBookingVerifiedFieldsVisibleV231(false);
+      toggleFormState(false);
+      renderUnknownClientContact(status, phone);
+      return;
+    }
+
+    const modeRaw = String(data.bookingMode || "").trim();
+    if (!modeRaw) {
+      throw new Error("System nie zwrócił statusu rezerwacji klienta.");
+    }
+
+    const mode = crmNormalizeBookingModeV20(modeRaw);
+    crmClientBookingModeV20 = mode;
+    crmClientRestrictionReasonV20 = String(data.restrictionReason || "").trim();
+
+    document.getElementById("clientName").value = String(data.name || "").trim();
+    crmVerifiedPhoneTokenV5 = String(phone).replace(/\D/g, "");
+    crmBookingUpdateVerifiedNameV13();
+
+    if (mode === "TYLKO_KONTAKT") {
+      isClientApproved = false;
+      crmSetBookingVerifiedFieldsVisibleV231(false);
+      toggleFormState(false);
+      crmPhoneStatusV211("Numer został zweryfikowany. Rezerwacja wymaga kontaktu z salonem.", "success");
+      await crmOpenExistingClientContactV20(phone, String(data.name || "").trim());
+      return;
+    }
+
+    isClientApproved = true;
+    toggleFormState(true);
+    crmSetBookingVerifiedFieldsVisibleV231(true);
+    crmBookingModeBannerV20(mode);
+    crmSyncContactPrefsUiV20(true);
+
+    crmPhoneStatusV211(
+      mode === "WYMAGA_POTWIERDZENIA"
+        ? "Numer zweryfikowany."
+        : "Klient zweryfikowany pomyślnie!",
+      "success"
+    );
+
+    crmSetServicesLoadingV20(true);
+    await Promise.all([
+      loadServicesIntoSelect(),
+      loadFreeSlots()
+    ]);
+
+    if (requestRun !== crmPhoneVerificationRunV211) return;
+
+    // Jednoznacznie odblokuj ukryty select i karty dopiero po pełnej weryfikacji.
+    const select = document.getElementById("serviceType");
+    const picker = document.getElementById("crmIndexServicePickerV12");
+    if (select) select.disabled = false;
+    if (picker) {
+      picker.classList.remove("is-disabled");
+      picker.hidden = false;
+      picker.style.pointerEvents = "auto";
+    }
+    crmSetServicesLoadingV20(false);
+    crmIndexRenderServicePickerV12();
+
+    crmBookingGoStepV13(2, false);
+    crmBookingUpdateProgressV13();
+  } catch (error) {
+    if (requestRun !== crmPhoneVerificationRunV211) return;
+    isClientApproved = false;
+    crmClientBookingModeV20 = "";
+    crmSetBookingVerifiedFieldsVisibleV231(false);
+    toggleFormState(false);
+    crmBookingModeBannerV20("STANDARDOWY");
+    crmPhoneStatusV211(
+      error?.message || "Nie udało się sprawdzić uprawnień rezerwacji. Spróbuj ponownie.",
+      "error"
+    );
+  } finally {
+    if (requestRun === crmPhoneVerificationRunV211) {
+      crmPhoneVerificationBusyV211 = false;
+      if (verify) {
+        verify.disabled = false;
+        verify.textContent = "Sprawdź";
+      }
+    }
+  }
+}
+
+function crmInstallPhoneControllerV211() {
+  const phone = document.getElementById("clientPhone");
+  const verify = document.getElementById("verifyPhoneBtn");
+  if (!phone || !verify || phone.dataset.crmPhoneControllerV211 === "1") return;
+
+  phone.dataset.crmPhoneControllerV211 = "1";
+  phone.setAttribute("inputmode", "numeric");
+  phone.setAttribute("pattern", "[0-9]*");
+  phone.setAttribute("autocomplete", "tel");
+  phone.setAttribute("aria-describedby", "crmPhoneLengthHintV6");
+
+  // Przycisk klonujemy raz, żeby usunąć wszystkie stare listenery z kolejnych wersji.
+  const cleanVerify = verify.cloneNode(true);
+  verify.replaceWith(cleanVerify);
+
+  cleanVerify.addEventListener("click", event => {
+    event.preventDefault();
+    checkExistingClient();
+  });
+
+  phone.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      checkExistingClient();
+    }
+  });
+
+  phone.addEventListener("beforeinput", event => {
+    if (typeof event.data === "string" && /\D/.test(event.data)) {
+      event.preventDefault();
+    }
+  });
+
+  phone.addEventListener("input", () => {
+    crmPhoneSanitizeAndLimitV211();
+    if (isClientApproved || crmExistingClientContactV20 || crmClientBookingModeV20 !== "STANDARDOWY") {
+      crmPhoneResetVerificationV211({ keepPhone: true });
+    }
+  });
+
+  phone.addEventListener("paste", () => {
+    window.setTimeout(() => {
+      crmPhoneSanitizeAndLimitV211();
+      crmPhoneResetVerificationV211({ keepPhone: true });
+    }, 0);
+  });
+
+  phone.addEventListener("countrychange", () => {
+    crmPhoneSanitizeAndLimitV211();
+    crmPhoneResetVerificationV211({ keepPhone: true });
+  });
+
+  crmPhoneSanitizeAndLimitV211();
+  crmPhoneResetVerificationV211({ keepPhone: true });
+}
+
+document.addEventListener("DOMContentLoaded", crmInstallPhoneControllerV211);
+
+window.crmIndexUiVersionV211 = "21.1-clean-phone-client-status";
+
+window.crmIndexUiVersionV20 = "21.1-clean-phone-client-status";
 // KONIEC INDEX V20

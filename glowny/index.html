@@ -14,11 +14,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
     <link rel="apple-touch-icon" href="icons/app-192.png">
-    <link rel="manifest" href="manifest.webmanifest?v=14.0">
+    <link rel="manifest" href="manifest.webmanifest?v=21.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
-    <link rel="stylesheet" href="style.css?v=14.0">
+    <link rel="stylesheet" href="style.css?v=21.1">
 </head>
 <body>
     <main class="container" id="clientLanding">
@@ -59,7 +59,7 @@
         </section>
     </main>
 
-    <!-- Jedyny formularz zwykłej rezerwacji: 4 kroki. Nie ma już starego formularza do podmiany po starcie. -->
+    <!-- INDEX V21 CLEAN: telefon jest bramką; po pełnej weryfikacji system przechodzi do 3 kroków rezerwacji. -->
     <div id="bookingModal" class="modal-overlay booking-app-overlay-v13" style="display:none;">
         <div class="modal-content booking-app-shell-v13" role="dialog" aria-modal="true" aria-labelledby="bookingTitleV13">
             <button class="close-btn booking-close-v13" onclick="closeBookingModal()" type="button" aria-label="Zamknij">×</button>
@@ -88,7 +88,7 @@
                     <div class="form-group">
                         <label for="clientPhone">Numer telefonu *</label>
                         <div class="booking-phone-row-v13">
-                            <div class="phone-input-container"><input type="tel" id="clientPhone" required></div>
+                            <div class="phone-input-container"><input type="tel" id="clientPhone" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" required></div>
                             <button type="button" id="verifyPhoneBtn" class="verify-btn">Sprawdź</button>
                         </div>
                         <div id="clientStatus" class="status-message" style="display:none;"></div>
@@ -212,6 +212,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
-    <script src="booking.js?v=20.0"></script>
+    <script src="booking.js?v=21.1"></script>
 </body>
 </html>
