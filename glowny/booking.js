@@ -475,38 +475,197 @@ async function loadPortfolio() {
   }
 }
 
+let crmIndexServicesV12 = [];
+
+function crmIndexPublishedV12(item) {
+  return ["OPUBLIKOWANY", "AKTYWNY", "PUBLISHED", "ACTIVE"]
+    .includes(String(item?.status || "").trim().toUpperCase());
+}
+
+function crmIndexIconGuessV12(categoryName) {
+  const name = String(categoryName || "").toLowerCase();
+  if (/twarz|face|kosmet/.test(name)) return "face";
+  if (/oko|oczu|rzęs|rzes|brw|henna/.test(name)) return "eyes";
+  if (/manicure|paznok|nail/.test(name)) return "manicure";
+  if (/pedicure|stop/.test(name)) return "pedicure";
+  if (/depil|wosk/.test(name)) return "depilation";
+  if (/laser/.test(name)) return "laser";
+  if (/makija|makeup/.test(name)) return "makeup";
+  if (/masa/.test(name)) return "face-massage";
+  if (/spa|wellness/.test(name)) return "spa";
+  return "universal";
+}
+
+function crmIndexIconPathV12(icon, categoryName) {
+  const clean = String(icon || crmIndexIconGuessV12(categoryName) || "universal")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "");
+  return `admin/Icons/Cennik/${clean || "universal"}.png`;
+}
+
+function crmIndexServiceMetaV12(item) {
+  const parts = [];
+  const showPrice = !["NIE", "NO", "FALSE", "0"].includes(
+    String(item?.showPrice ?? "Tak").trim().toUpperCase()
+  );
+  const showDuration = !["NIE", "NO", "FALSE", "0"].includes(
+    String(item?.showDuration ?? "Tak").trim().toUpperCase()
+  );
+
+  if (showPrice && item?.price !== "" && Number.isFinite(Number(item?.price))) {
+    parts.push(`${Number(item.price)} zł`);
+  }
+
+  if (showDuration && Number(item?.duration) > 0) {
+    parts.push(`${Number(item.duration)} min`);
+  }
+
+  return parts.join(" · ");
+}
+
+function crmIndexRenderServicePickerV12() {
+  const select = document.getElementById("serviceType");
+  if (!select) return;
+
+  let host = document.getElementById("crmIndexServicePickerV12");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "crmIndexServicePickerV12";
+    host.className = "crm-index-service-picker-v12";
+    select.insertAdjacentElement("afterend", host);
+  }
+
+  const published = crmIndexServicesV12
+    .filter(crmIndexPublishedV12)
+    .sort((a, b) =>
+      (Number(a?.categoryOrder) || 0) - (Number(b?.categoryOrder) || 0) ||
+      (Number(a?.serviceOrder) || 0) - (Number(b?.serviceOrder) || 0) ||
+      String(a?.name || "").localeCompare(String(b?.name || ""), "pl")
+    );
+
+  if (!published.length) {
+    host.innerHTML = '<div class="crm-index-service-empty-v12">Brak opublikowanych usług.</div>';
+    return;
+  }
+
+  const groups = new Map();
+  published.forEach(item => {
+    const category = String(item?.category || "Inne").trim() || "Inne";
+    const key = String(item?.categoryId || category).trim() || category;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        name: category,
+        order: Number(item?.categoryOrder) || 0,
+        color: String(item?.categoryColor || "#b05c75"),
+        icon: String(item?.categoryIcon || ""),
+        items: []
+      });
+    }
+    groups.get(key).items.push(item);
+  });
+
+  host.innerHTML = Array.from(groups.values())
+    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "pl"))
+    .map(group => `
+      <section class="crm-index-service-group-v12" style="--crm-cat:${crmFirstVisitEscapeV9(group.color)}">
+        <div class="crm-index-service-group-head-v12">
+          <span class="crm-index-service-accent-v12" aria-hidden="true"></span>
+          <img
+            class="crm-index-service-icon-v12"
+            src="${crmIndexIconPathV12(group.icon, group.name)}"
+            alt=""
+            loading="lazy"
+            onerror="this.style.display='none'">
+          <strong>${crmFirstVisitEscapeV9(group.name)}</strong>
+        </div>
+        <div class="crm-index-service-options-v12">
+          ${group.items.map(item => {
+            const meta = crmIndexServiceMetaV12(item);
+            const selected = select.value === String(item.name || "");
+            return `
+              <button
+                type="button"
+                class="crm-index-service-option-v12${selected ? " is-selected" : ""}"
+                data-crm-service="${crmFirstVisitEscapeV9(item.name || "")}"
+                aria-pressed="${selected ? "true" : "false"}">
+                <span>${crmFirstVisitEscapeV9(item.name || "")}</span>
+                ${meta ? `<small>${crmFirstVisitEscapeV9(meta)}</small>` : ""}
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </section>
+    `).join("");
+
+  host.querySelectorAll("[data-crm-service]").forEach(button => {
+    button.addEventListener("click", () => {
+      if (select.disabled) return;
+
+      select.value = button.dataset.crmService || "";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+
+      host.querySelectorAll("[data-crm-service]").forEach(other => {
+        const active = other === button;
+        other.classList.toggle("is-selected", active);
+        other.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    });
+  });
+}
+
 async function loadServicesIntoSelect() {
   const serviceSelect = document.getElementById("serviceType");
   if (!serviceSelect) return;
+
   try {
-    const services = await fetchJSONP(`${APPS_SCRIPT_URL}?getPrices=true`);
-    serviceSelect.innerHTML = '<option value="" disabled selected>-- Wybierz zabieg --</option>';
-    if (services && services.length > 0) {
-      const grouped = {};
-      services.forEach(s => {
-        if (s.status === "Opublikowany") {
-          const cat = s.category || "Inne";
-          if (!grouped[cat]) grouped[cat] = [];
-          grouped[cat].push(s);
-        }
+    const services = await fetchJSONP(
+      `${APPS_SCRIPT_URL}?getPrices=true&_cennikV12=${Date.now()}`
+    );
+
+    crmIndexServicesV12 = Array.isArray(services) ? services : [];
+
+    const published = crmIndexServicesV12
+      .filter(crmIndexPublishedV12)
+      .sort((a, b) =>
+        (Number(a?.categoryOrder) || 0) - (Number(b?.categoryOrder) || 0) ||
+        (Number(a?.serviceOrder) || 0) - (Number(b?.serviceOrder) || 0)
+      );
+
+    serviceSelect.innerHTML =
+      '<option value="" disabled selected>-- Wybierz zabieg --</option>';
+
+    const grouped = new Map();
+    published.forEach(item => {
+      const category = String(item?.category || "Inne").trim() || "Inne";
+      if (!grouped.has(category)) grouped.set(category, []);
+      grouped.get(category).push(item);
+    });
+
+    grouped.forEach((items, category) => {
+      const optGroup = document.createElement("optgroup");
+      optGroup.label = category;
+
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        opt.textContent = item.name;
+        opt.setAttribute("data-price", item.price ?? "");
+        opt.setAttribute("data-duration", item.duration ?? 45);
+        opt.setAttribute("data-category", category);
+        optGroup.appendChild(opt);
       });
-      for (const category in grouped) {
-        const optGroup = document.createElement("optgroup");
-        optGroup.label = category;
-        grouped[category].forEach(item => {
-          const opt = document.createElement("option");
-          opt.value = item.name;
-          opt.textContent = `${item.name} (${item.price} zł)`;
-          opt.setAttribute("data-price", item.price);
-          opt.setAttribute("data-duration", item.duration);
-          optGroup.appendChild(opt);
-        });
-        serviceSelect.appendChild(optGroup);
-      }
-    }
+
+      serviceSelect.appendChild(optGroup);
+    });
+
+    crmIndexRenderServicePickerV12();
   } catch (error) {
     console.error("Błąd ładowania usług:", error);
-    serviceSelect.innerHTML = '<option value="" disabled>Błąd ładowania usług</option>';
+    crmIndexServicesV12 = [];
+    serviceSelect.innerHTML =
+      '<option value="" disabled>Błąd ładowania usług</option>';
+    crmIndexRenderServicePickerV12();
   }
 }
 
@@ -568,6 +727,11 @@ function toggleFormState(enabled) {
       serviceSelect.innerHTML = '<option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>';
       document.getElementById("priceDisplay").innerText = "";
     }
+  }
+
+  const servicePickerV12 = document.getElementById("crmIndexServicePickerV12");
+  if (servicePickerV12) {
+    servicePickerV12.classList.toggle("is-disabled", !enabled);
   }
   if (calendarInput) {
     calendarInput.disabled = !enabled;
@@ -1814,6 +1978,8 @@ function crmFirstVisitBuildCategoriesV9(services) {
           order: Number(item?.categoryOrder) || 0,
           mode: crmFirstVisitModeV9(item?.firstVisitMode),
           manualMinutes: Math.max(0, Number(item?.firstVisitManualMinutes) || 0),
+          color: String(item?.categoryColor || "#b05c75"),
+          icon: String(item?.categoryIcon || crmIndexIconGuessV12(category)),
           services: []
         });
       }
@@ -2063,6 +2229,68 @@ function crmFirstVisitCategoryOptionsV9() {
       </option>
     `)
     .join("");
+}
+
+
+function crmFirstVisitCategoryCardsMarkupV12() {
+  if (!crmFirstVisitCategoriesV9.length) {
+    return '<div class="crm-first-visit-category-empty-v12">Brak dostępnych kategorii.</div>';
+  }
+
+  return crmFirstVisitCategoriesV9
+    .slice()
+    .sort((a, b) =>
+      (Number(a?.order) || 0) - (Number(b?.order) || 0) ||
+      String(a?.name || "").localeCompare(String(b?.name || ""), "pl")
+    )
+    .map(category => `
+      <button
+        type="button"
+        class="crm-first-visit-category-card-v12"
+        data-fv-category-v12="${crmFirstVisitEscapeV9(category.id)}"
+        style="--crm-cat:${crmFirstVisitEscapeV9(category.color || "#b05c75")}"
+        aria-pressed="false">
+        <span class="crm-first-visit-category-accent-v12" aria-hidden="true"></span>
+        <img
+          src="${crmIndexIconPathV12(category.icon, category.name)}"
+          alt=""
+          loading="lazy"
+          onerror="this.style.display='none'">
+        <span class="crm-first-visit-category-copy-v12">
+          <strong>${crmFirstVisitEscapeV9(category.name)}</strong>
+          <small>Opcjonalnie</small>
+        </span>
+        <span class="crm-first-visit-category-check-v12" aria-hidden="true">✓</span>
+      </button>
+    `)
+    .join("");
+}
+
+function crmFirstVisitSyncCategoryCardsV12(root = document) {
+  const select = document.getElementById("crmFirstVisitCategoryV9");
+  if (!select) return;
+
+  root.querySelectorAll("[data-fv-category-v12]").forEach(button => {
+    const active = String(button.dataset.fvCategoryV12 || "") === String(select.value || "");
+    button.classList.toggle("is-selected", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function crmFirstVisitInstallCategoryCardsV12(root = document) {
+  const select = document.getElementById("crmFirstVisitCategoryV9");
+  if (!select) return;
+
+  root.querySelectorAll("[data-fv-category-v12]").forEach(button => {
+    button.addEventListener("click", () => {
+      const value = button.dataset.fvCategoryV12 || "";
+      select.value = String(select.value || "") === String(value) ? "" : value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      crmFirstVisitSyncCategoryCardsV12(root);
+    });
+  });
+
+  crmFirstVisitSyncCategoryCardsV12(root);
 }
 
 function crmFirstVisitContactMethodMarkupV9() {
@@ -2421,7 +2649,7 @@ function crmFirstVisitRenderDaysV9() {
         locale: "pl",
         dateFormat: "Y-m-d",
         minDate: "today",
-        maxDate: new Date().fp_incr(120),
+        maxDate: crmEndOfNextMonthV14(),
         disableMobile: true,
         defaultDate: item?.date || null,
 
@@ -3801,14 +4029,20 @@ async function openFirstVisitRequestFormV10(
     bookingModal.style.display = "none";
   }
 
-  wrapper.innerHTML =
-    '<div class="crm-first-visit-loading">Ładowanie formularza pierwszej wizyty…</div>';
+  modal.classList.add("is-loading-v12");
+  wrapper.innerHTML = `
+    <div class="crm-first-visit-loading crm-first-visit-loading-v12" role="status" aria-live="polite">
+      <span class="crm-first-visit-spinner-v12" aria-hidden="true"></span>
+      <span>Ładowanie…</span>
+    </div>
+  `;
 
   modal.style.display = "flex";
 
   try {
     await crmFirstVisitEnsureDataV9();
 
+    modal.classList.remove("is-loading-v12");
     crmFirstVisitDaysV9 = [];
     crmFirstVisitStepV10 = 1;
 
@@ -3836,6 +4070,7 @@ async function openFirstVisitRequestFormV10(
     wrapper.querySelector(
       ".crm-first-visit-close"
     ).onclick = () => {
+      modal.classList.remove("is-loading-v12");
       modal.style.display = "none";
     };
 
@@ -3852,7 +4087,10 @@ async function openFirstVisitRequestFormV10(
 
       crmFirstVisitRenderDaysV9();
       crmFirstVisitClearErrorV10();
+      crmFirstVisitSyncCategoryCardsV12(wrapper);
     };
+
+    crmFirstVisitInstallCategoryCardsV12(wrapper);
 
     wrapper
       .querySelectorAll(
@@ -3901,6 +4139,7 @@ async function openFirstVisitRequestFormV10(
       }
     );
   } catch (error) {
+    modal.classList.remove("is-loading-v12");
     wrapper.innerHTML = `
       <div class="crm-first-visit-loading crm-first-visit-load-error">
         <strong>Nie udało się załadować formularza.</strong>
@@ -4401,16 +4640,26 @@ function crmFirstVisitFormMarkupV11() {
         <div class="crm-first-visit-step-head-v10">
           <span>KROK 2 Z 4</span>
           <h3>Szczegóły wizyty</h3>
-          <p>Wybierz kategorię, opisz czego potrzebujesz i wybierz sposób kontaktu.</p>
+          <p>Jeśli chcesz, wybierz kategorię. Następnie opisz, czego potrzebujesz i wybierz sposób kontaktu.</p>
         </div>
 
-        <label class="crm-first-visit-field">
-          <span>Wybierz kategorię *</span>
-          <select id="crmFirstVisitCategoryV9" required>
+        <div class="crm-first-visit-field crm-first-visit-category-field-v12">
+          <span>Wybierz kategorię <small>(opcjonalnie)</small></span>
+
+          <select
+            id="crmFirstVisitCategoryV9"
+            class="crm-first-visit-native-select-v12"
+            aria-label="Wybierz kategorię">
             <option value="">— Wybierz kategorię —</option>
             ${crmFirstVisitCategoryOptionsV9()}
           </select>
-        </label>
+
+          <div
+            id="crmFirstVisitCategoryCardsV12"
+            class="crm-first-visit-category-cards-v12">
+            ${crmFirstVisitCategoryCardsMarkupV12()}
+          </div>
+        </div>
 
         <label class="crm-first-visit-field">
           <span>Opisz, czego potrzebujesz *</span>
@@ -4462,7 +4711,7 @@ function crmFirstVisitFormMarkupV11() {
             id="crmFirstVisitNoteV11"
             rows="3"
             maxlength="700"
-            placeholder="Dodatkowe informacje, które mogą być dla nas pomocne..."></textarea>
+            placeholder="Napisz, jeśli jest coś, o czym powinnam wiedzieć przed wizytą…"></textarea>
         </label>
 
         <div class="crm-first-visit-consents-v10 crm-first-visit-consents-step3-v11">
@@ -4530,7 +4779,6 @@ function crmFirstVisitFormMarkupV11() {
 crmFirstVisitFormMarkupV10 = crmFirstVisitFormMarkupV11;
 
 crmFirstVisitAddDayV9 = function() {
-  if (!crmFirstVisitSelectedCategoryV9()) return;
   if ((crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9) return;
 
   crmFirstVisitDaysV9.push({
@@ -4548,18 +4796,9 @@ crmFirstVisitRenderDaysV9 = function() {
   const add = document.getElementById("crmFirstVisitAddDayV9");
   if (!host) return;
 
-  const categorySelected = Boolean(crmFirstVisitSelectedCategoryV9());
-
   if (add) {
     add.disabled =
-      !categorySelected ||
       (crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9;
-  }
-
-  if (!categorySelected) {
-    host.innerHTML =
-      '<div class="crm-first-visit-empty">Najpierw wybierz kategorię w kroku 2.</div>';
-    return;
   }
 
   if (!(crmFirstVisitDaysV9 || []).length) {
@@ -4639,7 +4878,7 @@ crmFirstVisitRenderDaysV9 = function() {
         locale: "pl",
         dateFormat: "Y-m-d",
         minDate: "today",
-        maxDate: new Date().fp_incr(120),
+        maxDate: crmEndOfNextMonthV14(),
         disableMobile: true,
         defaultDate: item?.date || null,
         onChange: (_selected, dateStr) => {
@@ -4682,11 +4921,6 @@ crmFirstVisitValidateStepV10 = function(step) {
       document.querySelector('input[name="crmFirstVisitContactV9"]:checked')?.value || ""
     ).trim();
     const email = String(document.getElementById("crmFirstVisitEmailV9")?.value || "").trim();
-
-    if (!category) {
-      crmFirstVisitShowErrorV10("Wybierz kategorię.");
-      return false;
-    }
 
     if (description.length < 5) {
       crmFirstVisitShowErrorV10("Napisz krótko, czego potrzebujesz.");
@@ -4793,7 +5027,7 @@ crmFirstVisitReviewMarkupV10 = function() {
         <button type="button" data-fv-edit="2">Zmień</button>
       </div>
       <dl>
-        <div><dt>Kategoria</dt><dd>${crmFirstVisitEscapeV9(category?.name || "—")}</dd></div>
+        <div><dt>Kategoria</dt><dd>${crmFirstVisitEscapeV9(category?.name || "Nie wybrano")}</dd></div>
         <div><dt>Opis potrzeb</dt><dd>${crmFirstVisitEscapeV9(description || "—")}</dd></div>
         <div><dt>Sposób kontaktu</dt><dd>${crmFirstVisitEscapeV9(contactValue)}</dd></div>
       </dl>
@@ -4907,3 +5141,699 @@ crmFirstVisitSubmitV9 = async function(event) {
 window.crmFirstVisitUiVersionV11 = "11.0-4-step-summary-range";
 
 // KONIEC INDEX FIRST VISIT UI V11
+
+// ============================================================================
+// INDEX V13 — MOBILE-FIRST / PWA / 4-STEP STANDARD BOOKING
+// 2026-08-23
+// - zwykła rezerwacja: 4 osobne kroki,
+// - FIRST_VISIT: godziny propozycji wyłącznie w godzinach pracy salonu,
+// - PWA: instalacja na telefonie + service worker,
+// - brak starego formularza w HTML.
+// ============================================================================
+
+let crmBookingStepV13 = 1;
+let crmPwaInstallPromptV13 = null;
+
+function crmBookingWizardErrorV13(message = "") {
+  const box = document.getElementById("bookingWizardErrorV13");
+  if (!box) return;
+  box.hidden = !message;
+  box.textContent = message || "";
+}
+
+function crmBookingUpdateVerifiedNameV13() {
+  const preview = document.getElementById("bookingVerifiedNamePreviewV13");
+  const input = document.getElementById("clientName");
+  if (preview) preview.textContent = String(input?.value || "—").trim() || "—";
+}
+
+function crmBookingFormatDateV13(value) {
+  const raw = String(value || "").trim();
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : raw;
+}
+
+function crmBookingSelectedServiceV13() {
+  const select = document.getElementById("serviceType");
+  const option = select?.options?.[select.selectedIndex];
+  if (!select?.value || !option) return null;
+  return {
+    name: select.value,
+    price: option.getAttribute("data-price") || "",
+    duration: option.getAttribute("data-duration") || document.getElementById("selectedDuration")?.value || "",
+    category: option.getAttribute("data-category") || ""
+  };
+}
+
+function crmBookingReviewV13() {
+  const host = document.getElementById("bookingReviewV13");
+  if (!host) return;
+
+  const service = crmBookingSelectedServiceV13();
+  const main = String(document.getElementById("finalDateTime")?.value || "");
+  const alt = String(document.getElementById("alternativeDateTime")?.value || "");
+  const name = String(document.getElementById("clientName")?.value || "").trim();
+  const phone = typeof iti !== "undefined" && iti?.isValidNumber?.()
+    ? iti.getNumber()
+    : String(document.getElementById("clientPhone")?.value || "").trim();
+
+  const mainDate = main.slice(0, 10);
+  const mainTime = main.slice(11, 16);
+  const altDate = alt.slice(0, 10);
+  const altTime = alt.slice(11, 16);
+  const meta = [];
+  if (service?.price !== "" && Number.isFinite(Number(service?.price))) meta.push(`${Number(service.price)} zł`);
+  if (Number(service?.duration) > 0) meta.push(`${Number(service.duration)} min`);
+
+  host.innerHTML = `
+    <article class="booking-review-card-v13">
+      <div><span>Klient</span><strong>${crmFirstVisitEscapeV9(name || "—")}</strong></div>
+      <small>${crmFirstVisitEscapeV9(phone || "—")}</small>
+      <button type="button" data-booking-edit="1">Zmień</button>
+    </article>
+    <article class="booking-review-card-v13">
+      <div><span>Zabieg</span><strong>${crmFirstVisitEscapeV9(service?.name || "—")}</strong></div>
+      <small>${crmFirstVisitEscapeV9([service?.category, meta.join(" · ")].filter(Boolean).join(" · ") || "—")}</small>
+      <button type="button" data-booking-edit="2">Zmień</button>
+    </article>
+    <article class="booking-review-card-v13">
+      <div><span>Termin</span><strong>${crmFirstVisitEscapeV9(mainDate ? `${crmBookingFormatDateV13(mainDate)} · ${mainTime}` : "—")}</strong></div>
+      ${alt ? `<small>Alternatywny: ${crmFirstVisitEscapeV9(`${crmBookingFormatDateV13(altDate)} · ${altTime}`)}</small>` : `<small>Termin standardowy</small>`}
+      <button type="button" data-booking-edit="3">Zmień</button>
+    </article>
+  `;
+
+  host.querySelectorAll("[data-booking-edit]").forEach(button => {
+    button.onclick = () => crmBookingGoStepV13(Number(button.dataset.bookingEdit), false);
+  });
+}
+
+function crmBookingValidateStepV13(step) {
+  crmBookingWizardErrorV13("");
+
+  if (step === 1) {
+    if (!isClientApproved) {
+      crmBookingWizardErrorV13("Najpierw zweryfikuj numer telefonu.");
+      return false;
+    }
+    if (!String(document.getElementById("clientName")?.value || "").trim()) {
+      crmBookingWizardErrorV13("Nie udało się pobrać danych klienta. Sprawdź numer ponownie.");
+      return false;
+    }
+  }
+
+  if (step === 2) {
+    if (!document.getElementById("serviceType")?.value) {
+      crmBookingWizardErrorV13("Wybierz kategorię i zabieg.");
+      return false;
+    }
+  }
+
+  if (step === 3) {
+    const main = String(document.getElementById("finalDateTime")?.value || "");
+    if (!main) {
+      crmBookingWizardErrorV13("Wybierz dzień i godzinę wizyty.");
+      return false;
+    }
+    const requiresAlt = selectedSlotPolicy && selectedSlotPolicy.mode === "CONFIRM";
+    if (requiresAlt && !String(document.getElementById("alternativeDateTime")?.value || "")) {
+      crmBookingWizardErrorV13("Ten termin wymaga potwierdzenia. Wybierz termin alternatywny.");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function crmBookingUpdateProgressV13() {
+  document.querySelectorAll("[data-booking-progress]").forEach(node => {
+    const step = Number(node.dataset.bookingProgress) || 1;
+    node.classList.toggle("is-active", step === crmBookingStepV13);
+    node.classList.toggle("is-complete", step < crmBookingStepV13);
+  });
+}
+
+function crmBookingGoStepV13(target, validate = true) {
+  const next = Math.max(1, Math.min(4, Number(target) || 1));
+  if (validate && next > crmBookingStepV13 && !crmBookingValidateStepV13(crmBookingStepV13)) return false;
+
+  crmBookingStepV13 = next;
+  crmBookingWizardErrorV13("");
+
+  document.querySelectorAll("#bookingForm [data-booking-step]").forEach(section => {
+    section.hidden = Number(section.dataset.bookingStep) !== crmBookingStepV13;
+  });
+
+  // Krok 1 jest rodzicem pozostałych kroków w celu zachowania zgodności z bookingVerifiedFields.
+  const first = document.querySelector('#bookingForm [data-booking-step="1"]');
+  if (first) first.hidden = false;
+  if (crmBookingStepV13 > 1) {
+    const ownIntro = first?.querySelector(":scope > .booking-step-title-v13");
+    const ownPhone = first?.querySelector(":scope > .form-group");
+    if (ownIntro) ownIntro.hidden = true;
+    if (ownPhone) ownPhone.hidden = true;
+    const verified = first?.querySelector(":scope > #bookingVerifiedFields > .booking-verified-client-v13");
+    const step1Nav = first?.querySelector(":scope > #bookingVerifiedFields > .booking-nav-end-v13");
+    if (verified) verified.hidden = true;
+    if (step1Nav) step1Nav.hidden = true;
+  } else {
+    const ownIntro = first?.querySelector(":scope > .booking-step-title-v13");
+    const ownPhone = first?.querySelector(":scope > .form-group");
+    if (ownIntro) ownIntro.hidden = false;
+    if (ownPhone) ownPhone.hidden = false;
+    const verified = first?.querySelector(":scope > #bookingVerifiedFields > .booking-verified-client-v13");
+    const step1Nav = first?.querySelector(":scope > #bookingVerifiedFields > .booking-nav-end-v13");
+    if (verified) verified.hidden = false;
+    if (step1Nav) step1Nav.hidden = false;
+  }
+
+  if (crmBookingStepV13 === 4) crmBookingReviewV13();
+  crmBookingUpdateProgressV13();
+
+  const shell = document.querySelector("#bookingModal .booking-app-shell-v13");
+  if (shell) shell.scrollTop = 0;
+  return true;
+}
+
+function crmBookingInstallWizardV13() {
+  document.querySelectorAll("[data-booking-next]").forEach(button => {
+    button.onclick = () => crmBookingGoStepV13(Number(button.dataset.bookingNext), true);
+  });
+  document.querySelectorAll("[data-booking-back]").forEach(button => {
+    button.onclick = () => crmBookingGoStepV13(Number(button.dataset.bookingBack), false);
+  });
+
+  const status = document.getElementById("clientStatus");
+  if (status) {
+    new MutationObserver(() => {
+      crmBookingUpdateVerifiedNameV13();
+      crmBookingWizardErrorV13("");
+    }).observe(status, { childList: true, subtree: true, characterData: true });
+  }
+
+  const name = document.getElementById("clientName");
+  if (name) new MutationObserver(crmBookingUpdateVerifiedNameV13).observe(name, { attributes: true, attributeFilter: ["value"] });
+
+  crmBookingGoStepV13(1, false);
+}
+
+// Kategorie -> usługi. Na telefonie nie pokazujemy wszystkich usług naraz.
+crmIndexRenderServicePickerV12 = function() {
+  const select = document.getElementById("serviceType");
+  const host = document.getElementById("crmIndexServicePickerV12");
+  if (!select || !host) return;
+
+  const published = (crmIndexServicesV12 || [])
+    .filter(crmIndexPublishedV12)
+    .sort((a, b) =>
+      (Number(a?.categoryOrder) || 0) - (Number(b?.categoryOrder) || 0) ||
+      (Number(a?.serviceOrder) || 0) - (Number(b?.serviceOrder) || 0) ||
+      String(a?.name || "").localeCompare(String(b?.name || ""), "pl")
+    );
+
+  if (!published.length) {
+    host.innerHTML = '<div class="crm-index-service-empty-v12">Brak opublikowanych usług.</div>';
+    return;
+  }
+
+  const groups = new Map();
+  published.forEach(item => {
+    const category = String(item?.category || "Inne").trim() || "Inne";
+    const key = String(item?.categoryId || category).trim() || category;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        name: category,
+        order: Number(item?.categoryOrder) || 0,
+        color: String(item?.categoryColor || "#b05c75"),
+        icon: String(item?.categoryIcon || ""),
+        items: []
+      });
+    }
+    groups.get(key).items.push(item);
+  });
+
+  const list = Array.from(groups.values()).sort((a,b) => a.order - b.order || a.name.localeCompare(b.name, "pl"));
+  const selectedService = select.value;
+  let activeKey = host.dataset.activeCategoryV13 || "";
+  if (selectedService) {
+    const found = list.find(group => group.items.some(item => String(item.name || "") === selectedService));
+    if (found) activeKey = found.key;
+  }
+  const active = list.find(group => group.key === activeKey) || null;
+
+  host.innerHTML = `
+    <div class="booking-category-grid-v13">
+      ${list.map(group => `
+        <button type="button" class="booking-category-card-v13${active?.key === group.key ? " is-selected" : ""}"
+          data-booking-category-v13="${crmFirstVisitEscapeV9(group.key)}"
+          style="--crm-cat:${crmFirstVisitEscapeV9(group.color)}">
+          <span class="booking-category-accent-v13"></span>
+          <img src="${crmIndexIconPathV12(group.icon, group.name)}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <span><strong>${crmFirstVisitEscapeV9(group.name)}</strong><small>${group.items.length} ${group.items.length === 1 ? "zabieg" : "zabiegi"}</small></span>
+          <b aria-hidden="true">›</b>
+        </button>
+      `).join("")}
+    </div>
+    ${active ? `
+      <div class="booking-service-list-v13">
+        <div class="booking-service-list-head-v13"><strong>${crmFirstVisitEscapeV9(active.name)}</strong><span>Wybierz zabieg</span></div>
+        ${active.items.map(item => {
+          const meta = crmIndexServiceMetaV12(item);
+          const selected = selectedService === String(item.name || "");
+          return `
+            <button type="button" class="booking-service-card-v13${selected ? " is-selected" : ""}" data-crm-service="${crmFirstVisitEscapeV9(item.name || "")}">
+              <span><strong>${crmFirstVisitEscapeV9(item.name || "")}</strong>${meta ? `<small>${crmFirstVisitEscapeV9(meta)}</small>` : ""}</span>
+              <b aria-hidden="true">${selected ? "✓" : "›"}</b>
+            </button>`;
+        }).join("")}
+      </div>` : '<div class="booking-category-hint-v13">Wybierz kategorię, aby zobaczyć zabiegi.</div>'}
+  `;
+
+  host.querySelectorAll("[data-booking-category-v13]").forEach(button => {
+    button.onclick = () => {
+      host.dataset.activeCategoryV13 = button.dataset.bookingCategoryV13 || "";
+      crmIndexRenderServicePickerV12();
+    };
+  });
+
+  host.querySelectorAll("[data-crm-service]").forEach(button => {
+    button.onclick = () => {
+      if (select.disabled) return;
+      select.value = button.dataset.crmService || "";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      crmIndexRenderServicePickerV12();
+      crmBookingWizardErrorV13("");
+    };
+  });
+};
+
+// Po zmianie usługi utrzymujemy nowy picker i czyścimy ewentualny błąd kroku.
+const crmOnServiceChangeBeforeV13 = onServiceChange;
+onServiceChange = function() {
+  const result = crmOnServiceChangeBeforeV13();
+  crmBookingWizardErrorV13("");
+  window.setTimeout(crmIndexRenderServicePickerV12, 0);
+  return result;
+};
+
+// FIRST_VISIT — wyłącznie godziny pracy salonu. Jeśli ustawienie jest niepoprawne,
+// bezpieczny fallback 09:00–18:00.
+function crmFirstVisitWorkBoundsV13() {
+  const valid = value => /^\d{2}:\d{2}$/.test(String(value || "").slice(0,5));
+  let start = String(adminSettings?.work_start_hour || "09:00").slice(0,5);
+  let end = String(adminSettings?.work_end_hour || "18:00").slice(0,5);
+  if (!valid(start) || !valid(end)) return { start: "09:00", end: "18:00", startMin: 540, endMin: 1080 };
+  const toMin = value => {
+    const [h,m] = value.split(":").map(Number);
+    return h * 60 + m;
+  };
+  let startMin = toMin(start), endMin = toMin(end);
+  if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || endMin <= startMin) {
+    start = "09:00"; end = "18:00"; startMin = 540; endMin = 1080;
+  }
+  return { start, end, startMin, endMin };
+}
+
+function crmFirstVisitTimeOptionsV13(fromMin, toMin, selected = "", step = 15) {
+  const out = ['<option value="">—:—</option>'];
+  for (let minute = fromMin; minute <= toMin; minute += step) {
+    const value = `${String(Math.floor(minute/60)).padStart(2,"0")}:${String(minute%60).padStart(2,"0")}`;
+    out.push(`<option value="${value}"${value === selected ? " selected" : ""}>${value}</option>`);
+  }
+  return out.join("");
+}
+
+crmFirstVisitRenderDaysV9 = function() {
+  const host = document.getElementById("crmFirstVisitDaysV9");
+  const add = document.getElementById("crmFirstVisitAddDayV9");
+  if (!host) return;
+
+  if (add) add.disabled = (crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9;
+  if (!(crmFirstVisitDaysV9 || []).length) {
+    host.innerHTML = '<div class="crm-first-visit-empty">Dodaj przynajmniej jeden preferowany dzień.</div>';
+    return;
+  }
+
+  const work = crmFirstVisitWorkBoundsV13();
+  host.innerHTML = crmFirstVisitDaysV9.map((item, index) => {
+    const startMin = item.start ? crmFirstVisitTimeMinutesV11(item.start) : NaN;
+    const endFrom = Number.isFinite(startMin) ? startMin + 15 : work.startMin + 15;
+    const endTo = Number.isFinite(startMin) ? Math.min(startMin + 120, work.endMin) : work.endMin;
+    return `
+      <article class="crm-first-visit-day-card crm-first-visit-range-card-v11" data-day-id="${item.id}">
+        <div class="crm-first-visit-day-head"><strong>Dzień ${index + 1}</strong><button type="button" data-remove-day="${item.id}">Usuń</button></div>
+        <div class="crm-first-visit-range-row-v11 crm-first-visit-range-row-v13">
+          <label class="crm-first-visit-range-date-v11"><span>Data</span><input type="text" class="crm-first-visit-date" data-day-date="${item.id}" value="${crmFirstVisitEscapeV9(item.date || "")}" placeholder="Wybierz datę" readonly></label>
+          <label><span>Od</span><select data-day-start="${item.id}">${crmFirstVisitTimeOptionsV13(work.startMin, work.endMin - 15, item.start || "")}</select></label>
+          <label><span>Do</span><select data-day-end="${item.id}" ${item.start ? "" : "disabled"}>${crmFirstVisitTimeOptionsV13(endFrom, endTo, item.end || "")}</select></label>
+        </div>
+        <div class="crm-first-visit-day-hint">Godziny pracy salonu: <strong>${work.start}–${work.end}</strong>. Maksymalny przedział: 2 godziny.</div>
+      </article>`;
+  }).join("");
+
+  host.querySelectorAll("[data-remove-day]").forEach(button => {
+    button.onclick = () => crmFirstVisitRemoveDayV9(button.dataset.removeDay);
+  });
+  host.querySelectorAll("[data-day-start]").forEach(input => {
+    input.onchange = () => {
+      const row = crmFirstVisitDayStateV9(input.dataset.dayStart);
+      if (row) { row.start = input.value || ""; row.end = ""; }
+      crmFirstVisitClearErrorV10();
+      crmFirstVisitRenderDaysV9();
+    };
+  });
+  host.querySelectorAll("[data-day-end]").forEach(input => {
+    input.onchange = () => {
+      const row = crmFirstVisitDayStateV9(input.dataset.dayEnd);
+      if (row) row.end = input.value || "";
+      crmFirstVisitClearErrorV10();
+    };
+  });
+  host.querySelectorAll("[data-day-date]").forEach(input => {
+    const id = input.dataset.dayDate;
+    const item = crmFirstVisitDayStateV9(id);
+    if (typeof flatpickr === "function") {
+      flatpickr(input, {
+        locale: "pl", dateFormat: "Y-m-d", minDate: "today", maxDate: crmEndOfNextMonthV14(), disableMobile: true,
+        defaultDate: item?.date || null,
+        onChange: (_selected, dateStr) => {
+          const row = crmFirstVisitDayStateV9(id);
+          if (row) row.date = dateStr;
+          crmFirstVisitClearErrorV10();
+        }
+      });
+    }
+  });
+};
+
+// Dodatkowa walidacja zakresu FIRST_VISIT przeciw godzinom pracy salonu.
+const crmFirstVisitValidateStepBeforeV13 = crmFirstVisitValidateStepV10;
+crmFirstVisitValidateStepV10 = function(step) {
+  if (step !== 3) return crmFirstVisitValidateStepBeforeV13(step);
+  const base = crmFirstVisitValidateStepBeforeV13(step);
+  if (!base) return false;
+  const work = crmFirstVisitWorkBoundsV13();
+  const rows = crmFirstVisitProposalRowsV11();
+  for (let i = 0; i < rows.length; i++) {
+    const start = crmFirstVisitTimeMinutesV11(rows[i].start);
+    const end = crmFirstVisitTimeMinutesV11(rows[i].end);
+    if (start < work.startMin || end > work.endMin) {
+      crmFirstVisitShowErrorV10(`Dzień ${i + 1}: wybierz godziny w czasie pracy salonu ${work.start}–${work.end}.`);
+      return false;
+    }
+  }
+  return true;
+};
+
+// PWA
+function crmIsStandaloneV13() {
+  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+}
+
+function crmIsMobileV13() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || Math.min(screen.width, screen.height) < 900;
+}
+
+function crmSetupPwaV13() {
+  const btn = document.getElementById("pwaInstallBtn");
+  const iosHelp = document.getElementById("pwaIosHelpV13");
+  const iosClose = document.getElementById("pwaIosCloseV13");
+  if (!btn || crmIsStandaloneV13() || !crmIsMobileV13()) return;
+
+  const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isSafari = /Safari/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
+
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    crmPwaInstallPromptV13 = event;
+    btn.hidden = false;
+  });
+
+  if (isIos && isSafari) btn.hidden = false;
+
+  btn.onclick = async () => {
+    if (crmPwaInstallPromptV13) {
+      crmPwaInstallPromptV13.prompt();
+      try { await crmPwaInstallPromptV13.userChoice; } catch (_) {}
+      crmPwaInstallPromptV13 = null;
+      btn.hidden = true;
+      return;
+    }
+    if (isIos && iosHelp) iosHelp.hidden = false;
+  };
+
+  if (iosClose && iosHelp) iosClose.onclick = () => { iosHelp.hidden = true; };
+  window.addEventListener("appinstalled", () => { btn.hidden = true; });
+
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("service-worker.js?v=14.0").catch(error => console.warn("PWA service worker:", error));
+  }
+}
+
+// Reset wizarda razem z dotychczasowym resetem formularza.
+const crmOpenBookingBeforeV13 = openBookingModal;
+openBookingModal = function() {
+  crmBookingStepV13 = 1;
+  crmBookingWizardErrorV13("");
+  const host = document.getElementById("crmIndexServicePickerV12");
+  if (host) host.dataset.activeCategoryV13 = "";
+  crmOpenBookingBeforeV13();
+  crmBookingGoStepV13(1, false);
+};
+
+const crmCloseBookingBeforeV13 = closeBookingModal;
+closeBookingModal = function() {
+  crmBookingStepV13 = 1;
+  crmBookingWizardErrorV13("");
+  return crmCloseBookingBeforeV13();
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  crmBookingInstallWizardV13();
+  crmSetupPwaV13();
+});
+
+// KONIEC INDEX V13
+
+
+// ============================================================================
+// INDEX V14 — UZGODNIONE POPRAWKI UX 2026-08-23
+// - stały klient: telefon jako weryfikacja przed właściwymi 3 krokami,
+// - pasek 1–2–3 dopiero po pozytywnej weryfikacji,
+// - kalendarz stałego klienta zawsze widoczny, bieżący + następny miesiąc,
+// - FIRST_VISIT: kategoria opcjonalna, termin max do końca następnego miesiąca.
+// ============================================================================
+function crmEndOfNextMonthV14() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
+}
+
+function crmDaysUntilEndOfNextMonthV14() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const end = crmEndOfNextMonthV14();
+  end.setHours(0,0,0,0);
+  return Math.max(0, Math.ceil((end - today) / 86400000));
+}
+
+const crmBookingUpdateProgressBeforeV14 = crmBookingUpdateProgressV13;
+crmBookingUpdateProgressV13 = function() {
+  crmBookingUpdateProgressBeforeV14();
+  const progress = document.getElementById("bookingProgressV14");
+  if (progress) progress.hidden = !(isClientApproved && crmBookingStepV13 >= 2);
+};
+
+// Po prawidłowej weryfikacji klient od razu przechodzi do pierwszego właściwego kroku: Zabieg.
+const crmCheckExistingClientBeforeV14 = checkExistingClient;
+checkExistingClient = async function() {
+  const result = await crmCheckExistingClientBeforeV14.apply(this, arguments);
+  crmBookingUpdateVerifiedNameV13();
+  if (isClientApproved) {
+    crmBookingGoStepV13(2, false);
+  } else {
+    crmBookingUpdateProgressV13();
+  }
+  return result;
+};
+
+// Stary listener mógł zostać podpięty wcześniej; kliknięcie i Enter kierujemy na najnowszą funkcję.
+document.addEventListener("click", event => {
+  if (event.target?.closest?.("#verifyPhoneBtn")) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    checkExistingClient();
+  }
+}, true);
+
+document.addEventListener("keydown", event => {
+  if (event.target?.id === "clientPhone" && event.key === "Enter") {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    checkExistingClient();
+  }
+}, true);
+
+// Kalendarz zwykłej rezerwacji: pełny, stale widoczny, tylko bieżący i następny miesiąc.
+initCalendar = function(defaultDate = "") {
+  const calendarInput = document.getElementById("calendarInput");
+  if (!calendarInput || typeof flatpickr !== "function") return;
+
+  if (flatpickrInstance) {
+    flatpickrInstance.destroy();
+    flatpickrInstance = null;
+  }
+
+  const serviceSelect = document.getElementById("serviceType");
+  const serviceSelected = Boolean(serviceSelect && serviceSelect.value);
+  const horizon = crmDaysUntilEndOfNextMonthV14();
+  const disabledDates = serviceSelected ? buildDisabledBookingDates(horizon) : [];
+  const maxDate = crmEndOfNextMonthV14();
+
+  const selectedDateAvailable = Boolean(
+    defaultDate && !disabledDates.includes(defaultDate) && new Date(defaultDate + "T12:00:00") <= maxDate
+  );
+
+  if (defaultDate && !selectedDateAvailable) {
+    calendarInput.value = "";
+    const finalDateTime = document.getElementById("finalDateTime");
+    if (finalDateTime) finalDateTime.value = "";
+    selectedSlotPolicy = null;
+    updateAlternativeSection();
+  }
+
+  flatpickrInstance = flatpickr(calendarInput, {
+    locale: "pl",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    maxDate,
+    disableMobile: true,
+    allowInput: false,
+    inline: true,
+    monthSelectorType: "static",
+    disable: disabledDates,
+    defaultDate: selectedDateAvailable ? defaultDate : null,
+    onChange: function(_selectedDates, dateStr) {
+      if (!dateStr || getBookableSlotsForDate(dateStr).length === 0) {
+        calendarInput.value = "";
+        const finalDateTime = document.getElementById("finalDateTime");
+        if (finalDateTime) finalDateTime.value = "";
+        return;
+      }
+      displayTimeSlots(dateStr);
+    }
+  });
+};
+
+// Termin alternatywny — ten sam ograniczony kalendarz, ale pojawia się tylko gdy jest wymagany.
+updateAlternativeSection = function() {
+  const sec = document.getElementById("alternativeBookingSection");
+  const note = document.getElementById("bookingPolicyNotice");
+  const need = selectedSlotPolicy && selectedSlotPolicy.mode === "CONFIRM";
+  if (sec) sec.style.display = need ? "block" : "none";
+  if (note) {
+    note.style.display = need ? "block" : "none";
+    note.textContent = need ? "Ten termin wymaga potwierdzenia. Wybierz dodatkowy termin na wypadek odrzucenia pierwszego." : "";
+  }
+  if (!need) {
+    const alt = document.getElementById("alternativeDateTime");
+    if (alt) alt.value = "";
+    if (alternativeFlatpickr) { alternativeFlatpickr.destroy(); alternativeFlatpickr = null; }
+    return;
+  }
+
+  const input = document.getElementById("alternativeCalendarInput");
+  if (!input || typeof flatpickr !== "function") return;
+  if (alternativeFlatpickr) alternativeFlatpickr.destroy();
+  alternativeFlatpickr = flatpickr(input, {
+    locale: "pl",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    maxDate: crmEndOfNextMonthV14(),
+    disableMobile: true,
+    allowInput: false,
+    inline: true,
+    monthSelectorType: "static",
+    onChange: (_ds, dateStr) => renderAlternativeSlots(dateStr)
+  });
+};
+
+// FIRST_VISIT: kategoria jest opcjonalna.
+const crmFirstVisitValidateStepBeforeV14 = crmFirstVisitValidateStepV10;
+crmFirstVisitValidateStepV10 = function(step) {
+  if (step !== 2) return crmFirstVisitValidateStepBeforeV14(step);
+  crmFirstVisitClearErrorV10();
+
+  const description = crmFirstVisitDescriptionV11();
+  const contactMethod = String(
+    document.querySelector('input[name="crmFirstVisitContactV9"]:checked')?.value || ""
+  ).trim();
+  const email = String(document.getElementById("crmFirstVisitEmailV9")?.value || "").trim();
+
+  if (description.length < 5) {
+    crmFirstVisitShowErrorV10("Napisz krótko, czego potrzebujesz.");
+    return false;
+  }
+  if (!contactMethod) {
+    crmFirstVisitShowErrorV10("Wybierz sposób kontaktu: WhatsApp, SMS lub E-mail.");
+    return false;
+  }
+  if (contactMethod === "EMAIL") {
+    const input = document.getElementById("crmFirstVisitEmailV9");
+    if (!email || (input && !input.checkValidity())) {
+      crmFirstVisitShowErrorV10("Podaj poprawny adres e-mail.");
+      return false;
+    }
+  }
+  return true;
+};
+
+// FIRST_VISIT: można dodawać preferowane dni także bez wskazania kategorii.
+crmFirstVisitAddDayV9 = function() {
+  if ((crmFirstVisitDaysV9 || []).length >= CRM_FIRST_VISIT_MAX_DAYS_V9) return;
+  crmFirstVisitDaysV9.push({
+    id: "D" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    date: "",
+    start: "",
+    end: ""
+  });
+  crmFirstVisitRenderDaysV9();
+};
+
+// Po wejściu w krok preferowanych terminów od razu dodaj pierwszy dzień, jeśli lista jest pusta.
+const crmFirstVisitGoToStepBeforeV14 = crmFirstVisitGoToStepV10;
+crmFirstVisitGoToStepV10 = function(targetStep, options = {}) {
+  const result = crmFirstVisitGoToStepBeforeV14(targetStep, options);
+  if (result && Number(targetStep) === 3 && !(crmFirstVisitDaysV9 || []).length) {
+    crmFirstVisitAddDayV9();
+  }
+  return result;
+};
+
+window.crmIndexUiVersionV14 = "14.0-mobile-calendar-optional-category";
+// KONIEC INDEX V14
+
+
+// ============================================================================
+// INDEX V15 — stabilny blur bez backdrop-filter + widoczność stanu modala
+// ============================================================================
+(function crmInstallModalBackdropV15(){
+  function sync(){
+    const booking = document.getElementById('bookingModal');
+    const first = document.getElementById('contact-form-modal');
+    const isVisible = (el) => !!el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none';
+    document.body.classList.toggle('crm-modal-open-v15', isVisible(booking) || isVisible(first));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const targets = [
+      document.getElementById('bookingModal'),
+      document.getElementById('contact-form-modal')
+    ].filter(Boolean);
+
+    const observer = new MutationObserver(sync);
+    targets.forEach(el => observer.observe(el, {attributes:true, attributeFilter:['style','class']}));
+    sync();
+  });
+})();
+// KONIEC INDEX V15

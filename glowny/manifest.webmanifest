@@ -1,0 +1,26 @@
+{
+  "name": "Daria Beauty",
+  "short_name": "Daria Beauty",
+  "description": "Rezerwacje i portfolio Daria Beauty",
+  "lang": "pl-PL",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffdf9",
+  "theme_color": "#f8f2eb",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/app-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

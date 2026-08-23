@@ -2,19 +2,25 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f8f2eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Daria Beauty">
     <title>Daria Beauty Concept | Technik usług kosmetycznych</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-   <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+    <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
+    <link rel="apple-touch-icon" href="icons/app-192.png">
+    <link rel="manifest" href="manifest.webmanifest?v=14.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_gold.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=14.0">
 </head>
 <body>
-
     <main class="container" id="clientLanding">
         <section class="profile-section" aria-labelledby="brandTitle">
             <div class="brand-mark" aria-label="Daria">
@@ -26,14 +32,9 @@
                 </svg>
                 <span>Daria</span>
             </div>
-
             <h1 id="brandTitle">Daria</h1>
             <div class="subtitle">Technik usług kosmetycznych</div>
-
-            <div class="ornamental-divider" aria-hidden="true">
-                <span></span><b>✦</b><span></span>
-            </div>
-
+            <div class="ornamental-divider" aria-hidden="true"><span></span><b>✦</b><span></span></div>
             <p class="bio">
                 <span>Dyplomowana specjalistka branży beauty w Polsce.</span>
                 <span>Bezpieczeństwo Twojej skóry, profesjonalna stylizacja brwi i rzęs</span>
@@ -42,9 +43,11 @@
         </section>
 
         <button class="cta-btn" onclick="openBookingModal()" type="button">
-            <span aria-hidden="true">✨</span>
-            <span>ZAREZERWUJ WIZYTĘ</span>
-            <span aria-hidden="true">✨</span>
+            <span aria-hidden="true">✨</span><span>ZAREZERWUJ WIZYTĘ</span><span aria-hidden="true">✨</span>
+        </button>
+
+        <button id="pwaInstallBtn" class="pwa-install-btn" type="button" hidden>
+            <span aria-hidden="true">＋</span><span>Dodaj Daria Beauty do telefonu</span>
         </button>
 
         <div class="admin-link-wrap">
@@ -56,83 +59,140 @@
         </section>
     </main>
 
-    <div id="bookingModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeBookingModal()">&times;</span>
-            <h2 class="booking-modal-title">Rezerwacja wizyty</h2>
-            
-            <form id="bookingForm">
-                
-                <div class="form-group">
-                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Numer telefonu *</label>
-                    <div style="display: flex; gap: 10px; align-items: stretch;">
-                        <div class="phone-input-container" style="flex-grow: 1;">
-                            <input type="tel" id="clientPhone" required style="width: 100%;">
+    <!-- Jedyny formularz zwykłej rezerwacji: 4 kroki. Nie ma już starego formularza do podmiany po starcie. -->
+    <div id="bookingModal" class="modal-overlay booking-app-overlay-v13" style="display:none;">
+        <div class="modal-content booking-app-shell-v13" role="dialog" aria-modal="true" aria-labelledby="bookingTitleV13">
+            <button class="close-btn booking-close-v13" onclick="closeBookingModal()" type="button" aria-label="Zamknij">×</button>
+
+            <header class="booking-wizard-head-v13">
+                <span class="booking-wizard-eyebrow-v13">REZERWACJA</span>
+                <h2 id="bookingTitleV13" class="booking-modal-title">Umów wizytę</h2>
+                <div id="bookingProgressV14" class="booking-progress-v13 booking-progress-v14" aria-label="Postęp rezerwacji" hidden>
+                    <span data-booking-progress="2"><b>1</b><small>Zabieg</small></span>
+                    <i></i>
+                    <span data-booking-progress="3"><b>2</b><small>Termin</small></span>
+                    <i></i>
+                    <span data-booking-progress="4"><b>3</b><small>Podsumowanie</small></span>
+                </div>
+            </header>
+
+            <form id="bookingForm" class="booking-wizard-form-v13" autocomplete="on">
+                <section class="booking-step-v13" data-booking-step="1">
+                    <div class="booking-step-title-v13">
+                        <span>WERYFIKACJA</span>
+                        <h3>Twój numer telefonu</h3>
+                        <p>Sprawdzimy, czy jesteś już w naszej bazie klientów.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientPhone">Numer telefonu *</label>
+                        <div class="booking-phone-row-v13">
+                            <div class="phone-input-container"><input type="tel" id="clientPhone" required></div>
+                            <button type="button" id="verifyPhoneBtn" class="verify-btn">Sprawdź</button>
                         </div>
-                        <button type="button" id="verifyPhoneBtn" class="verify-btn" style="height: 40px; min-width: 80px; margin: 0;">Sprawdź</button>
+                        <div id="clientStatus" class="status-message" style="display:none;"></div>
                     </div>
-                    <div id="clientStatus" class="status-message" style="display: none; margin-top: 5px; font-size: 13px; font-weight: bold; min-height: 18px;"></div>
-                </div>
 
-                <div id="bookingVerifiedFields" hidden style="display:none;">
+                    <div id="bookingVerifiedFields" hidden style="display:none;">
+                        <div class="booking-verified-client-v13">
+                            <span>Klient</span>
+                            <strong id="bookingVerifiedNamePreviewV13">—</strong>
+                            <input type="text" id="clientName" required disabled class="locked-input" aria-label="Imię i nazwisko klienta">
+                        </div>
 
-                <div class="form-group">
-                    <label for="clientName" style="display:block; margin-bottom: 8px; font-weight: bold;">Imię i Nazwisko *</label>
-                    <input type="text" id="clientName" required disabled class="locked-input">
-                </div>
+                        <div class="booking-nav-v13 booking-nav-end-v13 booking-after-verify-nav-v14" hidden>
+                            <button type="button" class="booking-next-v13" data-booking-next="2">Dalej</button>
+                        </div>
 
-                <div class="form-group">
-                    <label for="serviceType" style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz zabieg *</label>
-                    <select id="serviceType" required disabled>
-                        <option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>
-                    </select>
-                </div>
+                        <section class="booking-step-v13" data-booking-step="2" hidden>
+                            <div class="booking-step-title-v13">
+                                <span>KROK 1 Z 3</span>
+                                <h3>Wybierz zabieg</h3>
+                                <p>Najpierw wybierz kategorię, potem konkretną usługę.</p>
+                            </div>
+                            <select id="serviceType" class="crm-index-service-select-v12" required disabled aria-hidden="true" tabindex="-1">
+                                <option value="" disabled selected>-- Najpierw zweryfikuj telefon --</option>
+                            </select>
+                            <div id="crmIndexServicePickerV12" class="crm-index-service-picker-v12"></div>
+                            <div id="priceDisplay" class="booking-price-v13"></div>
+                            <div class="booking-nav-v13">
+                                <button type="button" class="booking-back-v13" data-booking-back="1">Wstecz</button>
+                                <button type="button" class="booking-next-v13" data-booking-next="3">Dalej</button>
+                            </div>
+                        </section>
 
-                <div class="form-group">
-                    <label for="calendarInput" style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz dzień *</label>
-                    <input type="text" id="calendarInput" placeholder="Kliknij aby wybrać datę..." required disabled style="background: #fff; cursor: pointer;">
-                </div>
+                        <section class="booking-step-v13" data-booking-step="3" hidden>
+                            <div class="booking-step-title-v13">
+                                <span>KROK 2 Z 3</span>
+                                <h3>Wybierz termin</h3>
+                                <p>Pokażemy tylko terminy dostępne dla wybranego zabiegu.</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="calendarInput">Dzień *</label>
+                                <input type="text" id="calendarInput" placeholder="Wybierz datę" required disabled readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Godzina *</label>
+                                <div id="timeSlotsContainer" class="time-slots-grid"></div>
+                                <input type="hidden" id="finalDateTime" required>
+                                <input type="hidden" id="selectedDuration" value="45">
+                            </div>
+                            <div id="bookingPolicyNotice" class="booking-policy-notice" style="display:none;"></div>
+                            <div id="alternativeBookingSection" class="alternative-booking-section" style="display:none;">
+                                <h3>Termin alternatywny</h3>
+                                <p>Ten termin wymaga potwierdzenia. Wybierz drugi, zwykły termin na wypadek odrzucenia pierwszego.</p>
+                                <input type="text" id="alternativeCalendarInput" placeholder="Wybierz alternatywny dzień" readonly>
+                                <div id="alternativeTimeSlotsContainer" class="time-slots-grid"></div>
+                                <input type="hidden" id="alternativeDateTime">
+                            </div>
+                            <div class="booking-nav-v13">
+                                <button type="button" class="booking-back-v13" data-booking-back="2">Wstecz</button>
+                                <button type="button" class="booking-next-v13" data-booking-next="4">Podsumowanie</button>
+                            </div>
+                        </section>
 
-                <div class="form-group">
-                    <label style="display:block; margin-bottom: 8px; font-weight: bold;">Wybierz godzinę *</label>
-                    <div id="timeSlotsContainer" class="time-slots-grid">
-                        <p style="color: #c2a383; font-size: 14px; font-weight: bold;">Najpierw zweryfikuj numer telefonu...</p>
+                        <section class="booking-step-v13" data-booking-step="4" hidden>
+                            <div class="booking-step-title-v13">
+                                <span>KROK 3 Z 3</span>
+                                <h3>Sprawdź rezerwację</h3>
+                                <p>Przed wysłaniem upewnij się, że wszystko się zgadza.</p>
+                            </div>
+                            <div id="bookingReviewV13" class="booking-review-v13"></div>
+                            <div class="rodo-group booking-rodo-v13">
+                                <input type="checkbox" id="rodoConsent" required disabled>
+                                <label for="rodoConsent" class="rodo-text">
+                                    Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
+                                </label>
+                            </div>
+                            <div class="booking-nav-v13 booking-nav-final-v13">
+                                <button type="button" class="booking-back-v13" data-booking-back="3">Wstecz</button>
+                                <button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button>
+                            </div>
+                        </section>
                     </div>
-                    <input type="hidden" id="finalDateTime" required>
-                    <input type="hidden" id="selectedDuration" value="45">
-                </div>
 
-                <div id="bookingPolicyNotice" class="booking-policy-notice" style="display:none;"></div>
-                <div id="alternativeBookingSection" class="alternative-booking-section" style="display:none;">
-                    <h3>Termin alternatywny</h3>
-                    <p>Wybrany termin wymaga potwierdzenia. Prosimy wybrać dodatkowy termin na wypadek odrzucenia pierwszego.</p>
-                    <input type="text" id="alternativeCalendarInput" placeholder="Wybierz alternatywny dzień" readonly>
-                    <div id="alternativeTimeSlotsContainer" class="time-slots-grid"></div>
-                    <input type="hidden" id="alternativeDateTime">
-                </div>
-                <div id="priceDisplay" style="margin: 15px 0; font-weight: bold; color: var(--accent-color); font-size: 18px; text-align: center;"></div>
-
-                <div class="rodo-group">
-                    <input type="checkbox" id="rodoConsent" required disabled>
-                    <label for="rodoConsent" class="rodo-text">
-                        Wyrażam zgodę na przetwarzanie moich danych osobowych przez <strong>Nail-Art Daria</strong> w celu realizacji rezerwacji. Szczegóły w <a href="polityka-prywatnosci.html" target="_blank">Polityce Prywatności</a>. *
-                    </label>
-                </div>
-
-                <button type="submit" class="submit-booking-btn" id="submitBookingBtn" disabled>Zarezerwuj wizytę</button>
-
-                </div>
+                    <div id="bookingWizardErrorV13" class="booking-wizard-error-v13" hidden></div>
+                </section>
             </form>
         </div>
     </div>
-    <div id="contact-form-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-content first-visit-modal-content">
-            <div class="crm-first-visit-loading">Ładowanie…</div>
+
+    <!-- FIRST_VISIT: pusta rama; JS od razu pokazuje loader, potem właściwy 4-krokowy wizard. -->
+    <div id="contact-form-modal" class="modal-overlay first-visit-app-overlay-v13" style="display:none;">
+        <div class="modal-content first-visit-modal-content"></div>
+    </div>
+
+    <div id="pwaIosHelpV13" class="pwa-ios-help-v13" hidden>
+        <div>
+            <button type="button" id="pwaIosCloseV13" aria-label="Zamknij">×</button>
+            <strong>Dodaj Daria Beauty do ekranu głównego</strong>
+            <p>Na iPhone: dotknij <b>Udostępnij</b>, a potem <b>Dodaj do ekranu początkowego</b>.</p>
         </div>
     </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pl.js"></script>
-    <script src="booking.js"></script>
+    <script src="booking.js?v=14.0"></script>
 </body>
 </html>
