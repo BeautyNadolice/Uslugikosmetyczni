@@ -5919,31 +5919,6 @@ async function crmOpenExistingClientContactV20(phone, name) {
     }
   }
 
-  // TYLKO_KONTAKT: tylko jeden preferowany termin.
-  // Zostawiamy logikę prośby (dzień + przedział godzin), bez blokowania kalendarza.
-  const step3 = root.querySelector('[data-fv-step="3"]');
-  if (step3) {
-    const step3Title = step3.querySelector(".crm-first-visit-step-head-v10 h3");
-    const step3Intro = step3.querySelector(".crm-first-visit-step-head-v10 p");
-    const sectionTitle = step3.querySelector(".crm-first-visit-section-title strong");
-    const sectionHint = step3.querySelector(".crm-first-visit-section-title small");
-    const addDay = document.getElementById("crmFirstVisitAddDayV9");
-
-    if (step3Title) step3Title.textContent = "Preferowany termin";
-    if (step3Intro) {
-      step3Intro.textContent = "Wybierz dzień i podaj dogodny przedział godzin. To tylko propozycja terminu — salon potwierdzi możliwość wizyty.";
-    }
-    if (sectionTitle) sectionTitle.textContent = "Preferowany dzień i godziny";
-    if (sectionHint) sectionHint.textContent = "Wybierz jeden dzień i dogodny przedział godzin.";
-    if (addDay) addDay.hidden = true;
-
-    // Jeżeli stan wizarda miał wcześniej kilka dni, dla TYLKO_KONTAKT zostawiamy tylko pierwszy.
-    if ((crmFirstVisitDaysV9 || []).length > 1) {
-      crmFirstVisitDaysV9 = crmFirstVisitDaysV9.slice(0, 1);
-    }
-    crmFirstVisitRenderDaysV9();
-  }
-
   const nameInput = document.getElementById("crmFirstVisitNameV9");
   const phoneInput = document.getElementById("crmFirstVisitPhoneV9");
   if (nameInput) nameInput.readOnly = true;
@@ -5968,42 +5943,6 @@ async function crmOpenExistingClientContactV20(phone, name) {
     if (p) p.textContent = "Salon otrzymał Twoją prośbę i skontaktuje się z Tobą wybranym sposobem.";
   }
 }
-
-// TYLKO_KONTAKT: twardy limit jednego preferowanego dnia.
-// FIRST_VISIT nadal zachowuje dotychczasowy limit do 3 dni.
-const crmFirstVisitAddDayBeforeV21_3 = crmFirstVisitAddDayV9;
-crmFirstVisitAddDayV9 = function() {
-  if (crmExistingClientContactV20) {
-    if ((crmFirstVisitDaysV9 || []).length >= 1) {
-      crmFirstVisitRenderDaysV9();
-      return;
-    }
-  }
-  return crmFirstVisitAddDayBeforeV21_3();
-};
-
-const crmFirstVisitRenderDaysBeforeV21_3 = crmFirstVisitRenderDaysV9;
-crmFirstVisitRenderDaysV9 = function() {
-  if (crmExistingClientContactV20 && (crmFirstVisitDaysV9 || []).length > 1) {
-    crmFirstVisitDaysV9 = crmFirstVisitDaysV9.slice(0, 1);
-  }
-
-  const result = crmFirstVisitRenderDaysBeforeV21_3();
-
-  if (crmExistingClientContactV20) {
-    const add = document.getElementById("crmFirstVisitAddDayV9");
-    if (add) add.hidden = true;
-
-    const host = document.getElementById("crmFirstVisitDaysV9");
-    const card = host?.querySelector(".crm-first-visit-day-card");
-    const cardTitle = card?.querySelector(".crm-first-visit-day-head strong");
-    const remove = card?.querySelector("[data-remove-day]");
-    if (cardTitle) cardTitle.textContent = "Preferowany termin";
-    if (remove) remove.hidden = true;
-  }
-
-  return result;
-};
 
 /* V21.1: status klienta pobiera bezpośrednio Booking Apps Script w jednym zapytaniu. */
 
