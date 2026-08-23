@@ -1,22 +1,28 @@
-const CACHE_NAME = "daria-index-v21-1";
+const CACHE_NAME = "daria-index-v21-4-pwa";
 const CORE = [
   "./",
   "./index.html",
   "./style.css?v=21.1",
   "./booking.js?v=21.1",
-  "./manifest.webmanifest?v=14.0",
+  "./manifest.webmanifest?v=21.0",
   "./icons/app-192.png",
   "./icons/app-512.png"
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).catch(() => undefined));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(CORE))
+      .catch(() => undefined)
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
+    )
   );
   self.clients.claim();
 });
