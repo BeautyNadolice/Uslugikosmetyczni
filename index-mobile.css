@@ -1,0 +1,101 @@
+/* NAIL-ART INDEX — MOBILE / PWA MODE CSS
+   V21.71 — mode-specific presentation only.
+   Values come from page-design-config.js through --pd-m-* variables.
+   This is the same visual mode for mobile web and future installed PWA. */
+html[data-pd-mode="mobile"] .container.landing-v217 {
+  width:var(--pd-m-card-vw,98vw) !important;
+  height:auto !important;
+  aspect-ratio:2 / 3 !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  padding:var(--pd-m-pad-top,5.7%) var(--pd-m-pad-x,10.8%) var(--pd-m-pad-bottom,4.2%) !important;
+  background-size:var(--pd-m-card-bg-zoom,100%) var(--pd-m-card-bg-zoom,100%) !important;
+  background-position:var(--pd-m-card-bg-x,50%) var(--pd-m-card-bg-y,50%) !important;
+  transform:var(--pd-m-card-transform,none) !important;
+}
+html[data-pd-mode="mobile"] .brand-logo-main-v217 {
+  width:var(--pd-m-logo-width,90%) !important;
+  max-width:none !important;
+  height:auto !important;
+  aspect-ratio:1 / var(--pd-m-logo-crop-ratio,.78) !important;
+  overflow:hidden !important;
+  position:relative !important;
+  transform:var(--pd-m-logo-transform,translate(0,0)) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+html[data-pd-mode="mobile"] .brand-logo-main-v217 img {
+  width:var(--pd-m-logo-zoom,100%) !important;
+  max-width:none !important;
+  height:auto !important;
+  position:absolute !important;
+  left:calc(50% + var(--pd-m-logo-x,0px)) !important;
+  top:calc(50% + var(--pd-m-logo-y,0px)) !important;
+  transform:translate(-50%,-50%) scaleY(var(--pd-m-logo-sy,1.24)) !important;
+  transform-origin:center center !important;
+}
+html[data-pd-mode="mobile"] .landing-tagline-v2111 {
+  width:var(--pd-m-tagline-width,107%) !important;
+  transform:var(--pd-m-tagline-transform,translate(0,0)) !important;
+}
+html[data-pd-mode="mobile"] .landing-tagline-v2111 p {
+  font-size:var(--pd-m-tagline-font,27px) !important;
+  line-height:var(--pd-m-tagline-line,.98) !important;
+  font-weight:var(--pd-m-tagline-weight,500) !important;
+  color:var(--pd-tagline-color,#3c2a23) !important;
+  white-space:pre-line !important;
+}
+html[data-pd-mode="mobile"] .landing-cta-v217 {
+  width:var(--pd-m-cta-width,69%) !important;
+  min-height:var(--pd-m-cta-height,54px) !important;
+  height:var(--pd-m-cta-height,54px) !important;
+  transform:var(--pd-m-cta-transform,translate(0,0)) !important;
+  font-size:var(--pd-m-cta-font,15px) !important;
+  border-radius:var(--pd-m-cta-radius,999px) !important;
+  padding-left:var(--pd-m-cta-pad-left,22px) !important;
+  padding-right:var(--pd-m-cta-pad-right,45px) !important;
+  background:linear-gradient(90deg,var(--pd-cta-top,#dca071) 0%,var(--pd-cta-bottom,#b96e43) 100%) !important;
+}
+html[data-pd-mode="mobile"] .landing-cta-v217 .landing-cta-label-v2127,
+html[data-pd-mode="mobile"] .landing-cta-v217 > span:nth-of-type(2) {
+  transform:var(--pd-m-cta-text-transform,translate(0,0)) !important;
+  color:var(--pd-cta-text,#fff) !important;
+}
+html[data-pd-mode="mobile"] .landing-cta-arrow-v2127,
+html[data-pd-mode="mobile"] .landing-cta-star-v217 {
+  font-size:var(--pd-m-cta-arrow-size,34px) !important;
+  right:var(--pd-m-cta-arrow-right,18px) !important;
+  transform:var(--pd-m-cta-arrow-transform,translateY(-50%)) !important;
+  display:var(--pd-m-cta-arrow-display,inline) !important;
+}
+html[data-pd-mode="mobile"] .portfolio-showcase-v2111 {
+  width:var(--pd-m-gallery-width,67%) !important;
+  transform:var(--pd-m-gallery-transform,translate(0,0)) !important;
+  flex:var(--pd-m-gallery-flex,1 1 auto) !important;
+}
+html[data-pd-mode="mobile"] #portfolio-container {
+  width:100% !important;
+}
+html[data-pd-mode="mobile"] #portfolio-container .portfolio-category-title-v2111 {
+  font-size:var(--pd-m-category-font,17px) !important;
+  color:var(--pd-category-color,#4a3026) !important;
+}
+html[data-pd-mode="mobile"] #portfolio-container .portfolio-category-grid-v2111 {
+  gap:var(--pd-m-gallery-gap,7px) !important;
+}
+html[data-pd-mode="mobile"] #portfolio-container .portfolio-preview-button-v2124,
+html[data-pd-mode="mobile"] #portfolio-container .portfolio-category-image-v2111 {
+  border-radius:var(--pd-m-preview-radius,10px) !important;
+  object-fit:var(--pd-preview-fit,cover) !important;
+}
+html[data-pd-mode="mobile"] .landing-footer-v2111 {
+  width:var(--pd-m-footer-width,67%) !important;
+  transform:var(--pd-m-footer-transform,translate(0,0)) !important;
+  font-size:var(--pd-m-footer-font,10.5px) !important;
+  color:var(--pd-footer-color,#664939) !important;
+}
+html[data-pd-mode="mobile"] .salon-photo-stage-v2118 {
+  background-size:var(--pd-m-scene-size,cover) !important;
+  background-position:calc(var(--pd-m-scene-x,50%) + var(--pd-m-scene-off-x,0px)) calc(var(--pd-m-scene-y,50%) + var(--pd-m-scene-off-y,0px)) !important;
+  filter:brightness(var(--pd-m-scene-bright,100%)) contrast(var(--pd-m-scene-contrast,100%)) saturate(var(--pd-m-scene-sat,100%)) !important;
+}

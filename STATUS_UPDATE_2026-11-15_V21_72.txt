@@ -1,0 +1,45 @@
+ETAP / STATUS UPDATE — 15.11.2026 — INDEX V21.72 TEST PACKAGE
+
+CO ISTNIEJE
+- Źródłowy etap V21.72 CONFIG SOURCE FIX z 06.10.2026 oraz lokalny kandydat
+  NAIL_ART_GITHUB_CANDIDATE_V21_72_LOCAL_ONLY(1).zip.
+- W repozytorium GitHub index-dev pozostaje historia DEV_INDEX/V21.22; V21.72 nie jest
+  opublikowany. main pozostaje nietknięty.
+
+CO ODKRYTO / SPRAWDZONO
+- page-design.js V21.72 wyłącza odczyt szkicu localStorage dla zwykłego INDEX; szkic jest
+  dozwolony wyłącznie w podglądzie designPreview.
+- service-worker.js V21.72 omija cache page-design-config.js.
+- Fizyczny page-design-config.js zachowany bez zmiany wartości.
+- Wszystkie 20 plików JS przechodzą node --check; HTML bez zduplikowanych ID; CSS bez
+  niezrównoważonych nawiasów; lokalne referencje HTML rozwiązywane; ZIP i manifest SHA-256
+  sprawdzone.
+- Headless Chromium nie zakończył uruchomienia w tym środowisku; ręczny smoke Edge/Chrome
+  PC + Telefon nadal wymagany.
+
+CO ZDECYDOWANO / CO ŁĄCZYMY
+- Przygotowano czysty pełny pakiet TEST/DEV z aktualnym README i raportem walidacji.
+- Lokalne launchery zachowano, ponieważ są potrzebne do testu V21.72; nie wolno wysyłać ich
+  na publiczny hosting.
+- index-editor.js.bak zachowano osobno w NAIL_ART_INDEX_V21_72_EDITOR_JS_BACKUP_ONLY.zip;
+  plik nie znajduje się w aktywnym katalogu WWW pakietu.
+
+CO POZOSTAJE BEZ ZMIAN / CZEGO NIE WOLNO ZEPSUĆ
+- ADMIN/CRM файлы включены как snapshot и оставлены byte-for-byte без изменений; отдельные
+  правки/синхронизация/deployment ADMIN требуют отдельного согласия.
+- Google Apps Script, данные клиентов, календари, Google Drive, GitHub, production и main
+  не изменялись.
+- Не менять физические значения page-design-config.js без явного действия пользователя.
+
+JAK SPRAWDZIĆ
+- Распаковать пакет в новый каталог; START_INDEX_EDITOR.cmd; проверить PC/Telefon; затем
+  START_INDEX_LOCAL_SERVER.cmd и открыть обычный INDEX с другого порта.
+- Подтвердить, что обычный INDEX использует физический config и не наследует szkic DEV.
+
+STATUS
+- Пакет TEST/DEV подготовлен локально, ZIP integrity PASS, manifest SHA-256 PASS.
+- GitHub / Drive / production не обновлялись. Browser E2E не подтверждён.
+
+NASTĘPNY KROK
+- Пользователь выполняет smoke PC → Telefon → PC → Telefon и сравнивает обычный INDEX с
+  редактором. После подтверждения отдельно решается следующий разрешённый этап публикации.

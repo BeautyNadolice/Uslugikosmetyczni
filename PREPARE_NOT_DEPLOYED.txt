@@ -1,0 +1,25 @@
+NAIL ART — INDEX V21.72 — CLEAN TEST PACKAGE
+Prepared: 2026-11-15
+Source candidate: NAIL_ART_GITHUB_CANDIDATE_V21_72_LOCAL_ONLY(1).zip
+Original source stage: INDEX V21.72 CONFIG SOURCE FIX (2026-10-06)
+
+This is a locally prepared TEST/DEV package. It has NOT been committed, pushed, synced to
+Google Drive, deployed to hosting, or published to production.
+
+V21.72 source behavior is retained:
+- normal INDEX does not load the DEV localStorage draft;
+- physical page-design-config.js remains the configuration source for normal INDEX;
+- DEV preview (?designPreview=1) may use localStorage as an explicit draft;
+- Service Worker bypasses cache for page-design-config.js.
+
+No INDEX application code was changed during this packaging/audit pass. The stale README
+and validation metadata were replaced; index-editor.js.bak was moved to a separate backup
+archive and retained. Local launch scripts remain in this TEST package because the V21.72
+acceptance test requires them; they must not be uploaded to a public host.
+
+ADMIN/CRM files are included exactly as present in the supplied candidate and were not
+modified. They are not separately approved for deployment. Google Apps Script, customer
+records, spreadsheets, calendar data, credentials and secrets were not added.
+
+Browser E2E was attempted with headless Chromium but did not complete in this environment.
+Manual Edge/Chrome PC + phone smoke test remains required.

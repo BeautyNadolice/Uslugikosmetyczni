@@ -1,0 +1,502 @@
+[
+  {
+    "path": "PREPARE_NOT_DEPLOYED.txt",
+    "size": 1423,
+    "sha256": "db1b360705237fede6fc98430508a2b2092b30c5a0289856cbde22e3b914e81c"
+  },
+  {
+    "path": "README.txt",
+    "size": 2689,
+    "sha256": "c77be4b3fd1eb28f8067b94cfe4de8cfcd831cc57cb4fce82aa557198e66eaf2"
+  },
+  {
+    "path": "START_INDEX_EDITOR.cmd",
+    "size": 589,
+    "sha256": "d3f4d34e89ad9f0d7ccf419ed06ee62e2b2d472fdf2857061403fd97992608c6"
+  },
+  {
+    "path": "START_INDEX_LOCAL_SERVER.cmd",
+    "size": 616,
+    "sha256": "e9f73be3da19ad199b2178874c66f9823b99e19977ab693096516d01b6771600"
+  },
+  {
+    "path": "START_INDEX_LOCAL_SERVER.ps1",
+    "size": 6449,
+    "sha256": "5c46cf9a2a0f1383accd1181e1868644af92166c86dc13d7fd9b664f2913c695"
+  },
+  {
+    "path": "STATUS_UPDATE_2026-11-15_V21_72.txt",
+    "size": 2857,
+    "sha256": "98a3af7cd976a236357797eccc44bb3b12cff2bf45aee86fd3e4db53404ff3a1"
+  },
+  {
+    "path": "VALIDATION_REPORT.json",
+    "size": 3439,
+    "sha256": "c7ecb95892195f0c67a3c443030f1996ab7369880cbdc3f4e60c870189222836"
+  },
+  {
+    "path": "admin/CSS/styleadmin-base.css",
+    "size": 50227,
+    "sha256": "ee7015b2dbf4e9db01fd73478e5b1072dddebe8256a5e41e977ea93ae5f5c7a0"
+  },
+  {
+    "path": "admin/CSS/styleadmin-calendar.css",
+    "size": 52937,
+    "sha256": "a8561a0570c0b74695038e0fad15ef35e1cb7756ce836ea346350536af052a6d"
+  },
+  {
+    "path": "admin/CSS/styleadmin-cennik-premium.css",
+    "size": 22175,
+    "sha256": "a6d229f73d0e90cf15c7de645c7e040123ed483b3e01c04f26d17ae8a138ce87"
+  },
+  {
+    "path": "admin/CSS/styleadmin-components.css",
+    "size": 53266,
+    "sha256": "267ec6e4e2f00e12831a694e1f2c6b777ab49822345e492090ef17b3af6074a7"
+  },
+  {
+    "path": "admin/CSS/styleadmin-finance-booksy.css",
+    "size": 19926,
+    "sha256": "0c381125a8d8115943dc02daa326909b5817824a1d5756c9ed927f21b90b449f"
+  },
+  {
+    "path": "admin/CSS/styleadmin-overrides.css",
+    "size": 198937,
+    "sha256": "230319ec0fe6911e3fe8c662a3c1a6406d7402493505c9fe4f64a9e5a41b6d74"
+  },
+  {
+    "path": "admin/Icons/Cennik/README.txt",
+    "size": 185,
+    "sha256": "eb43d37dd50a8ebe634b1dcc947b2636dea44c5954abb84daf7cafa16b22399d"
+  },
+  {
+    "path": "admin/Icons/Cennik/acne.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/appointment.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/body.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/brows.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/brush.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/consultation.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/depilation.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/device.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/eyes.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/face-massage.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/face.png",
+    "size": 95529,
+    "sha256": "9fc5a5f25236a7a70a85055b9ef67599ad370803c8fef96bba214133c3b22b27"
+  },
+  {
+    "path": "admin/Icons/Cennik/glow.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/hair.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/hifu.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/laser-hair-removal.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/laser.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/lashes.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/lips.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/makeup.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/manicure.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/mask.png",
+    "size": 128476,
+    "sha256": "30a7e3f0e9f0bb0d6f33e165ddd2b6a39b867f610876529c8924652c0b52cd1b"
+  },
+  {
+    "path": "admin/Icons/Cennik/mesotherapy.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/microneedling.png",
+    "size": 121979,
+    "sha256": "fd4d07c6be338b93918e46c4caeea1c413432093955b7ebbe5b3c2ab33293311"
+  },
+  {
+    "path": "admin/Icons/Cennik/nails.png",
+    "size": 93973,
+    "sha256": "d349cca22c8f92cb1fa1ffd490b06ae8454bfd4600dd782af0b2ca08316909be"
+  },
+  {
+    "path": "admin/Icons/Cennik/package.png",
+    "size": 96360,
+    "sha256": "d1cf2e526e34234ad25f4f965d685efc2fedae469ec914d2e3740dacc11f392a"
+  },
+  {
+    "path": "admin/Icons/Cennik/pedicure.png",
+    "size": 109164,
+    "sha256": "3a0287ff490aaab3f3eb5b772293c6a0ed65da832ff769d78a146d5b72bdb7d0"
+  },
+  {
+    "path": "admin/Icons/Cennik/peeling.png",
+    "size": 169229,
+    "sha256": "870e562a65eb3e3a366dc1d3c6c78c1938fcdda9fe58d0729ea173a450c949c8"
+  },
+  {
+    "path": "admin/Icons/Cennik/rf.png",
+    "size": 58952,
+    "sha256": "a9b18646fb3d5edf2c5ab42c6f9dd740913acee84f905c0d89112ca9deecf30f"
+  },
+  {
+    "path": "admin/Icons/Cennik/scissors.png",
+    "size": 208300,
+    "sha256": "f83e8550f0d0d27c82ce8989654f8265d92e5d18b1507fab6279a95f869fa15b"
+  },
+  {
+    "path": "admin/Icons/Cennik/skin.png",
+    "size": 78310,
+    "sha256": "74ad4ad20ac99de52c4179c3626a88f4140717f42ca16b0c51a8002d7e9fb831"
+  },
+  {
+    "path": "admin/Icons/Cennik/spa.png",
+    "size": 193727,
+    "sha256": "e7c3bc20cab28265ea4ed50b4cf6c573c252a43b8c149d8975f1591f3ac0a41a"
+  },
+  {
+    "path": "admin/Icons/Cennik/universal.png",
+    "size": 136728,
+    "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/wellness.png",
+    "size": 153596,
+    "sha256": "20b331495b95ad9590a48d76ca6690ed290fa65545baab3fe41fc5bcbf897b21"
+  },
+  {
+    "path": "admin/Icons/booksy-b.png",
+    "size": 1543,
+    "sha256": "aee1c7e7718d9248b4623bb4f27b7bc51f502215ce7db99f1bcaf935a7e77812"
+  },
+  {
+    "path": "admin/Icons/google-calendar.svg",
+    "size": 2612,
+    "sha256": "1d0b132272e6dff9c7e07f672410efc2a74000eb44b4def47fda1636204594c4"
+  },
+  {
+    "path": "admin/Icons/google-calendar.webp",
+    "size": 6256,
+    "sha256": "cc84c89516ea4f7ed1bb93b25b0dc207d54217cdb749bb7641722da36b070542"
+  },
+  {
+    "path": "admin/JS/admin-api.js",
+    "size": 82352,
+    "sha256": "e2d6c3c9b0aad10c4957a2f23ffce1747f9f7e1c0c99fd10a59a65e4a60877d9"
+  },
+  {
+    "path": "admin/JS/admin-core.js",
+    "size": 242940,
+    "sha256": "44293e6cbc222948ed7c8586fd555d913bf8c5e6f568838926918c35e0744488"
+  },
+  {
+    "path": "admin/JS/admin-utils.js",
+    "size": 7286,
+    "sha256": "813378d833c6c5a8801e12309859c0916cc2758124b3978e29f5efaf6106ae0f"
+  },
+  {
+    "path": "admin/JS/booksy-settings.js",
+    "size": 16425,
+    "sha256": "7ef50c7ee49eebe349aed0161002a6715adbab0364c01b3398ddcb014b4627a6"
+  },
+  {
+    "path": "admin/JS/calendar.js",
+    "size": 133340,
+    "sha256": "e90cae633f5dd0335b8b0ab1abd9e1a40d6431dc5100f9327f1f7642e0130083"
+  },
+  {
+    "path": "admin/JS/clients.js",
+    "size": 137698,
+    "sha256": "5ac1d382af121cbbdf46ab5b3e321b08b5ef0b2f44ae4300285611be911579b3"
+  },
+  {
+    "path": "admin/JS/crm-test-full.js",
+    "size": 69231,
+    "sha256": "ecc257f77eab4b6ad17ccf4beb402122206b0e3d96e3ef31fecb62a8f6d175f9"
+  },
+  {
+    "path": "admin/JS/crm-test-light.js",
+    "size": 49476,
+    "sha256": "f19152245325193518de198b4d1ef62d9e42e8ce042faa61b8e2c7fce9b598fa"
+  },
+  {
+    "path": "admin/JS/finance.js",
+    "size": 41103,
+    "sha256": "86aed586d879c79d9a5dd4ebfdf6bf001ac500e7dbc28b5ba4394bcbd861ce56"
+  },
+  {
+    "path": "admin/JS/navigation-dashboard.js",
+    "size": 9652,
+    "sha256": "6aaa3fc067fd87e230da31d7a88d3b6917077475b851a61f8dec341b2d9a90f2"
+  },
+  {
+    "path": "admin/JS/price-list.js",
+    "size": 226209,
+    "sha256": "ffb4275528d624f84d9ed45e0ab534f19900416cb535da4a386c56afe147c975"
+  },
+  {
+    "path": "admin/JS/review-blocks.js",
+    "size": 30488,
+    "sha256": "abb3ba9fc5cbed59a00984753ea9944a0d2d2778d4ca93cf17eecc684a033321"
+  },
+  {
+    "path": "admin/JS/settings-diagnostics.js",
+    "size": 75657,
+    "sha256": "833bfe171f493dc459bd1a2e96c97510bc91fd57f98066db37616f7dec1dbe4d"
+  },
+  {
+    "path": "admin/JS/visits.js",
+    "size": 178864,
+    "sha256": "35c836b67101b82adc4dd21a4c764c1a217fde2fff20adf11661e5b479f3630b"
+  },
+  {
+    "path": "admin/START_LOCAL_SERVER.cmd",
+    "size": 507,
+    "sha256": "d962855ea247e870f7213df8185fa6a13ba62d177104b98caccfa494ecbfc08c"
+  },
+  {
+    "path": "admin/START_LOCAL_SERVER.ps1",
+    "size": 6553,
+    "sha256": "4c17250aaabb8105d5379c805894d2d5c60017d25654e4e57f12bc7bac2c17cd"
+  },
+  {
+    "path": "admin/admin.html",
+    "size": 51888,
+    "sha256": "9fe2aae15f3282f5598ccad5201bd14bb3c0a08b99ca6d7bdfe84b6250113914"
+  },
+  {
+    "path": "admin/dev/app-dev.js",
+    "size": 91329,
+    "sha256": "5d146d6dd64409e63a9876344fe5e0f9f8be34a7065dd7eceb41478736d82148"
+  },
+  {
+    "path": "admin/dev/dev.css",
+    "size": 8524,
+    "sha256": "7e8247a4ee8c629ebc6b0358afdb89e5e29676ccbf1eadfe1b3efbce1df149d0"
+  },
+  {
+    "path": "admin/dev/dev.html",
+    "size": 52204,
+    "sha256": "2bcedbaaddfd0f9b89d568f99c564f6f0af7f5467565ebb6b16fb77f7890372a"
+  },
+  {
+    "path": "booking.js",
+    "size": 222104,
+    "sha256": "fc4e1417dd4b844b80c90ee5f5e54bb7f6de68f8055adce4ad4d3d801e16b2d7"
+  },
+  {
+    "path": "card-bg-v2121.png",
+    "size": 2303379,
+    "sha256": "b763ecd621a6e5c88eac3d890333edec7eb42e6c149c7ffe89d6a5b0dafd1945"
+  },
+  {
+    "path": "card-bg-v2123-hq.png",
+    "size": 4160699,
+    "sha256": "1123935537fe2feec579c3962dd5053b303810eaa842863ddf0c3327e799e945"
+  },
+  {
+    "path": "favicon-sd-dark.png",
+    "size": 85673,
+    "sha256": "ec99a5644c551625ee14a2e058af900045c836512ce7c03b6c7daeb08dad6c44"
+  },
+  {
+    "path": "favicon-sd-light.png",
+    "size": 110549,
+    "sha256": "7469b80f518540d2d8964b47a68d9d9991d46e897ab6acc3bb1047c31a2bbfb6"
+  },
+  {
+    "path": "favicon.ico",
+    "size": 57435,
+    "sha256": "dc96822e0e679c2072fedabe4c0117a7cc14b934b0041c1b8f8cede4c1d00519"
+  },
+  {
+    "path": "favicon.svg",
+    "size": 341,
+    "sha256": "0922755e9dab1ef7f7d8dc4aba4cff507b64b2092022a6028cffa6c13c445482"
+  },
+  {
+    "path": "gallery/brwi-1.jpg",
+    "size": 256021,
+    "sha256": "f8a872027c195c7de49896ff2febbba3ad3ad62a12368b9d4074e3cd83bb47d0"
+  },
+  {
+    "path": "gallery/manicure-1.jpg",
+    "size": 129339,
+    "sha256": "38634b390470338f6ba31cbc68723b6a934ba6f39e98f25a4468b92458e0d046"
+  },
+  {
+    "path": "gallery/manicure-2.jpg",
+    "size": 25240,
+    "sha256": "a41cae065a5090c833b79fc65f6aede0f59cddd4e636f80602a62fa827f29632"
+  },
+  {
+    "path": "icons/app-192.png",
+    "size": 2743,
+    "sha256": "450a972820c9e10c9532f52090bdc9926ccf85b8e6648d61240d5402f895a0e2"
+  },
+  {
+    "path": "icons/app-512.png",
+    "size": 7929,
+    "sha256": "971ea7a70affc181614c75f2c921df2bdf1032a90747880d7d58adff0aada21b"
+  },
+  {
+    "path": "index-desktop.css",
+    "size": 4954,
+    "sha256": "a9247e55ffb72a3bad924f74c4b00ad8afe153755e0d5974e4135fada725b222"
+  },
+  {
+    "path": "index-editor.css",
+    "size": 11164,
+    "sha256": "76f50eb7dd75fe3c38d5fd133d44fac3fa1a11b01e01f71d1b745c3b4ee52bd3"
+  },
+  {
+    "path": "index-editor.html",
+    "size": 19631,
+    "sha256": "f656f35a82611b8ebb5c0907429ccac841095ff1bc4cdfe4ff9d7f6e41406401"
+  },
+  {
+    "path": "index-editor.js",
+    "size": 36800,
+    "sha256": "78c3dbd860c55dbdf7480069f7bf98b801bc00bae1b6db2e2d6c8f6f5c5cf715"
+  },
+  {
+    "path": "index-mobile.css",
+    "size": 4903,
+    "sha256": "c9840315bf0f949545f7fd62b0c49c7404bb28ccaaa5595c63dc7883198e2e22"
+  },
+  {
+    "path": "index.html",
+    "size": 18609,
+    "sha256": "79bb628faa450461da293bfd0c64b96c9711aa4ffa27212b46e4f38e883d03c3"
+  },
+  {
+    "path": "logo-main-transparent-v2123.png",
+    "size": 647215,
+    "sha256": "be5fc6ca2b24aad8539a415200928501269d0453b9aaf55447e35068f648c93f"
+  },
+  {
+    "path": "logo-main.png",
+    "size": 647215,
+    "sha256": "be5fc6ca2b24aad8539a415200928501269d0453b9aaf55447e35068f648c93f"
+  },
+  {
+    "path": "logo-sd.png",
+    "size": 64587,
+    "sha256": "aed5ac376b37e7a48b814a3b68a36810871281f0835ad0703c0c2f5d463d1eee"
+  },
+  {
+    "path": "manifest.webmanifest",
+    "size": 621,
+    "sha256": "bc3f4556984500dea8443b7b481ec2d3a9a290121c1eba3e5254778309f328b3"
+  },
+  {
+    "path": "page-design-config.js",
+    "size": 3639,
+    "sha256": "44e41663e5872bfd8afb2a1b0d84530d680b06818842434bfe7704e55a40868c"
+  },
+  {
+    "path": "page-design.js",
+    "size": 19243,
+    "sha256": "c7f805a5869e7f45ba0aee6c8eebf7488caef814dca51a36242ce8e5fe75a87e"
+  },
+  {
+    "path": "polityka-prywatnosci.html",
+    "size": 1608,
+    "sha256": "e5f6837964428cdeb9583aa37a6efa1d9423d03940c44a0f4be115b61ab6d287"
+  },
+  {
+    "path": "salon-scene-v2117.png",
+    "size": 3002796,
+    "sha256": "09c8f47113fd64e9f36fd1ae0fe7cff49c837c1fbf13305466bfd7aaf79b973e"
+  },
+  {
+    "path": "salon-scene-v2118-4k.png",
+    "size": 7776007,
+    "sha256": "8a73ac0b9ad8eab7290919cd26a7fc619359060ab0a9555904af237c866ff100"
+  },
+  {
+    "path": "salon-scene-v2118-4k.webp",
+    "size": 1129600,
+    "sha256": "02169c26578fef79ea6704d650613d7fa4e9b9116e1281bc94c7e90b7bc262f4"
+  },
+  {
+    "path": "service-worker.js",
+    "size": 1696,
+    "sha256": "ad182b8efb3229afdf1ff7a14406ed73b7dfabe3679d233d6aa639ea298be574"
+  },
+  {
+    "path": "style.css",
+    "size": 168405,
+    "sha256": "3142ad54a07c66db51cc4b5f78a4de5b67b0db7ad80e272435129eec8dd468fd"
+  }
+]

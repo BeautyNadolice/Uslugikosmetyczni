@@ -1,0 +1,114 @@
+{
+  "package": "NAIL_ART_INDEX_V21_72_TEST_READY",
+  "prepared": "2026-11-15",
+  "source_candidate": "NAIL_ART_GITHUB_CANDIDATE_V21_72_LOCAL_ONLY(1).zip",
+  "files_in_package": 101,
+  "application_files_excluding_generated_metadata": 99,
+  "javascript_files": 20,
+  "javascript_syntax_pass": 20,
+  "javascript_syntax_fail": [],
+  "html_files": {
+    "index-editor.html": {
+      "ids": 28,
+      "duplicate_ids": {}
+    },
+    "index.html": {
+      "ids": 41,
+      "duplicate_ids": {}
+    },
+    "polityka-prywatnosci.html": {
+      "ids": 0,
+      "duplicate_ids": {}
+    },
+    "admin/admin.html": {
+      "ids": 180,
+      "duplicate_ids": {}
+    },
+    "admin/dev/dev.html": {
+      "ids": 180,
+      "duplicate_ids": {}
+    }
+  },
+  "html_duplicate_ids": {},
+  "css_files": {
+    "style.css": {
+      "open_braces": 1057,
+      "close_braces": 1057,
+      "balanced": true
+    },
+    "index-editor.css": {
+      "open_braces": 114,
+      "close_braces": 114,
+      "balanced": true
+    },
+    "index-mobile.css": {
+      "open_braces": 15,
+      "close_braces": 15,
+      "balanced": true
+    },
+    "index-desktop.css": {
+      "open_braces": 15,
+      "close_braces": 15,
+      "balanced": true
+    },
+    "admin/CSS/styleadmin-overrides.css": {
+      "open_braces": 1072,
+      "close_braces": 1072,
+      "balanced": true
+    },
+    "admin/CSS/styleadmin-finance-booksy.css": {
+      "open_braces": 196,
+      "close_braces": 196,
+      "balanced": true
+    },
+    "admin/CSS/styleadmin-components.css": {
+      "open_braces": 412,
+      "close_braces": 412,
+      "balanced": true
+    },
+    "admin/CSS/styleadmin-calendar.css": {
+      "open_braces": 253,
+      "close_braces": 253,
+      "balanced": true
+    },
+    "admin/CSS/styleadmin-base.css": {
+      "open_braces": 411,
+      "close_braces": 411,
+      "balanced": true
+    },
+    "admin/CSS/styleadmin-cennik-premium.css": {
+      "open_braces": 136,
+      "close_braces": 136,
+      "balanced": true
+    },
+    "admin/dev/dev.css": {
+      "open_braces": 65,
+      "close_braces": 65,
+      "balanced": true
+    }
+  },
+  "css_unbalanced": [],
+  "unresolved_html_local_refs": [],
+  "http_smoke": {
+    "index.html": 200,
+    "index-editor.html": 200,
+    "page-design.js": 200,
+    "page-design-config.js": 200,
+    "service-worker.js": 200,
+    "index-desktop.css": 200,
+    "index-mobile.css": 200,
+    "admin/admin.html": 200,
+    "admin/dev/dev.html": 200
+  },
+  "all_static_local_refs_http": "62/62 HTTP 200 (HTML + CSS direct refs); one regex false positive is encoded SVG fragment %23n inside data URI",
+  "browser_e2e": "NOT COMPLETED: headless Chromium timed out in this environment; manual browser test required",
+  "github_write": "NOT PERFORMED",
+  "drive_write": "NOT PERFORMED",
+  "deployment": "NOT PERFORMED",
+  "admin_scope": "ADMIN/CRM files retained unchanged from supplied candidate; no admin code changes or deployment authorized/performed",
+  "notes": [
+    "The 17 original missing_local_refs findings were mostly dynamic template literals or encoded SVG data URLs.",
+    "The absolute favicon references in admin HTML target /Uslugikosmetyczni/favicon.svg for the repository project path; local localhost preview may not resolve that project-prefixed URL. Admin files were left untouched due to the ADMIN protection rule.",
+    "The old index-editor.js.bak is preserved in a separate backup archive and excluded from the active web root."
+  ]
+}

@@ -1,5 +1,27 @@
-// WERSJA LOGIKI INDEX: 2026-07-27-18-40
- const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
+// WERSJA LOGIKI INDEX: V21.24 — 2026-09-06 — dynamiczne preview kategorii + wewnętrzny lightbox
+const CRM_TEST_API_STORAGE_KEY = "CRM_TEST_APPS_SCRIPT_URL";
+const CRM_TEST_LEGACY_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
+const CRM_TEST_DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
+const CRM_TEST_API_QUERY_URL = String(new URLSearchParams(window.location.search).get("api") || "").trim();
+
+if (CRM_TEST_API_QUERY_URL) {
+  try { localStorage.setItem(CRM_TEST_API_STORAGE_KEY, CRM_TEST_API_QUERY_URL); } catch (ignore) {}
+}
+
+let CRM_TEST_API_STORED_URL = "";
+try {
+  CRM_TEST_API_STORED_URL = String(localStorage.getItem(CRM_TEST_API_STORAGE_KEY) || "").trim();
+  if (CRM_TEST_API_STORED_URL === CRM_TEST_LEGACY_APPS_SCRIPT_URL) {
+    CRM_TEST_API_STORED_URL = CRM_TEST_DEFAULT_APPS_SCRIPT_URL;
+    localStorage.setItem(CRM_TEST_API_STORAGE_KEY, CRM_TEST_API_STORED_URL);
+  }
+} catch (ignore) {}
+
+const APPS_SCRIPT_URL = CRM_TEST_API_QUERY_URL || CRM_TEST_API_STORED_URL || CRM_TEST_DEFAULT_APPS_SCRIPT_URL;
+try {
+  if (APPS_SCRIPT_URL) localStorage.setItem(CRM_TEST_API_STORAGE_KEY, APPS_SCRIPT_URL);
+} catch (ignore) {}
+if (!APPS_SCRIPT_URL) console.error("CRM TEST: brak URL wdrożenia Apps Script.");
   let iti; 
 let allAvailableSlots = []; 
 let appointmentsData = []; 
@@ -404,74 +426,341 @@ function fetchJSONP(url) {
   });
 }
 
+const portfolioViewerV2124 = {
+  categories: [],
+  categoryIndex: 0,
+  imageIndex: 0,
+  resizeObserver: null,
+  resizeRaf: 0,
+  touchStartX: null,
+  touchStartY: null
+};
+
+function portfolioDriveThumbV2124(id, width = 1600) {
+  const cleanId = String(id || "").trim();
+  return cleanId
+    ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(cleanId)}&sz=w${width}`
+    : "";
+}
+
+function schedulePortfolioLayoutV2124() {
+  cancelAnimationFrame(portfolioViewerV2124.resizeRaf);
+  portfolioViewerV2124.resizeRaf = requestAnimationFrame(applyPortfolioLayoutV2124);
+}
+
+function applyPortfolioLayoutV2124() {
+  const container = document.getElementById("portfolio-container");
+  const showcase = container?.closest(".portfolio-showcase-v2111");
+  const categories = container ? Array.from(container.querySelectorAll(".portfolio-category-v2111")) : [];
+  const count = categories.length;
+  if (!container || !showcase || !count) return;
+
+  const width = Math.max(0, container.clientWidth || showcase.clientWidth || 0);
+  const height = Math.max(0, showcase.clientHeight || 0);
+  const sampleTitle = container.querySelector(".portfolio-category-title-v2111");
+  const titleHeight = Math.max(17, sampleTitle?.getBoundingClientRect().height || 17);
+  const categoryGap = width <= 360 ? 5 : 7;
+  const titleGap = width <= 360 ? 4 : 5;
+  const availablePerCategory = count > 0
+    ? (height - categoryGap * Math.max(0, count - 1)) / count
+    : 0;
+  const imageHeight = availablePerCategory - titleHeight - titleGap;
+  const twoColumnWidth = (width - (width <= 360 ? 6 : 8)) / 2;
+
+  // V21.27: referencja ma kompaktowe, ale nadal pełnowartościowe preview.
+  // Przy 1–2 kategoriach pozwalamy na dwie kolumny już od ~50 px wysokości,
+  // dzięki czemu np. MANICURE zachowuje dwa zdjęcia obok siebie. Przy 3
+  // kategoriach zostaje ostrożniejszy próg. Większa liczba nadal przechodzi
+  // automatycznie do jednego preview / scrolla.
+  const useTwo = count <= 2
+    ? imageHeight >= 48 && twoColumnWidth >= 86
+    : count === 3 && imageHeight >= 62 && twoColumnWidth >= 100;
+  const singleStillReadable = imageHeight >= 46;
+
+  container.style.setProperty("--portfolio-category-count-v2124", String(count));
+  container.classList.toggle("portfolio-preview-two-v2124", useTwo);
+  container.classList.toggle("portfolio-preview-one-v2124", !useTwo);
+  container.classList.toggle("portfolio-scroll-v2124", !singleStillReadable);
+
+  categories.forEach(section => {
+    const grid = section.querySelector(".portfolio-category-grid-v2111");
+    if (!grid) return;
+    const buttons = Array.from(grid.querySelectorAll(".portfolio-preview-button-v2124"));
+    buttons.forEach((button, index) => {
+      button.hidden = !useTwo && index > 0;
+    });
+    const visibleCount = buttons.filter(button => !button.hidden).length;
+    grid.classList.toggle("is-single", visibleCount <= 1);
+  });
+}
+
+function bindPortfolioLayoutV2124() {
+  const showcase = document.querySelector(".portfolio-showcase-v2111");
+  if (!showcase) return;
+
+  if (portfolioViewerV2124.resizeObserver) {
+    portfolioViewerV2124.resizeObserver.disconnect();
+    portfolioViewerV2124.resizeObserver = null;
+  }
+
+  if ("ResizeObserver" in window) {
+    portfolioViewerV2124.resizeObserver = new ResizeObserver(schedulePortfolioLayoutV2124);
+    portfolioViewerV2124.resizeObserver.observe(showcase);
+  }
+
+  if (!window.__portfolioResizeBoundV2124) {
+    window.__portfolioResizeBoundV2124 = true;
+    window.addEventListener("resize", schedulePortfolioLayoutV2124, { passive: true });
+    window.addEventListener("orientationchange", schedulePortfolioLayoutV2124, { passive: true });
+  }
+
+  requestAnimationFrame(() => requestAnimationFrame(schedulePortfolioLayoutV2124));
+}
+
+function ensurePortfolioLightboxV2124() {
+  let lightbox = document.getElementById("portfolioLightboxV2124");
+  if (lightbox) return lightbox;
+
+  lightbox = document.createElement("div");
+  lightbox.id = "portfolioLightboxV2124";
+  lightbox.className = "portfolio-lightbox-v2124";
+  lightbox.hidden = true;
+  lightbox.setAttribute("role", "dialog");
+  lightbox.setAttribute("aria-modal", "true");
+  lightbox.setAttribute("aria-label", "Galeria realizacji");
+  lightbox.innerHTML = `
+    <button class="portfolio-lightbox-close-v2124" type="button" aria-label="Zamknij galerię">×</button>
+    <button class="portfolio-lightbox-nav-v2124 portfolio-lightbox-prev-v2124" type="button" aria-label="Poprzednie zdjęcie">‹</button>
+    <div class="portfolio-lightbox-stage-v2124">
+      <img class="portfolio-lightbox-image-v2124" alt="" draggable="false">
+      <div class="portfolio-lightbox-meta-v2124">
+        <strong class="portfolio-lightbox-title-v2124"></strong>
+        <span class="portfolio-lightbox-counter-v2124"></span>
+      </div>
+    </div>
+    <button class="portfolio-lightbox-nav-v2124 portfolio-lightbox-next-v2124" type="button" aria-label="Następne zdjęcie">›</button>
+  `;
+
+  document.body.appendChild(lightbox);
+
+  lightbox.querySelector(".portfolio-lightbox-close-v2124")?.addEventListener("click", closePortfolioLightboxV2124);
+  lightbox.querySelector(".portfolio-lightbox-prev-v2124")?.addEventListener("click", () => stepPortfolioLightboxV2124(-1));
+  lightbox.querySelector(".portfolio-lightbox-next-v2124")?.addEventListener("click", () => stepPortfolioLightboxV2124(1));
+  lightbox.addEventListener("click", event => {
+    if (event.target === lightbox) closePortfolioLightboxV2124();
+  });
+
+  // Zwykłe pobieranie/drag/long-press ograniczamy w UI. Nie jest to zabezpieczenie
+  // kryptograficzne — obraz wyświetlany przez przeglądarkę zawsze może zostać przechwycony.
+  lightbox.addEventListener("contextmenu", event => event.preventDefault());
+  lightbox.addEventListener("dragstart", event => event.preventDefault());
+  lightbox.addEventListener("touchstart", event => {
+    const touch = event.changedTouches?.[0];
+    if (!touch) return;
+    portfolioViewerV2124.touchStartX = touch.clientX;
+    portfolioViewerV2124.touchStartY = touch.clientY;
+  }, { passive: true });
+  lightbox.addEventListener("touchend", event => {
+    const touch = event.changedTouches?.[0];
+    const startX = portfolioViewerV2124.touchStartX;
+    const startY = portfolioViewerV2124.touchStartY;
+    portfolioViewerV2124.touchStartX = null;
+    portfolioViewerV2124.touchStartY = null;
+    if (!touch || startX == null || startY == null) return;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    if (Math.abs(dx) >= 46 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+      stepPortfolioLightboxV2124(dx < 0 ? 1 : -1);
+    }
+  }, { passive: true });
+
+  if (!window.__portfolioLightboxKeyBoundV2124) {
+    window.__portfolioLightboxKeyBoundV2124 = true;
+    document.addEventListener("keydown", event => {
+      const active = document.getElementById("portfolioLightboxV2124");
+      if (!active || active.hidden) return;
+      if (event.key === "Escape") closePortfolioLightboxV2124();
+      if (event.key === "ArrowLeft") stepPortfolioLightboxV2124(-1);
+      if (event.key === "ArrowRight") stepPortfolioLightboxV2124(1);
+    });
+  }
+
+  return lightbox;
+}
+
+function renderPortfolioLightboxV2124() {
+  const lightbox = ensurePortfolioLightboxV2124();
+  const category = portfolioViewerV2124.categories[portfolioViewerV2124.categoryIndex];
+  if (!category?.images?.length) return;
+
+  const total = category.images.length;
+  portfolioViewerV2124.imageIndex = ((portfolioViewerV2124.imageIndex % total) + total) % total;
+  const image = category.images[portfolioViewerV2124.imageIndex];
+  const imageEl = lightbox.querySelector(".portfolio-lightbox-image-v2124");
+  const titleEl = lightbox.querySelector(".portfolio-lightbox-title-v2124");
+  const counterEl = lightbox.querySelector(".portfolio-lightbox-counter-v2124");
+  const prevButton = lightbox.querySelector(".portfolio-lightbox-prev-v2124");
+  const nextButton = lightbox.querySelector(".portfolio-lightbox-next-v2124");
+
+  if (imageEl) {
+    imageEl.dataset.driveFallbackTried = "";
+    imageEl.alt = `${category.name} — ${image.name}`;
+    imageEl.src = image.lightboxUrl || image.url;
+    imageEl.onerror = function() {
+      if (!this.dataset.driveFallbackTried && image.fallbackUrl) {
+        this.dataset.driveFallbackTried = "1";
+        this.src = image.fallbackUrl;
+        return;
+      }
+      this.onerror = null;
+      this.removeAttribute("src");
+      this.alt = "Zdjęcie chwilowo niedostępne";
+    };
+  }
+  if (titleEl) titleEl.textContent = category.name;
+  if (counterEl) counterEl.textContent = `${portfolioViewerV2124.imageIndex + 1} / ${total}`;
+  if (prevButton) prevButton.hidden = total <= 1;
+  if (nextButton) nextButton.hidden = total <= 1;
+}
+
+function openPortfolioLightboxV2124(categoryIndex, imageIndex) {
+  const category = portfolioViewerV2124.categories[categoryIndex];
+  if (!category?.images?.length) return;
+
+  portfolioViewerV2124.categoryIndex = categoryIndex;
+  portfolioViewerV2124.imageIndex = imageIndex;
+  const lightbox = ensurePortfolioLightboxV2124();
+  lightbox.hidden = false;
+  document.body.classList.add("portfolio-lightbox-open-v2124");
+  renderPortfolioLightboxV2124();
+  lightbox.querySelector(".portfolio-lightbox-close-v2124")?.focus({ preventScroll: true });
+}
+
+function closePortfolioLightboxV2124() {
+  const lightbox = document.getElementById("portfolioLightboxV2124");
+  if (!lightbox || lightbox.hidden) return;
+  lightbox.hidden = true;
+  document.body.classList.remove("portfolio-lightbox-open-v2124");
+  const imageEl = lightbox.querySelector(".portfolio-lightbox-image-v2124");
+  if (imageEl) imageEl.removeAttribute("src");
+}
+
+function stepPortfolioLightboxV2124(direction) {
+  const category = portfolioViewerV2124.categories[portfolioViewerV2124.categoryIndex];
+  if (!category?.images?.length || category.images.length <= 1) return;
+  portfolioViewerV2124.imageIndex += direction;
+  renderPortfolioLightboxV2124();
+}
+
 async function loadPortfolio() {
   const container = document.getElementById("portfolio-container");
   if (!container) return;
+
+  if (location.protocol === "file:") {
+    container.innerHTML = '<p class="portfolio-empty">Galeria jest ładowana dynamicznie z Google Drive. Uruchom stronę przez HTTP/HTTPS, aby zobaczyć aktualne zdjęcia.</p>';
+    return;
+  }
 
   container.innerHTML = '<p class="portfolio-loading">Ładowanie galerii…</p>';
 
   try {
     const data = await fetchJSONP(`${APPS_SCRIPT_URL}?getPortfolio=true`);
-    container.innerHTML = "";
+    const categories = [];
 
-    let loadedAny = false;
-
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       data.forEach(category => {
-        const images = Array.isArray(category?.images) ? category.images : [];
-        if (!images.length) return;
-
-        const section = document.createElement("section");
-        section.className = "portfolio-section";
-
-        const rawCategory = String(category?.category || "Portfolio").trim();
-        const slug = rawCategory
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-
-        if (slug) section.dataset.category = slug;
-
-        const title = document.createElement("h3");
-        title.textContent = rawCategory;
-
-        const titleLine = document.createElement("span");
-        titleLine.className = "portfolio-title-line";
-        titleLine.setAttribute("aria-hidden", "true");
-        title.appendChild(titleLine);
-
-        const grid = document.createElement("div");
-        grid.className = "gallery-grid";
-        if (images.length === 1) grid.classList.add("gallery-grid--single");
-
-        images.forEach(img => {
-          const imgEl = document.createElement("img");
-          imgEl.src = img.url;
-          imgEl.className = "gallery-item";
-          imgEl.alt = img.name || rawCategory;
-          imgEl.loading = "lazy";
-          imgEl.decoding = "async";
-          imgEl.onerror = function() {
-            this.src = "https://via.placeholder.com/600x400?text=Daria";
-          };
-          grid.appendChild(imgEl);
-          loadedAny = true;
-        });
-
-        section.appendChild(title);
-        section.appendChild(grid);
-        container.appendChild(section);
+        const categoryName = String(category?.category || "Portfolio").trim() || "Portfolio";
+        const categoryImages = Array.isArray(category?.images) ? category.images : [];
+        const images = categoryImages
+          .map(img => {
+            const id = String(img?.id || "").trim();
+            const apiUrl = String(img?.url || "").trim();
+            const thumbnailUrl = portfolioDriveThumbV2124(id, 1600);
+            const lightboxUrl = portfolioDriveThumbV2124(id, 2400);
+            return {
+              id,
+              url: thumbnailUrl || apiUrl,
+              lightboxUrl: lightboxUrl || thumbnailUrl || apiUrl,
+              fallbackUrl: apiUrl && apiUrl !== thumbnailUrl ? apiUrl : "",
+              name: String(img?.name || categoryName || "Realizacja").trim()
+            };
+          })
+          .filter(img => img.url);
+        if (images.length) categories.push({ name: categoryName, images });
       });
     }
 
-    if (!loadedAny) {
+    if (!categories.length) {
+      portfolioViewerV2124.categories = [];
       container.innerHTML = '<p class="portfolio-empty">Brak zdjęć w galerii.</p>';
+      return;
     }
+
+    portfolioViewerV2124.categories = categories;
+    container.innerHTML = "";
+    container.classList.add("portfolio-dynamic-v2124");
+
+    categories.forEach((category, categoryIndex) => {
+      const section = document.createElement("section");
+      section.className = "portfolio-category-v2111 portfolio-category-v2124";
+      section.dataset.category = category.name.toLowerCase();
+
+      const title = document.createElement("h2");
+      title.className = "portfolio-category-title-v2111";
+
+      const titleText = document.createElement("span");
+      titleText.textContent = category.name;
+      const titleLine = document.createElement("i");
+      titleLine.setAttribute("aria-hidden", "true");
+      title.append(titleText, titleLine);
+
+      const grid = document.createElement("div");
+      grid.className = "portfolio-category-grid-v2111";
+
+      // Na karcie renderujemy najwyżej dwa preview. Pełna lista pozostaje w stanie
+      // galerii i jest dostępna w lightboxie po kliknięciu dowolnego preview.
+      category.images.slice(0, 2).forEach((img, imageIndex) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "portfolio-preview-button-v2124";
+        button.setAttribute("aria-label", `Otwórz galerię: ${category.name}, zdjęcie ${imageIndex + 1}`);
+        button.addEventListener("click", () => openPortfolioLightboxV2124(categoryIndex, imageIndex));
+        button.addEventListener("contextmenu", event => event.preventDefault());
+        button.addEventListener("dragstart", event => event.preventDefault());
+
+        const imgEl = document.createElement("img");
+        imgEl.src = img.url;
+        imgEl.className = "gallery-item portfolio-category-image-v2111";
+        imgEl.alt = `${category.name} — ${img.name}`;
+        imgEl.loading = categoryIndex === 0 && imageIndex === 0 ? "eager" : "lazy";
+        imgEl.decoding = "async";
+        imgEl.referrerPolicy = "no-referrer";
+        imgEl.draggable = false;
+        imgEl.setAttribute("draggable", "false");
+        imgEl.onerror = function() {
+          if (!this.dataset.driveFallbackTried && img.fallbackUrl) {
+            this.dataset.driveFallbackTried = "1";
+            this.src = img.fallbackUrl;
+            return;
+          }
+          this.onerror = null;
+          this.classList.add("gallery-item--missing");
+          this.removeAttribute("src");
+          this.alt = "Zdjęcie chwilowo niedostępne";
+        };
+        button.appendChild(imgEl);
+        grid.appendChild(button);
+      });
+
+      if (grid.children.length <= 1) grid.classList.add("is-single");
+      section.append(title, grid);
+      container.appendChild(section);
+    });
+
+    bindPortfolioLayoutV2124();
   } catch (error) {
-    console.error("Błąd ładowania portfolio:", error);
-    container.innerHTML = '<p class="portfolio-error">Nie udało się załadować galerii.</p>';
+    console.error("Błąd ładowania portfolio z Google Drive:", error);
+    container.innerHTML = '<p class="portfolio-error">Nie udało się załadować galerii z Google Drive.</p>';
   }
 }
 
@@ -1216,8 +1505,8 @@ displayTimeSlots=function(dateStr){
 };
 function updateAlternativeSection(){
   const sec=document.getElementById('alternativeBookingSection'), note=document.getElementById('bookingPolicyNotice');
-  const need=selectedSlotPolicy&&selectedSlotPolicy.mode==='CONFIRM';
-  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?'Ten termin wymaga potwierdzenia. Prosimy wybrać dodatkowy termin na wypadek odrzucenia pierwszego.':'';
+  const need=(typeof crmClientBookingModeV20!=='undefined'&&crmClientBookingModeV20==='WYMAGA_POTWIERDZENIA')||(selectedSlotPolicy&&selectedSlotPolicy.mode==='CONFIRM');
+  sec.style.display=need?'block':'none'; note.style.display=need?'block':'none'; note.textContent=need?'Rezerwacja wymaga potwierdzenia. Wybierz jeden termin alternatywny na wypadek, gdy termin główny nie będzie możliwy.':'';
   if(!need){ document.getElementById('alternativeDateTime').value=''; return; }
   if(alternativeFlatpickr)alternativeFlatpickr.destroy();
   alternativeFlatpickr=flatpickr('#alternativeCalendarInput',{locale:'pl',dateFormat:'Y-m-d',minDate:'today',disableMobile:true,onChange:(ds,date)=>renderAlternativeSlots(date)});
@@ -1658,7 +1947,7 @@ fetchJSONP = async function(url) {
   let lastError = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      return await crmFetchJSONPAttemptV6(url, 9000);
+      return await crmFetchJSONPAttemptV6(url, 15000);
     } catch (error) {
       lastError = error;
       if (attempt === 0) await new Promise(resolve => window.setTimeout(resolve, 350));
@@ -5408,7 +5697,7 @@ function crmSetupPwaV13() {
   window.addEventListener("appinstalled", () => { btn.hidden = true; });
 
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    navigator.serviceWorker.register("service-worker.js?v=21.1").catch(error => console.warn("PWA service worker:", error));
+    navigator.serviceWorker.register("service-worker.js?v=21.7").catch(error => console.warn("PWA service worker:", error));
   }
 }
 
@@ -5743,6 +6032,7 @@ let crmServicesLoadingV20 = false;
 
 function crmNormalizeBookingModeV20(value) {
   const mode = String(value || "STANDARDOWY").trim().toUpperCase();
+  if (mode === "ZABLOKOWANY") return "ZABLOKOWANY";
   if (mode === "TYLKO_KONTAKT") return "TYLKO_KONTAKT";
   if (mode === "STANDARDOWY") return "STANDARDOWY";
   return "WYMAGA_POTWIERDZENIA";
@@ -5760,7 +6050,7 @@ function crmBookingModeBannerV20(mode = crmClientBookingModeV20) {
   box.hidden = false;
   box.innerHTML = `
     <strong>Rezerwacja wymaga potwierdzenia</strong>
-    <span>Twój numer został zweryfikowany. Wybrany termin zostanie przesłany do salonu do zatwierdzenia.</span>
+    <span>Twój numer został zweryfikowany. Wybierz termin główny i jeden alternatywny — prośba trafi do salonu do zatwierdzenia.</span>
   `;
 }
 
@@ -5976,8 +6266,9 @@ submitForm = async function(event) {
   }
 
   const slotNeedsConfirmation = selectedSlotPolicy?.mode === "CONFIRM";
-  if (slotNeedsConfirmation && !alt) {
-    crmBookingWizardErrorV13("Ten termin wymaga potwierdzenia. Wybierz termin alternatywny.");
+  const clientNeedsConfirmation = crmClientBookingModeV20 === "WYMAGA_POTWIERDZENIA";
+  if ((clientNeedsConfirmation || slotNeedsConfirmation) && !alt) {
+    crmBookingWizardErrorV13("Rezerwacja wymaga potwierdzenia. Wybierz jeden termin alternatywny.");
     return;
   }
 
@@ -6310,6 +6601,17 @@ async function checkExistingClient() {
     crmVerifiedPhoneTokenV5 = String(phone).replace(/\D/g, "");
     crmBookingUpdateVerifiedNameV13();
 
+    if (mode === "ZABLOKOWANY") {
+      isClientApproved = false;
+      crmSetBookingVerifiedFieldsVisibleV231(false);
+      toggleFormState(false);
+      crmPhoneStatusV211(
+        crmClientRestrictionReasonV20 || "Rezerwacja online dla tego klienta jest zablokowana. Skontaktuj się z salonem.",
+        "error"
+      );
+      return;
+    }
+
     if (mode === "TYLKO_KONTAKT") {
       isClientApproved = false;
       crmSetBookingVerifiedFieldsVisibleV231(false);
@@ -6361,8 +6663,13 @@ async function checkExistingClient() {
     crmSetBookingVerifiedFieldsVisibleV231(false);
     toggleFormState(false);
     crmBookingModeBannerV20("STANDARDOWY");
+    const technicalMessage = String(error?.message || "");
+    const transportError = /^(JSONP_TIMEOUT|JSONP_NETWORK_ERROR|JSONP_FAILED|API_NOT_CONFIGURED)$/.test(technicalMessage);
+    if (transportError) console.error("INDEX V21.2 — błąd połączenia z API:", error);
     crmPhoneStatusV211(
-      error?.message || "Nie udało się sprawdzić uprawnień rezerwacji. Spróbuj ponownie.",
+      transportError
+        ? "Nie udało się połączyć z systemem rezerwacji. Spróbuj ponownie za chwilę."
+        : (technicalMessage || "Nie udało się sprawdzić uprawnień rezerwacji. Spróbuj ponownie."),
       "error"
     );
   } finally {
@@ -6434,7 +6741,8 @@ function crmInstallPhoneControllerV211() {
 
 document.addEventListener("DOMContentLoaded", crmInstallPhoneControllerV211);
 
-window.crmIndexUiVersionV211 = "21.1-clean-phone-client-status";
+window.crmIndexUiVersionV211 = "21.6-drive-only-gallery";
+window.crmIndexUiVersionV47 = "47-default-confirmation-one-alternative";
 
-window.crmIndexUiVersionV20 = "21.1-clean-phone-client-status";
+window.crmIndexUiVersionV20 = "21.6-drive-only-gallery";
 // KONIEC INDEX V20

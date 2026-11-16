@@ -1,0 +1,102 @@
+/* NAIL-ART INDEX — DESKTOP MODE CSS
+   V21.71 — mode-specific presentation only.
+   Values come from page-design-config.js through --pd-d-* variables.
+   Do not duplicate mobile rules here. */
+html[data-pd-mode="desktop"] .container.landing-v217 {
+  width:min(700px,var(--pd-d-card-vh,63vh),calc(100vw - 72px)) !important;
+  height:auto !important;
+  aspect-ratio:2 / 3 !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  max-height:calc(100vh - 18px) !important;
+  padding:var(--pd-d-pad-top,5.9%) var(--pd-d-pad-x,10.8%) var(--pd-d-pad-bottom,4.6%) !important;
+  background-size:var(--pd-d-card-bg-zoom,100%) var(--pd-d-card-bg-zoom,100%) !important;
+  background-position:var(--pd-d-card-bg-x,50%) var(--pd-d-card-bg-y,50%) !important;
+  transform:var(--pd-d-card-transform,none) !important;
+}
+html[data-pd-mode="desktop"] .brand-logo-main-v217 {
+  width:var(--pd-d-logo-width,88%) !important;
+  max-width:none !important;
+  height:auto !important;
+  aspect-ratio:1 / var(--pd-d-logo-crop-ratio,.78) !important;
+  overflow:hidden !important;
+  position:relative !important;
+  transform:var(--pd-d-logo-transform,translate(0,0)) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+html[data-pd-mode="desktop"] .brand-logo-main-v217 img {
+  width:var(--pd-d-logo-zoom,100%) !important;
+  max-width:none !important;
+  height:auto !important;
+  position:absolute !important;
+  left:calc(50% + var(--pd-d-logo-x,0px)) !important;
+  top:calc(50% + var(--pd-d-logo-y,0px)) !important;
+  transform:translate(-50%,-50%) scaleY(var(--pd-d-logo-sy,1.24)) !important;
+  transform-origin:center center !important;
+}
+html[data-pd-mode="desktop"] .landing-tagline-v2111 {
+  width:var(--pd-d-tagline-width,105%) !important;
+  transform:var(--pd-d-tagline-transform,translate(0,0)) !important;
+}
+html[data-pd-mode="desktop"] .landing-tagline-v2111 p {
+  font-size:var(--pd-d-tagline-font,30px) !important;
+  line-height:var(--pd-d-tagline-line,.98) !important;
+  font-weight:var(--pd-d-tagline-weight,500) !important;
+  color:var(--pd-tagline-color,#3c2a23) !important;
+  white-space:pre-line !important;
+}
+html[data-pd-mode="desktop"] .landing-cta-v217 {
+  width:var(--pd-d-cta-width,67%) !important;
+  min-height:var(--pd-d-cta-height,58px) !important;
+  height:var(--pd-d-cta-height,58px) !important;
+  transform:var(--pd-d-cta-transform,translate(0,0)) !important;
+  font-size:var(--pd-d-cta-font,16px) !important;
+  border-radius:var(--pd-d-cta-radius,999px) !important;
+  padding-left:var(--pd-d-cta-pad-left,22px) !important;
+  padding-right:var(--pd-d-cta-pad-right,45px) !important;
+  background:linear-gradient(90deg,var(--pd-cta-top,#dca071) 0%,var(--pd-cta-bottom,#b96e43) 100%) !important;
+}
+html[data-pd-mode="desktop"] .landing-cta-v217 .landing-cta-label-v2127,
+html[data-pd-mode="desktop"] .landing-cta-v217 > span:nth-of-type(2) {
+  transform:var(--pd-d-cta-text-transform,translate(0,0)) !important;
+  color:var(--pd-cta-text,#fff) !important;
+}
+html[data-pd-mode="desktop"] .landing-cta-arrow-v2127,
+html[data-pd-mode="desktop"] .landing-cta-star-v217 {
+  font-size:var(--pd-d-cta-arrow-size,34px) !important;
+  right:var(--pd-d-cta-arrow-right,18px) !important;
+  transform:var(--pd-d-cta-arrow-transform,translateY(-50%)) !important;
+  display:var(--pd-d-cta-arrow-display,inline) !important;
+}
+html[data-pd-mode="desktop"] .portfolio-showcase-v2111 {
+  width:var(--pd-d-gallery-width,66%) !important;
+  transform:var(--pd-d-gallery-transform,translate(0,0)) !important;
+  flex:var(--pd-d-gallery-flex,1 1 auto) !important;
+}
+html[data-pd-mode="desktop"] #portfolio-container {
+  width:100% !important;
+}
+html[data-pd-mode="desktop"] #portfolio-container .portfolio-category-title-v2111 {
+  font-size:var(--pd-d-category-font,18px) !important;
+  color:var(--pd-category-color,#4a3026) !important;
+}
+html[data-pd-mode="desktop"] #portfolio-container .portfolio-category-grid-v2111 {
+  gap:var(--pd-d-gallery-gap,9px) !important;
+}
+html[data-pd-mode="desktop"] #portfolio-container .portfolio-preview-button-v2124,
+html[data-pd-mode="desktop"] #portfolio-container .portfolio-category-image-v2111 {
+  border-radius:var(--pd-d-preview-radius,12px) !important;
+  object-fit:var(--pd-preview-fit,cover) !important;
+}
+html[data-pd-mode="desktop"] .landing-footer-v2111 {
+  width:var(--pd-d-footer-width,66%) !important;
+  transform:var(--pd-d-footer-transform,translate(0,0)) !important;
+  font-size:var(--pd-d-footer-font,11px) !important;
+  color:var(--pd-footer-color,#664939) !important;
+}
+html[data-pd-mode="desktop"] .salon-photo-stage-v2118 {
+  background-size:var(--pd-d-scene-size,cover) !important;
+  background-position:calc(var(--pd-d-scene-x,50%) + var(--pd-d-scene-off-x,0px)) calc(var(--pd-d-scene-y,50%) + var(--pd-d-scene-off-y,0px)) !important;
+  filter:brightness(var(--pd-d-scene-bright,100%)) contrast(var(--pd-d-scene-contrast,100%)) saturate(var(--pd-d-scene-sat,100%)) !important;
+}

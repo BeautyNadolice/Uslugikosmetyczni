@@ -1,10 +1,18 @@
-const CACHE_NAME = "daria-index-v21-6-pwa-simple";
+const CACHE_NAME = 'daria-index-v21-72-config-source-fix';
 const CORE = [
   "./",
   "./index.html",
-  "./style.css?v=21.1",
-  "./booking.js?v=21.1",
-  "./manifest.webmanifest?v=21.3",
+  "./style.css?v=22.18",
+  "./index-desktop.css?v=21.71",
+  "./index-mobile.css?v=21.71",
+  "./booking.js?v=21.24",
+  "./manifest.webmanifest?v=21.26",
+  "./favicon.ico",
+  "./logo-main-transparent-v2123.png",
+  "./salon-scene-v2118-4k.webp",
+  "./card-bg-v2123-hq.png",
+  "./favicon-sd-light.png",
+  "./favicon-sd-dark.png",
   "./icons/app-192.png",
   "./icons/app-512.png"
 ];
@@ -34,6 +42,10 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.includes("/admin/")) return;
+
+  /* V21.72: page-design-config.js is the physical source of truth.
+     Never serve a stale cached copy after DEV Editor writes the file. */
+  if (url.pathname.endsWith("/page-design-config.js")) return;
 
   event.respondWith(
     fetch(request)

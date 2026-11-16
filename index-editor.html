@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DEV — Edytor strony klienta V21.72</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index-editor.css?v=2.0">
+</head>
+<body>
+<div class="editor-app">
+  <aside class="editor-panel">
+    <header class="editor-head">
+      <div class="editor-head-top"><h1>Edytor strony klienta</h1><span class="dev-pill">TEST / DEV · V21.72 · WSPÓLNY EDYTOR</span></div>
+      <p>Jeden edytor dla DEV ADMIN + INDEX. Ustawienia PC i Telefon są osobne. GitHub pozostaje zablokowany; zapis fizyczny odbywa się wyłącznie do TESTowego <b>page-design-config.js</b>.</p>
+      <div class="editor-history"><button type="button" id="undoBtn" disabled>↶ Cofnij</button><button type="button" id="redoBtn" disabled>↷ Ponów</button><span class="history-note">Ctrl+Z / Ctrl+Y</span></div>
+      <div class="device-bar"><button type="button" class="active" data-device="desktop">PC</button><button type="button" data-device="mobile">Telefon</button></div>
+      <div class="mobile-preview-bar mobile-only" aria-label="Sposób podglądu telefonu">
+        <span>Podgląd telefonu:</span>
+        <button type="button" id="phoneCardPreviewBtn" class="active">Tylko karta</button>
+        <button type="button" id="phoneScreenPreviewBtn">Pełny ekran</button>
+      </div>
+    </header>
+
+    <div class="editor-scroll" id="editorScroll">
+      <div class="preset-bar">
+        <button id="presetWide" type="button">Preset: szeroki start</button>
+        <button id="frameSingleBtn" type="button">Ukryj wewnętrzną ramę karty</button>
+        <button id="frameFullBtn" type="button">Pokaż pełną ramę karty</button>
+        <small>„Ukryj wewnętrzną ramę” robi crop samej grafiki karty. Puste pole POD kartą w trybie Telefon to podgląd pełnego ekranu — przełącz u góry na <b>Tylko karta</b>, aby je usunąć z edytora.</small>
+      </div>
+
+      <details class="panel-section" open><summary>Zaznacz element: <b id="selectedLabel">Wybierz sekcję</b></summary><div class="section-body">
+        <div class="row3 quick-actions" style="margin-top:10px">
+          <button type="button" data-select-element="card">Karta</button><button type="button" data-select-element="logo">Logo</button><button type="button" data-select-element="tagline">Hasło</button>
+          <button type="button" data-select-element="cta">CTA</button><button type="button" data-select-element="gallery">Galeria</button><button type="button" data-select-element="footer">Stopka</button>
+        </div>
+        <label class="check-row">Pokaż pomarańczowy obrys zaznaczenia <input id="showSelection" type="checkbox" checked></label>
+        <label class="check-row">Pokaż granice obszarów elementów <input id="showGuides" type="checkbox"></label>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="card"><summary>Karta i obszar roboczy</summary><div class="section-body">
+        <p class="section-help">To określa fizyczną kartę oraz pole, w którym układają się logo, hasło, CTA, galeria i stopka. <b>100% karty</b> = pełna szerokość robocza; pomarańczowe/niebieskie linie możesz włączyć w sekcji wyżej.</p>
+        <div class="row3 mini-buttons content-presets"><button type="button" id="contentFullBtn">Treść 100% karty</button><button type="button" id="content90Btn">Treść 90%</button><button type="button" id="contentResetBtn">Reset obszaru</button></div>
+        <div class="field desktop-only"><label>Rozmiar karty <output></output></label><input type="range" min="25" max="95" step="0.2" data-key="cardVh" data-unit="vh"></div>
+        <div class="field mobile-only"><label>Szerokość karty <output></output></label><input type="range" min="40" max="130" step="0.5" data-key="cardVw" data-unit="vw"></div>
+        <div class="row2"><div class="field"><label>Karta X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="cardX" data-unit="px"></div><div class="field"><label>Karta Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="cardY" data-unit="px"></div></div>
+        <div class="field"><label>Obszar treści — szerokość <output></output></label><input type="range" min="10" max="180" step="0.5" data-key="contentWidth" data-unit="%"></div>
+        <div class="row2"><div class="field"><label>Padding bok <output></output></label><input type="range" min="0" max="40" step="0.1" data-key="cardPaddingX" data-unit="%"></div><div class="field"><label>Padding góra <output></output></label><input type="range" min="0" max="40" step="0.1" data-key="cardPaddingTop" data-unit="%"></div></div>
+        <div class="field"><label>Padding dół <output></output></label><input type="range" min="0" max="40" step="0.1" data-key="cardPaddingBottom" data-unit="%"></div>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="card"><summary>Tło karty i scena salonu</summary><div class="section-body">
+        <p class="section-help desktop-only">Scena = <b>jeden obraz 4K razem z podium</b>. Możesz go dowolnie kadrować, skalować i przesuwać. Podium nie jest osobną warstwą — przesunięcie Y porusza całe tło razem z podium.</p>
+        <div class="field"><label>Tło karty zoom <output></output></label><input type="range" min="70" max="200" step="0.25" data-key="cardBgZoom" data-unit="%"></div>
+        <div class="row2"><div class="field"><label>Tło karty X <output></output></label><input type="range" min="0" max="100" step="0.5" data-key="cardBgX" data-unit="%"></div><div class="field"><label>Tło karty Y <output></output></label><input type="range" min="0" max="100" step="0.5" data-key="cardBgY" data-unit="%"></div></div>
+        <div class="desktop-only">
+          <div class="field"><label>Scena zoom <output></output></label><input type="range" min="60" max="220" step="1" data-key="sceneZoom" data-unit="%"></div>
+          <div class="row2"><div class="field"><label>Scena X <output></output></label><input type="range" min="0" max="100" step="0.5" data-key="sceneX" data-unit="%"></div><div class="field"><label>Scena Y <output></output></label><input type="range" min="0" max="100" step="0.5" data-key="sceneY" data-unit="%"></div></div>
+          <div class="row2"><div class="field"><label>Przesunięcie sceny X <output></output></label><input type="range" min="-1000" max="1000" step="1" data-key="sceneOffsetX" data-unit="px"></div><div class="field"><label>Przesunięcie sceny Y / podium <output></output></label><input type="range" min="-1000" max="1000" step="1" data-key="sceneOffsetY" data-unit="px"></div></div>
+          <div class="row3"><div class="field"><label>Jasność <output></output></label><input type="range" min="50" max="150" step="1" data-key="sceneBrightness" data-unit="%"></div><div class="field"><label>Kontrast <output></output></label><input type="range" min="50" max="150" step="1" data-key="sceneContrast" data-unit="%"></div><div class="field"><label>Nasycenie <output></output></label><input type="range" min="40" max="170" step="1" data-key="sceneSaturation" data-unit="%"></div></div>
+          <div class="row3 mini-buttons"><button type="button" id="sceneUpBtn">Cała scena ↑ 25px</button><button type="button" id="sceneDownBtn">Cała scena ↓ 25px</button><button type="button" id="sceneResetBtn">Reset tła</button></div>
+        </div>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="logo"><summary>Logo</summary><div class="section-body">
+        <div class="field"><label>Pole logo — szerokość <output></output></label><input type="range" min="20" max="180" step="0.5" data-key="logoWidth" data-unit="%"></div>
+        <div class="row2"><div class="field"><label>Logo — zoom wewnątrz pola <output></output></label><input type="range" min="40" max="400" step="1" data-key="logoZoom" data-unit="%"></div><div class="field"><label>Wysokość pola <output></output></label><input type="range" min="30" max="120" step="0.5" data-key="logoCropHeight" data-unit="% szerokości"></div></div>
+        <div class="row2"><div class="field"><label>Obraz logo wewnątrz pola X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="logoX" data-unit="px"></div><div class="field"><label>Obraz logo wewnątrz pola Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="logoY" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Całe pole logo X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="logoBoxX" data-unit="px"></div><div class="field"><label>Całe pole logo Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="logoBoxY" data-unit="px"></div></div>
+        <div class="field"><label>Rozciągnięcie logo Y <output></output></label><input type="range" min="0.4" max="2.5" step="0.01" data-key="logoImageScaleY"></div>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="tagline"><summary>Hasło pod logo</summary><div class="section-body">
+        <div class="field"><label>Tekst hasła</label><textarea rows="3" data-scope="text" data-key="tagline" placeholder="Możesz użyć Enter, aby wymusić nową linię"></textarea></div>
+        <div class="field"><label>Szerokość pola hasła <output></output></label><input type="range" min="10" max="300" step="0.5" data-key="taglineWidth" data-unit="%"></div>
+        <div class="row2"><div class="field"><label>Hasło X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="taglineX" data-unit="px"></div><div class="field"><label>Hasło Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="taglineY" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Font hasła <output></output></label><input type="range" min="5" max="120" step="0.5" data-key="taglineFont" data-unit="px"></div><div class="field"><label>Grubość <output></output></label><input type="range" min="200" max="900" step="100" data-key="taglineWeight"></div></div>
+        <div class="row2"><div class="field"><label>Interlinia <output></output></label><input type="range" min="0.5" max="2" step="0.01" data-key="taglineLine"></div><div class="field"><label>Kolor</label><input type="color" data-scope="appearance" data-key="taglineColor"></div></div>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="cta"><summary>Przycisk rezerwacji</summary><div class="section-body">
+        <div class="field"><label>Tekst CTA</label><textarea rows="2" data-scope="text" data-key="cta" placeholder="Enter = nowa linia"></textarea></div>
+        <div class="row2"><div class="field"><label>Szerokość <output></output></label><input type="range" min="10" max="220" step="0.5" data-key="ctaWidth" data-unit="%"></div><div class="field"><label>Wysokość <output></output></label><input type="range" min="15" max="220" step="1" data-key="ctaHeight" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>CTA X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="ctaX" data-unit="px"></div><div class="field"><label>CTA Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="ctaY" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Font tekstu <output></output></label><input type="range" min="5" max="72" step="0.5" data-key="ctaFont" data-unit="px"></div><div class="field"><label>Zaokrąglenie <output></output></label><input type="range" min="0" max="999" step="1" data-key="ctaRadius" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Tekst CTA X <output></output></label><input type="range" min="-100" max="100" step="1" data-key="ctaTextX" data-unit="px"></div><div class="field"><label>Tekst CTA Y <output></output></label><input type="range" min="-100" max="100" step="1" data-key="ctaTextY" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Padding lewy <output></output></label><input type="range" min="0" max="160" step="1" data-key="ctaPaddingLeft" data-unit="px"></div><div class="field"><label>Padding prawy <output></output></label><input type="range" min="0" max="160" step="1" data-key="ctaPaddingRight" data-unit="px"></div></div>
+        <div class="field"><label>Znak / strzałka</label><input type="text" maxlength="4" data-scope="text" data-key="ctaArrow" placeholder="np. › albo →"></div>
+        <label class="check-row">Pokaż znak w przycisku <input type="checkbox" data-scope="visible" data-key="ctaArrow" data-type="bool"></label>
+        <div class="row3"><div class="field"><label>Rozmiar znaku <output></output></label><input type="range" min="0" max="120" step="1" data-key="ctaArrowSize" data-unit="px"></div><div class="field"><label>Znak — od prawej <output></output></label><input type="range" min="-100" max="200" step="1" data-key="ctaArrowRight" data-unit="px"></div><div class="field"><label>Znak Y <output></output></label><input type="range" min="-100" max="100" step="1" data-key="ctaArrowY" data-unit="px"></div></div>
+        <div class="row3"><div class="field"><label>Góra</label><input type="color" data-scope="appearance" data-key="ctaTop"></div><div class="field"><label>Dół</label><input type="color" data-scope="appearance" data-key="ctaBottom"></div><div class="field"><label>Tekst</label><input type="color" data-scope="appearance" data-key="ctaTextColor"></div></div>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="gallery"><summary>Galeria</summary><div class="section-body">
+        <p class="section-help">Wysokość 0 = AUTO, czyli galeria bierze całe wolne miejsce między CTA i stopką. Wpisz np. 45%, jeśli chcesz wymusić konkretną wysokość.</p>
+        <div class="field"><label>Szerokość galerii <output></output></label><input type="range" min="10" max="180" step="0.5" data-key="galleryWidth" data-unit="%"></div>
+        <div class="field"><label>Wysokość galerii (0=AUTO) <output></output></label><input type="range" min="0" max="100" step="0.5" data-key="galleryHeight" data-unit="%"></div>
+        <div class="row2"><div class="field"><label>Galeria X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="galleryX" data-unit="px"></div><div class="field"><label>Galeria Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="galleryY" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Odstęp kategorii <output></output></label><input type="range" min="0" max="120" step="1" data-key="galleryGap" data-unit="px"></div><div class="field"><label>Font kategorii <output></output></label><input type="range" min="5" max="72" step="0.5" data-key="categoryFont" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Zaokrąglenie zdjęć <output></output></label><input type="range" min="0" max="50" step="1" data-key="previewRadius" data-unit="px"></div><div class="field"><label>Kolor kategorii</label><input type="color" data-scope="appearance" data-key="categoryColor"></div></div>
+        <div class="row2"><div class="field"><label>Kadrowanie zdjęć</label><select data-scope="appearance" data-key="previewFit"><option value="cover">Wypełnij (cover)</option><option value="contain">Pokaż całe (contain)</option></select></div><div class="field"><label>Ile preview</label><select data-scope="appearance" data-key="previewMode"><option value="auto">Automatycznie</option><option value="one">1 zdjęcie</option><option value="two">2 zdjęcia</option></select></div></div>
+      </div></details>
+
+      <details class="panel-section editor-target-panel" data-editor-panel="footer"><summary>Stopka</summary><div class="section-body">
+        <div class="field"><label>Tekst stopki</label><input type="text" data-scope="text" data-key="footer"></div>
+        <div class="field"><label>Szerokość <output></output></label><input type="range" min="10" max="180" step="0.5" data-key="footerWidth" data-unit="%"></div>
+        <div class="row2"><div class="field"><label>Stopka X <output></output></label><input type="range" min="-800" max="800" step="1" data-key="footerX" data-unit="px"></div><div class="field"><label>Stopka Y <output></output></label><input type="range" min="-800" max="800" step="1" data-key="footerY" data-unit="px"></div></div>
+        <div class="row2"><div class="field"><label>Font <output></output></label><input type="range" min="5" max="60" step="0.5" data-key="footerFont" data-unit="px"></div><div class="field"><label>Kolor</label><input type="color" data-scope="appearance" data-key="footerColor"></div></div>
+      </div></details>
+
+      <details class="panel-section"><summary>Widoczność</summary><div class="section-body">
+        <label class="check-row">Logo <input type="checkbox" data-scope="visible" data-key="logo" data-type="bool"></label>
+        <label class="check-row">Hasło <input type="checkbox" data-scope="visible" data-key="tagline" data-type="bool"></label>
+        <label class="check-row">Przycisk CTA <input type="checkbox" data-scope="visible" data-key="cta" data-type="bool"></label>
+        <label class="check-row">Galeria <input type="checkbox" data-scope="visible" data-key="gallery" data-type="bool"></label>
+        <label class="check-row">Stopka <input type="checkbox" data-scope="visible" data-key="footer" data-type="bool"></label>
+        <label class="check-row desktop-only">Scena salonu <input type="checkbox" data-scope="visible" data-key="scene" data-type="bool"></label>
+      </div></details>
+    </div>
+
+    <footer class="editor-actions">
+      <button type="button" class="primary" id="saveBtn">Zapisz szkic DEV</button><button type="button" class="primary" id="savePhysicalBtn">Zapisz plik INDEX</button><button type="button" id="openPreviewBtn">Otwórz stronę</button>
+      <button type="button" id="copyBtn">Kopiuj JSON</button><button type="button" id="exportBtn">Eksport JSON</button>
+      <label style="display:block"><input id="importInput" type="file" accept="application/json" hidden><button type="button" style="width:100%" onclick="document.getElementById('importInput').click()">Import JSON</button></label><button type="button" class="danger" id="resetBtn">Reset bazowy</button>
+    </footer>
+  </aside>
+
+  <main class="preview-wrap">
+    <div id="previewShell" class="preview-frame-shell desktop">
+      <span class="preview-badge">PODGLĄD LIVE</span>
+      <div class="select-tip">Kliknij element, aby go zaznaczyć. Pomarańczowy obrys jest tylko narzędziem edytora i nie pojawi się na stronie klienta.</div>
+      <iframe id="designPreview" class="preview-frame" src="index.html?designPreview=1" title="Podgląd strony klienta"></iframe>
+      <div id="selectionChip" class="selection-chip" data-label="Karta"></div>
+    </div>
+  </main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="index-editor.js?v=2.5"></script>
+</body>
+</html>
