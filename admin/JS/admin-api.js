@@ -16,8 +16,38 @@
    CONFIG
    ========================================================== */
 
-const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
+const CRM_TEST_API_STORAGE_KEY = "CRM_TEST_APPS_SCRIPT_URL";
+const CRM_TEST_LEGACY_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
+const CRM_TEST_DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrx1vRCQpx45lPEnPvF-LJpkpAiLqPmME60VIq2A0_YDF4figLOF2uO8griaC6ijYpOQ/exec";
+const CRM_TEST_OLD_BOOKING_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz__JS6RJOB8VwEvbmXc4J_22k3bpBLr-oCiogTIhzz3sXc5DzXfbggnfa8VhInwuWP2g/exec";
+const CRM_TEST_API_QUERY_URL = String(new URLSearchParams(window.location.search).get("api") || "").trim();
+
+if (CRM_TEST_API_QUERY_URL) {
+    try { localStorage.setItem(CRM_TEST_API_STORAGE_KEY, CRM_TEST_API_QUERY_URL); } catch (ignore) {}
+}
+
+let CRM_TEST_API_STORED_URL = "";
+try {
+    CRM_TEST_API_STORED_URL = String(localStorage.getItem(CRM_TEST_API_STORAGE_KEY) || "").trim();
+    if (CRM_TEST_API_STORED_URL === CRM_TEST_LEGACY_APPS_SCRIPT_URL || CRM_TEST_API_STORED_URL === CRM_TEST_OLD_BOOKING_APPS_SCRIPT_URL) {
+        CRM_TEST_API_STORED_URL = CRM_TEST_DEFAULT_APPS_SCRIPT_URL;
+        localStorage.setItem(CRM_TEST_API_STORAGE_KEY, CRM_TEST_API_STORED_URL);
+    }
+} catch (ignore) {}
+
+const APPS_SCRIPT_URL = CRM_TEST_API_QUERY_URL || CRM_TEST_API_STORED_URL || CRM_TEST_DEFAULT_APPS_SCRIPT_URL;
+try {
+    if (APPS_SCRIPT_URL) localStorage.setItem(CRM_TEST_API_STORAGE_KEY, APPS_SCRIPT_URL);
+} catch (ignore) {}
+window.crmSetTestApiUrl = function(url){
+    const value=String(url||"").trim();
+    try {
+        if(value) localStorage.setItem(CRM_TEST_API_STORAGE_KEY,value);
+        else localStorage.removeItem(CRM_TEST_API_STORAGE_KEY);
+    } catch (ignore) {}
+    location.reload();
+};
+if(!APPS_SCRIPT_URL){ console.warn("CRM TEST: brak URL wdrożenia Google Apps Script."); }
 
 
 /* ==========================================================================

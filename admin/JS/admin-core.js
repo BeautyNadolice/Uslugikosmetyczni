@@ -103,6 +103,9 @@ function openCreateModal() {
         null;
 
     populateAppointmentDropdowns();
+    if (typeof crmRebuildAppointmentServiceCategorySelectV3020 === "function") {
+        crmRebuildAppointmentServiceCategorySelectV3020("");
+    }
 
     document.getElementById(
         "modalTitleAppointment"
@@ -119,10 +122,13 @@ function openCreateModal() {
     ).value =
         "";
 
-    document.getElementById(
-        "appointmentService"
-    ).value =
-        "";
+    const appointmentCategory = document.getElementById("appointmentServiceCategory");
+    if (appointmentCategory) appointmentCategory.value = "";
+    if (typeof crmPopulateAppointmentServiceOptionsV3015 === "function") {
+        crmPopulateAppointmentServiceOptionsV3015("", "");
+    } else {
+        document.getElementById("appointmentService").value = "";
+    }
 
     document.getElementById(
         "appointmentDuration"
@@ -1104,7 +1110,17 @@ function crmOpenAppointmentForContact(request) {
     if (title) title.textContent = "Nowa wizyta z zapytania";
     if (name) { name.value = request.name || ""; name.readOnly = false; }
     if (phone) { phone.value = request.phone || ""; phone.readOnly = false; }
-    if (service) service.value = "";
+    const serviceCategory = document.getElementById("appointmentServiceCategory");
+    if (typeof crmRebuildAppointmentServiceCategorySelectV3020 === "function") {
+        crmRebuildAppointmentServiceCategorySelectV3020("");
+    } else if (serviceCategory) {
+        serviceCategory.value = "";
+    }
+    if (typeof crmPopulateAppointmentServiceOptionsV3015 === "function") {
+        crmPopulateAppointmentServiceOptionsV3015("", "");
+    } else if (service) {
+        service.value = "";
+    }
     if (date) date.value = "";
     if (modal) modal.style.display = "flex";
     if (service) setTimeout(() => service.focus(), 0);
@@ -2712,8 +2728,12 @@ function crmOpenFirstVisitAppointmentV8(item,isoDateTime=""){
     if(!alreadyOpen){
         set("appointmentName",item.name||"");
         set("appointmentPhone",item.phone||"");
-        set("appointmentService",item.service||"");
         set("appointmentDuration",Number(item.duration)||45);
+        if (typeof crmSetAppointmentServiceSelectionV3015 === "function") {
+            crmSetAppointmentServiceSelectionV3015(item.service||"", { clear:false });
+        } else {
+            set("appointmentService",item.service||"");
+        }
     }
 
     if(isoDateTime)set("appointmentDateTime",isoDateTime);
@@ -6093,3 +6113,211 @@ crmRenderUnifiedInbox = function() {
     }
 })();
 /* ===== KONIEC ADMIN/DEV V4 BRIDGE ===== */
+
+/* ==========================================================================
+   ADMIN V30.14 — FIRST_VISIT: RĘCZNE POŁĄCZENIE Z ISTNIEJĄCYM KLIENTEM
+   - sugestia dotyczy tylko klienta bez telefonu,
+   - samo wykrycie niczego nie zapisuje,
+   - połączenie NIE zatwierdza wizyty i NIE zmienia propozycji terminów,
+   - dopiero osobna akcja mistrzyni wybiera / zatwierdza termin.
+   ========================================================================== */
+function crmFirstVisitClientSourceLabelV3014(source) {
+    const raw = String(source || "").trim().toUpperCase();
+    if (raw.includes("BOOKSY")) return "Booksy";
+    if (raw.includes("WIFE") || raw === "DOM" || raw.includes("GOOGLE")) {
+        return "Google Calendar / DOM";
+    }
+    return String(source || "CRM");
+}
+
+async function crmLinkFirstVisitClientV3014(item, match, button) {
+    if (!item?.id || !match) return;
+
+    const clientName = String(match.name || "klient").trim();
+    const sourceLabel = crmFirstVisitClientSourceLabelV3014(match.source);
+    const ok = window.confirm(
+        `Połączyć to zgłoszenie z istniejącym klientem „${clientName}” (${sourceLabel})?\n\n` +
+        `Telefon z formularza zostanie dopisany do klienta. Proponowane terminy pozostaną bez zmian. ` +
+        `Wizyta NIE zostanie jeszcze zatwierdzona.`
+    );
+    if (!ok) return;
+
+    const oldText = button?.textContent || "Połącz z istniejącym klientem";
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Łączenie…";
+    }
+
+    try {
+        const response = await crmPost({
+            action: "linkFirstVisitExistingClientV4718",
+            requestId: item.id,
+            target: {
+                sourceKey: String(match.sourceKey || ""),
+                name: String(match.name || ""),
+                source: String(match.source || "")
+            }
+        });
+
+        if (!response?.success) {
+            throw new Error(response?.error || "Nie udało się połączyć klienta");
+        }
+        if (response.proposalsPreserved !== true) {
+            throw new Error("Połączenie przerwane: system nie potwierdził zachowania propozycji terminów.");
+        }
+        if (String(response.requestStatus || "").toUpperCase() !== "OCZEKUJE") {
+            throw new Error("Połączenie przerwane: zgłoszenie nie pozostało w stanie oczekującym.");
+        }
+
+        if (typeof loadClients === "function") {
+            try { await loadClients(); } catch (clientRefreshError) { console.warn("Odświeżenie klientów:", clientRefreshError); }
+        }
+        await crmLoadUnifiedInbox({force:true});
+
+        if (typeof crmToast === "function") {
+            crmToast("Połączono klienta. Proponowane terminy pozostały bez zmian.");
+        }
+    } catch (error) {
+        if (button) {
+            button.disabled = false;
+            button.textContent = oldText;
+        }
+        if (typeof crmToast === "function") crmToast(error?.message || String(error), "error");
+        else alert(error?.message || String(error));
+    }
+}
+window.crmLinkFirstVisitClientV3014 = crmLinkFirstVisitClientV3014;
+
+const crmRenderUnifiedInboxBeforeClientLinkV3014 = crmRenderUnifiedInbox;
+crmRenderUnifiedInbox = function() {
+    const result = crmRenderUnifiedInboxBeforeClientLinkV3014.apply(this, arguments);
+    const body = document.getElementById("crmUnifiedInboxBody");
+    if (!body) return result;
+
+    const rows = crmUnifiedInboxFilter === "ALL"
+        ? (crmUnifiedInboxItems || [])
+        : (crmUnifiedInboxItems || []).filter(item =>
+            crmInboxStatusLabel(item.readState) === crmUnifiedInboxFilter
+        );
+
+    const cards = Array.from(body.querySelectorAll("article"));
+    cards.forEach((card, index) => {
+        const item = rows[index];
+        if (!item || item.type !== "BOOKING_REQUEST" || item.requestType !== "FIRST_VISIT") return;
+
+        card.querySelector(".crm-first-visit-link-v3014")?.remove();
+        if (String(item.status || "OCZEKUJE").toUpperCase() !== "OCZEKUJE") return;
+
+        const linked = item.linkedClient && (item.linkedClient.sourceKey || item.linkedClient.name);
+        const matches = Array.isArray(item.possibleClientMatches) ? item.possibleClientMatches : [];
+        if (!linked && !matches.length) return;
+
+        const panel = document.createElement("section");
+        panel.className = "crm-first-visit-link-v3014";
+
+        if (linked) {
+            const linkedName = String(item.linkedClient.name || item.name || "Klient");
+            const linkedSource = crmFirstVisitClientSourceLabelV3014(item.linkedClient.source);
+            panel.classList.add("is-linked");
+            panel.innerHTML = `
+              <div class="crm-first-visit-link-title-v3014">✓ Połączono z istniejącym klientem</div>
+              <strong>${crmInboxEscape(linkedName)}</strong>
+              <small>${crmInboxEscape(linkedSource)}</small>
+              <p>Telefon dopisano z tego zgłoszenia. Proponowane terminy pozostają bez zmian. Wizyta nadal wymaga osobnego wyboru/zatwierdzenia terminu.</p>`;
+        } else {
+            panel.innerHTML = `
+              <div class="crm-first-visit-link-title-v3014">Możliwy istniejący klient bez telefonu</div>
+              <p>System znalazł ${matches.length === 1 ? "pasującego klienta" : "kilku klientów o tym samym imieniu"}. Nic nie zostanie połączone automatycznie.</p>`;
+
+            const choices = document.createElement("div");
+            choices.className = "crm-first-visit-link-choices-v3014";
+            matches.forEach(match => {
+                const row = document.createElement("div");
+                row.className = "crm-first-visit-link-choice-v3014";
+                const label = document.createElement("span");
+                label.innerHTML = `<strong>${crmInboxEscape(match.name || "Klient")}</strong><small>${crmInboxEscape(crmFirstVisitClientSourceLabelV3014(match.source))} · brak telefonu${Number(match.visits) ? ` · ${Number(match.visits)} wiz.` : ""}</small>`;
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-secondary";
+                btn.textContent = "Połącz z istniejącym klientem";
+                btn.onclick = () => crmLinkFirstVisitClientV3014(item, match, btn);
+                row.append(label, btn);
+                choices.appendChild(row);
+            });
+            panel.appendChild(choices);
+        }
+
+        const info = card.querySelector(".crm-first-visit-inbox-info");
+        const actions = card.querySelector(".crm-inbox-actions");
+        if (actions) card.insertBefore(panel, actions);
+        else if (info) info.insertAdjacentElement("afterend", panel);
+        else card.appendChild(panel);
+    });
+
+    return result;
+};
+
+(function crmInstallFirstVisitLinkStylesV3014(){
+    if (document.getElementById("crmFirstVisitLinkStylesV3014")) return;
+    const style = document.createElement("style");
+    style.id = "crmFirstVisitLinkStylesV3014";
+    style.textContent = `
+      .crm-first-visit-link-v3014{margin-top:12px;padding:12px;border:1px solid #ead8df;border-radius:12px;background:#fff9fb}
+      .crm-first-visit-link-v3014.is-linked{border-color:#b9d8c4;background:#f5fbf7}
+      .crm-first-visit-link-title-v3014{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#8a5267;margin-bottom:6px}
+      .crm-first-visit-link-v3014.is-linked .crm-first-visit-link-title-v3014{color:#3d7753}
+      .crm-first-visit-link-v3014>strong{display:block;font-size:14px}
+      .crm-first-visit-link-v3014>small{display:block;margin-top:2px;color:#75676d}
+      .crm-first-visit-link-v3014 p{margin:6px 0 0;font-size:12px;line-height:1.45;color:#6c5d63}
+      .crm-first-visit-link-choices-v3014{display:grid;gap:8px;margin-top:10px}
+      .crm-first-visit-link-choice-v3014{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;background:#fff;border:1px solid #f0e3e8;border-radius:10px}
+      .crm-first-visit-link-choice-v3014 span{min-width:0;display:block}
+      .crm-first-visit-link-choice-v3014 strong,.crm-first-visit-link-choice-v3014 small{display:block}
+      .crm-first-visit-link-choice-v3014 small{margin-top:2px;color:#75676d;font-size:11px}
+      @media(max-width:720px){.crm-first-visit-link-choice-v3014{align-items:stretch;flex-direction:column}.crm-first-visit-link-choice-v3014 button{width:100%}}
+    `;
+    document.head.appendChild(style);
+})();
+window.crmAdminCoreVersionV3014 = "30.14-first-visit-client-link-safe";
+/* KONIEC ADMIN V30.14 */
+
+/* ADMIN V30.21 — nowa wizyta zawsze wraca do Cennika DOM.
+   Edycja Booksy nie może pozostawić źródła Booksy w następnym formularzu. */
+const crmOpenCreateModalBeforeBooksyV3021 = openCreateModal;
+openCreateModal = function() {
+    try {
+        if (typeof crmSetAppointmentPriceSourceV3021 === "function") {
+            crmSetAppointmentPriceSourceV3021("DOM");
+        }
+    } catch (ignore) {}
+
+    const result = crmOpenCreateModalBeforeBooksyV3021.apply(this, arguments);
+
+    try {
+        if (typeof crmRebuildAppointmentServiceCategorySelectV3020 === "function") {
+            crmRebuildAppointmentServiceCategorySelectV3020("");
+        }
+        const badge = document.getElementById("crmAppointmentPriceSourceBadgeV3021");
+        if (badge) badge.hidden = true;
+    } catch (ignore) {}
+
+    return result;
+};
+
+/* V30.21: każda ścieżka tworzenia nowej wizyty wraca do Cennika DOM. */
+if (typeof crmOpenAppointmentForContact === "function") {
+    const crmOpenAppointmentForContactBeforeBooksyV3021 = crmOpenAppointmentForContact;
+    crmOpenAppointmentForContact = function() {
+        try { crmSetAppointmentPriceSourceV3021?.("DOM"); } catch (ignore) {}
+        return crmOpenAppointmentForContactBeforeBooksyV3021.apply(this, arguments);
+    };
+}
+
+if (typeof crmOpenFirstVisitAppointmentV8 === "function") {
+    const crmOpenFirstVisitAppointmentBeforeBooksyV3021 = crmOpenFirstVisitAppointmentV8;
+    crmOpenFirstVisitAppointmentV8 = function() {
+        try { crmSetAppointmentPriceSourceV3021?.("DOM"); } catch (ignore) {}
+        return crmOpenFirstVisitAppointmentBeforeBooksyV3021.apply(this, arguments);
+    };
+    window.crmOpenFirstVisitAppointmentV8 = crmOpenFirstVisitAppointmentV8;
+}

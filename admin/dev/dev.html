@@ -8,7 +8,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Nail-Art Daria CRM DEV V5</title>
+    <title>Nail-Art Daria CRM DEV V5.9</title>
 <link rel="icon" type="image/svg+xml" href="/Uslugikosmetyczni/favicon.svg">
 <!-- MODULY CSS ADMIN: kolejnosc zachowuje dotychczasowa kaskade -->
 <link rel="stylesheet" href="../CSS/styleadmin-base.css">
@@ -18,7 +18,9 @@
 /* DEV SYNC V5: zawsze świeży plik układu. */
 document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?devsync=' + Date.now() + '">');
 </script>
-<link rel="stylesheet" href="dev.css">
+<link rel="stylesheet" href="../CSS/styleadmin-cennik-premium.css">
+<link rel="stylesheet" href="../CSS/styleadmin-finance-booksy.css?v=30.35">
+<link rel="stylesheet" href="dev.css?v=5.9">
 
 </head>
 
@@ -100,6 +102,8 @@ document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?dev
                     <span class="crm-nav-label">Finanse</span>
                 </button>
 
+
+
                 <button class="nav-btn"
                         onclick="switchTab('ustawienia')">
                     <span class="crm-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1a8 8 0 0 0-1.8-1L14.2 3h-4.4l-.4 3.1a8 8 0 0 0-1.8 1l-2.5-1-2 3.4L5.1 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1a8 8 0 0 0 1.8 1l.4 3.1h4.4l.4-3.1a8 8 0 0 0 1.8-1l2.5 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"/></svg></span>
@@ -130,62 +134,19 @@ document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?dev
 
             <!-- DASHBOARD -->
 
-            <section id="tab-dashboard"
-                     class="tab-page"
-                     style="display:none;">
-
-                <div class="page-header">
-
-                    <h1>Dashboard</h1>
-
-                </div>
-
+            <section id="tab-dashboard" class="tab-page" style="display:none;">
+                <div class="page-header"><div><h1>Dashboard</h1><p style="margin:4px 0 0;color:var(--crm-text-soft);font-size:11px;">Skrót bieżącego miesiąca. Pełne rozliczenie znajduje się w Finanse.</p></div><button type="button" class="btn-secondary" onclick="switchTab('finanse')">Otwórz Finanse →</button></div>
                 <div class="dashboard-grid">
-
-                    <div class="dashboard-card">
-
-                        <h3>📅 Wizyty dziś</h3>
-
-                        <span id="dashboard-today-visits">
-                            0
-                        </span>
-
-                    </div>
-
-                    <div class="dashboard-card">
-
-                        <h3>💰 Przychód dziś</h3>
-
-                        <span id="dashboard-today-income">
-                            0 zł
-                        </span>
-
-                    </div>
-
-                    <div class="dashboard-card">
-
-                        <h3>📈 Przychód miesiąca</h3>
-
-                        <span id="dashboard-month-income">
-                            0 zł
-                        </span>
-
-                    </div>
-
-                    <div class="dashboard-card">
-
-                        <h3>👥 Klienci</h3>
-
-                        <span id="dashboard-total-clients">
-                            0
-                        </span>
-
-                    </div>
-
+                    <div class="dashboard-card"><h3>📅 Wizyty dziś</h3><span id="dashboard-today-visits">0</span></div>
+                    <div class="dashboard-card"><h3>💰 Przychód dziś</h3><span id="dashboard-today-income">0 zł</span></div>
+                    <div class="dashboard-card"><h3>📈 Przychód miesiąca</h3><span id="dashboard-month-income">0 zł</span></div>
+                    <div class="dashboard-card"><h3 id="dashboard-booksy-label">Booksy — Daria</h3><span id="dashboard-booksy-income">0 zł</span></div>
+                    <div class="dashboard-card"><h3>DOM — miesiąc</h3><span id="dashboard-dom-income">0 zł</span></div>
+                    <div class="dashboard-card"><h3 id="dashboard-main-earnings-label">Zarobek Daria Strelnikova — miesiąc</h3><span id="dashboard-main-earnings">0 zł</span></div>
+                    <div class="dashboard-card"><h3>⏱ Płatny czas Booksy</h3><span id="dashboard-main-hours">0 h</span></div>
+                    <div class="dashboard-card"><h3>👥 Klienci</h3><span id="dashboard-total-clients">0</span></div>
                 </div>
-
             </section>
-
 
             <!-- KALENDARZ -->
 
@@ -397,96 +358,165 @@ document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?dev
                     <div>
 
                         <button class="btn-primary" onclick="openAddServiceModal()">
-    ➕ Usługa
+    ➕ Usługa DOM
 </button>
 
 <button class="btn-secondary" onclick="openCategoryModal()">
-    🏷️ Kategorie
+    🏷️ Kategorie DOM
 </button>
                         <button class="btn-secondary" onclick="saveDraftsToCloud()">
-    💾 Zapisz szkic
+    💾 Zapisz DOM
 </button>
 
 <button class="btn-primary" onclick="publishDrafts()">
-    🚀 Publikuj
+    🚀 Publikuj DOM
 </button>
                     </div>
 
                 </div>
 
-                <table class="admin-table">
+                <div class="crm-admin-price-groups-v28">
+                    <details id="crmAdminDomPriceGroupV28" class="crm-admin-price-group-v28">
+                        <summary>
+                            <span><strong>Cennik DOM</strong><small>Usługi wykonywane prywatnie / w domu</small></span>
+                            <b id="crmAdminDomPriceCountV28">16 usług</b>
+                        </summary>
+                        <div class="crm-admin-price-group-body-v28">
+                            <table class="admin-table">
+                                <thead><tr><th>Kategoria</th><th>Usługa</th><th>Cena</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
+                                <tbody id="adminServicesTableBody"></tbody>
+                            </table>
+                        </div>
+                    </details>
 
-                    <thead>
+                    <details id="crmAdminBooksyPriceGroupV28" class="crm-admin-price-group-v28">
+                        <summary>
+                            <span><strong>Cennik Booksy</strong><small>Oddzielny edytor Booksy — bez połączenia z Cennikiem DOM</small></span>
+                            <b id="crmAdminBooksyPriceCountV28">90 usług</b>
+                        </summary>
+                        <div id="crmAdminBooksyPriceListV28" class="crm-admin-price-group-body-v28"></div>
+                    </details>
+                </div>
 
-                        <tr>
-
-                            <th>Kategoria</th>
-
-                            <th>Usługa</th>
-
-                            <th>Cena</th>
-
-                            <th>Czas</th>
-
-                            <th>Status</th>
-
-                            <th>Akcje</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="adminServicesTableBody">
-
-                    </tbody>
-
-                </table>
+                <style>
+                    .crm-admin-price-groups-v28{display:grid;gap:14px;margin-top:14px}
+                    .crm-admin-price-group-v28{border:1px solid #eadfe3;border-radius:16px;background:#fff;box-shadow:0 8px 22px rgba(98,64,77,.05);overflow:hidden}
+                    .crm-admin-price-group-v28>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;background:linear-gradient(90deg,#fff,#fff8fa);user-select:none}
+                    .crm-admin-price-group-v28>summary::-webkit-details-marker{display:none}
+                    .crm-admin-price-group-v28>summary span{display:grid;gap:3px}
+                    .crm-admin-price-group-v28>summary strong{font-family:Georgia,serif;font-size:20px;color:#251821}
+                    .crm-admin-price-group-v28>summary small{font-size:11px;color:#8c7d84;font-weight:500}
+                    .crm-admin-price-group-v28>summary b{font-size:11px;color:#b05c75;background:#fff0f4;border:1px solid #f2d7df;border-radius:999px;padding:6px 9px;white-space:nowrap}
+                    .crm-admin-price-group-v28>summary:after{content:'⌄';font-size:18px;color:#b05c75;margin-left:4px}
+                    .crm-admin-price-group-v28[open]>summary:after{content:'⌃'}
+                    .crm-admin-price-group-body-v28{padding:0 10px 12px;overflow:auto}
+                    .crm-booksy-category-v28{border:1px solid #efe5e8;border-radius:12px;margin:10px 0;background:#fff}
+                    .crm-booksy-category-v28>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:12px;padding:12px 14px;background:#fffafb}
+                    .crm-booksy-category-v28>summary::-webkit-details-marker{display:none}
+                    .crm-booksy-category-v28>summary strong{font-size:14px}
+                    .crm-booksy-category-v28>summary span{font-size:11px;color:#9a8991}
+                    .crm-booksy-table-v28{width:100%;border-collapse:collapse;font-size:11px}
+                    .crm-booksy-table-v28 th,.crm-booksy-table-v28 td{padding:9px 10px;border-top:1px solid #f1eaed;text-align:left;vertical-align:top}
+                    .crm-booksy-table-v28 th{font-size:9px;text-transform:uppercase;color:#8a737d;letter-spacing:.04em;background:#fffdfd}
+                    .crm-booksy-table-v28 td:nth-child(2),.crm-booksy-table-v28 td:nth-child(3){white-space:nowrap}
+                    @media(max-width:900px){.crm-admin-price-group-v28>summary{padding:13px}.crm-booksy-table-v28{min-width:560px}}
+                </style>
 
             </section>
 
 
-            <!-- FINANSE -->
-
-            <section id="tab-finanse"
-                     class="tab-page"
-                     style="display:none;">
-
-                <h1>Finanse</h1>
-
-                <div class="dashboard-grid">
-
-                    <div class="dashboard-card">
-
-                        <h3>Dzisiaj</h3>
-
-                        <span id="finance-today">
-                            0 zł
-                        </span>
-
+            <!-- FINANSE / STATYSTYKA V30.27 -->
+            <section id="tab-finanse" class="tab-page" style="display:none;">
+                <div class="crm-finance-shell-v3026">
+                    <div class="crm-finance-title-v3026">
+                        <div>
+                            <h1>Finanse i statystyka</h1>
+                            <p>Finance jest głównym raportem. Dashboard pokazuje tylko jego skrót. DOM i Booksy pozostają rozdzielone.</p>
+                        </div>
+                        <div class="crm-finance-mode-tabs-v3026" role="tablist" aria-label="Widok finansów">
+                            <button type="button" data-finance-mode-v3026="statystyka" onclick="crmFinanceModeV3026('statystyka')">Statystyka</button>
+                            <button type="button" class="active" data-finance-mode-v3026="finanse" onclick="crmFinanceModeV3026('finanse')">Finanse</button>
+                        </div>
                     </div>
 
-                    <div class="dashboard-card">
-
-                        <h3>Tydzień</h3>
-
-                        <span id="finance-week">
-                            0 zł
-                        </span>
-
+                    <div class="crm-finance-toolbar-v3026">
+                        <label>Okres
+                            <select id="finance-preset-v3026">
+                                <option value="MONTH">Ten miesiąc</option>
+                                <option value="PREV_MONTH">Poprzedni miesiąc</option>
+                                <option value="7D">Ostatnie 7 dni</option>
+                                <option value="30D">Ostatnie 30 dni</option>
+                                <option value="YEAR">Ten rok</option>
+                                <option value="CUSTOM">Własny zakres</option>
+                            </select>
+                        </label>
+                        <label>Od<input id="finance-from-v3026" type="date"></label>
+                        <label>Do<input id="finance-to-v3026" type="date"></label>
+                        <label>Źródło
+                            <select id="finance-source-v3026">
+                                <option value="ALL">Wszystko</option>
+                                <option value="BOOKSY">Booksy</option>
+                                <option value="DOM">DOM / Kalendarz</option>
+                                <option value="ONLINE">Online</option>
+                                <option value="INNE">Inne</option>
+                            </select>
+                        </label>
+                        <label>Pracownik Booksy
+                            <select id="finance-staff-v3026"><option value="">Daria Strelnikova</option></select>
+                        </label>
+                        <button id="finance-refresh-v3026" type="button" class="btn-secondary" onclick="crmFinanceLoadV3026(true)">Odśwież</button>
+                        <span id="finance-status-v3026"></span>
                     </div>
 
-                    <div class="dashboard-card">
+                    <button id="finance-quality-v3026" class="crm-finance-quality-v3026" type="button" onclick="crmFinanceOpenUnresolvedV3026()">
+                        <strong>Ładowanie jakości danych…</strong><span></span><b>›</b>
+                    </button>
 
-                        <h3>Miesiąc</h3>
-
-                        <span id="finance-month">
-                            0 zł
-                        </span>
-
+                    <div data-finance-panel-v3026="statystyka" hidden>
+                        <div class="crm-finance-kpis-v3026">
+                            <div class="crm-finance-kpi-v3026"><span>Przychód okresu</span><strong id="finance-total-v3026">0 zł</strong><small id="finance-total-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Terminy do dziś</span><strong id="finance-realized-v3026">0 zł</strong><small id="finance-realized-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Przyszłe terminy</span><strong id="finance-planned-v3026">0 zł</strong><small id="finance-planned-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Średnia wizyta</span><strong id="finance-average-v3026">0 zł</strong><small id="finance-average-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Klienci</span><strong id="finance-clients-v3026">0</strong><small id="finance-clients-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026 is-clickable" onclick="crmFinanceOpenUnresolvedV3026()"><span>Do uzupełnienia</span><strong id="finance-unresolved-v3026">0</strong><small id="finance-unresolved-v3026-sub">kliknij, aby zobaczyć</small></div>
+                        </div>
+                        <div class="crm-finance-grid-v3026">
+                            <section class="crm-finance-panel-v3026"><h2>Źródła przychodu</h2><p>Wszystko = DOM + Booksy + pozostałe źródła, ale źródła nigdy nie są mieszane w danych.</p><div id="finance-by-source-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026"><h2>Trend</h2><p>Przychód i liczba wizyt według miesiąca.</p><div id="finance-trend-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026"><details class="crm-finance-services-details-v3035"><summary><span><strong>Usługi</strong><small>Wielousługowa wizyta liczona jest po pozycjach.</small></span></summary><div class="crm-finance-services-body-v3035"><div id="finance-by-service-v3026"></div></div></details></section>
+                            <section class="crm-finance-panel-v3026"><h2>Pracownicy</h2><p>Wybór pracownika pozostaje dostępny; domyślnie raport otwiera Darię.</p><div id="finance-by-staff-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026 crm-finance-span-v3026"><h2>Operacje Booksy</h2><p>Zmiany, przeniesienia i anulowania wraz z operatorem zapisanym w historii.</p><div id="finance-booksy-ops-v3026"></div></section>
+                        </div>
                     </div>
 
+                    <div data-finance-panel-v3026="finanse">
+                        <div class="crm-finance-kpis-v3026 crm-finance-payroll-kpis-v3026">
+                            <div class="crm-finance-kpi-v3026"><span>Przychód okresu</span><strong id="finance-f-revenue-v3026">0 zł</strong><small id="finance-f-revenue-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026 accent"><span>Zarobek pracownika</span><strong id="finance-f-earnings-v3026">0 zł</strong><small id="finance-f-earnings-v3026-sub">Daria Strelnikova</small></div>
+                            <div class="crm-finance-kpi-v3026"><span>% od usług</span><strong id="finance-f-commission-v3026">0 zł</strong><small id="finance-f-commission-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Za czas</span><strong id="finance-f-hourly-v3026">0 zł</strong><small id="finance-f-hourly-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Płatny czas</span><strong id="finance-f-paidtime-v3026">0 h</strong><small id="finance-f-paidtime-v3026-sub"></small></div>
+                            <div class="crm-finance-kpi-v3026"><span>Efektywna stawka</span><strong id="finance-f-rate-v3026">0 zł/h</strong><small id="finance-f-rate-v3026-sub"></small></div>
+                        </div>
+
+                        <div class="crm-finance-grid-v3026">
+                            <section class="crm-finance-panel-v3026"><h2>Rozliczenie minimalnego obrotu</h2><p>Pokazuje dokładnie obrót, próg, bazę do procentu i naliczony procent.</p><div id="finance-threshold-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026"><h2>Czas pracy Booksy</h2><p>Zabiegi + płatne i niepłatne przerwy. Do 30 min domyślnie płatne zgodnie z aktualną konfiguracją.</p><div id="finance-time-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026"><h2>DOM — czas i efektywność</h2><p>Czas DOM nie jest wynagrodzeniem godzinowym, ale wchodzi do statystyki efektywności.</p><div id="finance-dom-time-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026"><h2>Do dziś / przyszłe</h2><p>Rozdzielenie naliczonego i planowanego zarobku pracownika.</p><div id="finance-payroll-period-v3026"></div></section>
+                            <section class="crm-finance-panel-v3026 crm-finance-span-v3026"><h2>Wizyty Booksy i płatny czas</h2><p>Kliknij wizytę, aby zobaczyć procent, stawkę i składniki wynagrodzenia. Przerwy można rozstrzygać bez zaśmiecania głównego raportu.</p><div id="finance-booksy-timeline-v3026"></div></section>
+                        </div>
+                    </div>
+                    <p id="finance-note-v3026" class="crm-finance-note-v3026"></p>
                 </div>
 
+                <div id="finance-unresolved-modal-v3026" class="crm-finance-modal-v3026" hidden>
+                    <div class="crm-finance-modal-card-v3026" role="dialog" aria-modal="true" aria-labelledby="finance-unresolved-title-v3026">
+                        <div class="crm-finance-modal-head-v3026"><div><h2 id="finance-unresolved-title-v3026">Wizyty niewliczone</h2><p>Lista pokazuje konkretną wizytę i dokładny powód.</p></div><button type="button" onclick="crmFinanceCloseUnresolvedV3026()">×</button></div>
+                        <div id="finance-unresolved-list-v3026"></div>
+                    </div>
+                </div>
             </section>
 
 
@@ -550,21 +580,83 @@ document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?dev
                     </button>
 
                 </form>
+                <section id="crm-booksy-settings-v3026" class="crm-booksy-settings-v3026">
+                    <div class="crm-booksy-settings-head-v3026">
+                        <div><h2>Ustawienia Booksy</h2><p>Personel i rozliczenia Finance. Daria jest domyślnym pracownikiem głównym, ale wybór pozostałych zostaje.</p></div>
+                        <span id="booksy-settings-status-v3026">Nie załadowano</span>
+                    </div>
+                    <div class="crm-booksy-tabs-v3026">
+                        <button type="button" class="active" data-booksy-settings-tab-v3026="personel" onclick="crmBooksySettingsTabV3026('personel')">Personel</button>
+                        <button type="button" data-booksy-settings-tab-v3026="finanse" onclick="crmBooksySettingsTabV3026('finanse')">Finanse i rozliczenia</button>
+                    </div>
+
+                    <div data-booksy-settings-panel-v3026="personel">
+                        <div class="crm-booksy-panel-head-v3026"><h3>Personel Booksy</h3><div><span id="booksy-staff-count-v3026"></span> <button type="button" class="btn-secondary" onclick="crmAddBooksyStaffV3026()">+ Dodaj osobę</button></div></div>
+                        <div class="crm-booksy-main-staff-v3026">Pracownik główny raportu: <strong id="booksy-main-staff-v3026">Daria Strelnikova</strong></div>
+                        <div id="booksy-staff-list-v3026"><div class="crm-finance-empty-v3026">Otwórz Ustawienia, aby pobrać personel.</div></div>
+                    </div>
+
+                    <div data-booksy-settings-panel-v3026="finanse" hidden>
+                        <div class="crm-booksy-finance-head-v3026">
+                            <div><h3>Ustawienia rozliczenia</h3><p>Zmiana tworzy wersję historyczną. Stary miesiąc nie zostanie przeliczony nową stawką.</p></div>
+                            <label>Pracownik<select id="booksy-fin-staff-v3026" onchange="crmLoadBooksyFinanceSettingsV3026(true)"></select></label>
+                        </div>
+                        <div class="crm-booksy-finance-grid-v3026">
+                            <label><span>Stawka godzinowa (zł/h)</span><input id="booksy-fin-hourly-v3026" type="number" min="0" step="0.01"></label>
+                            <label><span>Domyślny procent od usługi (%)</span><input id="booksy-fin-percent-v3026" type="number" min="0" max="100" step="0.01"></label>
+                            <label><span>Minimalny obrót / kwota minimalna (zł)</span><input id="booksy-fin-threshold-v3026" type="number" min="0" step="1"></label>
+                            <label class="crm-booksy-switch-v3026"><span>Uwzględniaj minimalny obrót</span><input id="booksy-fin-threshold-enabled-v3026" type="checkbox"></label>
+                            <label><span>Przerwa DOM do statystyki (min)</span><input id="booksy-fin-dom-break-v3026" type="number" min="0" step="1"></label>
+                            <label><span>Booksy: automatycznie płatna przerwa do (min)</span><input id="booksy-fin-auto-gap-v3026" type="number" min="0" step="1"></label>
+                            <label><span>Booksy: przerwa do decyzji maks. (min)</span><input id="booksy-fin-review-gap-v3026" type="number" min="0" step="1"></label>
+                            <label><span>Booksy: płatny czas przed pierwszą wizytą (min)</span><input id="booksy-fin-first-buffer-v3026" type="number" min="0" max="180" step="1"></label>
+                            <label><span>Booksy: płatny czas po ostatniej wizycie (min)</span><input id="booksy-fin-last-buffer-v3026" type="number" min="0" max="180" step="1"></label>
+                            <label><span>Nowe ustawienia obowiązują od</span><input id="booksy-fin-effective-v3026" type="date"></label>
+                        </div>
+                        <div class="crm-booksy-rule-info-v3026">
+                            <strong>Reguła czasu Booksy:</strong> przerwa do ustawionego limitu (domyślnie 30 min) jest automatycznie płatna. Dodatkowo domyślnie płatne jest 30 min przed pierwszą oraz 30 min po ostatniej wizycie dnia. Czas przed/po można zmienić globalnie w ustawieniach i ręcznie dla konkretnego dnia w raporcie Finance. Dłuższa przerwa trafia do decyzji, a bardzo długą można dodać ręcznie jako płatny czas.
+                        </div>
+                        <div class="crm-booksy-rule-info-v3026">
+                            <strong>Reguła minimalnego obrotu:</strong> do progu procent jest liczony od całego obrotu; po przekroczeniu progu pierwsza kwota progu nie bierze udziału w naliczaniu procentu, a procent liczony jest od nadwyżki. Regułę można wyłączyć.
+                        </div>
+                        <div class="crm-booksy-settings-actions-v3026"><button type="button" class="btn-primary" onclick="crmSaveBooksyFinanceSettingsV3026()">Zapisz ustawienia rozliczenia</button></div>
+
+                        <details class="crm-booksy-service-percent-v3026" open>
+                            <summary><strong>Procent od konkretnej usługi</strong><span>Domyślnie używany jest procent ogólny. Tutaj możesz ustawić wyjątek dla usługi.</span></summary>
+                            <div class="crm-booksy-service-toolbar-v3026"><input id="booksy-service-search-v3026" type="search" placeholder="Szukaj usługi…" oninput="crmFilterServicePercentsV3026()"><button type="button" class="btn-secondary" onclick="crmSaveBooksyServicePercentsV3026()">Zapisz zmienione procenty</button></div>
+                            <div id="booksy-service-percent-list-v3026"></div>
+                        </details>
+                    </div>
+                </section>
+
                 <details id="booking-requests-panel" style="margin-top:24px;"><summary><strong>Prośby o wizytę</strong></summary><div id="bookingRequestsList" style="margin-top:14px;"></div></details>
 
                 <!-- CRM TESTS: CLEAN V1 -->
                 <section id="crm-diagnostics-panel" style="width:100%;box-sizing:border-box;margin-top:35px;padding:24px;border:2px solid #c2a383;border-radius:12px;background:#fffaf6;">
                     <h2 style="margin-top:0;">🧪 Testy systemu</h2>
                     <p style="margin-bottom:8px;">
-                        <strong>CRM Test Full</strong> — pełny test regresyjny całego CRM.
+                        <strong>CRM Test Full 2.6.5</strong> — pełny test strony, paneli, szczegółów, danych i backendu CRM.
                     </p>
                     <p style="margin-top:0;">
-                        <strong>CRM Test Light</strong> — szybki test bieżącej zmiany. Jego zakres może być wymieniany razem z aktualnie poprawianym modułem.
+                        <strong>CRM Test Light 8.4 — Kategorie + Booksy</strong> — szybki test kategorii formularza oraz bezpiecznego podglądu/edycji wizyt Booksy. Bez zapisu wizyt i bez zmian w kalendarzu.
+                    </p>
+                    <p style="margin-top:0;">
+                        <strong>CRM Lite 8.5 — REPARSE review</strong> — diagnostyka bieżącej kolejki WIFE aktualnym parserem. Tylko odczyt; bez zapisu bazy i bez zmian w kalendarzu żony.
+                    </p>
+                    <p style="margin-top:0;">
+                        <strong>CRM Lite 8.6 — Review fix</strong> — sprawdza poprawki parsera WIFE, rozdzielenie typów kolejki oraz żółto-bursztynowy kafelek „Do sprawdzenia”. Tylko odczyt.
+                    </p>
+                    <p style="margin-top:0;">
+                        <strong>CRM Lite 8.7 — Reconcile preview</strong> — pokazuje dokładnie, co bezpieczna rekonsyliacja zmieni w starej kolejce. Preview jest READ ONLY; zastosowanie wymaga osobnego świadomego kliknięcia.
                     </p>
 
                     <div style="display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;">
-                        <button id="runCRMTestLightBtn" type="button" class="btn-secondary" onclick="runCRMTestLight()">⚡ CRM Test Light</button>
-                        <button id="runCRMTestFullBtn" type="button" class="btn-primary" onclick="runCRMTestFull()">🧪 CRM Test Full</button>
+                        <button id="runCRMTestLightBtn" type="button" class="btn-secondary" onclick="runCRMTestLight()">⚡ CRM Lite 8.4 — Kategorie + Booksy</button>
+                        <button id="runCRMReviewReparseBtn" type="button" class="btn-secondary" onclick="runCRMReviewReparseDiagnostic()">🔎 CRM Lite 8.5 — REPARSE review</button>
+                        <button id="runCRMReviewFixBtn" type="button" class="btn-secondary" onclick="runCRMReviewParserFixV86()">🟨 CRM Lite 8.6 — Review fix</button>
+                        <button id="runCRMReviewReconcilePreviewBtn" type="button" class="btn-secondary" onclick="runCRMReviewReconcilePreviewV87()">👁 CRM Lite 8.7 — Reconcile preview</button>
+                        <button id="applyCRMReviewReconcileBtn" type="button" class="btn-secondary" onclick="applyCRMReviewReconcileV87()" disabled title="Najpierw uruchom preview 8.7">🧹 Zastosuj bezpieczny RECONCILE</button>
+                        <button id="runCRMTestFullBtn" type="button" class="btn-primary" onclick="runCRMTestFull()">🧪 CRM Test Full 2.6.5</button>
                         <button id="copyCRMTestReportBtn" type="button" class="btn-secondary" onclick="copyCRMTestReport()">📋 Kopiuj raport</button>
                     </div>
 
@@ -636,18 +728,26 @@ document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?dev
         </div>
 
         <div class="form-group">
-            <label>
-                Nazwa usługi / Zabieg:
+            <label for="appointmentServiceCategory">
+                Kategoria usługi:
             </label>
 
-            <input type="text"
-                   id="appointmentService"
-                   list="appointmentServiceNameList"
-                   oninput="handleAppointmentServiceInput()"
-                   autocomplete="new-password"
-                   placeholder="Wpisz nazwę zabiegu">
+            <select id="appointmentServiceCategory"
+                    onchange="handleAppointmentServiceCategoryChange()">
+                <option value="">Wybierz kategorię</option>
+            </select>
+        </div>
 
-            <datalist id="appointmentServiceNameList"></datalist>
+        <div class="form-group">
+            <label for="appointmentService">
+                Usługa / Zabieg:
+            </label>
+
+            <select id="appointmentService"
+                    onchange="handleAppointmentServiceInput()"
+                    disabled>
+                <option value="">Najpierw wybierz kategorię</option>
+            </select>
         </div>
 
         <div class="form-group">
@@ -927,17 +1027,19 @@ document.write('<link rel="stylesheet" href="../CSS/styleadmin-overrides.css?dev
 </div>
 <!-- MODULY ADMIN: kolejnosc zachowuje zaleznosci globalne -->
 <script src="../JS/admin-api.js"></script>
-<script src="../JS/admin-utils.js"></script>
-<script src="../JS/navigation-dashboard.js"></script>
-<script src="../JS/calendar.js"></script>
-<script src="../JS/visits.js"></script>
-<script src="../JS/clients.js"></script>
-<script src="../JS/price-list.js"></script>
-<script src="../JS/finance.js"></script>
-<script src="../JS/settings-diagnostics.js"></script>
-<script src="../JS/crm-test-full.js"></script>
-<script src="../JS/crm-test-light.js"></script>
-<script src="../JS/admin-core.js?v=devsync5-20260822"></script>
+<script src="../JS/admin-utils.js?v=30.7"></script>
+<script src="../JS/navigation-dashboard.js?v=30.28"></script>
+<script src="../JS/calendar.js?v=30.34"></script>
+<script src="../JS/visits.js?v=30.32"></script>
+<script src="../JS/clients.js?v=30.14"></script>
+<script src="../JS/price-list.js?v=30.24"></script>
+<script src="../JS/finance.js?v=30.35"></script>
+<script src="../JS/booksy-settings.js?v=30.32"></script>
+<script src="../JS/settings-diagnostics.js?v=30.13"></script>
+<script src="../JS/crm-test-full.js?v=2.6.5"></script>
+<script src="../JS/crm-test-light.js?v=8.7"></script>
+<script src="../JS/admin-core.js?v=30.21"></script>
+<script src="../JS/review-blocks.js?v=30.24"></script>
 <script>
 document.write('<script src="app-dev.js?devsync=' + Date.now() + '"><\/script>');
 </script>

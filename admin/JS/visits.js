@@ -1,9 +1,9 @@
+// BUILD MARKER: V30.32 — BOOKSY EDIT IDENTITY GUARD
 /* ==========================================================================
    VIS. WIZYTY I PRAWY PANEL
    Plik wygenerowany zachowawczo z admin.js. Kolejnosc elementow wewnatrz
    modulu odpowiada kolejnosci w monolicie. Nie zmieniac nazw globalnych.
    ========================================================================== */
-
 
 /* ADMIN PERFORMANCE V25.2 2026-08-19
    Bazuje na V25.1; zachowuje wszystkie optymalizacje V24/V25.1.
@@ -126,6 +126,567 @@ function populateAppointmentDropdowns() {
 
 }
 
+/* ----- VIS.6.1. Dwustopniowy wybór usługi: kategoria -> usługa (ADMIN V30.15) ----- */
+function crmAppointmentServicesV3015() {
+    return (Array.isArray(currentServices) ? currentServices : [])
+        .filter(item => item && String(item.name || "").trim());
+}
+
+function crmAppointmentServiceCategoriesV3015() {
+    const seen = new Set();
+    const result = [];
+    crmAppointmentServicesV3015().forEach(item => {
+        const category = String(item.category || "Inne").trim() || "Inne";
+        const key = category.toLocaleLowerCase("pl-PL");
+        if (seen.has(key)) return;
+        seen.add(key);
+        result.push(category);
+    });
+    return result;
+}
+
+/* ADMIN V30.20: jeden jawny builder pełnego selecta kategorii.
+   Źródłem jest wyłącznie currentServices — nigdy aktualne optiony DOM.
+   Dzięki temu Edytuj / Zmień usługę / Dodaj wizytę nie dziedziczą
+   zawężonej listy z poprzedniego otwarcia formularza. */
+function crmRebuildAppointmentServiceCategorySelectV3020(selectedCategory) {
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    if (!categorySelect) return [];
+
+    const categories = crmAppointmentServiceCategoriesV3015();
+    const wanted = String(selectedCategory || "").trim();
+
+    categorySelect.disabled = false;
+    categorySelect.innerHTML = '<option value="">Wybierz kategorię</option>';
+
+    categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+    });
+
+    const exact = categories.find(category =>
+        String(category).toLocaleLowerCase("pl-PL") === wanted.toLocaleLowerCase("pl-PL")
+    );
+    categorySelect.value = exact || "";
+    return categories;
+}
+window.crmRebuildAppointmentServiceCategorySelectV3020 = crmRebuildAppointmentServiceCategorySelectV3020;
+
+/* ADMIN V30.17: picker usługi ma własny szybki odczyt Cennika DOM.
+   Poprzednia wersja 30.16 korzystała z crmLoadServicesPrimaryV2(), czyli wspólnej kolejki
+   odczytów serwera. Przy zajętej kolejce select potrafił długo wisieć na
+   „Ładowanie kategorii…”. Zmiana usługi jest akcją użytkownika, więc ma dostać
+   bezpośredni, limitowany czasowo odczyt i nie może czekać w tle bez końca. */
+const CRM_APPOINTMENT_SERVICES_CACHE_V3017 = "crm_appointment_services_v3017";
+let crmAppointmentServicesLoadPromiseV3017 = null;
+
+function crmRestoreAppointmentServicesCacheV3017() {
+    if (crmAppointmentServicesV3015().length) return true;
+    try {
+        const raw = window.sessionStorage?.getItem(CRM_APPOINTMENT_SERVICES_CACHE_V3017);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data) || !data.length) return false;
+        currentServices = data;
+        return true;
+    } catch (error) {
+        console.warn("Nie udało się odczytać podręcznego Cennika DOM:", error);
+        return false;
+    }
+}
+
+function crmRememberAppointmentServicesV3017(data) {
+    try {
+        if (Array.isArray(data) && data.length) {
+            window.sessionStorage?.setItem(CRM_APPOINTMENT_SERVICES_CACHE_V3017, JSON.stringify(data));
+        }
+    } catch (error) {
+        console.warn("Nie udało się zapisać podręcznego Cennika DOM:", error);
+    }
+}
+
+/* ADMIN V30.18: picker najpierw korzysta z danych, które ADMIN już ma.
+   Kalendarz może być widoczny z cache zanim zakończy się świeży bootstrap Google.
+   Nie uruchamiamy wtedy drugiego równoległego getPrices — najpierw bierzemy usługi
+   z cache V18/V19 albo czekamy krótko na istniejący bootstrap V19.1. */
+window.crmAppointmentPickerSourceV3018 = window.crmAppointmentPickerSourceV3018 || "";
+
+function crmUseAppointmentServicesV3018(data, source) {
+    const list = Array.isArray(data)
+        ? data.filter(item => item && String(item.name || "").trim())
+        : [];
+    if (!list.length) return false;
+
+    currentServices = list;
+    window.crmAppointmentPickerSourceV3018 = String(source || "unknown");
+    crmRememberAppointmentServicesV3017(list);
+    try { if (typeof renderServicesTable === "function") renderServicesTable(); } catch (ignore) {}
+    try { if (typeof crmAdminSyncDomPriceCountV28 === "function") crmAdminSyncDomPriceCountV28(); } catch (ignore) {}
+    return true;
+}
+
+function crmRestoreAppointmentServicesFromAdminCachesV3018() {
+    if (crmAppointmentServicesV3015().length) {
+        window.crmAppointmentPickerSourceV3018 = "currentServices";
+        crmRememberAppointmentServicesV3017(currentServices);
+        return true;
+    }
+
+    if (crmRestoreAppointmentServicesCacheV3017()) {
+        window.crmAppointmentPickerSourceV3018 = "picker-session-cache";
+        return true;
+    }
+
+    try {
+        if (typeof crmPerfReadCacheV18 === "function") {
+            const cached = crmPerfReadCacheV18();
+            if (crmUseAppointmentServicesV3018(cached?.services, "bootstrap-session-v18")) return true;
+        }
+    } catch (ignore) {}
+
+    try {
+        const raw = window.sessionStorage?.getItem("crm_admin_bootstrap_v18");
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (crmUseAppointmentServicesV3018(parsed?.data?.services, "bootstrap-session-raw")) return true;
+    } catch (ignore) {}
+
+    try {
+        if (typeof crmPerfReadPersistentCacheV19 === "function") {
+            const cached = crmPerfReadPersistentCacheV19();
+            if (crmUseAppointmentServicesV3018(cached?.data?.services, "bootstrap-persistent-v19")) return true;
+        }
+    } catch (ignore) {}
+
+    try {
+        const raw = window.localStorage?.getItem("crm_admin_bootstrap_persist_v19");
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (crmUseAppointmentServicesV3018(parsed?.data?.services, "bootstrap-persistent-raw")) return true;
+    } catch (ignore) {}
+
+    return false;
+}
+
+async function crmAwaitExistingBootstrapServicesV3018(timeoutMs = 7000) {
+    if (crmRestoreAppointmentServicesFromAdminCachesV3018()) return true;
+
+    const fresh = window.crmPerfFreshBootstrapPromiseV191;
+    if (!fresh || typeof fresh.then !== "function") return false;
+
+    let timer = null;
+    try {
+        await Promise.race([
+            Promise.resolve(fresh).catch(() => null),
+            new Promise(resolve => {
+                timer = window.setTimeout(resolve, Math.max(500, Number(timeoutMs) || 7000));
+            })
+        ]);
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+
+    if (crmAppointmentServicesV3015().length) {
+        window.crmAppointmentPickerSourceV3018 = "fresh-bootstrap-v19.1";
+        crmRememberAppointmentServicesV3017(currentServices);
+        return true;
+    }
+    return crmRestoreAppointmentServicesFromAdminCachesV3018();
+}
+
+function crmRenderAppointmentServiceLoadErrorV3018(message) {
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    const serviceSelect = document.getElementById("appointmentService");
+    const durationInput = document.getElementById("appointmentDuration");
+
+    if (categorySelect) {
+        categorySelect.disabled = false;
+        categorySelect.innerHTML = '<option value="__retry__">Nie udało się — kliknij, aby ponowić</option>';
+        categorySelect.value = "__retry__";
+        categorySelect.title = String(message || "Nie udało się załadować Cennika DOM");
+    }
+    if (serviceSelect) {
+        serviceSelect.disabled = true;
+        serviceSelect.innerHTML = '<option value="">Najpierw wczytaj kategorie</option>';
+    }
+    if (durationInput) {
+        durationInput.value = "";
+        durationInput.disabled = true;
+        durationInput.placeholder = "Wybierz usługę";
+    }
+}
+
+async function crmReloadAppointmentServicePickerV3018() {
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    const serviceSelect = document.getElementById("appointmentService");
+    if (categorySelect) {
+        categorySelect.disabled = true;
+        categorySelect.innerHTML = '<option value="">Ładowanie kategorii…</option>';
+    }
+    if (serviceSelect) {
+        serviceSelect.disabled = true;
+        serviceSelect.innerHTML = '<option value="">Najpierw wybierz kategorię</option>';
+    }
+
+    const ready = await crmEnsureAppointmentServicesV3018();
+    if (!ready) {
+        crmRenderAppointmentServiceLoadErrorV3018("Cennik DOM nie odpowiedział. Kliknij pole kategorii, aby spróbować ponownie.");
+        return false;
+    }
+    populateAppointmentDropdowns();
+    crmSetAppointmentServiceSelectionV3015("", { clear:true });
+    return true;
+}
+window.crmReloadAppointmentServicePickerV3018 = crmReloadAppointmentServicePickerV3018;
+
+async function crmFetchAppointmentServicesDirectV3017() {
+    const separator = String(APPS_SCRIPT_URL || "").includes("?") ? "&" : "?";
+    const url = `${APPS_SCRIPT_URL}${separator}getPrices=true&_appointmentPicker=${Date.now()}`;
+
+    let data = null;
+    if (typeof crmFetchJsonV12 === "function") {
+        data = await crmFetchJsonV12(url, { timeoutMs: 15000 });
+    } else {
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        let timer = null;
+        try {
+            const timeout = new Promise((_, reject) => {
+                timer = window.setTimeout(() => {
+                    try { controller?.abort(); } catch (ignore) {}
+                    reject(new Error("Cennik DOM nie odpowiedział w ciągu 15 s."));
+                }, 15000);
+            });
+            const request = (async () => {
+                const response = await fetch(url, {
+                    method: "GET",
+                    cache: "no-store",
+                    signal: controller ? controller.signal : undefined
+                });
+                const text = await response.text();
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return JSON.parse(text);
+            })();
+            data = await Promise.race([request, timeout]);
+        } finally {
+            if (timer) window.clearTimeout(timer);
+        }
+    }
+
+    if (!Array.isArray(data) || !data.length) {
+        throw new Error("Cennik DOM nie zwrócił listy usług.");
+    }
+
+    currentServices = data;
+    crmRememberAppointmentServicesV3017(data);
+    if (typeof renderServicesTable === "function") renderServicesTable();
+    if (typeof crmAdminSyncDomPriceCountV28 === "function") crmAdminSyncDomPriceCountV28();
+    return data;
+}
+
+async function crmEnsureAppointmentServicesV3017() {
+    if (crmAppointmentServicesV3015().length) {
+        crmRememberAppointmentServicesV3017(currentServices);
+        return true;
+    }
+
+    if (crmRestoreAppointmentServicesCacheV3017()) return true;
+
+    if (!crmAppointmentServicesLoadPromiseV3017) {
+        crmAppointmentServicesLoadPromiseV3017 = (async () => {
+            try {
+                await crmFetchAppointmentServicesDirectV3017();
+                return crmAppointmentServicesV3015().length > 0;
+            } catch (directError) {
+                console.warn("Bezpośredni odczyt Cennika DOM nie powiódł się:", directError);
+
+                /* Awaryjnie próbujemy istniejącym loaderem, ale maksymalnie 12 s.
+                   Nie pozwalamy już zostawić selecta w stanie „Ładowanie…” bez końca. */
+                if (typeof crmLoadServicesPrimaryV2 === "function") {
+                    try {
+                        let timer = null;
+                        const timeout = new Promise((_, reject) => {
+                            timer = window.setTimeout(() => reject(new Error("Awaryjny odczyt Cennika DOM przekroczył 12 s.")), 12000);
+                        });
+                        try {
+                            await Promise.race([Promise.resolve(crmLoadServicesPrimaryV2()), timeout]);
+                        } finally {
+                            if (timer) window.clearTimeout(timer);
+                        }
+                    } catch (fallbackError) {
+                        console.warn("Awaryjny odczyt Cennika DOM nie powiódł się:", fallbackError);
+                    }
+                }
+
+                if (crmAppointmentServicesV3015().length) {
+                    crmRememberAppointmentServicesV3017(currentServices);
+                    return true;
+                }
+                return false;
+            }
+        })().finally(() => {
+            crmAppointmentServicesLoadPromiseV3017 = null;
+        });
+    }
+
+    return crmAppointmentServicesLoadPromiseV3017;
+}
+
+async function crmEnsureAppointmentServicesV3018() {
+    if (crmRestoreAppointmentServicesFromAdminCachesV3018()) return true;
+
+    /* Najważniejsza ścieżka dla zwykłego startu strony: czekamy na request bootstrap,
+       który ADMIN już uruchomił. Nie tworzymy od razu drugiego requestu do Google. */
+    if (await crmAwaitExistingBootstrapServicesV3018(7000)) return true;
+
+    /* Dopiero gdy ADMIN naprawdę nie ma usług ani w cache, ani w bieżącym bootstrapie,
+       uruchamiamy ograniczony czasowo odczyt awaryjny. */
+    let timer = null;
+    try {
+        const pending = Promise.resolve(crmEnsureAppointmentServicesV3017());
+        const result = await Promise.race([
+            pending,
+            new Promise(resolve => {
+                timer = window.setTimeout(() => resolve(false), 9000);
+            })
+        ]);
+
+        if (result && crmAppointmentServicesV3015().length) {
+            window.crmAppointmentPickerSourceV3018 = window.crmAppointmentPickerSourceV3018 || "fallback-getPrices";
+            return true;
+        }
+
+        /* Jeśli Google odpowie później, odśwież picker automatycznie — bez ponownego kliknięcia. */
+        pending.then(ok => {
+            if (!ok || !crmAppointmentServicesV3015().length) return;
+            const modal = document.getElementById("appointmentModal");
+            if (!modal || getComputedStyle(modal).display === "none") return;
+            populateAppointmentDropdowns();
+            crmSetAppointmentServiceSelectionV3015("", { clear:true });
+            window.crmAppointmentPickerSourceV3018 = "late-fallback-getPrices";
+        }).catch(() => {});
+
+        return false;
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+}
+
+function crmPopulateAppointmentServiceOptionsV3015(category, selectedService) {
+    const serviceSelect = document.getElementById("appointmentService");
+    if (!serviceSelect) return;
+
+    const normalizedCategory = String(category || "").trim();
+    const wantedService = String(selectedService || "").trim();
+    serviceSelect.innerHTML = "";
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = normalizedCategory
+        ? "Wybierz usługę"
+        : "Najpierw wybierz kategorię";
+    serviceSelect.appendChild(placeholder);
+
+    if (!normalizedCategory) {
+        serviceSelect.disabled = true;
+        serviceSelect.value = "";
+        return;
+    }
+
+    const services = crmAppointmentServicesV3015().filter(item =>
+        String(item.category || "Inne").trim() === normalizedCategory
+    );
+
+    services.forEach(item => {
+        const option = document.createElement("option");
+        option.value = String(item.name || "").trim();
+        option.textContent = option.value;
+        serviceSelect.appendChild(option);
+    });
+
+    serviceSelect.disabled = false;
+    serviceSelect.value = services.some(item => String(item.name || "").trim() === wantedService)
+        ? wantedService
+        : "";
+}
+
+function populateServiceNameDatalist(selectedCategory, selectedService) {
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    const serviceSelect = document.getElementById("appointmentService");
+    if (!categorySelect || !serviceSelect) return;
+
+    const previousCategory = selectedCategory !== undefined
+        ? String(selectedCategory || "")
+        : String(categorySelect.value || "");
+    const previousService = selectedService !== undefined
+        ? String(selectedService || "")
+        : String(serviceSelect.value || "");
+
+    crmRebuildAppointmentServiceCategorySelectV3020(previousCategory);
+    crmPopulateAppointmentServiceOptionsV3015(categorySelect.value, previousService);
+}
+
+/* ADMIN V30.19: przy zwykłej edycji zachowujemy i pokazujemy kategorię
+   bieżącej usługi od razu, zamiast zostawiać pole kategorii na "Ładowanie...".
+   Najpierw próbujemy dokładnego Cennika DOM, a gdy nie jest jeszcze dostępny
+   — bezpiecznej podpowiedzi z danych wizyty/nazwy usługi. */
+function crmInferAppointmentCategoryV3019(appointmentOrService) {
+    const appointment = appointmentOrService && typeof appointmentOrService === "object"
+        ? appointmentOrService
+        : null;
+    const serviceName = String(appointment ? (appointment.service || "") : (appointmentOrService || "")).trim();
+    const rawCategory = String(appointment?.category || "").trim();
+
+    if (serviceName) {
+        const exact = crmAppointmentServicesV3015().find(item =>
+            String(item.name || "").trim().toLocaleLowerCase("pl-PL") ===
+            serviceName.toLocaleLowerCase("pl-PL")
+        );
+        if (exact) return String(exact.category || "Inne").trim() || "Inne";
+    }
+
+    const knownCategories = crmAppointmentServiceCategoriesV3015();
+    if (rawCategory && !/^(inne|do_weryfikacji|blokada)$/i.test(rawCategory)) {
+        const exactCategory = knownCategories.find(category =>
+            String(category).toLocaleLowerCase("pl-PL") === rawCategory.toLocaleLowerCase("pl-PL")
+        );
+        if (exactCategory) return exactCategory;
+    }
+
+    const text = `${rawCategory} ${serviceName}`.toLocaleLowerCase("pl-PL");
+    if (/pedicure|st[oó]p|paluszk/.test(text)) return "Pedicure";
+    if (/manicure|paznok|paznokci|żel|hybryd|r[eę]ce/.test(text)) return "Manicure";
+    if (/napraw|zdobieni|ści[aą]gni|french|baby boomer|gradient|ombre|masaż/.test(text)) return "Dodatki";
+
+    return rawCategory && !/^(inne|do_weryfikacji|blokada)$/i.test(rawCategory)
+        ? rawCategory
+        : "";
+}
+
+function crmPrimeAppointmentServiceFieldsV3019(appointment) {
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    const serviceSelect = document.getElementById("appointmentService");
+    const durationInput = document.getElementById("appointmentDuration");
+    if (!categorySelect || !serviceSelect || !appointment) return;
+
+    const serviceName = String(appointment.service || "").trim();
+    const inferredCategory = crmInferAppointmentCategoryV3019(appointment);
+
+    /* V30.20: nawet przy zwykłej edycji budujemy PEŁNĄ listę kategorii,
+       a dopiero potem zaznaczamy kategorię bieżącej usługi. */
+    crmRebuildAppointmentServiceCategorySelectV3020(inferredCategory);
+    crmPopulateAppointmentServiceOptionsV3015(categorySelect.value, serviceName);
+
+    if (serviceName && serviceSelect.value !== serviceName) {
+        const current = document.createElement("option");
+        current.value = serviceName;
+        current.textContent = `Obecna wartość: ${serviceName}`;
+        serviceSelect.insertBefore(current, serviceSelect.firstChild?.nextSibling || null);
+        serviceSelect.disabled = false;
+        serviceSelect.value = serviceName;
+    }
+
+    if (durationInput) {
+        durationInput.disabled = false;
+        durationInput.placeholder = "";
+        durationInput.value = appointment.duration || durationInput.value || 45;
+    }
+}
+
+function crmSetAppointmentServiceSelectionV3015(serviceName, options) {
+    const config = options || {};
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    const serviceSelect = document.getElementById("appointmentService");
+    const durationInput = document.getElementById("appointmentDuration");
+    if (!categorySelect || !serviceSelect) return;
+
+    crmRebuildAppointmentServiceCategorySelectV3020("");
+
+    if (config.clear === true) {
+        categorySelect.value = "";
+        crmPopulateAppointmentServiceOptionsV3015("", "");
+        if (durationInput) {
+            durationInput.value = "";
+            durationInput.disabled = true;
+            durationInput.placeholder = "Wybierz usługę";
+        }
+        return;
+    }
+
+    const wanted = String(serviceName || "").trim();
+    const matched = crmAppointmentServicesV3015().find(item =>
+        String(item.name || "").trim().toLocaleLowerCase("pl-PL") ===
+        wanted.toLocaleLowerCase("pl-PL")
+    );
+
+    if (matched) {
+        const category = String(matched.category || "Inne").trim() || "Inne";
+        categorySelect.value = category;
+        crmPopulateAppointmentServiceOptionsV3015(category, String(matched.name || "").trim());
+        if (durationInput) {
+            durationInput.disabled = false;
+            durationInput.placeholder = "";
+            if (matched.duration) durationInput.value = matched.duration;
+        }
+        return;
+    }
+
+    // Historyczna/niepełna nazwa, np. "brwi": przy zwykłej edycji zachowujemy ją.
+    // V30.19: jeśli potrafimy wskazać kategorię, zostawiamy ją zaznaczoną i jednocześnie
+    // pokazujemy poprawne usługi z tej kategorii. Dzięki temu można od razu zastąpić
+    // historyczny opis dokładną procedurą z Cennika DOM.
+    const preferredCategory = String(config.preferredCategory || "").trim();
+    const availableCategories = crmAppointmentServiceCategoriesV3015();
+    const resolvedCategory = availableCategories.find(category =>
+        String(category).toLocaleLowerCase("pl-PL") === preferredCategory.toLocaleLowerCase("pl-PL")
+    ) || "";
+
+    if (resolvedCategory) {
+        categorySelect.value = resolvedCategory;
+        crmPopulateAppointmentServiceOptionsV3015(resolvedCategory, "");
+        const currentOption = document.createElement("option");
+        currentOption.value = wanted;
+        currentOption.textContent = wanted ? `Obecna wartość: ${wanted}` : "Wybierz usługę";
+        serviceSelect.insertBefore(currentOption, serviceSelect.firstChild?.nextSibling || null);
+        serviceSelect.value = wanted;
+    } else {
+        categorySelect.value = "";
+        serviceSelect.innerHTML = "";
+        const option = document.createElement("option");
+        option.value = wanted;
+        option.textContent = wanted ? `Obecna wartość: ${wanted}` : "Najpierw wybierz kategorię";
+        serviceSelect.appendChild(option);
+        serviceSelect.value = wanted;
+        serviceSelect.disabled = false;
+    }
+
+    if (durationInput) {
+        durationInput.disabled = false;
+        durationInput.placeholder = "";
+    }
+}
+
+function handleAppointmentServiceCategoryChange() {
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    if (!categorySelect) return;
+
+    if (categorySelect.value === "__retry__") {
+        crmReloadAppointmentServicePickerV3018();
+        return;
+    }
+
+    crmPopulateAppointmentServiceOptionsV3015(categorySelect.value, "");
+
+    const durationInput = document.getElementById("appointmentDuration");
+    if (durationInput) {
+        durationInput.value = "";
+        durationInput.disabled = true;
+        durationInput.placeholder = categorySelect.value ? "Wybierz usługę" : "Najpierw wybierz kategorię";
+    }
+
+    const serviceSelect = document.getElementById("appointmentService");
+    if (serviceSelect && !serviceSelect.disabled) serviceSelect.focus();
+}
+
 /* ----- VIS.7. populateAppointmentDatalists (oryginalna linia 1092) ----- */
 function populateAppointmentDatalists() {
 
@@ -225,43 +786,29 @@ function handleAppointmentPhoneInput() {
 /* ----- VIS.10. handleAppointmentServiceInput (oryginalna linia 1331) ----- */
 function handleAppointmentServiceInput() {
 
-    const serviceInput =
-        document.getElementById(
-            "appointmentService"
-        );
+    const serviceInput = document.getElementById("appointmentService");
+    const durationInput = document.getElementById("appointmentDuration");
+    const categoryInput = document.getElementById("appointmentServiceCategory");
 
-    const durationInput =
-        document.getElementById(
-            "appointmentDuration"
-        );
+    if (!serviceInput || !durationInput) return;
 
-    if (!serviceInput || !durationInput) {
+    const selectedService = String(serviceInput.value || "").trim();
+    if (!selectedService) {
+        durationInput.value = "";
+        durationInput.disabled = true;
+        durationInput.placeholder = "Wybierz usługę";
         return;
     }
 
-    const typedService =
-        serviceInput.value
-            .trim()
-            .toLowerCase();
-
-    if (!typedService) {
-        return;
-    }
-
-    const service =
-        currentServices.find(item => {
-            return (
-                item.name &&
-                item.name
-                    .toString()
-                    .trim()
-                    .toLowerCase() === typedService
-            );
-        });
+    const service = crmAppointmentServicesV3015().find(item =>
+        String(item.name || "").trim() === selectedService
+    );
 
     if (service) {
-        durationInput.value =
-            service.duration || 45;
+        durationInput.disabled = false;
+        durationInput.placeholder = "";
+        durationInput.value = service.duration || 45;
+        if (categoryInput) categoryInput.value = String(service.category || "Inne").trim() || "Inne";
     }
 
 }
@@ -291,6 +838,13 @@ async function saveAppointment() {
             "appointmentService"
         ).value.trim();
 
+    const category = String(
+        document.getElementById("appointmentServiceCategory")?.value ||
+        crmAppointmentServicesV3015().find(item => String(item.name || "").trim() === service)?.category ||
+        currentEditingAppointment?.category ||
+        ""
+    ).trim();
+
     const duration =
         Number(
             document.getElementById(
@@ -303,14 +857,23 @@ async function saveAppointment() {
             "appointmentDateTime"
         ).value;
 
+    const isBooksyEditV3021 =
+        Boolean(
+            currentEditingAppointment &&
+            typeof crmIsBooksyVisitV3021 === "function" &&
+            crmIsBooksyVisitV3021(currentEditingAppointment)
+        );
+
     if (
         !name ||
-        !phone ||
+        (!phone && !isBooksyEditV3021) ||
         !service ||
         !dateValue
     ) {
         alert(
-            "Uzupełnij wszystkie pola wizyty."
+            isBooksyEditV3021
+                ? "Uzupełnij klienta, usługę i termin wizyty."
+                : "Uzupełnij wszystkie pola wizyty."
         );
         return;
     }
@@ -345,6 +908,9 @@ async function saveAppointment() {
 
         service:
         service,
+
+        category:
+        category,
 
         date:
         dateValue,
@@ -413,6 +979,17 @@ async function saveAppointment() {
 
         payload.oldName =
             currentEditingAppointment.name;
+
+        if (
+            typeof crmBooksyEditSourceMetadataV3021 === "function" &&
+            crmIsBooksyVisitV3021(currentEditingAppointment)
+        ) {
+            const booksyMetaV3021 = crmBooksyEditSourceMetadataV3021(currentEditingAppointment);
+            payload.bookingSource = "ADMIN";
+            payload.preserveBookingSource = booksyMetaV3021.preserveBookingSource;
+            payload.sourceRequestId = booksyMetaV3021.sourceRequestId;
+            payload.rodo = "Edytowano tylko w CRM — źródło Booksy zachowane";
+        }
 
     }
 
@@ -518,7 +1095,7 @@ async function saveAppointment() {
 }
 
 /* ----- VIS.12. openEditAppointmentModal (oryginalna linia 1628) ----- */
-function openEditAppointmentModal() {
+async function openEditAppointmentModal(options) {
 
     if (isDeletingAppointment) {
         return;
@@ -536,12 +1113,60 @@ function openEditAppointmentModal() {
         return;
     }
 
+    const editOptions = options || {};
+
+    const categorySelect = document.getElementById("appointmentServiceCategory");
+    const serviceSelect = document.getElementById("appointmentService");
+
+    if (editOptions.changeService !== true) {
+        // V30.19: zwykła edycja ma od razu pokazać obecną kategorię/usługę,
+        // nawet jeśli pełny Cennik DOM jest jeszcze doładowywany w tle.
+        crmPrimeAppointmentServiceFieldsV3019(currentEditingAppointment);
+    }
+
+    if (editOptions.changeService === true) {
+        if (categorySelect) {
+            categorySelect.disabled = true;
+            categorySelect.innerHTML = '<option value="">Ładowanie kategorii…</option>';
+        }
+        if (serviceSelect) {
+            serviceSelect.disabled = true;
+            serviceSelect.innerHTML = '<option value="">Najpierw wybierz kategorię</option>';
+        }
+
+        /* V30.18: formularz pokazujemy od razu. Użytkownik widzi, że kliknięcie zadziałało,
+           a ładowanie odbywa się wewnątrz pola kategorii. */
+        const modalTitle = document.getElementById("modalTitleAppointment");
+        if (modalTitle) modalTitle.innerText = "Zmień usługę wizyty";
+        const nameInput = document.getElementById("appointmentName");
+        const phoneInput = document.getElementById("appointmentPhone");
+        const durationInput = document.getElementById("appointmentDuration");
+        const dateInput = document.getElementById("appointmentDateTime");
+        if (nameInput) nameInput.value = currentEditingAppointment.name || "";
+        if (phoneInput) phoneInput.value = currentEditingAppointment.phone || "";
+        if (durationInput) {
+            durationInput.value = "";
+            durationInput.disabled = true;
+            durationInput.placeholder = "Wybierz usługę";
+        }
+        if (dateInput) dateInput.value = formatDateTimeLocalValue(currentEditingAppointment.date);
+        closeAppointmentModal();
+        const editorModal = document.getElementById("appointmentModal");
+        if (editorModal) editorModal.style.display = "flex";
+    }
+
+    const servicesReady = await crmEnsureAppointmentServicesV3018();
     populateAppointmentDropdowns();
+
+    if (categorySelect) categorySelect.disabled = false;
+    if (!servicesReady && editOptions.changeService === true && categorySelect) {
+        categorySelect.innerHTML = '<option value="">Nie udało się załadować kategorii</option>';
+    }
 
     document.getElementById(
         "modalTitleAppointment"
     ).innerText =
-        "Edytuj wizytę";
+        editOptions.changeService ? "Zmień usługę wizyty" : "Edytuj wizytę";
 
     document.getElementById(
         "appointmentName"
@@ -554,14 +1179,24 @@ function openEditAppointmentModal() {
         currentEditingAppointment.phone || "";
 
     document.getElementById(
-        "appointmentService"
-    ).value =
-        currentEditingAppointment.service || "";
-
-    document.getElementById(
         "appointmentDuration"
     ).value =
         currentEditingAppointment.duration || 45;
+
+    crmSetAppointmentServiceSelectionV3015(
+        currentEditingAppointment.service || "",
+        {
+            clear: editOptions.changeService === true,
+            preferredCategory: crmInferAppointmentCategoryV3019(currentEditingAppointment)
+        }
+    );
+
+    if (!servicesReady && editOptions.changeService === true) {
+        crmRenderAppointmentServiceLoadErrorV3018("Nie udało się załadować Cennika DOM. Kliknij pole kategorii, aby spróbować ponownie.");
+        if (typeof crmToast === "function") {
+            crmToast("Cennik DOM jeszcze się nie załadował. Możesz ponowić odczyt bez zamykania wizyty.", "error");
+        }
+    }
 
     document.getElementById(
         "appointmentDateTime"
@@ -577,6 +1212,10 @@ function openEditAppointmentModal() {
     ).style.display =
         "flex";
 
+    if (editOptions.changeService === true) {
+        setTimeout(() => document.getElementById("appointmentServiceCategory")?.focus(), 0);
+    }
+
 }
 
 /* ----- VIS.13. closeCreateAppointmentModal (oryginalna linia 1728) ----- */
@@ -589,6 +1228,7 @@ function crmAppointmentFormHasUnsavedChanges() {
     /* Pola tekstowe i data oznaczaja rzeczywiste rozpoczecie formularza. */
     if (value("appointmentName")) return true;
     if (value("appointmentPhone")) return true;
+    if (value("appointmentServiceCategory")) return true;
     if (value("appointmentService")) return true;
     if (value("appointmentDateTime")) return true;
     if (value("appointmentDate")) return true;
@@ -617,9 +1257,9 @@ async function closeCreateAppointmentModal(forceClose) {
         !crmAppointmentFormHasUnsavedChanges();
 
     if (!mayCloseImmediately) {
-        const message = "Masz niezapisane zmiany. Czy na pewno chcesz zamknąć formularz?";
+        const message = "Masz niezapisane zmiany. Zamknąć formularz bez zapisywania?";
         const confirmed = typeof crmConfirm === "function"
-            ? await crmConfirm(message, "Niezapisane zmiany")
+            ? await crmConfirm(message, "Odrzuć zmiany")
             : window.confirm(message);
         if (!confirmed) return;
     }
@@ -780,6 +1420,9 @@ if (
                     JSON.stringify({
                         action:
                         "createBooking",
+
+                        bookingSource:
+                        "ADMIN",
 
                         deleteFlag:
                         true,
@@ -1528,7 +2171,6 @@ planNextVisitFromCurrentAppointment = async function() {
     finally { crmUiOperationLock=false; crmSetActionGroupBusy(false); }
 };
 
-
 /* ----- VIS.38. crmV3RenderAppointmentCardOriginal (oryginalna linia 5612) ----- */
 const crmV3RenderAppointmentCardOriginal = renderAppointmentCard;
 
@@ -1662,10 +2304,10 @@ function crmPopulateNewVisitPanel(app) {
     setText("crmVisitWorker", crmGetVisitWorker(app));
     setText("crmVisitEquipment", crmGetVisitEquipment(app));
     const serviceDescription = isExternal
-        ? "Wydarzenie zewnętrzne z Google Calendar"
+        ? "Wydarzenie zewnętrzne"
         : crmEscapePanelValue(app?.serviceDescription || service?.description, "Usługa salonowa");
     setText("crmServiceDescription", serviceDescription);
-    setText("crmServicePrice", isExternal ? "—" : crmGetServicePriceText(app));
+    setText("crmServicePrice", isExternal ? "Cena: —" : "Cena: " + crmGetServicePriceText(app));
 
     const stripe = document.getElementById("crmServiceStripe");
     if (stripe) stripe.style.background = app?.color || service?.color || "#d6df73";
@@ -1679,6 +2321,22 @@ function crmPopulateNewVisitPanel(app) {
     if (statusButton) statusButton.hidden = !isAppointment;
     if (repeatButton) repeatButton.hidden = !isAppointment;
     if (settleButton) settleButton.hidden = !isAppointment;
+
+    const serviceCard = document.querySelector("#appointmentDetailsModal .crm-safe-service-card");
+    if (serviceCard) {
+        serviceCard.classList.toggle("crm-service-editable-v3015", isAppointment);
+        serviceCard.classList.toggle("is-readonly", !isAppointment);
+        serviceCard.title = isAppointment ? "Kliknij, aby zmienić usługę" : "";
+        serviceCard.setAttribute("role", isAppointment ? "button" : "article");
+        serviceCard.tabIndex = isAppointment ? 0 : -1;
+        serviceCard.onclick = isAppointment ? () => openEditAppointmentModal({ changeService: true }) : null;
+        serviceCard.onkeydown = isAppointment ? event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openEditAppointmentModal({ changeService: true });
+            }
+        } : null;
+    }
 
     const addServiceButton = document.querySelector("#appointmentDetailsModal .crm-safe-add-service");
     if (addServiceButton) addServiceButton.hidden = !isAppointment;
@@ -1881,7 +2539,6 @@ function crmVisitEntry(item, rangeStart, rangeEnd) {
 /* ----- VIS.58. crmInstallSafeRightVisitPanel (oryginalna linia 6370) ----- */
 /* KONIEC ADMIN V9 */
 
-
 /* ==========================================================
    ADMIN V10-SAFE: PRAWY PANEL BEZ ZMIANY HTML
    ========================================================== */
@@ -1929,14 +2586,14 @@ function crmInstallSafeRightVisitPanel() {
         </nav>
         <section id="crmVisitTabContent" class="crm-safe-tab-content">
           <strong id="crmVisitDateHeading" class="crm-safe-date">Data wizyty</strong>
-          <article class="crm-safe-service-card">
+          <article class="crm-safe-service-card" title="Kliknij, aby zmienić usługę">
             <span id="crmServiceStripe" class="crm-safe-service-stripe"></span>
             <div class="crm-safe-service-copy">
               <strong id="details-service">Usługa</strong>
               <span id="crmServiceDescription">Usługa salonowa</span>
               <small><span id="details-duration">0</span> min</small>
             </div>
-            <strong id="crmServicePrice" class="crm-safe-price">—</strong>
+            <strong id="crmServicePrice" class="crm-safe-price">Cena: —</strong>
           </article>
           <div class="crm-safe-time-grid">
             <div><span>Początek</span><strong id="crmVisitStart">—</strong></div>
@@ -2134,7 +2791,7 @@ function crmRenderDayVisitsList() {
     });
 }
 
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN: ZAMYKANIE MENU STATUSU I KOSZA
    ========================================================================== */
 (function crmInstallVisitMenuCloseBehavior() {
@@ -2215,7 +2872,11 @@ planNextVisitFromCurrentAppointment = function() {
         phoneInput.setAttribute("aria-readonly", "true");
         phoneInput.title = "Numer telefonu klienta z poprzedniej wizyty";
     }
-    if (serviceInput) serviceInput.value = serviceName;
+    if (typeof crmSetAppointmentServiceSelectionV3015 === "function") {
+        crmSetAppointmentServiceSelectionV3015(serviceName, { clear:false });
+    } else if (serviceInput) {
+        serviceInput.value = serviceName;
+    }
     if (durationInput) durationInput.value = String(duration);
     if (dateTimeInput) dateTimeInput.value = "";
 
@@ -2336,7 +2997,6 @@ deleteBlockTimeFromAdmin = async function() {
         if (trashButton) trashButton.disabled = false;
     }
 };
-
 
 /* ==========================================================================
    ADMIN V25.2 — BEZPIECZNE USUWANIE ZEWNĘTRZNEGO GOOGLE EVENT
@@ -2568,6 +3228,7 @@ function crmCaptureAppointmentDraftV7() {
     return {
         name: value("appointmentName"),
         phone: value("appointmentPhone"),
+        category: value("appointmentServiceCategory"),
         service: value("appointmentService"),
         duration: value("appointmentDuration"),
         date: value("appointmentDateTime")
@@ -2582,8 +3243,12 @@ function crmApplyAppointmentDraftV7(draft) {
     };
     set("appointmentName", draft.name);
     set("appointmentPhone", draft.phone);
-    set("appointmentService", draft.service);
     set("appointmentDuration", draft.duration || "45");
+    if (typeof crmSetAppointmentServiceSelectionV3015 === "function") {
+        crmSetAppointmentServiceSelectionV3015(draft.service || "", { clear:false });
+    } else {
+        set("appointmentService", draft.service);
+    }
     set("appointmentDateTime", draft.date);
 }
 
@@ -2888,12 +3553,26 @@ saveAppointment = async function() {
     const name = String(document.getElementById("appointmentName")?.value || "").trim();
     const phone = String(document.getElementById("appointmentPhone")?.value || "").trim();
     const service = String(document.getElementById("appointmentService")?.value || "").trim();
+    const category = String(
+        document.getElementById("appointmentServiceCategory")?.value ||
+        crmAppointmentServicesV3015().find(item => String(item.name || "").trim() === service)?.category ||
+        currentEditingAppointment?.category ||
+        ""
+    ).trim();
     const duration = Number(document.getElementById("appointmentDuration")?.value || 45) || 45;
     const dateValue = String(document.getElementById("appointmentDateTime")?.value || "").trim();
+    const isBooksyEditV3032 = Boolean(
+        currentEditingAppointment &&
+        typeof crmIsBooksyVisitV3021 === "function" &&
+        crmIsBooksyVisitV3021(currentEditingAppointment)
+    );
 
-    if (!name || !phone || !service || !dateValue) {
-        if (typeof crmToast === "function") crmToast("Uzupełnij wszystkie pola wizyty.", "error");
-        else alert("Uzupełnij wszystkie pola wizyty.");
+    if (!name || (!phone && !isBooksyEditV3032) || !service || !dateValue) {
+        const message = isBooksyEditV3032
+            ? "Uzupełnij klienta, usługę i termin wizyty."
+            : "Uzupełnij wszystkie pola wizyty.";
+        if (typeof crmToast === "function") crmToast(message, "error");
+        else alert(message);
         return;
     }
 
@@ -2914,6 +3593,7 @@ saveAppointment = async function() {
         previousJob?.draft &&
         previousJob.draft.name === name &&
         previousJob.draft.phone === phone &&
+        String(previousJob.draft.category || "") === category &&
         previousJob.draft.service === service &&
         previousJob.draft.date === dateValue &&
         String(previousJob.draft.duration || "") === String(duration);
@@ -2926,9 +3606,10 @@ saveAppointment = async function() {
     const payload = {
         action:"createBooking",
         bookingSource: (pendingFirstVisitRequest || pendingContactRequest) ? "FORM_FIRST" : "ADMIN",
-        phone,
+        phone: isBooksyEditV3032 && /^brak$/i.test(phone) ? "" : phone,
         name,
         service,
+        category,
         date:dateValue,
         duration,
         rodo: currentEditingAppointment ? "Edytowano z CRM" : "Dodano z CRM",
@@ -2953,14 +3634,24 @@ saveAppointment = async function() {
         payload.oldEventId = oldEventId;
         payload.oldDate = currentEditingAppointment.date;
         payload.oldName = currentEditingAppointment.name;
+
+        if (isBooksyEditV3032 && typeof crmBooksyEditSourceMetadataV3021 === "function") {
+            const meta = crmBooksyEditSourceMetadataV3021(currentEditingAppointment);
+            payload.booksyCrmEdit = true;
+            payload.preserveBookingSource = meta.preserveBookingSource;
+            payload.sourceRequestId = meta.sourceRequestId;
+            payload.preserveAppointmentId = meta.appointmentId;
+            payload.preserveEventId = meta.eventId || oldEventId;
+            payload.rodo = "Edytowano tylko w CRM — źródło Booksy zachowane";
+        }
     }
 
     const job = {
-        version:7,
+        version:8,
         createdAt:Date.now(),
         state:"saving",
         attempt:0,
-        draft:{ name, phone, service, duration:String(duration), date:dateValue },
+        draft:{ name, phone:payload.phone, category, service, duration:String(duration), date:dateValue },
         payload
     };
 
@@ -3056,7 +3747,6 @@ if (typeof closeCreateAppointmentModal === "function") {
     };
 }
 /* KONIEC VISITS FIRST VISIT V8 */
-
 
 /* ==========================================================================
    ADMIN UX V17.2 — PANELE + DOLNY DOCK 2026-08-19
@@ -3317,7 +4007,6 @@ document.addEventListener("DOMContentLoaded", () => {
 window.crmAdminPanelsVersionV172 = "17.2-details-insights-block-dock";
 
 /* KONIEC ADMIN UX V17.2 */
-
 
 /* ==========================================================================
    ADMIN UX V17.3 — INTELIGENTNY UKŁAD PRAWYCH PANELI
@@ -3583,7 +4272,6 @@ window.crmAdminRightPanelsVersionV173 =
 
 /* KONIEC ADMIN UX V17.3 */
 
-
 /* ==========================================================================
    ADMIN UX V17.6 — ŹRÓDŁO WIZYTY W WIERSZU KLIENTA
    2026-08-19
@@ -3620,7 +4308,6 @@ window.crmAdminDetailsVersionV176 =
     "17.6-source-badge-client-row";
 
 /* KONIEC ADMIN UX V17.6 */
-
 
 /* ==========================================================================
    ADMIN PANELS — CLEAN FINAL
@@ -3743,4 +4430,365 @@ window.crmAdminPanelsCleanFinal =
     "details-left-action-right-no-auto-dock";
 
 /* KONIEC ADMIN PANELS — CLEAN FINAL */
+
+/* ==========================================================================
+   ADMIN V30.21 — BOOKSY: DOMYŚLNY PODGLĄD + ŚWIADOME ODBLOKOWANIE EDYCJI
+   ========================================================================== */
+
+window.crmAppointmentPriceSourceV3021 = window.crmAppointmentPriceSourceV3021 || "DOM";
+
+function crmIsBooksyVisitV3021(app) {
+    const raw = String(app?.bookingSource || app?.source || app?.createdBy || "").trim().toUpperCase();
+    return raw.includes("BOOKSY");
+}
+window.crmIsBooksyVisitV3021 = crmIsBooksyVisitV3021;
+
+function crmBooksyServicesForAppointmentV3021() {
+    let list = [];
+    try {
+        if (typeof crmAdminBooksyPricesV29 !== "undefined" && Array.isArray(crmAdminBooksyPricesV29)) {
+            list = crmAdminBooksyPricesV29;
+        }
+    } catch (ignore) {}
+
+    if ((!Array.isArray(list) || !list.length)) {
+        try {
+            if (
+                typeof CRM_ADMIN_BOOKSY_FALLBACK_V28 !== "undefined" &&
+                Array.isArray(CRM_ADMIN_BOOKSY_FALLBACK_V28)
+            ) {
+                list = typeof crmBooksyNormalizeItemsV29 === "function"
+                    ? crmBooksyNormalizeItemsV29(CRM_ADMIN_BOOKSY_FALLBACK_V28)
+                    : CRM_ADMIN_BOOKSY_FALLBACK_V28;
+            }
+        } catch (ignore) {}
+    }
+
+    return (Array.isArray(list) ? list : [])
+        .filter(item => item && String(item.name || "").trim());
+}
+window.crmBooksyServicesForAppointmentV3021 = crmBooksyServicesForAppointmentV3021;
+
+function crmSetAppointmentPriceSourceV3021(source) {
+    const normalized = String(source || "DOM").trim().toUpperCase() === "BOOKSY"
+        ? "BOOKSY"
+        : "DOM";
+    window.crmAppointmentPriceSourceV3021 = normalized;
+
+    const modal = document.getElementById("appointmentModal");
+    if (modal) modal.dataset.crmPriceSource = normalized;
+
+    const badge = document.getElementById("crmAppointmentPriceSourceBadgeV3021");
+    if (badge) {
+        badge.hidden = normalized !== "BOOKSY";
+        if (normalized === "BOOKSY") {
+            badge.innerHTML =
+                '<strong>BOOKSY — edycja tylko CRM</strong>' +
+                '<span>Usługi i ceny pochodzą wyłącznie z Cennika Booksy. Zapis nie aktualizuje Booksy ani Gmaila.</span>';
+        }
+    }
+    return normalized;
+}
+window.crmSetAppointmentPriceSourceV3021 = crmSetAppointmentPriceSourceV3021;
+
+const crmAppointmentServicesBeforeBooksyV3021 = crmAppointmentServicesV3015;
+crmAppointmentServicesV3015 = function() {
+    if (String(window.crmAppointmentPriceSourceV3021 || "DOM").toUpperCase() === "BOOKSY") {
+        return crmBooksyServicesForAppointmentV3021();
+    }
+    return crmAppointmentServicesBeforeBooksyV3021();
+};
+
+async function crmEnsureBooksyAppointmentServicesV3021() {
+    if (crmBooksyServicesForAppointmentV3021().length) return true;
+
+    if (typeof crmLoadBooksyPricesV29 === "function") {
+        let timer = null;
+        try {
+            await Promise.race([
+                Promise.resolve(crmLoadBooksyPricesV29()).catch(() => null),
+                new Promise(resolve => {
+                    timer = window.setTimeout(() => resolve(null), 12000);
+                })
+            ]);
+        } finally {
+            if (timer) window.clearTimeout(timer);
+        }
+    }
+
+    return crmBooksyServicesForAppointmentV3021().length > 0;
+}
+window.crmEnsureBooksyAppointmentServicesV3021 = crmEnsureBooksyAppointmentServicesV3021;
+
+function crmEnsureAppointmentPriceSourceBadgeV3021() {
+    const modal = document.getElementById("appointmentModal");
+    const surface = modal?.querySelector(".modal-content");
+    if (!surface) return null;
+
+    let badge = document.getElementById("crmAppointmentPriceSourceBadgeV3021");
+    if (!badge) {
+        badge = document.createElement("div");
+        badge.id = "crmAppointmentPriceSourceBadgeV3021";
+        badge.className = "crm-booksy-editor-warning-v3021";
+        badge.hidden = true;
+
+        const header = surface.querySelector(".modal-header");
+        if (header && header.nextSibling) {
+            surface.insertBefore(badge, header.nextSibling);
+        } else {
+            surface.insertBefore(badge, surface.firstChild);
+        }
+    }
+    return badge;
+}
+
+function crmEnsureBooksyVisitEditGuardV3021() {
+    const host = document.getElementById("crmVisitTabContent");
+    if (!host) return null;
+
+    let guard = document.getElementById("crmBooksyVisitEditGuardV3021");
+    if (!guard) {
+        guard = document.createElement("div");
+        guard.id = "crmBooksyVisitEditGuardV3021";
+        guard.className = "crm-booksy-edit-guard-v3021";
+        guard.hidden = true;
+        guard.innerHTML = `
+          <label class="crm-booksy-edit-check-v3021">
+            <input id="crmBooksyVisitEditUnlockV3021"
+                   type="checkbox"
+                   onchange="crmToggleBooksyVisitEditV3021(this.checked)">
+            <span>Edytuj dane CRM tej wizyty Booksy</span>
+          </label>
+          <small id="crmBooksyVisitEditHintV3021">
+            Tryb podglądu. Zmiany w CRM nie aktualizują Booksy ani wiadomości Gmail.
+          </small>`;
+
+        const dateHeading = document.getElementById("crmVisitDateHeading");
+        if (dateHeading?.nextSibling) {
+            host.insertBefore(guard, dateHeading.nextSibling);
+        } else {
+            host.insertBefore(guard, host.firstChild);
+        }
+    }
+    return guard;
+}
+
+function crmBooksyVisitEditUnlockedV3021() {
+    const modal = document.getElementById("appointmentDetailsModal");
+    return modal?.dataset.crmBooksyEditUnlockedV3021 === "1";
+}
+window.crmBooksyVisitEditUnlockedV3021 = crmBooksyVisitEditUnlockedV3021;
+
+function crmApplyBooksyVisitEditStateV3021(app) {
+    const isBooksy = crmIsBooksyVisitV3021(app);
+    const modal = document.getElementById("appointmentDetailsModal");
+    const guard = crmEnsureBooksyVisitEditGuardV3021();
+    const checkbox = document.getElementById("crmBooksyVisitEditUnlockV3021");
+    const hint = document.getElementById("crmBooksyVisitEditHintV3021");
+
+    if (guard) guard.hidden = !isBooksy;
+    if (!modal) return;
+
+    if (!isBooksy) {
+        delete modal.dataset.crmBooksyEditUnlockedV3021;
+        delete modal.dataset.crmBooksyPreviewV3021;
+        return;
+    }
+
+    const unlocked = crmBooksyVisitEditUnlockedV3021();
+    modal.dataset.crmBooksyPreviewV3021 = unlocked ? "0" : "1";
+    if (checkbox) checkbox.checked = unlocked;
+    if (hint) {
+        hint.textContent = unlocked
+            ? "Edycja CRM odblokowana. Usługi pochodzą z Cennika Booksy. Zmiany nie są wysyłane do Booksy ani Gmaila."
+            : "Tryb podglądu. Zaznacz pole wyżej, aby świadomie odblokować edycję CRM.";
+    }
+
+    const serviceCard = document.querySelector("#appointmentDetailsModal .crm-safe-service-card");
+    if (serviceCard) {
+        serviceCard.classList.toggle("crm-service-editable-v3015", unlocked);
+        serviceCard.classList.toggle("is-readonly", !unlocked);
+        serviceCard.title = unlocked
+            ? "Kliknij, aby zmienić usługę Booksy tylko w CRM"
+            : "Podgląd Booksy — najpierw zaznacz „Edytuj dane CRM”";
+        serviceCard.setAttribute("role", unlocked ? "button" : "article");
+        serviceCard.tabIndex = unlocked ? 0 : -1;
+        serviceCard.onclick = unlocked
+            ? () => openEditAppointmentModal({ changeService:true })
+            : null;
+        serviceCard.onkeydown = unlocked
+            ? event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEditAppointmentModal({ changeService:true });
+                }
+            }
+            : null;
+    }
+
+    const clientCard = document.querySelector("#appointmentDetailsModal .crm-safe-client-card");
+    if (clientCard) {
+        clientCard.classList.toggle("is-readonly", !unlocked);
+        clientCard.title = unlocked
+            ? "Otwórz edycję CRM wizyty Booksy"
+            : "Podgląd Booksy — najpierw zaznacz „Edytuj dane CRM”";
+        clientCard.onclick = unlocked ? () => openEditAppointmentModal() : null;
+        clientCard.onkeydown = unlocked
+            ? event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEditAppointmentModal();
+                }
+            }
+            : null;
+        clientCard.tabIndex = unlocked ? 0 : -1;
+    }
+
+    const statusButton = document.getElementById("crmVisitStatusButton");
+    const trashButton = document.getElementById("crmVisitTrashButton");
+    const repeatButton = document.getElementById("crmRepeatVisitBtn");
+    const addServiceButton = document.querySelector("#appointmentDetailsModal .crm-safe-add-service");
+
+    if (statusButton) statusButton.hidden = !unlocked;
+    if (trashButton) trashButton.hidden = !unlocked;
+    if (repeatButton) repeatButton.hidden = !unlocked;
+    if (addServiceButton) addServiceButton.hidden = true;
+}
+window.crmApplyBooksyVisitEditStateV3021 = crmApplyBooksyVisitEditStateV3021;
+
+function crmToggleBooksyVisitEditV3021(checked) {
+    const app = currentEditingAppointment;
+    if (!crmIsBooksyVisitV3021(app)) return;
+
+    const modal = document.getElementById("appointmentDetailsModal");
+    if (modal) modal.dataset.crmBooksyEditUnlockedV3021 = checked ? "1" : "0";
+    crmApplyBooksyVisitEditStateV3021(app);
+
+    if (typeof crmToast === "function") {
+        crmToast(
+            checked
+                ? "Edycja CRM wizyty Booksy została odblokowana."
+                : "Wizyta Booksy wróciła do trybu podglądu.",
+            checked ? "success" : "info"
+        );
+    }
+}
+window.crmToggleBooksyVisitEditV3021 = crmToggleBooksyVisitEditV3021;
+
+function crmBooksyEditSourceMetadataV3021(app) {
+    const raw = String(app?.bookingSource || app?.source || "BOOKSY_GMAIL").trim().toUpperCase();
+    return {
+        preserveBookingSource: raw.includes("BOOKSY") ? raw : "BOOKSY_GMAIL",
+        sourceRequestId: String(
+            app?.requestId ||
+            app?.sourceRequestId ||
+            app?.gmailMessageId ||
+            app?.operationId ||
+            ""
+        ).trim(),
+        appointmentId: String(app?.appointmentId || app?.id || "").trim(),
+        eventId: String(app?.eventId || "").trim()
+    };
+}
+window.crmBooksyEditSourceMetadataV3021 = crmBooksyEditSourceMetadataV3021;
+
+const crmFindServiceForVisitBeforeBooksyV3021 = crmFindServiceForVisit;
+crmFindServiceForVisit = function(app) {
+    if (crmIsBooksyVisitV3021(app)) {
+        const name = String(app?.service || "").trim().toLocaleLowerCase("pl-PL");
+        return crmBooksyServicesForAppointmentV3021().find(item =>
+            String(item?.name || "").trim().toLocaleLowerCase("pl-PL") === name
+        ) || null;
+    }
+    return crmFindServiceForVisitBeforeBooksyV3021(app);
+};
+
+const crmOpenDetailsBeforeBooksyV3021 = openAppointmentDetailsModal;
+openAppointmentDetailsModal = function(app) {
+    const result = crmOpenDetailsBeforeBooksyV3021.apply(this, arguments);
+    const modal = document.getElementById("appointmentDetailsModal");
+
+    if (crmIsBooksyVisitV3021(app)) {
+        if (modal) modal.dataset.crmBooksyEditUnlockedV3021 = "0";
+    } else if (modal) {
+        delete modal.dataset.crmBooksyEditUnlockedV3021;
+    }
+
+    crmApplyBooksyVisitEditStateV3021(app);
+
+    if (crmIsBooksyVisitV3021(app)) {
+        Promise.resolve(crmEnsureBooksyAppointmentServicesV3021())
+            .then(ok => {
+                if (!ok || currentEditingAppointment !== app) return;
+                try { crmPopulateNewVisitPanel(app); } catch (ignore) {}
+                crmApplyBooksyVisitEditStateV3021(app);
+            })
+            .catch(() => {});
+    }
+
+    return result;
+};
+
+const crmOpenEditBeforeBooksyV3021 = openEditAppointmentModal;
+openEditAppointmentModal = async function(options) {
+    const app = currentEditingAppointment;
+    const isBooksy = crmIsBooksyVisitV3021(app);
+
+    if (isBooksy && !crmBooksyVisitEditUnlockedV3021()) {
+        if (typeof crmToast === "function") {
+            crmToast("Najpierw zaznacz „Edytuj dane CRM tej wizyty Booksy”.", "error");
+        }
+        return;
+    }
+
+    crmEnsureAppointmentPriceSourceBadgeV3021();
+    crmSetAppointmentPriceSourceV3021(isBooksy ? "BOOKSY" : "DOM");
+
+    if (isBooksy) {
+        const ready = await crmEnsureBooksyAppointmentServicesV3021();
+        if (!ready) {
+            if (typeof crmToast === "function") {
+                crmToast("Nie udało się załadować Cennika Booksy.", "error");
+            } else {
+                alert("Nie udało się załadować Cennika Booksy.");
+            }
+            return;
+        }
+    }
+
+    const result = await crmOpenEditBeforeBooksyV3021.apply(this, arguments);
+
+    const title = document.getElementById("modalTitleAppointment");
+    if (isBooksy && title) {
+        title.textContent = options?.changeService
+            ? "Zmień usługę Booksy — tylko CRM"
+            : "Edytuj wizytę Booksy — tylko CRM";
+    }
+
+    crmSetAppointmentPriceSourceV3021(isBooksy ? "BOOKSY" : "DOM");
+    return result;
+};
+
+window.crmBooksyAppointmentEditorDebugV3021 = function(app) {
+    const source = crmIsBooksyVisitV3021(app) ? "BOOKSY" : "DOM";
+    const services = source === "BOOKSY"
+        ? crmBooksyServicesForAppointmentV3021()
+        : crmAppointmentServicesBeforeBooksyV3021();
+    const categories = [];
+    const seen = new Set();
+    services.forEach(item => {
+        const category = String(item?.category || "").trim();
+        if (!category) return;
+        const key = category.toLocaleLowerCase("pl-PL");
+        if (seen.has(key)) return;
+        seen.add(key);
+        categories.push(category);
+    });
+    return {
+        source,
+        count:services.length,
+        categories,
+        metadata: crmBooksyEditSourceMetadataV3021(app)
+    };
+};
 

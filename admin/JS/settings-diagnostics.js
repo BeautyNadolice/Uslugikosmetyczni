@@ -897,10 +897,149 @@ window.crmLoadEffectiveScheduleViewsV12=crmLoadEffectiveScheduleViewsV12;
    - crm-test-light.js
    ========================================================================== */
 
-const CRM_TEST_UI_VERSION = "1.0.0";
+const CRM_TEST_UI_VERSION = "2.2.0";
 let crmTestIsRunning = false;
 let crmLastTestReport = null;
+let crmTestUiRunV25 = {
+    kind: "",
+    startedAt: 0,
+    lastActivityAt: 0,
+    step: 0,
+    total: 0,
+    label: "",
+    timer: 0
+};
 window.crmDiagnosticsNetworkModeV11 = Boolean(window.crmDiagnosticsNetworkModeV11);
+
+function crmTestEnsureOverlayV25() {
+    let overlay = document.getElementById("crm-test-lock-v25");
+    if (overlay) return overlay;
+
+    overlay = document.createElement("div");
+    overlay.id = "crm-test-lock-v25";
+    overlay.className = "crm-test-lock-v25";
+    overlay.setAttribute("aria-live", "polite");
+    overlay.innerHTML = `
+        <div class="crm-test-lock-card-v25">
+            <div class="crm-test-lock-kicker-v25"><span class="crm-test-heartbeat-v25" aria-hidden="true"></span> CRM Test Full</div>
+            <h2>Trwa test — nie klikaj</h2>
+            <p class="crm-test-lock-help-v25">Test automatycznie przełącza zakładki i steruje interfejsem.</p>
+            <div class="crm-test-lock-progress-v25"><div id="crm-test-lock-fill-v25" class="crm-test-lock-fill-v25"></div></div>
+            <div class="crm-test-lock-meta-v25">
+                <strong id="crm-test-lock-percent-v25">0%</strong>
+                <span id="crm-test-lock-step-v25">Krok 0/0</span>
+                <span id="crm-test-lock-time-v25">00:00</span>
+            </div>
+            <div id="crm-test-lock-stage-v25" class="crm-test-lock-stage-v25">Przygotowanie testu…</div>
+            <div id="crm-test-lock-slow-v25" class="crm-test-lock-slow-v25" hidden>Ten krok trwa dłużej niż zwykle… test nadal czeka na odpowiedź.</div>
+        </div>`;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function crmTestEnsureResultV25() {
+    let modal = document.getElementById("crm-test-result-v25");
+    if (modal) return modal;
+    modal = document.createElement("div");
+    modal.id = "crm-test-result-v25";
+    modal.className = "crm-test-result-v25";
+    modal.innerHTML = `
+      <div class="crm-test-result-card-v25">
+        <div id="crm-test-result-symbol-v25" class="crm-test-result-symbol-v25">✓</div>
+        <h2 id="crm-test-result-title-v25">OK</h2>
+        <button type="button" class="btn-primary" onclick="crmTestCloseResultV25()">OK</button>
+      </div>`;
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function crmTestFormatElapsedV25(ms) {
+    const seconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return String(min).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+}
+
+function crmTestRenderOverlayV25() {
+    if (crmTestUiRunV25.kind !== "CRM_TEST_FULL") return;
+    const total = Math.max(1, Number(crmTestUiRunV25.total) || 1);
+    const step = Math.max(0, Math.min(total, Number(crmTestUiRunV25.step) || 0));
+    const percent = Math.max(0, Math.min(100, Math.round(step / total * 100)));
+    const fill = document.getElementById("crm-test-lock-fill-v25");
+    const percentEl = document.getElementById("crm-test-lock-percent-v25");
+    const stepEl = document.getElementById("crm-test-lock-step-v25");
+    const stageEl = document.getElementById("crm-test-lock-stage-v25");
+    const timeEl = document.getElementById("crm-test-lock-time-v25");
+    const slowEl = document.getElementById("crm-test-lock-slow-v25");
+    if (fill) fill.style.width = percent + "%";
+    if (percentEl) percentEl.textContent = percent + "%";
+    if (stepEl) stepEl.textContent = "Krok " + step + "/" + total;
+    if (stageEl) stageEl.textContent = crmTestUiRunV25.label || "Test pracuje…";
+    if (timeEl) timeEl.textContent = crmTestFormatElapsedV25(Date.now() - crmTestUiRunV25.startedAt);
+    if (slowEl) slowEl.hidden = (Date.now() - crmTestUiRunV25.lastActivityAt) < 25000;
+}
+
+function crmTestBeginOverlayV25() {
+    crmTestUiRunV25.kind = "CRM_TEST_FULL";
+    crmTestUiRunV25.startedAt = Date.now();
+    crmTestUiRunV25.lastActivityAt = Date.now();
+    crmTestUiRunV25.step = 0;
+    crmTestUiRunV25.total = 18;
+    crmTestUiRunV25.label = "Przygotowanie CRM Test Full…";
+    const overlay = crmTestEnsureOverlayV25();
+    overlay.classList.add("is-visible");
+    if (crmTestUiRunV25.timer) window.clearInterval(crmTestUiRunV25.timer);
+    crmTestUiRunV25.timer = window.setInterval(crmTestRenderOverlayV25, 1000);
+    crmTestRenderOverlayV25();
+}
+
+function crmTestTouchActivityV25() {
+    if (crmTestUiRunV25.kind !== "CRM_TEST_FULL") return;
+    crmTestUiRunV25.lastActivityAt = Date.now();
+    crmTestRenderOverlayV25();
+}
+
+function crmTestSetStage(step, total, text) {
+    const safeTotal = Math.max(1, Number(total) || 1);
+    const safeStep = Math.max(0, Math.min(safeTotal, Number(step) || 0));
+    crmTestUiRunV25.step = safeStep;
+    crmTestUiRunV25.total = safeTotal;
+    crmTestUiRunV25.label = String(text || "");
+    crmTestUiRunV25.lastActivityAt = Date.now();
+    crmTestSetProgress(Math.round(safeStep / safeTotal * 100), text);
+    crmTestRenderOverlayV25();
+}
+
+function crmTestReturnToDiagnosticsV25() {
+    const finish = () => {
+        const panel = document.getElementById("crm-diagnostics-panel");
+        if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    try {
+        if (typeof switchTab === "function") {
+            Promise.resolve(switchTab("ustawienia")).then(() => window.setTimeout(finish, 80)).catch(() => finish());
+        } else finish();
+    } catch (error) { finish(); }
+}
+
+function crmTestShowResultV25(report) {
+    const modal = crmTestEnsureResultV25();
+    const ok = Number(report?.errors || 0) === 0;
+    modal.classList.toggle("is-ok", ok);
+    modal.classList.toggle("is-bad", !ok);
+    const symbol = document.getElementById("crm-test-result-symbol-v25");
+    const title = document.getElementById("crm-test-result-title-v25");
+    if (symbol) symbol.textContent = ok ? "✓" : "!";
+    if (title) title.textContent = ok ? "OK" : "NIE OK";
+    modal.classList.add("is-visible");
+}
+
+function crmTestCloseResultV25() {
+    const modal = document.getElementById("crm-test-result-v25");
+    if (modal) modal.classList.remove("is-visible");
+    crmTestReturnToDiagnosticsV25();
+}
+window.crmTestCloseResultV25 = crmTestCloseResultV25;
 
 function crmTestCreateReport(testType, testerVersion) {
     const now = new Date();
@@ -937,6 +1076,7 @@ function crmTestAdd(report, status, name, details) {
     else if (normalized === "OSTRZEZENIE") report.warnings += 1;
     else report.errors += 1;
 
+    crmTestTouchActivityV25();
     crmTestRenderReport(report);
 }
 
@@ -964,6 +1104,25 @@ function crmTestSetRunning(running) {
         const button = document.getElementById(id);
         if (button) button.disabled = crmTestIsRunning;
     });
+
+    if (crmTestIsRunning) {
+        if (String(window.crmCurrentTestKind || "") === "CRM_TEST_FULL") crmTestBeginOverlayV25();
+        return;
+    }
+
+    if (crmTestUiRunV25.kind === "CRM_TEST_FULL") {
+        if (crmTestUiRunV25.timer) window.clearInterval(crmTestUiRunV25.timer);
+        crmTestUiRunV25.timer = 0;
+        crmTestUiRunV25.step = crmTestUiRunV25.total || 18;
+        crmTestRenderOverlayV25();
+        const overlay = document.getElementById("crm-test-lock-v25");
+        if (overlay) overlay.classList.remove("is-visible");
+        crmTestReturnToDiagnosticsV25();
+        window.setTimeout(() => crmTestShowResultV25(crmLastTestReport), 180);
+    }
+
+    crmTestUiRunV25.kind = "";
+    window.crmCurrentTestKind = "";
 }
 
 function crmTestSafeText(value) {
@@ -1153,6 +1312,7 @@ window.crmTestCreateReport = crmTestCreateReport;
 window.crmTestAdd = crmTestAdd;
 window.crmTestWait = crmTestWait;
 window.crmTestSetProgress = crmTestSetProgress;
+window.crmTestSetStage = crmTestSetStage;
 window.crmTestSetRunning = crmTestSetRunning;
 window.crmTestFinish = crmTestFinish;
 window.crmTestGet = crmTestGet;
@@ -1160,3 +1320,72 @@ window.saveCRMTestReport = saveCRMTestReport;
 window.crmResetTestPanelForRun = crmResetTestPanelForRun;
 
 /* KONIEC CRM TESTS CLEAN LAUNCHER / REPORT CORE V1 */
+
+
+/* ==========================================================================
+   GRAFIK MĘŻA — NAWIGACJA MIESIĄC/ROK TEST V1 2026-08-27
+   ========================================================================== */
+const CRM_WORK_MONTHS_PL=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+let crmWorkMonthPickerOpen=false;
+function crmWorkScheduleSetMonth(year,monthIndex){
+    selectedCalendarDate=new Date(Number(year),Number(monthIndex),1);
+    crmWorkMonthPickerOpen=false;
+    if(typeof crmLoadEffectiveScheduleViewsV12==="function") return crmLoadEffectiveScheduleViewsV12();
+    return renderWorkScheduleCalendar();
+}
+function crmWorkScheduleMoveMonth(delta){
+    return crmWorkScheduleSetMonth(selectedCalendarDate.getFullYear(),selectedCalendarDate.getMonth()+Number(delta||0));
+}
+function crmWorkScheduleChangeYear(delta){
+    selectedCalendarDate=new Date(selectedCalendarDate.getFullYear()+Number(delta||0),selectedCalendarDate.getMonth(),1);
+    return renderWorkScheduleCalendar();
+}
+function crmWorkScheduleTogglePicker(){crmWorkMonthPickerOpen=!crmWorkMonthPickerOpen;return renderWorkScheduleCalendar();}
+window.crmWorkScheduleSetMonth=crmWorkScheduleSetMonth;
+window.crmWorkScheduleMoveMonth=crmWorkScheduleMoveMonth;
+window.crmWorkScheduleChangeYear=crmWorkScheduleChangeYear;
+window.crmWorkScheduleTogglePicker=crmWorkScheduleTogglePicker;
+
+function crmRenderWorkScheduleFromResponseV13(response,year,monthIndex){
+    const host=document.getElementById("work-schedule-calendar");if(!host)return;
+    const entries=Array.isArray(response?.entries)?response.entries:[];
+    const byDate={};entries.forEach(item=>{byDate[item.date]=item;});
+    const monthTitle=`${CRM_WORK_MONTHS_PL[monthIndex]} ${year}`;
+    let picker="";
+    if(crmWorkMonthPickerOpen){
+        picker=`<div class="crm-work-month-picker">
+          <div class="crm-work-year-row"><button type="button" onclick="crmWorkScheduleChangeYear(-1)">‹</button><strong>${year}</strong><button type="button" onclick="crmWorkScheduleChangeYear(1)">›</button></div>
+          <div class="crm-work-month-grid">${CRM_WORK_MONTHS_PL.map((m,i)=>`<button type="button" class="${i===monthIndex?'is-active':''}" onclick="crmWorkScheduleSetMonth(${year},${i})">${m.slice(0,3)}</button>`).join("")}</div>
+        </div>`;
+    }
+    let html=`<div class="crm-work-nav"><button type="button" aria-label="Poprzedni miesiąc" onclick="crmWorkScheduleMoveMonth(-1)">‹</button><button type="button" class="crm-work-title" onclick="crmWorkScheduleTogglePicker()">${monthTitle}</button><button type="button" aria-label="Następny miesiąc" onclick="crmWorkScheduleMoveMonth(1)">›</button></div>${picker}`;
+    if(!entries.length){host.innerHTML=html+`<div class="crm-work-empty">Brak danych dla wybranego miesiąca</div>`;return;}
+    const names=["Pon","Wt","Śr","Czw","Pt","Sob","Niedz"];
+    html+=`<div class="work-schedule-grid crm-work-grid">`;
+    names.forEach(name=>{html+=`<div class="crm-work-dow">${name}</div>`;});
+    const first=new Date(year,monthIndex,1),leading=first.getDay()===0?6:first.getDay()-1;
+    for(let i=0;i<leading;i++)html+="<div></div>";
+    const days=new Date(year,monthIndex+1,0).getDate();
+    for(let day=1;day<=days;day++){
+      const dateKey=`${year}-${String(monthIndex+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`,entry=byDate[dateKey]||{},code=entry.code||"",color=scheduleCodeColor(code),title=entry.source?`Kod: ${code}; źródło: ${entry.source}; ${entry.reason||""}`:"Brak danych";
+      html+=`<button type="button" class="crm-work-day" title="${title.replace(/"/g,"&quot;")}" style="background:${color.bg};color:${color.fg}"><span>${day}</span><strong>${code}</strong></button>`;
+    }
+    host.innerHTML=html+`</div><p class="crm-work-note">1 = zmiana dzienna, 2 = zmiana nocna. Grafik ma charakter informacyjny.</p>`;
+}
+crmRenderWorkScheduleFromResponseV12=crmRenderWorkScheduleFromResponseV13;
+renderWorkScheduleCalendar=async function(){
+    const year=selectedCalendarDate.getFullYear(),monthIndex=selectedCalendarDate.getMonth(),monthKey=`${year}-${String(monthIndex+1).padStart(2,"0")}`;
+    try{const response=await crmGetEffectiveScheduleV12(monthKey);crmRenderWorkScheduleFromResponseV13(response,year,monthIndex);return response;}
+    catch(error){crmRenderWorkScheduleFromResponseV13({entries:[]},year,monthIndex);return {success:false,error:String(error)};}
+};
+
+function crmEnsureTestApiPanelV1(){
+  const panel=document.getElementById("schedule-full-panel");if(!panel||document.getElementById("crm-test-api-config"))return;
+  const box=document.createElement("details");box.id="crm-test-api-config";box.style.marginTop="12px";
+  const current=localStorage.getItem("CRM_TEST_APPS_SCRIPT_URL")||"";
+  box.innerHTML=`<summary style="cursor:pointer;font-weight:700">TEST — połączenie z Apps Script</summary><div style="padding:10px 0"><input id="crm-test-api-url" style="width:min(760px,100%)" placeholder="Wklej URL wdrożenia TEST /exec" value="${current.replace(/"/g,"&quot;")}"><button type="button" class="btn-secondary" onclick="crmSetTestApiUrl(document.getElementById('crm-test-api-url').value)">Zapisz i przeładuj</button><p style="font-size:12px;color:#777">Ta kopia nie użyje produkcyjnego API bez podania adresu TEST.</p></div>`;
+  panel.appendChild(box);
+}
+const crmEnsureSchedulePanelBeforeTestApiV1=ensureSchedulePanel;
+ensureSchedulePanel=function(){crmEnsureSchedulePanelBeforeTestApiV1();crmEnsureTestApiPanelV1();};
+/* KONIEC GRAFIK MĘŻA — NAWIGACJA TEST V1 */

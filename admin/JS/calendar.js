@@ -1,3 +1,4 @@
+// BUILD MARKER: V30.34 — COMPACT 6-WEEK MONTH VIEW
 /* ==========================================================================
    CAL. KALENDARZ
    Plik wygenerowany zachowawczo z admin.js. Kolejnosc elementow wewnatrz
@@ -484,8 +485,6 @@ function renderCompactCalendarEvent(item, container, mode) {
     container.appendChild(event);
 }
 
-
-
 /* ----- CAL.20. formatDateTimeLocalValue (oryginalna linia 1581) ----- */
 function formatDateTimeLocalValue(dateString) {
     const date =
@@ -600,7 +599,6 @@ function buildColorsEditor(){
 
 /* ----- CAL.23. loadCalendarSyncHistory (oryginalna linia 3969) ----- */
 /* KONIEC ROZSZERZENIA GRAFIKU I KATEGORII */
-
 
 /* ==========================================================
    ETAP 3.4 I 3.5: SYNCHRONIZACJA, TESTY I BACKUP ADMIN
@@ -748,7 +746,6 @@ function crmV13RenderWeekColumn(column, date, events) {
         list.appendChild(more);
     }
 }
-
 
 /* ----- CAL.35. crmV13OriginalRenderBooksyCalendar (oryginalna linia 4735) ----- */
 const crmV13OriginalRenderBooksyCalendar = renderBooksyCalendar;
@@ -1017,7 +1014,6 @@ function crmUpdateLeftPendingBadge() {
 /* ----- CAL.55. CRM_THREE_DAY_COUNT (oryginalna linia 6091) ----- */
 /* KONIEC ADMIN V6.2 */
 
-
 /* ==========================================================
    ADMIN V8: TERMINARZ 3-DNIOWY I STAŁY PANEL INFORMACJI
    ========================================================== */
@@ -1236,7 +1232,6 @@ crmRenderCalendarInsights = function() {
 /* ----- CAL.70. crmCompactEventStatusMeta (oryginalna linia 6291) ----- */
 /* KONIEC ADMIN V8.1 */
 
-
 /* ==========================================================
    ADMIN V9: ZEBRANE POPRAWKI WIDOKÓW I PODSUMOWANIA
    ========================================================== */
@@ -1328,7 +1323,6 @@ crmRenderThreeDayCalendar = function(grid) {
 
 /* ----- CAL.78. crmOpenDayListDate (oryginalna linia 6466) ----- */
 /* KONIEC ADMIN V10-SAFE */
-
 
 /* ==========================================================
    ADMIN V11: TYDZIEN DYNAMICZNY I STALA LISTA DNIA
@@ -1578,6 +1572,7 @@ function renderMonthCalendar(grid) {
     const totalCells = Math.ceil((leading + last.getDate()) / 7) * 7;
     const weekRows = totalCells / 7;
     grid.style.setProperty("--crm-month-weeks", weekRows);
+    grid.dataset.crmMonthWeeks = String(weekRows);
 
     const cells = [];
 
@@ -1698,8 +1693,6 @@ function renderMonthCalendar(grid) {
 
 /* ----- CAL.90. crmRenderThreeDayEvent (oryginalna linia 6895) ----- */
 /* KONIEC ADMIN V12 */
-
-
 
 /* ==========================================================
    ADMIN V13.3: CZYTELNE KROTKIE WIZYTY I PEWNE +N POZOSTALE
@@ -2016,9 +2009,7 @@ crmRenderThreeDayCalendar = function(grid) {
     crmRenderCalendarInsights();
 };
 
-
-
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN FINAL V3: JEDEN PAS, WYBRANY DZIEN I IKONY PODSUMOWANIA
    ========================================================================== */
 function crmFinalV3FormatDuration(totalMinutes){
@@ -2083,8 +2074,7 @@ function crmFinalV3InstallToolbar(){
 document.addEventListener('DOMContentLoaded',()=>setTimeout(crmFinalV3InstallToolbar,250));
 /* KONIEC ADMIN FINAL V3 */
 
-
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN FINAL V4: SYNCHRONIZACJA MINI KALENDARZA I DATA PODSUMOWANIA
    ========================================================================== */
 const crmFinalV4MiniRenderOriginal = renderMiniMonthCalendar;
@@ -2135,7 +2125,7 @@ function crmFinalV4FitToolbar(){
 document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{crmFinalV4FitToolbar();renderMiniMonthCalendar();crmFinalV4EnsureInsightsHeader();},350));
 /* KONIEC ADMIN FINAL V4 */
 
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN FINAL V6 SAFE: PELNE DATY, SWIETO, WOLNE I SYNCHRONIZACJA
    Zmiana bez zastępowania rendererów Kalendarza.
    ========================================================================== */
@@ -2389,7 +2379,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 /* KONIEC ADMIN FINAL V6 SAFE */
 
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN FINAL V7: CZYTELNE NAGLOWKI, DATA PANELU I PAS NARZEDZI
    ========================================================================== */
 function crmV7CapitalizeFirst(text) {
@@ -2456,8 +2446,7 @@ renderBooksyCalendar = function() {
 document.addEventListener("DOMContentLoaded", () => setTimeout(crmV7Apply, 550));
 /* KONIEC ADMIN FINAL V7 */
 
-
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN FINAL V8: TRWALA DATA PANELU I ODSUNIECIE PRZYCISKOW
    ========================================================================== */
 function crmV8RenderSelectedDateHeader() {
@@ -2643,10 +2632,7 @@ document.addEventListener("visibilitychange", () => {
 
 /* KONIEC CAL.93 */
 
-
-
-
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN FINAL: LOKALNY CACHE PROSB, WYBRANY DZIEN, OZNACZENIA I ANULOWANIA
    ========================================================================== */
 function crmRequestDateKey(value) {
@@ -2756,8 +2742,6 @@ renderBooksyCalendar = function() {
     return result;
 };
 /* KONIEC ADMIN FINAL: LOKALNY CACHE PROSB, WYBRANY DZIEN, OZNACZENIA I ANULOWANIA */
-
-
 
 /* ==========================================================================
    CALENDAR FIRST VISIT V8 2026-08-12
@@ -3068,3 +3052,17 @@ renderMiniMonthCalendar = function() {
    ========================================================================== */
 /* KONIEC CALENDAR V25.2.23 */
 
+/* ============================================================================
+   ADMIN V30.15: trwałe dopasowanie szerokości toolbara do głównego kalendarza
+   ============================================================================ */
+if (typeof renderBooksyCalendar === "function") {
+    const crmV3015RenderCalendarOriginal = renderBooksyCalendar;
+    renderBooksyCalendar = function() {
+        const result = crmV3015RenderCalendarOriginal.apply(this, arguments);
+        if (typeof crmV8FixCalendarToolbarWidth === "function") {
+            crmV8FixCalendarToolbarWidth();
+            requestAnimationFrame(crmV8FixCalendarToolbarWidth);
+        }
+        return result;
+    };
+}

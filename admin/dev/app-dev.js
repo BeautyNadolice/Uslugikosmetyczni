@@ -1,6 +1,6 @@
 
 /* ==========================================================================
-   NAIL-ART DEV V5.3 — REFRESH/OPEN STATE FIX + SAFE PANEL PATCH SAVE
+   NAIL-ART DEV V5.9 — PEŁNY LIVE PREVIEW + REVIEW/BLOKADY
    DEV ładuje dokładnie te same CSS/JS/DOM co ADMIN.
    Ten plik jest tylko narzędziem edycyjnym na wierzchu.
    ========================================================================== */
@@ -88,13 +88,23 @@
             open: () => {
                 const sample = {
                     eventType: "external",
-                    eventId: "DEV-V4-DEMO-GOOGLE",
-                    name: "Wydarzenie Google",
-                    phone: "Google Calendar",
-                    service: "",
-                    duration: 45,
+                    eventId: "DEV-V5-DEMO-WIFE-REVIEW",
+                    name: "Renata Mazur",
+                    reviewClient: "Renata Mazur",
+                    phone: "",
+                    service: "Manicure żelowy",
+                    reviewService: "Manicure żelowy",
+                    duration: 60,
                     date: new Date().toISOString(),
-                    source: "GOOGLE CALENDAR",
+                    source: "GOOGLE",
+                    sourceType: "WIFE_CALENDAR_BLOCK",
+                    sourceId: "DEV-WIFE-REVIEW@google.com",
+                    reviewRequired: true,
+                    reviewReason: "Niepewny termin — wpis zawiera „może być na rano”",
+                    originalTitle: "18:00📍📍📍może być na rano Renata Mazur żel",
+                    rawText: "18:00📍📍📍może być na rano Renata Mazur żel",
+                    sourceReadOnly: true,
+                    canEditReview: true,
                     color: "#777777"
                 };
                 if (typeof openAppointmentDetailsModal === "function") {
@@ -119,11 +129,40 @@
             open: () => typeof openBlockTimeModal === "function" && openBlockTimeModal()
         },
         {
+            key: "calendarInsights",
+            name: "Wybrany dzień",
+            panel: "#crmCalendarInsights",
+            editorType: "simplePanel",
+            widthVariableTarget: "#tab-kalendarz",
+            widthVariable: "--crm-insights-width",
+            open: async () => {
+                if (typeof switchTab === "function") switchTab("kalendarz");
+                await new Promise(resolve => setTimeout(resolve, 40));
+                let panel = document.getElementById("crmCalendarInsights");
+                if (!panel && typeof crmEnsureCalendarInsights === "function") {
+                    try { panel = crmEnsureCalendarInsights(); } catch (_) {}
+                }
+                if (panel) {
+                    panel.hidden = false;
+                    panel.removeAttribute("hidden");
+                    panel.classList.remove("crm-v173-user-hidden");
+                    panel.style.setProperty("display", "block", "important");
+                    panel.style.setProperty("visibility", "visible", "important");
+                    panel.style.setProperty("opacity", "1", "important");
+                }
+                try {
+                    if (typeof crmRenderCalendarInsights === "function") crmRenderCalendarInsights();
+                    else if (typeof crmFinalV3RenderInsights === "function") crmFinalV3RenderInsights();
+                } catch (_) {}
+            }
+        },
+        {
             key: "dayVisits",
             name: "Wszystkie wizyty",
             panel: "#crmDayVisitsOverlay .crm-day-list-panel",
             close: "#crmDayVisitsOverlay .crm-day-list-close",
             minus: "#crmDayVisitsOverlay #crmDayVisitsMinimizeV25217",
+            editorType: "dayVisitsAdvanced",
             open: () => {
                 if (typeof crmOpenDayVisitsList === "function") {
                     let date = new Date();
@@ -173,6 +212,32 @@
             open: () => typeof openCategoryModal === "function" && openCategoryModal()
         },
         {
+            key: "priceCategoryCard",
+            name: "Cennik DOM — karta kategorii",
+            panel: "#crmAdminDomPriceGroupV28 .crm-price-card-v27",
+            styleSelector: "#crmAdminDomPriceGroupV28 .crm-price-card-v27",
+            editorType: "priceCategoryCard",
+            open: async () => {
+                if (typeof switchTab === "function") switchTab("cennik");
+                const group = document.getElementById("crmAdminDomPriceGroupV28");
+                if (group) group.open = true;
+
+                try {
+                    if (typeof crmLoadDomPricesSingleV284 === "function") {
+                        await crmLoadDomPricesSingleV284();
+                    }
+                } catch (_) {}
+
+                if (typeof renderServicesTable === "function") {
+                    try { renderServicesTable(); } catch (_) {}
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 80));
+                const card = document.querySelector("#crmAdminDomPriceGroupV28 .crm-price-card-v27");
+                if (card) card.classList.add("crm-cat-open-v284");
+            }
+        },
+        {
             key: "contactConfirm",
             name: "Dane klienta",
             panel: "#crmContactDataConfirmModalV2 > section",
@@ -197,7 +262,7 @@
     ];
 
     let state = {};
-    let selectedKey = null; /* V5.3: po odświeżeniu NIE otwieramy automatycznie żadnego panelu ADMIN */
+    let selectedKey = null; /* V5.4: po odświeżeniu NIE otwieramy automatycznie żadnego panelu ADMIN */
     let dirty = false;
     const dirtyKeys = new Set();
     const liveKeys = new Set(); /* tylko panele faktycznie zmienione w tej sesji */
@@ -265,8 +330,9 @@
         const host = String(location.hostname || "").toLowerCase();
         if (host === "127.0.0.1" || host === "localhost") return "local-bridge";
         if (location.protocol === "file:") return "local-file";
-        /* GitHub Pages dziś, ewentualna własna domena później. */
-        if (location.protocol === "https:" || location.protocol === "http:") return "github";
+        /* GitHub write is explicit opt-in; hosting protocol alone never authorizes a repo write. */
+        const params = new URLSearchParams(location.search || "");
+        if (params.get("devSave") === "github") return "github";
         return "local-file";
     }
 
@@ -277,8 +343,101 @@
         return "LOCAL — zapis fizyczny do wybranego styleadmin-overrides.css";
     }
 
+    function cssColorToHex(value, fallback = "#ffffff") {
+        const source = String(value || "").trim();
+        if (/^#[0-9a-f]{6}$/i.test(source)) return source.toLowerCase();
+        if (/^#[0-9a-f]{3}$/i.test(source)) {
+            return "#" + source.slice(1).split("").map(ch => ch + ch).join("").toLowerCase();
+        }
+        const match = source.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?/i);
+        if (!match) return fallback;
+        if (match[4] !== undefined && num(match[4], 1) <= 0.001) return fallback;
+        return "#" + [match[1], match[2], match[3]]
+            .map(part => Math.max(0, Math.min(255, Math.round(Number(part) || 0))).toString(16).padStart(2, "0"))
+            .join("");
+    }
+
+    function hexToRgba(hex, alpha = 1) {
+        const safe = cssColorToHex(hex, "#000000");
+        const r = parseInt(safe.slice(1, 3), 16);
+        const g = parseInt(safe.slice(3, 5), 16);
+        const b = parseInt(safe.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, num(alpha, 1)))})`;
+    }
+
+    function parseShadowState(node) {
+        const fallback = {
+            shadowX: 0,
+            shadowY: 8,
+            shadowBlur: 24,
+            shadowSpread: 0,
+            shadowColor: "#5c3745",
+            shadowOpacity: 0.06
+        };
+        if (!node) return fallback;
+
+        let value = "";
+        try { value = String(getComputedStyle(node).boxShadow || ""); } catch (_) {}
+        if (!value || value === "none") return {...fallback, shadowOpacity: 0};
+
+        const colorMatch = value.match(/rgba?\([^)]*\)/i);
+        const color = colorMatch ? colorMatch[0] : "";
+        const pxValues = value.replace(color, "").match(/-?[\d.]+px/g) || [];
+        const rgba = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?/i);
+
+        return {
+            shadowX: num(pxValues[0], fallback.shadowX),
+            shadowY: num(pxValues[1], fallback.shadowY),
+            shadowBlur: Math.max(0, num(pxValues[2], fallback.shadowBlur)),
+            shadowSpread: num(pxValues[3], fallback.shadowSpread),
+            shadowColor: cssColorToHex(color, fallback.shadowColor),
+            shadowOpacity: rgba && rgba[4] !== undefined ? num(rgba[4], fallback.shadowOpacity) : fallback.shadowOpacity
+        };
+    }
+
+    function defaultPriceCategoryCardState(config) {
+        const panel = el(config.panel);
+        const head = panel?.querySelector(".crm-price-card-head-v27") || null;
+        const stripe = panel?.querySelector(".crm-price-stripe-v27") || null;
+        const icon = panel?.querySelector(".crm-price-category-icon-v27") || null;
+        const title = panel?.querySelector(".crm-price-card-head-v27 h3") || null;
+        const serviceHead = panel?.querySelector(".crm-price-service-head-v27") || null;
+        const serviceRow = panel?.querySelector(".crm-price-service-row-v27") || null;
+        const panelStyle = panel ? getComputedStyle(panel) : null;
+        const headStyle = head ? getComputedStyle(head) : null;
+        const serviceHeadStyle = serviceHead ? getComputedStyle(serviceHead) : null;
+        const serviceRowStyle = serviceRow ? getComputedStyle(serviceRow) : null;
+
+        return {
+            cardBg: cssColorToHex(panelStyle?.backgroundColor, "#ffffff"),
+            borderColor: cssColorToHex(panelStyle?.borderTopColor, "#eadfe3"),
+            borderWidth: computedNumber(panel, "border-top-width", 1),
+            radius: computedNumber(panel, "border-top-left-radius", 14),
+            ...parseShadowState(panel),
+
+            headerBg: cssColorToHex(headStyle?.backgroundColor, "#ffffff"),
+            headerHeight: computedNumber(head, "min-height", 52),
+            headerPadY: computedNumber(head, "padding-top", 8),
+            headerPadX: computedNumber(head, "padding-left", 10),
+            headerGap: computedNumber(head, "column-gap", 9),
+            separatorColor: cssColorToHex(headStyle?.borderBottomColor, "#eadfe3"),
+
+            stripeWidth: computedNumber(stripe, "width", 4),
+            stripeHeight: computedNumber(stripe, "height", 32),
+            iconSize: computedNumber(icon, "width", 34),
+            titleSize: computedNumber(title, "font-size", 15.5),
+
+            serviceHeaderBg: cssColorToHex(serviceHeadStyle?.backgroundColor, "#ffffff"),
+            serviceRowBg: cssColorToHex(serviceRowStyle?.backgroundColor, "#ffffff"),
+            serviceRowHeight: computedNumber(serviceRow, "min-height", 52),
+            servicePadY: computedNumber(serviceRow, "padding-top", 7),
+            servicePadX: computedNumber(serviceRow, "padding-left", 12)
+        };
+    }
+
     function defaultPanelState(config) {
         if (!config) return null;
+        if (config.editorType === "priceCategoryCard") return defaultPriceCategoryCardState(config);
         const panel = el(config.panel);
         const close = el(config.close);
         const minus = el(config.minus);
@@ -323,7 +482,7 @@
             computedNumber(minus, "height", 2.25, "::before") || 2.25
         );
 
-        return {
+        const base = {
             width,
             height: maxHeight,
             panelX,
@@ -346,6 +505,54 @@
             statusButtonX,
             statusButtonY
         };
+
+        if (config.editorType === "dayVisitsAdvanced") {
+            return {
+                ...base,
+                cardMinHeight: 66,
+                cardPadY: 8,
+                cardPadX: 10,
+                cardGap: 2,
+                cardRadius: 12,
+                stripeWidth: 5,
+                iconSize: 16,
+                timeSize: 11,
+                clientSize: 13,
+                serviceSize: 10.5,
+                timeWeight: 700,
+                clientWeight: 750,
+                serviceWeight: 500,
+                textColor: "#3b3338",
+                serviceColor: "#746a70",
+                headerLabelColor: "#ad5577",
+                headerDateColor: "#342d34",
+                headerLabelSize: 10,
+                headerDateSize: 17,
+                headerLabelText: "WSZYSTKIE WIZYTY",
+                showHeaderLabel: 1,
+                showDate: 1,
+                showSource: 1,
+                showStatus: 0,
+                showTime: 1,
+                showCategory: 1,
+                showClient: 1,
+                showService: 1,
+                topOrder: 1,
+                clientOrder: 2,
+                serviceOrder: 3,
+                topX: 0,
+                topY: 0,
+                clientX: 0,
+                clientY: 0,
+                serviceX: 0,
+                serviceY: 0,
+                headerLabelX: 0,
+                headerLabelY: 0,
+                headerDateX: 0,
+                headerDateY: 0
+            };
+        }
+        return base;
     }
 
     function ensureState(key) {
@@ -391,13 +598,212 @@
         return config.dark ? "#ffffff" : "#81737a";
     }
 
+    function cssForPriceCategoryCard(config, values) {
+        const selector = config.styleSelector || config.panel;
+        const shadow = hexToRgba(values.shadowColor, values.shadowOpacity);
+        return `
+/* ${config.name} — DEV V5.6 / CENNIK */
+${selector} {
+    background: ${values.cardBg} !important;
+    border: ${px(values.borderWidth)} solid ${values.borderColor} !important;
+    border-radius: ${px(values.radius)} !important;
+    box-shadow: ${px(values.shadowX)} ${px(values.shadowY)} ${px(values.shadowBlur)} ${px(values.shadowSpread)} ${shadow} !important;
+}
+
+${selector} .crm-price-card-head-v27 {
+    min-height: ${px(values.headerHeight)} !important;
+    padding: ${px(values.headerPadY)} ${px(values.headerPadX)} !important;
+    gap: ${px(values.headerGap)} !important;
+    background: ${values.headerBg} !important;
+    border-bottom-color: ${values.separatorColor} !important;
+}
+
+${selector} .crm-price-stripe-v27 {
+    width: ${px(values.stripeWidth)} !important;
+    height: ${px(values.stripeHeight)} !important;
+}
+
+${selector} .crm-price-category-icon-v27 {
+    width: ${px(values.iconSize)} !important;
+    height: ${px(values.iconSize)} !important;
+}
+
+${selector} .crm-price-card-head-v27 h3 {
+    font-size: ${px(values.titleSize)} !important;
+}
+
+${selector} .crm-price-service-head-v27 {
+    background: ${values.serviceHeaderBg} !important;
+}
+
+${selector} .crm-price-service-row-v27 {
+    min-height: ${px(values.serviceRowHeight)} !important;
+    padding: ${px(values.servicePadY)} ${px(values.servicePadX)} !important;
+    background: ${values.serviceRowBg} !important;
+}
+`;
+    }
+
+    function cssContentString(value) {
+        return String(value ?? "")
+            .replace(/\\/g, "\\\\")
+            .replace(/"/g, '\\"')
+            .replace(/\r?\n/g, "\\A ");
+    }
+
+    function cssForDayVisitsAdvanced(config, values) {
+        const color = colorFor(config);
+        const show = (value, display="block") => num(value, 0) ? `display:${display} !important;` : "display:none !important;";
+        const topVisible = num(values.showSource,1) || num(values.showStatus,0) || num(values.showTime,1);
+        return `
+/* ${config.name} — DEV V5.9 / ZAAWANSOWANY EDYTOR */
+${config.panel} {
+    width: ${px(values.width)} !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    translate: ${px(values.panelX)} ${px(values.panelY)} !important;
+    --crm-day-list-card-min-height: ${px(values.cardMinHeight)} !important;
+    --crm-day-list-card-pad-y: ${px(values.cardPadY)} !important;
+    --crm-day-list-card-pad-x: ${px(values.cardPadX)} !important;
+    --crm-day-list-card-gap: ${px(values.cardGap)} !important;
+    --crm-day-list-card-radius: ${px(values.cardRadius)} !important;
+    --crm-day-list-stripe-width: ${px(values.stripeWidth)} !important;
+    --crm-day-list-icon-size: ${px(values.iconSize)} !important;
+    --crm-day-list-time-size: ${px(values.timeSize)} !important;
+    --crm-day-list-client-size: ${px(values.clientSize)} !important;
+    --crm-day-list-service-size: ${px(values.serviceSize)} !important;
+    --crm-day-list-text-color: ${values.textColor} !important;
+    --crm-day-list-service-color: ${values.serviceColor} !important;
+}
+
+#crmDayVisitsOverlay .crm-day-list-item.crm-v304-day-list-item {
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    justify-content:center !important;
+    min-height:${px(values.cardMinHeight)} !important;
+    height:auto !important;
+    padding:${px(values.cardPadY)} ${px(values.cardPadX)} !important;
+    gap:${px(values.cardGap)} !important;
+    border-radius:${px(values.cardRadius)} !important;
+    border-left-width:${px(values.stripeWidth)} !important;
+}
+#crmDayVisitsOverlay .crm-v304-day-list-top {
+    order:${Math.round(num(values.topOrder,1))} !important;
+    translate:${px(values.topX)} ${px(values.topY)} !important;
+    ${topVisible ? "display:flex !important;" : "display:none !important;"}
+}
+#crmDayVisitsOverlay .crm-v304-day-list-client {
+    order:${Math.round(num(values.clientOrder,2))} !important;
+    translate:${px(values.clientX)} ${px(values.clientY)} !important;
+    font-size:${px(values.clientSize)} !important;
+    font-weight:${Math.round(num(values.clientWeight,750))} !important;
+    color:${values.textColor} !important;
+    ${show(values.showClient,"flex")}
+}
+#crmDayVisitsOverlay .crm-v304-day-list-service {
+    order:${Math.round(num(values.serviceOrder,3))} !important;
+    translate:${px(values.serviceX)} ${px(values.serviceY)} !important;
+    font-size:${px(values.serviceSize)} !important;
+    font-weight:${Math.round(num(values.serviceWeight,500))} !important;
+    color:${values.serviceColor} !important;
+    ${show(values.showService,"block")}
+}
+#crmDayVisitsOverlay .crm-v304-day-list-top b {
+    font-size:${px(values.timeSize)} !important;
+    font-weight:${Math.round(num(values.timeWeight,700))} !important;
+    color:${values.textColor} !important;
+    ${show(values.showTime,"block")}
+}
+#crmDayVisitsOverlay .crm-v304-day-list-top .crm-v304-source-pack { ${show(values.showSource,"inline-flex")} }
+#crmDayVisitsOverlay .crm-v304-day-list-top .crm-v304-status { ${show(values.showStatus,"inline-flex")} }
+#crmDayVisitsOverlay .crm-v304-day-list-client .crm-v304-category-icon {
+    width:${px(values.iconSize)} !important;
+    height:${px(values.iconSize)} !important;
+    flex-basis:${px(values.iconSize)} !important;
+    ${show(values.showCategory,"block")}
+}
+
+#crmDayVisitsOverlay .crm-day-list-panel > header span:first-child {
+    color:${values.headerLabelColor} !important;
+    font-size:0 !important;
+    translate:${px(values.headerLabelX)} ${px(values.headerLabelY)} !important;
+    ${show(values.showHeaderLabel,"block")}
+}
+#crmDayVisitsOverlay .crm-day-list-panel > header span:first-child::after {
+    content:"${cssContentString(values.headerLabelText)}" !important;
+    font-size:${px(values.headerLabelSize)} !important;
+    font-weight:800 !important;
+    letter-spacing:.07em !important;
+}
+#crmDayVisitsOverlay #crmDayVisitsTitle {
+    color:${values.headerDateColor} !important;
+    font-size:${px(values.headerDateSize)} !important;
+    translate:${px(values.headerDateX)} ${px(values.headerDateY)} !important;
+    ${show(values.showDate,"block")}
+}
+
+${config.close} {
+    position:relative !important;
+    translate:${px(values.closeX)} ${px(values.closeY)} !important;
+    color:transparent !important;
+    font-size:0 !important;
+    overflow:visible !important;
+}
+${config.close}::before, ${config.close}::after {
+    content:"" !important; position:absolute !important; left:50% !important; top:50% !important;
+    width:${px(values.closeSize)} !important; height:${px(values.closeStroke)} !important;
+    border:0 !important; border-radius:999px !important; background:${color} !important;
+    transform-origin:center !important; pointer-events:none !important;
+}
+${config.close}::before { transform:translate(-50%,-50%) rotate(45deg) !important; }
+${config.close}::after { transform:translate(-50%,-50%) rotate(-45deg) !important; }
+${config.minus} {
+    position:relative !important; translate:${px(values.minusX)} ${px(values.minusY)} !important;
+    color:transparent !important; font-size:0 !important; overflow:visible !important;
+}
+${config.minus}::before {
+    content:"" !important; display:block !important; position:absolute !important; left:50% !important; top:50% !important;
+    width:${px(values.minusWidth)} !important; height:${px(values.minusStroke)} !important;
+    border:0 !important; border-radius:999px !important; background:${color} !important;
+    transform:translate(-50%,-50%) !important; pointer-events:none !important;
+}
+${config.minus}::after { content:none !important; display:none !important; }
+`;
+    }
+
     function cssForPanel(config, values) {
+        if (config.editorType === "priceCategoryCard") {
+            return cssForPriceCategoryCard(config, values);
+        }
+        if (config.editorType === "dayVisitsAdvanced") {
+            return cssForDayVisitsAdvanced(config, values);
+        }
+        if (config.editorType === "simplePanel") {
+            const variableRule = config.widthVariable && config.widthVariableTarget
+                ? `${config.widthVariableTarget} { ${config.widthVariable}: ${px(values.width)} !important; }\n`
+                : "";
+            return `
+/* ${config.name} — DEV V5 / PROSTY PANEL */
+${variableRule}${config.panel} {
+    width: ${px(values.width)} !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    translate: ${px(values.panelX)} ${px(values.panelY)} !important;
+}
+`;
+        }
         const color = colorFor(config);
 
         return `
 /* ${config.name} — DEV V5 / PRAWDZIWY DOM */
 ${config.panel} {
     width: ${px(values.width)} !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
     translate: ${px(values.panelX)} ${px(values.panelY)} !important;
 }
 
@@ -479,6 +885,133 @@ ${config.statusButton} {
 `;
     }
 
+    function setImportant(node, property, value) {
+        if (!node || !node.style) return;
+        try { node.style.setProperty(property, String(value), "important"); } catch (_) {}
+    }
+
+    function applyDirectPreviewForPanel(config, values) {
+        if (!config || !values) return;
+
+        if (config.editorType === "priceCategoryCard") {
+            const selector = config.styleSelector || config.panel;
+            document.querySelectorAll(selector).forEach(panel => {
+                setImportant(panel, "background", values.cardBg);
+                setImportant(panel, "border", `${px(values.borderWidth)} solid ${values.borderColor}`);
+                setImportant(panel, "border-radius", px(values.radius));
+                setImportant(panel, "box-shadow", `${px(values.shadowX)} ${px(values.shadowY)} ${px(values.shadowBlur)} ${px(values.shadowSpread)} ${hexToRgba(values.shadowColor, values.shadowOpacity)}`);
+
+                const head = panel.querySelector(".crm-price-card-head-v27");
+                setImportant(head, "min-height", px(values.headerHeight));
+                setImportant(head, "padding", `${px(values.headerPadY)} ${px(values.headerPadX)}`);
+                setImportant(head, "gap", px(values.headerGap));
+                setImportant(head, "background", values.headerBg);
+                setImportant(head, "border-bottom-color", values.separatorColor);
+
+                const stripe = panel.querySelector(".crm-price-stripe-v27");
+                setImportant(stripe, "width", px(values.stripeWidth));
+                setImportant(stripe, "height", px(values.stripeHeight));
+
+                const icon = panel.querySelector(".crm-price-category-icon-v27");
+                setImportant(icon, "width", px(values.iconSize));
+                setImportant(icon, "height", px(values.iconSize));
+
+                const title = panel.querySelector(".crm-price-card-head-v27 h3");
+                setImportant(title, "font-size", px(values.titleSize));
+
+                panel.querySelectorAll(".crm-price-service-head-v27").forEach(node => {
+                    setImportant(node, "background", values.serviceHeaderBg);
+                });
+                panel.querySelectorAll(".crm-price-service-row-v27").forEach(node => {
+                    setImportant(node, "min-height", px(values.serviceRowHeight));
+                    setImportant(node, "padding", `${px(values.servicePadY)} ${px(values.servicePadX)}`);
+                    setImportant(node, "background", values.serviceRowBg);
+                });
+            });
+            return;
+        }
+
+        const panel = el(config.panel);
+        if (!panel) return;
+        setImportant(panel, "width", px(values.width));
+        setImportant(panel, "min-width", "0px");
+        setImportant(panel, "max-width", "none");
+        setImportant(panel, "box-sizing", "border-box");
+        setImportant(panel, "flex-basis", "auto");
+        setImportant(panel, "translate", `${px(values.panelX)} ${px(values.panelY)}`);
+
+        if (config.widthVariable && config.widthVariableTarget) {
+            const target = el(config.widthVariableTarget);
+            if (target) setImportant(target, config.widthVariable, px(values.width));
+        }
+
+        if (config.close) {
+            const close = el(config.close);
+            setImportant(close, "translate", `${px(values.closeX)} ${px(values.closeY)}`);
+        }
+        if (config.minus) {
+            const minus = el(config.minus);
+            setImportant(minus, "translate", `${px(values.minusX)} ${px(values.minusY)}`);
+        }
+        if (config.headerText) {
+            const headerText = el(config.headerText);
+            setImportant(headerText, "translate", `${px(values.headerTextX)} ${px(values.headerTextY)}`);
+        }
+        if (config.statusButton) {
+            const statusButton = el(config.statusButton);
+            setImportant(statusButton, "translate", `${px(values.statusButtonX)} ${px(values.statusButtonY)}`);
+        }
+    }
+
+    function applyDirectPreview() {
+        liveKeys.forEach(key => {
+            const config = getPanelConfig(key);
+            const values = state[key];
+            if (config && values) applyDirectPreviewForPanel(config, values);
+        });
+    }
+
+    let previewVerifyTimerV59 = null;
+    function setPreviewStatusV59(message, ok = true) {
+        const node = document.getElementById("crmDevPreviewStatusV59");
+        if (!node) return;
+        node.textContent = message;
+        node.dataset.ok = ok ? "1" : "0";
+    }
+
+    function verifyPanelWidthV59(key, attempt = 0) {
+        const config = getPanelConfig(key);
+        const values = state[key];
+        if (!config || !values || config.editorType === "priceCategoryCard") return true;
+        const panel = el(config.panel);
+        if (!panel) {
+            setPreviewStatusV59(`Podgląd: panel „${config.name}” nie jest jeszcze widoczny`, false);
+            return false;
+        }
+        const expected = Math.max(0, num(values.width, 0));
+        const actual = panel.getBoundingClientRect().width;
+        if (!expected || Math.abs(actual - expected) <= 2) {
+            setPreviewStatusV59(`Podgląd szerokości OK: ${Math.round(actual)} px`, true);
+            return true;
+        }
+        if (attempt < 5) {
+            applyDirectPreviewForPanel(config, values);
+            window.setTimeout(() => verifyPanelWidthV59(key, attempt + 1), 45 + attempt * 35);
+            return false;
+        }
+        setPreviewStatusV59(`Podgląd szerokości NIEZGODNY: ustawiono ${Math.round(expected)} px, widać ${Math.round(actual)} px`, false);
+        console.warn("DEV V5.9: szerokość panelu nie przyjęła wartości", {key, expected, actual});
+        return false;
+    }
+
+    function schedulePreviewVerificationV59() {
+        if (previewVerifyTimerV59) clearTimeout(previewVerifyTimerV59);
+        previewVerifyTimerV59 = setTimeout(() => {
+            previewVerifyTimerV59 = null;
+            if (selectedKey) verifyPanelWidthV59(selectedKey, 0);
+        }, 70);
+    }
+
     function buildCss() {
         return PANELS
             .filter(config => state[config.key])
@@ -500,8 +1033,19 @@ ${config.statusButton} {
             style.id = STYLE_ID;
             document.head.appendChild(style);
         }
-        /* V5.2: samo otwarcie panelu NIE może nadpisywać fizycznego ADMIN CSS. */
+        /* V5.6: live CSS + bezpośredni preview DOM. ADMIN może przebudować panel po otwarciu,
+           dlatego nie polegamy już tylko na kaskadzie CSS. */
         style.textContent = buildLiveCss();
+        applyDirectPreview();
+        // V5.9: część paneli ADMIN przebudowuje własne style po otwarciu.
+        // Powtarzamy preview po dwóch klatkach, aby szerokość widoczna w DEV była rzeczywista.
+        requestAnimationFrame(()=>{
+            applyDirectPreview();
+            requestAnimationFrame(()=>{
+                applyDirectPreview();
+                schedulePreviewVerificationV59();
+            });
+        });
 
         highlightSelected();
     }
@@ -710,6 +1254,18 @@ ${managed}
         return result;
     }
 
+    function verifySavedPanelPatches(cssText, panelPatches) {
+        const source = String(cssText || "");
+        const missing = (Array.isArray(panelPatches) ? panelPatches : [])
+            .map(p => String(p?.key || "").trim())
+            .filter(Boolean)
+            .filter(key => !source.includes(panelPatchStart(key)) || !source.includes(panelPatchEnd(key)));
+        if (missing.length) {
+            throw new Error(`Plik został zapisany, ale weryfikacja nie znalazła bloków DEV: ${missing.join(", ")}.`);
+        }
+        return true;
+    }
+
     async function saveViaLocalBridge(panelPatches) {
         const oldResponse = await fetch(`../CSS/styleadmin-overrides.css?devsync=${Date.now()}`, {cache:"no-store"});
         if (!oldResponse.ok) throw new Error("Nie mogę odczytać lokalnego styleadmin-overrides.css.");
@@ -720,7 +1276,13 @@ ${managed}
             panels: panelPatches
         }, 30000);
         if (!result?.success) throw new Error(result?.message || result?.error || "Lokalny helper nie zapisał pliku.");
-        return { ...result, driveBackupId: backup.backupFileId || "" };
+
+        await new Promise(resolve => setTimeout(resolve, 120));
+        const verifyResponse = await fetch(`../CSS/styleadmin-overrides.css?devverify=${Date.now()}`, {cache:"no-store"});
+        if (!verifyResponse.ok) throw new Error("Zapis wykonany, ale nie mogę ponownie odczytać styleadmin-overrides.css do weryfikacji.");
+        verifySavedPanelPatches(await verifyResponse.text(), panelPatches);
+
+        return { ...result, driveBackupId: backup.backupFileId || "", verified:true };
     }
 
     function openHandleDb() {
@@ -807,7 +1369,9 @@ ${managed}
         const writable = await handle.createWritable();
         await writable.write(newContent);
         await writable.close();
-        return {success:true, fileName:handle.name, driveBackupId:backup.backupFileId || ""};
+        const verifyFile = await handle.getFile();
+        verifySavedPanelPatches(await verifyFile.text(), panelPatches);
+        return {success:true, fileName:handle.name, driveBackupId:backup.backupFileId || "", verified:true};
     }
 
     async function saveToAdmin() {
@@ -842,12 +1406,12 @@ ${managed}
                 );
             } else {
                 setStatus(
-                    `✓ Zapisano fizycznie do lokalnego styleadmin-overrides.css. Backup Google Drive: ${result.driveBackupId || "OK"}. Ten plik możesz normalnie wysłać na GitHub.`,
+                    `✓ Zapisano i zweryfikowano fizyczny styleadmin-overrides.css. Backup Google Drive: ${result.driveBackupId || "OK"}.`,
                     "ok"
                 );
             }
         } catch (error) {
-            console.error("DEV V5.3 save:", error);
+            console.error("DEV V5.6 save:", error);
             setStatus("BŁĄD ZAPISU: " + (error?.message || String(error)), "warn");
         } finally {
             if (button) {
@@ -913,6 +1477,66 @@ ${managed}
         `;
     }
 
+    function colorRow(label, key) {
+        const values = ensureState(selectedKey);
+        const value = cssColorToHex(values[key], "#ffffff");
+        return `
+            <div class="crm-dev-v4-row crm-dev-v4-color-row">
+                <label for="crmDev_${key}">${label}</label>
+                <input
+                    id="crmDev_${key}"
+                    type="color"
+                    value="${value}"
+                    data-dev-kind="color"
+                    data-dev-key="${key}">
+            </div>
+        `;
+    }
+
+    function toggleRow(label, key) {
+        const values = ensureState(selectedKey);
+        const checked = num(values[key], 0) ? "checked" : "";
+        return `
+            <div class="crm-dev-v4-row crm-dev-v4-toggle-row">
+                <label for="crmDev_${key}">${label}</label>
+                <input id="crmDev_${key}" type="checkbox" ${checked} data-dev-kind="boolean" data-dev-key="${key}">
+            </div>
+        `;
+    }
+
+    function textRow(label, key) {
+        const values = ensureState(selectedKey);
+        const value = String(values[key] ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        return `
+            <div class="crm-dev-v4-row crm-dev-v4-text-row">
+                <label for="crmDev_${key}">${label}</label>
+                <input id="crmDev_${key}" type="text" value="${value}" data-dev-kind="text" data-dev-key="${key}">
+            </div>
+        `;
+    }
+
+    function bindControlInputs(host, values) {
+        host
+            .querySelectorAll("[data-dev-key]")
+            .forEach(input => {
+                input.addEventListener("input", event => {
+                    const key = event.currentTarget.dataset.devKey;
+                    const kind = event.currentTarget.dataset.devKind || "number";
+                    let value;
+                    if (kind === "color") value = String(event.currentTarget.value || "#ffffff");
+                    else if (kind === "boolean") value = event.currentTarget.checked ? 1 : 0;
+                    else if (kind === "text") value = String(event.currentTarget.value || "");
+                    else value = num(event.currentTarget.value, values[key] || 0);
+
+                    ensureState(selectedKey)[key] = value;
+                    dirtyKeys.add(selectedKey);
+                    liveKeys.add(selectedKey);
+                    markDirty();
+                    applyLive();
+                });
+            });
+    }
+
     function renderControls() {
         const host = document.getElementById("crmDevControlsV4");
         if (!host) return;
@@ -924,6 +1548,160 @@ ${managed}
         const config = getPanelConfig();
         if (!config) return;
         const values = ensureState(selectedKey);
+
+        if (config.editorType === "dayVisitsAdvanced") {
+            host.innerHTML = `
+                <div class="crm-dev-v4-section">
+                    <h4>Panel — Wszystkie wizyty</h4>
+                    ${controlRow("Szerokość", "width", 260, 720, 1)}
+                    ${controlRow("Przesuń panel X", "panelX", -500, 500, 1)}
+                    ${controlRow("Przesuń panel Y", "panelY", -500, 500, 1)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Nagłówek</h4>
+                    ${textRow("Tekst etykiety", "headerLabelText")}
+                    ${toggleRow("Pokaż etykietę", "showHeaderLabel")}
+                    ${toggleRow("Pokaż datę", "showDate")}
+                    ${colorRow("Kolor etykiety", "headerLabelColor")}
+                    ${colorRow("Kolor daty", "headerDateColor")}
+                    ${controlRow("Rozmiar etykiety", "headerLabelSize", 7, 24, .5)}
+                    ${controlRow("Rozmiar daty", "headerDateSize", 10, 32, .5)}
+                    ${controlRow("Etykieta X", "headerLabelX", -150, 150, 1)}
+                    ${controlRow("Etykieta Y", "headerLabelY", -100, 100, 1)}
+                    ${controlRow("Data X", "headerDateX", -150, 150, 1)}
+                    ${controlRow("Data Y", "headerDateY", -100, 100, 1)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Karta wizyty</h4>
+                    ${controlRow("Minimalna wysokość", "cardMinHeight", 42, 160, 1)}
+                    ${controlRow("Padding pionowy", "cardPadY", 0, 30, 1)}
+                    ${controlRow("Padding poziomy", "cardPadX", 0, 36, 1)}
+                    ${controlRow("Odstęp między wierszami", "cardGap", 0, 20, 1)}
+                    ${controlRow("Zaokrąglenie", "cardRadius", 0, 36, 1)}
+                    ${controlRow("Szerokość kolorowego paska", "stripeWidth", 0, 14, .5)}
+                    ${controlRow("Rozmiar ikon", "iconSize", 8, 32, .5)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Co ma być widoczne</h4>
+                    ${toggleRow("Źródło (ikony)", "showSource")}
+                    ${toggleRow("Status", "showStatus")}
+                    ${toggleRow("Godzina", "showTime")}
+                    ${toggleRow("Ikona kategorii", "showCategory")}
+                    ${toggleRow("Klient", "showClient")}
+                    ${toggleRow("Usługa", "showService")}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Tekst</h4>
+                    ${colorRow("Kolor głównego tekstu", "textColor")}
+                    ${colorRow("Kolor usługi", "serviceColor")}
+                    ${controlRow("Godzina — rozmiar", "timeSize", 7, 24, .5)}
+                    ${controlRow("Godzina — grubość", "timeWeight", 300, 900, 50)}
+                    ${controlRow("Klient — rozmiar", "clientSize", 8, 28, .5)}
+                    ${controlRow("Klient — grubość", "clientWeight", 300, 900, 50)}
+                    ${controlRow("Usługa — rozmiar", "serviceSize", 7, 24, .5)}
+                    ${controlRow("Usługa — grubość", "serviceWeight", 300, 900, 50)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Pozycja i kolejność wierszy</h4>
+                    ${controlRow("Góra — kolejność", "topOrder", 1, 3, 1)}
+                    ${controlRow("Góra X", "topX", -120, 120, 1)}
+                    ${controlRow("Góra Y", "topY", -80, 80, 1)}
+                    ${controlRow("Klient — kolejność", "clientOrder", 1, 3, 1)}
+                    ${controlRow("Klient X", "clientX", -120, 120, 1)}
+                    ${controlRow("Klient Y", "clientY", -80, 80, 1)}
+                    ${controlRow("Usługa — kolejność", "serviceOrder", 1, 3, 1)}
+                    ${controlRow("Usługa X", "serviceX", -120, 120, 1)}
+                    ${controlRow("Usługa Y", "serviceY", -80, 80, 1)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>X i minimalizacja</h4>
+                    ${controlRow("X poziomo", "closeX", -150, 150, 1)}
+                    ${controlRow("X pionowo", "closeY", -150, 150, 1)}
+                    ${controlRow("Rozmiar X", "closeSize", 7, 40, .5)}
+                    ${controlRow("Grubość X", "closeStroke", .75, 8, .25)}
+                    ${controlRow("— poziomo", "minusX", -150, 150, 1)}
+                    ${controlRow("— pionowo", "minusY", -150, 150, 1)}
+                    ${controlRow("Szerokość —", "minusWidth", 6, 42, .5)}
+                    ${controlRow("Grubość —", "minusStroke", .75, 8, .25)}
+                </div>
+            `;
+            bindControlInputs(host, values);
+            applyLive();
+            return;
+        }
+
+        if (config.editorType === "simplePanel") {
+            host.innerHTML = `
+                <div class="crm-dev-v4-section">
+                    <h4>Panel — ${config.name}</h4>
+                    ${controlRow("Szerokość", "width", 240, 700, 1)}
+                    ${controlRow("Przesuń panel X", "panelX", -500, 500, 1)}
+                    ${controlRow("Przesuń panel Y", "panelY", -500, 500, 1)}
+                </div>
+            `;
+            bindControlInputs(host, values);
+            applyLive();
+            return;
+        }
+
+        if (config.editorType === "priceCategoryCard") {
+            host.innerHTML = `
+                <div class="crm-dev-v4-section">
+                    <h4>Karta kategorii — wygląd</h4>
+                    ${colorRow("Tło karty", "cardBg")}
+                    ${colorRow("Kolor obramowania", "borderColor")}
+                    ${controlRow("Grubość obramowania", "borderWidth", 0, 8, .25)}
+                    ${controlRow("Zaokrąglenie", "radius", 0, 40, 1)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Cień karty</h4>
+                    ${controlRow("Cień X", "shadowX", -40, 40, 1)}
+                    ${controlRow("Cień Y", "shadowY", -40, 60, 1)}
+                    ${controlRow("Rozmycie", "shadowBlur", 0, 80, 1)}
+                    ${controlRow("Rozszerzenie", "shadowSpread", -20, 30, 1)}
+                    ${colorRow("Kolor cienia", "shadowColor")}
+                    ${controlRow("Krycie cienia", "shadowOpacity", 0, 1, .01)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Nagłówek kategorii</h4>
+                    ${colorRow("Tło nagłówka", "headerBg")}
+                    ${colorRow("Linia pod nagłówkiem", "separatorColor")}
+                    ${controlRow("Minimalna wysokość", "headerHeight", 34, 100, 1)}
+                    ${controlRow("Padding pionowy", "headerPadY", 0, 30, 1)}
+                    ${controlRow("Padding poziomy", "headerPadX", 0, 40, 1)}
+                    ${controlRow("Odstęp elementów", "headerGap", 0, 24, 1)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Ikona i tytuł</h4>
+                    ${controlRow("Szerokość paska", "stripeWidth", 1, 16, .5)}
+                    ${controlRow("Wysokość paska", "stripeHeight", 10, 70, 1)}
+                    ${controlRow("Rozmiar ikony", "iconSize", 16, 64, 1)}
+                    ${controlRow("Rozmiar tytułu", "titleSize", 10, 28, .5)}
+                </div>
+
+                <div class="crm-dev-v4-section">
+                    <h4>Wiersze usług</h4>
+                    ${colorRow("Tło nagłówka tabeli", "serviceHeaderBg")}
+                    ${colorRow("Tło wierszy usług", "serviceRowBg")}
+                    ${controlRow("Minimalna wysokość wiersza", "serviceRowHeight", 30, 100, 1)}
+                    ${controlRow("Padding pionowy wiersza", "servicePadY", 0, 24, 1)}
+                    ${controlRow("Padding poziomy wiersza", "servicePadX", 0, 30, 1)}
+                </div>
+            `;
+
+            bindControlInputs(host, values);
+            applyLive();
+            return;
+        }
 
         host.innerHTML = `
             <div class="crm-dev-v4-section">
@@ -966,21 +1744,7 @@ ${managed}
             ` : ""}
         `;
 
-        host
-            .querySelectorAll("[data-dev-key]")
-            .forEach(input => {
-                input.addEventListener("input", event => {
-                    const key = event.currentTarget.dataset.devKey;
-                    const value = num(event.currentTarget.value, values[key] || 0);
-
-                    ensureState(selectedKey)[key] = value;
-                    dirtyKeys.add(selectedKey);
-                    liveKeys.add(selectedKey);
-                    markDirty();
-                    applyLive();
-                });
-            });
-
+        bindControlInputs(host, values);
         applyLive();
     }
 
@@ -1032,6 +1796,74 @@ ${managed}
         return !!panelFingerprint(config);
     }
 
+    function closeDevPreviewPanelsBeforeOpen(nextKey) {
+        /* DEV ma pokazywać dokładnie jeden edytowany panel. Nie uruchamiamy logiki zapisu/usuwania. */
+        const displayNone = [
+            "appointmentDetailsModal", "appointmentModal", "blockTimeModal",
+            "clientModal", "serviceModal", "categoryModal", "crmContactDataConfirmModalV2"
+        ];
+        displayNone.forEach(id => {
+            const node = document.getElementById(id);
+            if (!node) return;
+            node.style.display = "none";
+        });
+
+        ["crmDayVisitsOverlay", "crmUnifiedInboxModal"].forEach(id => {
+            const node = document.getElementById(id);
+            if (!node) return;
+            node.hidden = true;
+            node.setAttribute("hidden", "");
+        });
+
+        /* Panel podsumowania jest częścią layoutu kalendarza, więc chowamy go tylko,
+           gdy edytujemy inny prawy panel. */
+        const insights = document.getElementById("crmCalendarInsights");
+        if (insights && nextKey !== "calendarInsights") {
+            insights.style.removeProperty("display");
+        }
+    }
+
+    async function runDevPreviewAuditV59() {
+        const savedKey = selectedKey;
+        const failures = [];
+        let checked = 0;
+        setPreviewStatusV59("Test wszystkich paneli: start…", true);
+        for (const config of PANELS) {
+            if (config.editorType === "priceCategoryCard") continue;
+            try {
+                closeDevPreviewPanelsBeforeOpen(config.key);
+                await config.open?.();
+                const ready = await waitForPanelStable(config, 3200);
+                const panel = el(config.panel);
+                if (!ready || !panel) { failures.push(`${config.name}: brak panelu`); continue; }
+                const base = defaultPanelState(config);
+                const originalWidth = panel.getBoundingClientRect().width;
+                const testWidth = Math.max(240, Math.min(700, Math.round(originalWidth + (originalWidth < 650 ? 13 : -13))));
+                applyDirectPreviewForPanel(config, Object.assign({}, base, {width:testWidth}));
+                await new Promise(resolve => setTimeout(resolve, 80));
+                const changed = panel.getBoundingClientRect().width;
+                const changeOk = Math.abs(changed - testWidth) <= 2;
+                applyDirectPreviewForPanel(config, Object.assign({}, base, {width:originalWidth}));
+                await new Promise(resolve => setTimeout(resolve, 45));
+                const restored = panel.getBoundingClientRect().width;
+                const restoreOk = Math.abs(restored - originalWidth) <= 2;
+                checked++;
+                if (!changeOk || !restoreOk) failures.push(`${config.name}: ${Math.round(originalWidth)}→${Math.round(changed)}→${Math.round(restored)} px`);
+            } catch (error) {
+                failures.push(`${config.name}: ${error?.message || error}`);
+            }
+        }
+        if (savedKey) { try { await selectPanel(savedKey); } catch (_) {} }
+        if (failures.length) {
+            setPreviewStatusV59(`Test paneli: ${checked} sprawdzonych, ${failures.length} problemów — ${failures.slice(0,2).join("; ")}`, false);
+            console.warn("DEV V5.9 — audit szerokości paneli", failures);
+        } else {
+            setPreviewStatusV59(`Test paneli OK: ${checked}/${checked} — szerokość zmienia się i wraca`, true);
+        }
+        return {checked, failures};
+    }
+    window.crmDevRunPreviewAuditV59 = runDevPreviewAuditV59;
+
     async function selectPanel(key) {
         selectedKey = key;
 
@@ -1047,20 +1879,22 @@ ${managed}
         const config = getPanelConfig(key);
         if (!config) return;
 
+        closeDevPreviewPanelsBeforeOpen(key);
+
         try {
             await config.open?.();
         } catch (error) {
-            console.warn("DEV V5.3 open panel:", error);
+            console.warn("DEV V5.9 open panel:", error);
         }
 
         const ready = await waitForPanelStable(config);
         if (!ready) {
-            console.warn("DEV V5.3: panel/X/minus nie ustabilizowały się przed odczytem:", key);
+            console.warn("DEV V5.9: panel nie ustabilizował się przed odczytem:", key);
         }
 
         /*
          * Baza zawsze pochodzi z aktualnego, fizycznego CSS ADMIN.
-         * V5.3 czyta ją dopiero gdy prawdziwy panel, X i — przestaną się ruszać.
+         * V5.6 czyta ją dopiero gdy prawdziwy panel, X i — przestaną się ruszać.
          * Dzięki temu refresh i kolejność inicjalizacji ADMIN nie zmieniają odczytu.
          */
         if (!dirtyKeys.has(key)) {
@@ -1071,6 +1905,7 @@ ${managed}
 
         renderControls();
         highlightSelected();
+        window.setTimeout(() => verifyPanelWidthV59(key, 0), 90);
     }
 
     function renderEditor() {
@@ -1080,8 +1915,12 @@ ${managed}
         editor.innerHTML = `
             <div class="crm-dev-v4-head">
                 <div style="min-width:0;flex:1">
-                    <strong>🛠 DEV V5 — PRAWDZIWY ADMIN</strong>
-                    <small id="crmDevSyncModeV5">Tryb zapisu: wykrywanie…</small>
+                    <strong>🛠 EDYTOR DEV</strong>
+                    <small id="crmDevSyncModeV5">Wybierz tryb edytora</small>
+                </div>
+                <div class="crm-dev-v4-mode-switch" role="tablist" aria-label="Tryb edytora">
+                    <button type="button" class="crm-dev-v4-mode-btn is-active" data-dev-mode="admin" role="tab" aria-selected="true">ADMIN</button>
+                    <button type="button" class="crm-dev-v4-mode-btn" data-dev-mode="index" role="tab" aria-selected="false">INDEX</button>
                 </div>
                 <button class="crm-dev-v4-icon-btn"
                         type="button"
@@ -1094,10 +1933,12 @@ ${managed}
             </div>
 
             <div class="crm-dev-v4-body">
+                <div class="crm-dev-v4-mode-pane is-active" data-dev-pane="admin">
                 <div class="crm-dev-v4-safe">
                     <strong>TRYB BEZPIECZNY:</strong>
                     DEV blokuje operacje zapisu/usuwania danych.
                     Edytujesz wyłącznie wygląd prawdziwych paneli.
+                    <small id="crmDevPreviewStatusV59" data-ok="1" style="display:block;margin-top:6px">Podgląd: wybierz panel</small>
                 </div>
 
                 <div class="crm-dev-v4-panel-list">
@@ -1124,6 +1965,12 @@ ${managed}
                         Eksport awaryjny
                     </button>
 
+                    <button class="crm-dev-v4-btn"
+                            type="button"
+                            data-dev-audit>
+                        Test podglądu paneli
+                    </button>
+
                     <button class="crm-dev-v4-btn danger"
                             type="button"
                             data-dev-reset>
@@ -1135,10 +1982,34 @@ ${managed}
                      class="crm-dev-v4-status">
                     Gotowe. Wybierz panel i zapisz fizycznie do pliku.
                 </div>
+                </div>
+
+                <div class="crm-dev-v4-mode-pane" data-dev-pane="index" hidden>
+                    <div class="crm-dev-v4-index-host">
+                        <iframe src="../../index-editor.html?embedded=1" title="Edytor INDEX — wspólny panel" loading="eager"></iframe>
+                    </div>
+                </div>
             </div>
         `;
 
         document.body.appendChild(editor);
+
+        editor.querySelectorAll("[data-dev-mode]").forEach(button => {
+            button.addEventListener("click", () => {
+                const mode = button.dataset.devMode === "index" ? "index" : "admin";
+                editor.dataset.devMode = mode;
+                editor.classList.toggle("is-index-mode", mode === "index");
+                editor.querySelectorAll("[data-dev-mode]").forEach(btn => {
+                    const active = btn.dataset.devMode === mode;
+                    btn.classList.toggle("is-active", active);
+                    btn.setAttribute("aria-selected", active ? "true" : "false");
+                });
+                editor.querySelectorAll("[data-dev-pane]").forEach(pane => {
+                    pane.hidden = pane.dataset.devPane !== mode;
+                    pane.classList.toggle("is-active", pane.dataset.devPane === mode);
+                });
+            });
+        });
 
         editor
             .querySelectorAll("[data-dev-panel]")
@@ -1150,8 +2021,26 @@ ${managed}
 
         editor
             .querySelector("[data-dev-collapse]")
-            ?.addEventListener("click", () => {
+            ?.addEventListener("click", (event) => {
+                if (editor.classList.contains("is-index-mode")) {
+                    const iframe = editor.querySelector(".crm-dev-v4-index-host iframe");
+                    try { iframe?.contentWindow?.postMessage({channel:"DARIA_INDEX_DESIGN_V1",type:"toggleEmbeddedControls"}, "*"); } catch (_) {}
+                    const button = event.currentTarget;
+                    button.title = button.title === "Pokaż ustawienia INDEX" ? "Zwiń ustawienia INDEX" : "Pokaż ustawienia INDEX";
+                    return;
+                }
                 editor.classList.toggle("is-collapsed");
+            });
+
+        editor
+            .querySelector("[data-dev-audit]")
+            ?.addEventListener("click", async event => {
+                const button = event.currentTarget;
+                const oldText = button.textContent;
+                button.disabled = true;
+                button.textContent = "Testuję panele…";
+                try { await runDevPreviewAuditV59(); }
+                finally { button.disabled = false; button.textContent = oldText; }
             });
 
         editor
@@ -1246,6 +2135,22 @@ ${managed}
         });
     }
 
+    let liveReapplyTimer = null;
+    function installLiveReapplyObserver() {
+        if (!document.body || typeof MutationObserver === "undefined") return;
+        const observer = new MutationObserver(mutations => {
+            if (!liveKeys.size) return;
+            const relevant = mutations.some(m => m.type === "childList" && (m.addedNodes?.length || m.removedNodes?.length));
+            if (!relevant) return;
+            if (liveReapplyTimer) clearTimeout(liveReapplyTimer);
+            liveReapplyTimer = setTimeout(() => {
+                liveReapplyTimer = null;
+                applyLive();
+            }, 30);
+        });
+        observer.observe(document.body, {childList:true, subtree:true});
+    }
+
     function init() {
         document.body.classList.add("crm-dev-v4", "crm-dev-v5");
 
@@ -1258,6 +2163,7 @@ ${managed}
             ? "Zapisz do GitHub / ADMIN"
             : "Zapisz do pliku ADMIN";
         installSafeMode();
+        installLiveReapplyObserver();
         markBlockedButtons();
 
         /* V5.3: po refreshu nie dotykamy żadnego panelu ADMIN i niczego nie odczytujemy.

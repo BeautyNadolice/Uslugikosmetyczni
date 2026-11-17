@@ -3215,7 +3215,6 @@ body.crm-panel-manager-overlap-v25217 #tab-kalendarz #crmCalendarInsights {
     font-style: normal !important;
 }
 
-
 #tab-klienci .crm-client-visit-v25222 {
     display: flex !important;
     flex-direction: column !important;
@@ -3387,7 +3386,7 @@ body.crm-panel-manager-overlap-v25217 #tab-kalendarz #crmCalendarInsights {
     box-shadow: 0 0 0 2px rgba(197,94,128,.12) !important;
 }
 
-/* ========================================================================== 
+/* ==========================================================================
    ADMIN PREMIUM VISUAL V26 — JEDYNA WARSTWA WIZUALNA
    Cel: wygląd zgodny z zaakceptowaną wizualizacją Klienci.
    Tylko wygląd. Bez zmiany logiki, szerokości paneli i ręcznych pozycji X / —.
@@ -3591,7 +3590,6 @@ body{background-image:radial-gradient(circle at 8% 0%,rgba(241,206,217,.22),tran
     .page-header h1,.tab-page>h1{font-size:27px!important;}
 }
 
-
 /* KLIENT V26.1 — statystyki tylko do odczytu, bez edytowalnych inputów */
 #clientModal .crm-client-history-info-v261 {
     margin: 6px 0 2px !important;
@@ -3664,8 +3662,6 @@ body{background-image:radial-gradient(circle at 8% 0%,rgba(241,206,217,.22),tran
     grid-column: 1 / -1 !important;
 }
 
-
-
 /* ==========================================================================
    CLIENTS V26.4 — OCZEKUJĄCY NA REJESTRACJĘ
    ========================================================================== */
@@ -3713,8 +3709,6 @@ body{background-image:radial-gradient(circle at 8% 0%,rgba(241,206,217,.22),tran
 }
 
 /* KONIEC CLIENTS V26.4 */
-
-
 
 /* ==========================================================================
    CENNIK V26.6 — KOMPAKTOWE KARTY KATEGORII
@@ -5018,7 +5012,6 @@ body{background-image:radial-gradient(circle at 8% 0%,rgba(241,206,217,.22),tran
 
 /* ===== KONIEC ADMIN V26.17 ===== */
 
-
 /* ==========================================================================
    ADMIN V27.3 — KLIENCI: WIĘKSZE ZAKŁADKI + ALERT "OSOBY OCZEKUJĄCE"
    2026-08-23
@@ -5137,3 +5130,449 @@ button[data-crm-clients-view-v269="waiting"].has-waiting-v273.is-active::after {
         font-size: 12px !important;
     }
 }
+
+/* GRAFIK MĘŻA — compact month/year navigation TEST V1 */
+.crm-work-nav{display:grid;grid-template-columns:38px minmax(160px,1fr) 38px;align-items:center;gap:8px;margin:0 0 10px}.crm-work-nav>button{border:1px solid #dccfc5;background:#fff;border-radius:9px;min-height:36px;cursor:pointer}.crm-work-title{font-weight:700;font-size:15px}.crm-work-month-picker{border:1px solid #e3d8cf;border-radius:10px;padding:10px;margin-bottom:10px;background:#fffaf6}.crm-work-year-row{display:grid;grid-template-columns:38px 1fr 38px;align-items:center;text-align:center;margin-bottom:8px}.crm-work-year-row button,.crm-work-month-grid button{border:1px solid #ddd0c6;background:#fff;border-radius:8px;padding:7px;cursor:pointer}.crm-work-month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.crm-work-month-grid button.is-active{font-weight:700;outline:2px solid #c2a383}.crm-work-grid{display:grid;grid-template-columns:repeat(7,minmax(38px,1fr));gap:4px}.crm-work-dow{font-weight:700;text-align:center;padding:4px;font-size:12px}.crm-work-day{min-height:48px;border:1px solid #d8cec6;border-radius:7px;cursor:default;padding:3px}.crm-work-day span{display:block;font-size:11px}.crm-work-day strong{font-size:15px}.crm-work-empty{text-align:center;padding:24px 10px;color:#777;border:1px dashed #d8cec6;border-radius:10px}.crm-work-note{font-size:11px;color:#666;margin:8px 0 0}@media(max-width:680px){.crm-work-month-grid{grid-template-columns:repeat(3,1fr)}.crm-work-grid{gap:2px}.crm-work-day{min-height:42px}.crm-work-dow{font-size:10px;padding:2px}}
+
+/* ==========================================================================
+   ADMIN V30.10 — review / do sprawdzenia + delikatna korekta 3 paneli
+   ========================================================================== */
+@media (min-width: 1251px) {
+  :root { --crm-action-panel-width: 360px; }
+  #appointmentDetailsModal.crm-safe-visit-panel {
+    width: var(--crm-action-panel-width, 360px) !important;
+    min-width: var(--crm-action-panel-width, 360px) !important;
+    max-width: var(--crm-action-panel-width, 360px) !important;
+  }
+  #crmDayVisitsOverlay .crm-day-list-panel {
+    width: 340px !important;
+    min-width: 340px !important;
+    max-width: 340px !important;
+  }
+}
+
+.crm-v309-review-mark{
+  display:inline-flex!important;align-items:center!important;gap:2px!important;
+  flex:0 0 auto!important;line-height:1!important;vertical-align:middle!important;
+}
+.crm-v309-review-mark i{font-style:normal!important;color:#6d676b!important;font-size:10px!important;line-height:1!important}
+.crm-v309-review-mark.medium i{font-size:11px!important}
+.crm-v309-review-mark b{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  min-width:12px!important;height:12px!important;padding:0 3px!important;border-radius:999px!important;
+  background:#dc3e45!important;color:#fff!important;font-size:9px!important;font-weight:900!important;line-height:12px!important;
+}
+.crm-v309-review-mark.medium b{min-width:14px!important;height:14px!important;font-size:10px!important;line-height:14px!important}
+
+#appointmentDetailsModal.crm-v309-review-open .crm-safe-header{
+  background:linear-gradient(135deg,#d8a125,#a8730d)!important;
+}
+#appointmentDetailsModal .crm-review-title-mark-v309{display:inline-flex!important;align-items:center!important;gap:4px!important}
+#appointmentDetailsModal .crm-review-title-mark-v309 b{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:16px!important;height:16px!important;border-radius:50%!important;background:#e44249!important;color:#fff!important;font-size:11px!important;
+}
+#appointmentDetailsModal .crm-safe-tabs #crmVisitTabInfo[hidden],
+#appointmentDetailsModal #crmInfoTabContent[hidden]{display:none!important}
+
+.crm-review-context-v309{
+  margin:12px 0 2px!important;padding:12px!important;border:1px solid #ecd990!important;
+  border-radius:14px!important;background:#fffbea!important;display:grid!important;gap:10px!important;
+}
+.crm-review-context-v309[hidden]{display:none!important}
+.crm-review-heading-v309{display:flex!important;align-items:center!important;gap:7px!important;color:#4f474b!important}
+.crm-review-heading-v309 strong{font-size:12px!important;text-transform:uppercase!important;letter-spacing:.04em!important}
+.crm-review-alert-v309{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:18px!important;height:18px!important;border-radius:50%!important;background:#dc3e45!important;color:#fff!important;font-size:11px!important;font-weight:900!important}
+.crm-review-grid-v309{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px 10px!important;margin:0!important}
+.crm-review-grid-v309>div{min-width:0!important;padding:8px 9px!important;border:1px solid #efe6ea!important;border-radius:10px!important;background:#fff!important}
+.crm-review-grid-v309>div.wide{grid-column:1/-1!important}
+.crm-review-grid-v309 dt{margin:0 0 3px!important;color:#9a858f!important;font-size:9px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.05em!important}
+.crm-review-grid-v309 dd{margin:0!important;color:#443b40!important;font-size:11px!important;font-weight:650!important;line-height:1.4!important;overflow-wrap:anywhere!important}
+.crm-review-grid-v309 .technical dd{font-family:ui-monospace,SFMono-Regular,Consolas,monospace!important;font-size:9px!important;color:#766b70!important}
+.crm-review-raw-v309{white-space:pre-wrap!important}
+.crm-review-edit-v309{min-height:38px!important;border:1px solid #d8a4b8!important;border-radius:11px!important;background:#fff!important;color:#aa4f70!important;font-weight:800!important;cursor:pointer!important}
+.crm-review-editor-v309{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important;padding-top:2px!important}
+.crm-review-editor-v309[hidden]{display:none!important}
+.crm-review-editor-v309 label{display:grid!important;gap:4px!important;color:#76666e!important;font-size:10px!important;font-weight:750!important}
+.crm-review-editor-v309 label.wide{grid-column:1/-1!important}
+.crm-review-editor-v309 input,.crm-review-editor-v309 select,.crm-review-editor-v309 textarea{width:100%!important;box-sizing:border-box!important;border:1px solid #dfd1d7!important;border-radius:9px!important;padding:9px!important;background:#fff!important;color:#40373b!important;font:inherit!important}.crm-review-editor-v309 select{min-height:38px!important;cursor:pointer!important}
+.crm-review-editor-actions-v309{grid-column:1/-1!important;display:flex!important;justify-content:flex-end!important;gap:8px!important}
+
+/* Cennik DOM — dynamiczny stan zapisu/publikacji V30.9 */
+#crmDomSaveStateV309{
+  display:inline-flex!important;align-items:center!important;min-height:30px!important;padding:0 10px!important;
+  border-radius:999px!important;border:1px solid transparent!important;font-size:10px!important;font-weight:800!important;white-space:nowrap!important;
+}
+#crmDomSaveStateV309.is-published{background:#eef8ef!important;border-color:#cfe7d2!important;color:#3f7a49!important}
+#crmDomSaveStateV309.is-dirty{background:#fff8dd!important;border-color:#f0df9a!important;color:#8b6d18!important}
+#crmDomSaveStateV309.is-saved{background:#fff0df!important;border-color:#edc79f!important;color:#9b642e!important}
+#crmDomSaveStateV309.is-busy{background:#edf4ff!important;border-color:#c7d9f2!important;color:#506f98!important}
+#crmDomSaveStateV309.is-error{background:#fff0f0!important;border-color:#efc0c3!important;color:#b94148!important}
+
+/* ==========================================================================
+   ADMIN V30.11 — licznik kolejki review + jawne potwierdzenie jako wizyta
+   ========================================================================== */
+.crm-review-queue-badge-v3011{
+  display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 12px;
+  border:1px solid rgba(205,74,111,.28);border-radius:999px;background:#fff7fa;
+  color:#8d3652;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 3px 12px rgba(130,44,70,.06)
+}
+.crm-review-queue-badge-v3011 strong{font-size:13px;color:#c83f68;min-width:18px;text-align:center}
+.crm-review-queue-dot-v3011{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#e84b59;color:#fff;font-weight:900;font-size:12px}
+.crm-review-queue-badge-v3011.is-zero{background:#f4fbf5;border-color:#cfe8d3;color:#42704a}
+.crm-review-queue-badge-v3011.is-zero strong{color:#3d8a4b}
+.crm-review-queue-badge-v3011.is-zero .crm-review-queue-dot-v3011{background:#55a862}
+.crm-review-editor-help-v3011{margin:2px 0 0;padding:9px 10px;border-radius:10px;background:#fff8e9;color:#745b25;font-size:11px;line-height:1.35;border:1px solid #f0dfb2}
+.crm-review-editor-actions-v309{display:flex;gap:8px;flex-wrap:wrap}
+.crm-review-confirm-v3011{flex:1 1 170px;background:#2f9d62!important;border-color:#2f9d62!important}
+.crm-review-confirm-v3011:hover:not(:disabled){background:#268252!important;border-color:#268252!important}
+.crm-review-confirm-v3011:disabled{opacity:.48;cursor:not-allowed}
+@media (max-width:1150px){.crm-review-queue-badge-v3011{order:3}}
+
+/* ==========================================================================
+   ADMIN V30.12 — klikalna kolejka "Do zidentyfikowania"
+   ========================================================================== */
+.crm-review-queue-badge-v3011{
+  cursor:pointer!important;appearance:none!important;-webkit-appearance:none!important;font-family:inherit!important;
+  width:100%!important;justify-content:flex-start!important;margin-top:12px!important;text-align:left!important;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease!important;
+}
+.crm-review-queue-badge-v3011:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(130,44,70,.10)!important;border-color:rgba(205,74,111,.46)!important}
+.crm-review-queue-badge-v3011:focus-visible{outline:2px solid #d65d82!important;outline-offset:2px!important}
+.crm-review-queue-chevron-v3012{margin-left:auto!important;font-size:20px!important;line-height:1!important;color:#bd5c78!important;transition:transform .16s ease!important}
+.crm-review-queue-badge-v3011[aria-expanded="true"] .crm-review-queue-chevron-v3012{transform:rotate(90deg)!important}
+
+.crm-review-queue-panel-v3012{
+  position:fixed!important;left:22px!important;top:118px!important;z-index:10040!important;width:min(410px,calc(100vw - 44px))!important;
+  max-height:calc(100vh - 145px)!important;display:flex!important;flex-direction:column!important;
+  border:1px solid rgba(190,95,126,.25)!important;border-radius:18px!important;background:#fffdfd!important;
+  box-shadow:0 20px 60px rgba(66,36,46,.20)!important;overflow:hidden!important;
+}
+.crm-review-queue-panel-v3012[hidden]{display:none!important}
+.crm-review-queue-panel-head-v3012{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;padding:16px 16px 12px!important;border-bottom:1px solid #f0e3e8!important;background:linear-gradient(180deg,#fff8fa 0%,#fffdfd 100%)!important}
+.crm-review-queue-panel-head-v3012 span{display:block!important;color:#bb4c70!important;font-size:10px!important;font-weight:900!important;letter-spacing:.08em!important}
+.crm-review-queue-panel-head-v3012 h3{margin:3px 0 0!important;color:#31262a!important;font-size:17px!important;line-height:1.2!important}
+.crm-review-queue-close-v3012{border:0!important;background:transparent!important;color:#8d7a81!important;font-size:25px!important;line-height:1!important;cursor:pointer!important;padding:0 3px!important}
+.crm-review-queue-tools-v3012{display:grid!important;grid-template-columns:1fr auto!important;gap:9px!important;padding:11px 13px!important;border-bottom:1px solid #f2e7eb!important;background:#fff!important}
+.crm-review-queue-tools-v3012 input{min-width:0!important;border:1px solid #e5d5db!important;border-radius:11px!important;padding:9px 11px!important;font:inherit!important;background:#fff!important;color:#41363a!important}
+.crm-review-queue-tools-v3012 span{display:grid!important;place-items:center!important;min-width:36px!important;border-radius:11px!important;background:#fff0f5!important;color:#bd466d!important;font-size:12px!important;font-weight:900!important}
+.crm-review-queue-list-v3012{overflow:auto!important;padding:10px!important;display:grid!important;gap:8px!important}
+.crm-review-queue-item-v3012{display:block!important;width:100%!important;border:1px solid #eadde2!important;border-left:4px solid #cf5c7e!important;border-radius:13px!important;background:#fff!important;padding:11px 12px!important;text-align:left!important;cursor:pointer!important;font:inherit!important;color:#41373b!important;transition:background .14s ease,border-color .14s ease,transform .14s ease!important}
+.crm-review-queue-item-v3012:hover{background:#fff8fa!important;border-color:#dba5b7!important;transform:translateX(2px)!important}
+.crm-review-queue-item-top-v3012{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;align-items:center!important;gap:7px!important}
+.crm-review-queue-item-alert-v3012{display:grid!important;place-items:center!important;width:18px!important;height:18px!important;border-radius:50%!important;background:#e84b59!important;color:#fff!important;font-size:11px!important;font-weight:900!important}
+.crm-review-queue-item-top-v3012 strong{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:13px!important;color:#352b2f!important}
+.crm-review-queue-item-top-v3012 time{font-size:10px!important;color:#8f7c84!important;white-space:nowrap!important}
+.crm-review-queue-item-service-v3012{margin-top:7px!important;font-size:12px!important;font-weight:800!important;color:#a54465!important}
+.crm-review-queue-item-raw-v3012{margin-top:4px!important;font-size:11px!important;line-height:1.35!important;color:#5e5156!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.crm-review-queue-item-reason-v3012{margin-top:5px!important;font-size:10px!important;line-height:1.3!important;color:#9a838b!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.crm-review-queue-empty-v3012{padding:28px 18px!important;text-align:center!important;display:grid!important;gap:5px!important;color:#7b6970!important}
+.crm-review-queue-empty-v3012 b{color:#4a3d42!important;font-size:13px!important}.crm-review-queue-empty-v3012 span{font-size:11px!important;line-height:1.4!important}
+@media(max-width:720px){.crm-review-queue-panel-v3012{left:10px!important;top:92px!important;width:calc(100vw - 20px)!important;max-height:calc(100vh - 110px)!important;border-radius:15px!important}}
+
+/* ==========================================================================
+   ADMIN V30.13 — CRM TEST FULL 2.5: blokada interfejsu, realny progres i wynik
+   ========================================================================== */
+.crm-test-lock-v25,
+.crm-test-result-v25{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(31,22,26,.38);
+  backdrop-filter:blur(3px);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .18s ease,visibility .18s ease;
+}
+.crm-test-lock-v25.is-visible,
+.crm-test-result-v25.is-visible{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+.crm-test-lock-card-v25,
+.crm-test-result-card-v25{
+  width:min(520px,calc(100vw - 34px));
+  box-sizing:border-box;
+  border:1px solid #eadde2;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 28px 80px rgba(55,31,42,.22);
+  padding:26px 28px;
+  text-align:left;
+}
+.crm-test-lock-kicker-v25{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#9b536c;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.crm-test-heartbeat-v25{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 0 0 rgba(176,92,117,.35);
+  animation:crmTestHeartbeatV25 1.4s infinite;
+}
+@keyframes crmTestHeartbeatV25{
+  0%{box-shadow:0 0 0 0 rgba(176,92,117,.38)}
+  70%{box-shadow:0 0 0 9px rgba(176,92,117,0)}
+  100%{box-shadow:0 0 0 0 rgba(176,92,117,0)}
+}
+.crm-test-lock-card-v25 h2{
+  margin:9px 0 5px;
+  font-size:25px;
+  color:#251821;
+}
+.crm-test-lock-help-v25{
+  margin:0 0 18px;
+  color:#74656c;
+  font-size:13px;
+  line-height:1.45;
+}
+.crm-test-lock-progress-v25{
+  width:100%;
+  height:14px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#f0e6e9;
+}
+.crm-test-lock-fill-v25{
+  height:100%;
+  width:0;
+  border-radius:inherit;
+  background:#b05c75;
+  transition:width .25s ease;
+}
+.crm-test-lock-meta-v25{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:12px;
+  margin-top:9px;
+  color:#75646c;
+  font-size:12px;
+}
+.crm-test-lock-meta-v25 strong{
+  color:#9f506a;
+  font-size:14px;
+}
+.crm-test-lock-meta-v25 span:nth-child(2){text-align:center}
+.crm-test-lock-stage-v25{
+  margin-top:17px;
+  min-height:38px;
+  padding:11px 13px;
+  border-radius:11px;
+  background:#fff8fa;
+  color:#38272f;
+  font-size:13px;
+  line-height:1.35;
+}
+.crm-test-lock-slow-v25{
+  margin-top:10px;
+  padding:9px 11px;
+  border-radius:10px;
+  background:#fff7df;
+  color:#85621a;
+  font-size:12px;
+  font-weight:700;
+}
+.crm-test-result-card-v25{
+  width:min(340px,calc(100vw - 34px));
+  text-align:center;
+  padding:30px 28px 26px;
+}
+.crm-test-result-symbol-v25{
+  width:58px;
+  height:58px;
+  margin:0 auto 12px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  font-size:31px;
+  font-weight:900;
+  background:#eef8f1;
+  color:#238348;
+}
+.crm-test-result-v25.is-bad .crm-test-result-symbol-v25{
+  background:#fff0f0;
+  color:#b42318;
+}
+.crm-test-result-card-v25 h2{
+  margin:0 0 20px;
+  color:#251821;
+  font-size:27px;
+}
+.crm-test-result-card-v25 .btn-primary{min-width:110px}
+@media(max-width:620px){
+  .crm-test-lock-card-v25{padding:22px 18px}
+  .crm-test-lock-card-v25 h2{font-size:22px}
+}
+
+/* ============================================================================
+   ADMIN V30.15 — edycja usługi: karta -> kategoria -> usługa
+   ============================================================================ */
+#appointmentDetailsModal .crm-safe-service-card.crm-service-editable-v3015{
+    cursor:pointer!important;
+    transition:box-shadow .16s ease,transform .16s ease,border-color .16s ease!important;
+}
+#appointmentDetailsModal .crm-safe-service-card.crm-service-editable-v3015:hover{
+    border-color:#dfc6d0!important;
+    box-shadow:0 10px 24px rgba(72,47,58,.08)!important;
+}
+#appointmentDetailsModal .crm-safe-service-card.crm-service-editable-v3015:focus-visible{
+    outline:2px solid #c66a87!important;
+    outline-offset:2px!important;
+}
+#appointmentModal #appointmentServiceCategory,
+#appointmentModal #appointmentService{
+    width:100%!important;
+    min-height:42px!important;
+    cursor:pointer!important;
+}
+#appointmentModal #appointmentService:disabled{
+    cursor:not-allowed!important;
+    opacity:.68!important;
+}
+
+/* ==========================================================
+   ADMIN V30.21 — BOOKSY: PODGLĄD + ŚWIADOME ODBLOKOWANIE CRM
+   ========================================================== */
+.crm-booksy-edit-guard-v3021[hidden],
+.crm-booksy-editor-warning-v3021[hidden] {
+  display: none !important;
+}
+
+.crm-booksy-edit-guard-v3021 {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(80, 80, 80, .18);
+  border-radius: 12px;
+  background: rgba(80, 80, 80, .06);
+}
+
+.crm-booksy-edit-check-v3021 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.crm-booksy-edit-check-v3021 input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.crm-booksy-edit-guard-v3021 small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.35;
+  opacity: .78;
+}
+
+.crm-booksy-editor-warning-v3021 {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(80, 80, 80, .22);
+  border-radius: 10px;
+  background: rgba(80, 80, 80, .07);
+}
+
+.crm-booksy-editor-warning-v3021 strong {
+  font-size: 13px;
+}
+
+.crm-booksy-editor-warning-v3021 span {
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: .8;
+}
+
+#appointmentDetailsModal[data-crm-booksy-preview-v3021="1"] .crm-safe-client-card,
+#appointmentDetailsModal[data-crm-booksy-preview-v3021="1"] .crm-safe-service-card {
+  cursor: default !important;
+}
+
+/* ==========================================================================
+   ADMIN V30.23 — DO SPRAWDZENIA = bursztynowy, zwykła blokada = szara
+   ========================================================================== */
+.crm-review-queue-badge-v3011:not(.is-zero){
+  background:#fff9df!important;border-color:#ead188!important;color:#785812!important;
+}
+.crm-review-queue-badge-v3011:not(.is-zero) strong{color:#a86f09!important}
+.crm-review-queue-badge-v3011:not(.is-zero) .crm-review-queue-chevron-v3012{color:#a86f09!important}
+.crm-review-queue-item-v3012{
+  border-color:#ead9a8!important;border-left-color:#d79a16!important;background:#fffdf3!important;
+}
+.crm-review-queue-item-v3012:hover{background:#fff8dc!important;border-color:#dfbd59!important}
+.crm-review-queue-type-v3023{
+  display:inline-flex!important;align-items:center!important;width:max-content!important;max-width:100%!important;
+  margin-top:7px!important;padding:3px 7px!important;border-radius:999px!important;border:1px solid #e3c66b!important;
+  background:#fff3bd!important;color:#79570d!important;font-size:9px!important;font-weight:900!important;letter-spacing:.035em!important;text-transform:uppercase!important;
+}
+.crm-review-queue-item-v3012.is-identify .crm-review-queue-type-v3023{background:#fff0ce!important;border-color:#e8bd68!important;color:#8a5e0d!important}
+.crm-review-queue-item-v3012.is-complete .crm-review-queue-type-v3023{background:#fff6c9!important;border-color:#e6ce62!important;color:#79620b!important}
+.crm-review-queue-item-v3012.is-time .crm-review-queue-type-v3023{background:#fff0c8!important;border-color:#e1b44e!important;color:#80530a!important}
+.crm-review-queue-item-v3012.is-check .crm-review-queue-type-v3023{background:#fff5d9!important;border-color:#e6ca84!important;color:#765814!important}
+
+/* ADMIN V30.24 — kolejka review bez poziomego scrolla */
+.crm-review-queue-panel-v3012{overflow-x:hidden!important;}
+.crm-review-queue-list-v3012{overflow-x:hidden!important;overflow-y:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+.crm-review-queue-item-v3012{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;}
+.crm-review-queue-item-v3012 *{min-width:0!important;}
+
+/* V30.34 — compact 6-week month calendar */
+#booksy-grid.crm-month-grid[data-crm-month-weeks="6"],
+#booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"]{
+  height:clamp(560px,calc(100vh - 245px),680px)!important;
+  min-height:560px!important;
+  grid-template-rows:34px repeat(6,minmax(0,1fr))!important;
+  gap:4px!important;
+}
+#booksy-grid.crm-month-grid[data-crm-month-weeks="6"] .crm-month-cell,
+#booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"] .crm-month-cell{
+  padding:5px!important;
+}
+#booksy-grid.crm-month-grid[data-crm-month-weeks="6"] .crm-month-cell-top,
+#booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"] .crm-month-cell-top{
+  margin-bottom:2px!important;
+}
+#booksy-grid.crm-month-grid[data-crm-month-weeks="6"] .crm-month-day-number,
+#booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"] .crm-month-day-number{
+  width:23px!important;
+  height:23px!important;
+  flex-basis:23px!important;
+  font-size:11px!important;
+}
+#booksy-grid.crm-month-grid[data-crm-month-weeks="6"] .crm-month-shift,
+#booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"] .crm-month-shift{
+  margin-bottom:2px!important;
+}
+#booksy-grid.crm-month-grid[data-crm-month-weeks="6"] .crm-month-more,
+#booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"] .crm-month-more{
+  min-height:22px!important;
+  padding:2px 4px!important;
+}
+@media(max-width:820px){
+  #booksy-grid.crm-month-grid[data-crm-month-weeks="6"],
+  #booksy-grid[data-calendar-view="month"][data-crm-month-weeks="6"]{
+    height:auto!important;
+    min-height:620px!important;
+  }
+}
+

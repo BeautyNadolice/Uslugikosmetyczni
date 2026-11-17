@@ -1,43 +1,56 @@
-NAIL ART — INDEX V21.72 / TEST-DEV PACKAGE
-Data przygotowania: 15.11.2026
+INDEX V21.30 — DEV VISUAL EDITOR / VIEWPORT FIT
+2026-09-06
 
-ZAKRES
-Pakiet zawiera pełne środowisko WWW przekazane w kandydacie V21.72: INDEX, edytor INDEX,
-pliki i assety potrzebne do lokalnego testu oraz zastany snapshot ADMIN/CRM. Pliki ADMIN/CRM
-zostały zachowane bez zmian w tym etapie; nie oznacza to zgody na ich osobną modyfikację,
-synchronizację ani deployment.
+Cel:
+- nie zgadywać kolejnych wymiarów na podstawie screenów;
+- dać użytkownikowi wizualny edytor strony klienta w TEST/DEV.
 
-CO ZAWIERA V21.72
-- fizyczny page-design-config.js jest źródłem konfiguracji zwykłego INDEX;
-- localStorage jest używany jako szkic wyłącznie w podglądzie DEV (?designPreview=1);
-- Service Worker pomija cache page-design-config.js, aby nie zwracać starej konfiguracji;
-- rozdzielenie geometrii PC / Telefon z V21.71 pozostaje bez zmian;
-- zapis fizyczny edytora działa lokalnie przez File System Access API; przed nadpisaniem
-  poprzednia zawartość jest pobierana jako kopia, a po zapisie wykonywany jest ponowny odczyt.
+Uruchomienie lokalne:
+1. Najprościej: START_INDEX_EDITOR.cmd — uruchamia serwer i od razu otwiera edytor.
+2. Alternatywnie START_INDEX_LOCAL_SERVER.cmd — otwiera zwykły index; wtedy wejdź na /index-editor.html na tym samym porcie.
 
-URUCHOMIENIE TESTU
-1. Rozpakuj CAŁY ZIP do jednego nowego folderu (nie nadpisuj starego TEST).
-2. Uruchom START_INDEX_EDITOR.cmd.
-3. W edytorze sprawdź PC i Telefon oraz przełączanie PC → Telefon → PC → Telefon.
-4. Nie klikaj „Zapisz plik INDEX”, jeśli nie chcesz fizycznie zmieniać page-design-config.js.
-5. Pozostaw pierwszy serwer uruchomiony albo uruchom START_INDEX_LOCAL_SERVER.cmd — drugi
-   proces wybierze kolejny wolny port 8080–8090.
-6. Otwórz zwykły INDEX z drugiego adresu. Porównaj geometrię PC/Telefon z edytorem.
-7. Potwierdź, że zwykły INDEX nie dziedziczy szkicu DEV z localStorage i korzysta z fizycznego
-   page-design-config.js. Powtórz PC → Telefon → PC → Telefon.
+W DEV ADMIN dodano zakładkę „Edytor strony”, która osadza index-editor.html.
 
-WAŻNE
-- START_INDEX_EDITOR.cmd, START_INDEX_LOCAL_SERVER.cmd i START_INDEX_LOCAL_SERVER.ps1
-  są lokalnymi narzędziami testowymi. Nie przesyłaj ich na publiczny hosting.
-- ADMIN/CRM jest zawarty wyłącznie jako niezmieniony snapshot środowiska. ADMIN pozostaje
-  chronionym zakresem i wymaga osobnej wyraźnej zgody przed jego zmianą/synchronizacją/
-  wdrożeniem. W tym pakiecie nie poprawiano logiki ADMIN ani Google Apps Script.
-- Nie wykonano publikacji do GitHub, Google Drive ani produkcji. Nie wykonano deploymentu.
-- Automatyczny test przeglądarkowy Chromium nie zakończył się w środowisku przygotowania;
-  wymagany jest test użytkownika w Edge/Chrome na docelowym komputerze i telefonie.
+Co można edytować osobno dla PC i telefonu:
+- rozmiar i pozycję karty,
+- padding karty i kadr tła,
+- kadr/zoom sceny salonu,
+- szerokość głównej kolumny,
+- logo (rozmiar, X/Y, pionowe rozciągnięcie),
+- hasło (tekst, rozmiar, szerokość, X/Y, interlinia, grubość, kolor),
+- CTA (tekst, rozmiar, X/Y, wysokość, font, radius, gradient, kolor tekstu),
+- galerię (szerokość, X/Y, odstępy, nagłówki, radius, cover/contain, 1/2/auto preview),
+- stopkę (tekst, szerokość, X/Y, font, kolor),
+- widoczność elementów.
 
-PLIKI I KONTROLA
-- VALIDATION_REPORT.json — wyniki walidacji i ograniczenia.
-- FILE_MANIFEST_SHA256.json — rozmiary i SHA-256 plików pakietu (manifest nie hashuje sam siebie).
-- index-editor.js.bak został zachowany osobno w NAIL_ART_INDEX_V21_72_EDITOR_JS_BACKUP_ONLY.zip;
-  nie jest umieszczony w aktywnym katalogu WWW.
+Obsługa:
+- kliknij element w podglądzie albo przycisk Karta/Logo/Hasło/CTA/Galeria/Stopka,
+- zaznaczony element można przeciągać myszą,
+- suwaki działają na żywo,
+- „Preset: szeroki start” szybko cofa zbyt wąski układ V21.27,
+- „Zapisz TEST lokalnie” zapisuje konfigurację wyłącznie w localStorage przeglądarki,
+- eksport/import JSON pozwala przenieść ustawienia lub przekazać je do finalnego wdrożenia,
+- Reset usuwa lokalną konfigurację i wraca do bazowego V21.27.
+
+Bez zmian:
+- booking.js / rezerwacja,
+- Apps Script API,
+- dynamiczne pobieranie galerii z Google Drive,
+- lightbox/swipe,
+- assety logo/karty/sceny.
+
+V21.29 — poprawka po realnym smoke w Brave:
+- lewy panel edytora działał, ale ramka PODGLĄD LIVE zwijała się i prawa strona była pusta;
+- rozmiar podglądu PC/Telefon jest teraz wyliczany deterministycznie w px przez JS;
+- usunięto zależność ramki od procentowego min() wewnątrz CSS Grid;
+- cache-bust index-editor.css/js podniesiony do 1.1;
+- sama strona klienta, booking, API, galeria i assety pozostają bez zmian względem V21.28.
+
+
+V21.30 — poprawka po realnym smoke V21.29:
+- ramka PODGLĄD LIVE jest już widoczna, ale na screenie była przesunięta głęboko w dół i częściowo poza ekran;
+- prawy panel edytora ma teraz jawne 100vh i wyrównuje podgląd od góry zamiast pionowo go centrować;
+- JS ogranicza wysokość ramki do faktycznie widocznego viewportu (uwzględnia pozycję hosta i padding);
+- proporcje 16:9 dla PC i 9:19.5 dla telefonu pozostają zachowane;
+- cache-bust index-editor.css/js podniesiony do 1.2;
+- sama strona klienta, booking, API, galeria i assety nie zostały zmienione.

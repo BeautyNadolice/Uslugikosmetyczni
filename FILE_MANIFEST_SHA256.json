@@ -1,13 +1,13 @@
 [
   {
     "path": "PREPARE_NOT_DEPLOYED.txt",
-    "size": 1423,
-    "sha256": "db1b360705237fede6fc98430508a2b2092b30c5a0289856cbde22e3b914e81c"
+    "size": 1225,
+    "sha256": "0005aefd8dcaaf9426e72b366711c1550873cd0f26aa04b66091814cdbb22ace"
   },
   {
     "path": "README.txt",
-    "size": 2689,
-    "sha256": "c77be4b3fd1eb28f8067b94cfe4de8cfcd831cc57cb4fce82aa557198e66eaf2"
+    "size": 2729,
+    "sha256": "862c5d36cbc4851d01b65f30b5fee2a9eeeac4bc66033b3a73f59e7639633494"
   },
   {
     "path": "START_INDEX_EDITOR.cmd",
@@ -23,16 +23,6 @@
     "path": "START_INDEX_LOCAL_SERVER.ps1",
     "size": 6449,
     "sha256": "5c46cf9a2a0f1383accd1181e1868644af92166c86dc13d7fd9b664f2913c695"
-  },
-  {
-    "path": "STATUS_UPDATE_2026-11-15_V21_72.txt",
-    "size": 2857,
-    "sha256": "98a3af7cd976a236357797eccc44bb3b12cff2bf45aee86fd3e4db53404ff3a1"
-  },
-  {
-    "path": "VALIDATION_REPORT.json",
-    "size": 3439,
-    "sha256": "c7ecb95892195f0c67a3c443030f1996ab7369880cbdc3f4e60c870189222836"
   },
   {
     "path": "admin/CSS/styleadmin-base.css",
@@ -428,6 +418,11 @@
     "path": "index-editor.js",
     "size": 36800,
     "sha256": "78c3dbd860c55dbdf7480069f7bf98b801bc00bae1b6db2e2d6c8f6f5c5cf715"
+  },
+  {
+    "path": "index-editor.js.bak",
+    "size": 33873,
+    "sha256": "f99dd618167f9d8577cbfc566416e4847e549216a4c10ff5d3279a2804048e94"
   },
   {
     "path": "index-mobile.css",

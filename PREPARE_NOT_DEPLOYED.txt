@@ -1,25 +1,25 @@
-NAIL ART — INDEX V21.72 — CLEAN TEST PACKAGE
-Prepared: 2026-11-15
-Source candidate: NAIL_ART_GITHUB_CANDIDATE_V21_72_LOCAL_ONLY(1).zip
-Original source stage: INDEX V21.72 CONFIG SOURCE FIX (2026-10-06)
+NAIL ART — GITHUB CANDIDATE V21.72 (LOCAL PREPARATION ONLY)
+Date: 2026-11-14
 
-This is a locally prepared TEST/DEV package. It has NOT been committed, pushed, synced to
-Google Drive, deployed to hosting, or published to production.
+Source:
+- Full TEST web package NAIL_ART_01_WEB_CURRENT_V21_72_CONFIG_SOURCE_FIX.zip
+- This is a local candidate package only. It has NOT been pushed, committed, deployed,
+  or synchronized to Google Drive or GitHub.
 
-V21.72 source behavior is retained:
-- normal INDEX does not load the DEV localStorage draft;
-- physical page-design-config.js remains the configuration source for normal INDEX;
-- DEV preview (?designPreview=1) may use localStorage as an explicit draft;
-- Service Worker bypasses cache for page-design-config.js.
+Safety adjustment in admin/dev/app-dev.js:
+- GitHub save is no longer selected merely because the page is served over HTTP/HTTPS.
+- GitHub save requires the explicit URL query parameter devSave=github.
+- localhost continues to use the local bridge; file:// continues to use local-file mode.
 
-No INDEX application code was changed during this packaging/audit pass. The stale README
-and validation metadata were replaced; index-editor.js.bak was moved to a separate backup
-archive and retained. Local launch scripts remain in this TEST package because the V21.72
-acceptance test requires them; they must not be uploaded to a public host.
+Scope:
+- Website/INDEX + ADMIN/CRM frontend files and assets from the V21.72 full package.
+- No spreadsheet/database backups, customer data, calendar exports, Google Apps Script
+  deployment, credentials, OAuth tokens, or GitHub secrets are included.
+- Google Apps Script backend deployment is separate and is NOT changed by publishing
+  this static website package.
 
-ADMIN/CRM files are included exactly as present in the supplied candidate and were not
-modified. They are not separately approved for deployment. Google Apps Script, customer
-records, spreadsheets, calendar data, credentials and secrets were not added.
-
-Browser E2E was attempted with headless Chromium but did not complete in this environment.
-Manual Edge/Chrome PC + phone smoke test remains required.
+Validation in this preparation:
+- ZIP integrity checked.
+- JavaScript syntax checks are run separately and recorded in validation report.
+- Static local path checks are run separately and recorded in validation report.
+- Browser end-to-end smoke test is not claimed.

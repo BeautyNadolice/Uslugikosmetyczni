@@ -139,7 +139,7 @@ function crmOperationStart(key) { const k=String(key||"default"); if(crmBusyOper
 function crmOperationEnd(key) { crmBusyOperations.delete(String(key||"default")); }
 async function crmConfirmUnsavedNavigation() {
   if(!crmHasUnsavedChanges) return true;
-  return crmConfirm("Masz niezapisane zmiany w: " + (crmActiveFormContext||"formularzu") + ". Odrzucić zmiany?", "Odrzuć zmiany");
+  return crmConfirm("Masz niezapisane zmiany w: " + (crmActiveFormContext||"formularzu") + ". Zamknąć bez zapisywania?", "Odrzuć zmiany");
 }
 document.addEventListener("input", event => {
   if(event.target.closest("#appointmentModal,#clientModal,#serviceModal,#blockTimeModal")) crmSetUnsavedChanges(true, "aktywnym formularzu");

@@ -1,6 +1,6 @@
 
 /* ==========================================================================
-   NAIL-ART DEV V5 — REAL ADMIN EDITOR
+   NAIL-ART DEV V5.6 — REAL ADMIN EDITOR
    Ten plik styluje WYŁĄCZNIE edytor. Nie udaje żadnych paneli ADMIN.
    ========================================================================== */
 
@@ -166,6 +166,30 @@ body.crm-dev-v4 {
     border-color: #c97697;
 }
 
+.crm-dev-v4-row input[type="color"] {
+    width: 82px;
+    height: 30px;
+    padding: 3px;
+    border: 1px solid #e3d8dd;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.crm-dev-v4-row input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.crm-dev-v4-row input[type="color"]::-webkit-color-swatch {
+    border: 0;
+    border-radius: 5px;
+}
+
+.crm-dev-v4-row input[type="color"]:focus {
+    outline: 2px solid rgba(190,105,138,.16);
+    border-color: #c97697;
+}
+
 .crm-dev-v4-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -235,3 +259,89 @@ body.crm-dev-v4 [data-crm-dev-v4-blocked="1"] {
 }
 
 /* KONIEC DEV V4 */
+
+/* DEV V5.8 — kontrolki zaawansowanego edytora */
+.crm-dev-v4-row input[type="text"] {
+    width: 82px;
+    height: 30px;
+    padding: 4px 7px;
+    border: 1px solid #e3d8dd;
+    border-radius: 8px;
+    background: #fff;
+    color: #4f4449;
+    font: inherit;
+    font-size: 10px;
+}
+.crm-dev-v4-row input[type="text"]:focus {
+    outline: 2px solid rgba(190,105,138,.16);
+    border-color: #c97697;
+}
+.crm-dev-v4-toggle-row input[type="checkbox"] {
+    justify-self: end;
+    width: 34px;
+    height: 18px;
+    accent-color: #c65c83;
+    cursor: pointer;
+}
+.crm-dev-v4-text-row {
+    grid-template-columns: minmax(0,1fr) 118px;
+}
+.crm-dev-v4-text-row input[type="text"] {
+    width: 118px;
+}
+
+/* DEV V5.9 — kontrola faktycznej szerokości podglądu */
+#crmDevPreviewStatusV59[data-ok="1"] { color:#3f7a49; }
+#crmDevPreviewStatusV59[data-ok="0"] { color:#b94148; font-weight:700; }
+
+
+/* V5.10 — one floating editor window, ADMIN / INDEX modes. */
+.crm-dev-v4-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border:1px solid #e4d8de;border-radius:10px;background:#f8f2f5;flex:0 0 auto}
+.crm-dev-v4-mode-btn{min-width:52px;height:27px;border:1px solid transparent;border-radius:7px;background:transparent;color:#74656d;font:800 9px/1 "Segoe UI",Arial,sans-serif;cursor:pointer}
+.crm-dev-v4-mode-btn.is-active{background:#fff;border-color:#d5a5b6;color:#a44d6e;box-shadow:0 1px 4px rgba(80,50,35,.08)}
+.crm-dev-v4-mode-pane[hidden]{display:none!important}
+.crm-dev-v4-index-host{height:min(820px,calc(100vh - 92px));min-height:520px;margin:-10px}
+.crm-dev-v4-index-host iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+#crmDevEditorV4.is-index-mode{width:min(1500px,calc(100vw - 20px));height:calc(100vh - 20px);max-height:none;top:10px;left:10px}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-body{height:calc(100vh - 68px);max-height:none;padding:0;overflow:hidden}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-head{min-height:48px}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-index-host{height:calc(100vh - 68px);min-height:0;margin:0}
+@media(max-width:700px){#crmDevEditorV4.is-index-mode{width:calc(100vw - 12px);height:calc(100vh - 12px);top:6px;left:6px}#crmDevEditorV4.is-index-mode .crm-dev-v4-index-host{height:calc(100vh - 60px)}}
+
+
+/* V5.11 / INDEX V21.56 — single editor window: INDEX replaces the ADMIN editor body. */
+#crmDevEditorV4.is-index-mode {
+    width: min(1500px, calc(100vw - 20px));
+    height: calc(100vh - 20px);
+    max-height: none;
+    top: 10px;
+    left: 10px;
+    overflow: hidden;
+}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-body {
+    height: calc(100% - 48px);
+    max-height: none;
+    padding: 0;
+    overflow: hidden;
+}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-mode-pane[data-dev-pane="index"] {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-index-host {
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+#crmDevEditorV4.is-index-mode .crm-dev-v4-index-host iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+@media(max-width:700px){
+  #crmDevEditorV4.is-index-mode { width:calc(100vw - 12px); height:calc(100vh - 12px); top:6px; left:6px; }
+  #crmDevEditorV4.is-index-mode .crm-dev-v4-body { height:calc(100% - 48px); }
+}

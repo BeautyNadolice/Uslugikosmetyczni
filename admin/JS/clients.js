@@ -3559,3 +3559,552 @@ document.addEventListener("DOMContentLoaded", () => {
    - klasa .has-waiting-v273 gdy count > 0
    - bez nowych requestów / pollingu / zmian backendu
    ========================================================================== */
+
+
+/* ==========================================================================
+   CLIENTS V30.8 — PODZIAŁ ŹRÓDŁA: DOM+GOOGLE / BOOKSY
+   - Booksy jest osobną grupą klientów.
+   - DOM i Google Calendar są jedną wspólną grupą.
+   - źródło z backendu: BOOKSY => Booksy, wszystko pozostałe => DOM + Google Calendar.
+   ========================================================================== */
+
+let crmClientsSourceGroupV308 = "dom_google";
+
+function crmClientSourceGroupV308(client) {
+    const source = String(client?.source || "").trim().toUpperCase();
+    return source.includes("BOOKSY") ? "booksy" : "dom_google";
+}
+
+function crmClientsSourceCountsV308() {
+    const rows = Array.isArray(customersData) ? customersData : [];
+    let booksy = 0;
+    let domGoogle = 0;
+    rows.forEach(client => {
+        if (crmClientSourceGroupV308(client) === "booksy") booksy += 1;
+        else domGoogle += 1;
+    });
+    return { booksy, domGoogle };
+}
+
+function crmClientsEnsureSourceNavV308() {
+    const mainNav = document.getElementById("crmClientsViewsV269");
+    if (!mainNav) return null;
+
+    let nav = document.getElementById("crmClientsSourceNavV308");
+    if (!nav) {
+        nav = document.createElement("nav");
+        nav.id = "crmClientsSourceNavV308";
+        nav.className = "crm-clients-source-nav-v308";
+        nav.setAttribute("aria-label", "Źródło klientów");
+        nav.innerHTML = `
+          <button type="button" data-crm-client-source-v308="dom_google">
+            <span>DOM + Google Calendar</span>
+            <b id="crmClientsDomGoogleCountV308">0</b>
+          </button>
+          <button type="button" data-crm-client-source-v308="booksy">
+            <span>Booksy</span>
+            <b id="crmClientsBooksyCountV308">0</b>
+          </button>`;
+        mainNav.insertAdjacentElement("afterend", nav);
+
+        nav.addEventListener("click", event => {
+            const button = event.target.closest("[data-crm-client-source-v308]");
+            if (!button) return;
+            crmClientsSourceGroupV308 = String(button.dataset.crmClientSourceV308 || "dom_google");
+            crmClientUiV25222.page = 1;
+            renderClients();
+        });
+    }
+
+    const counts = crmClientsSourceCountsV308();
+    const domCount = document.getElementById("crmClientsDomGoogleCountV308");
+    const booksyCount = document.getElementById("crmClientsBooksyCountV308");
+    if (domCount) domCount.textContent = String(counts.domGoogle);
+    if (booksyCount) booksyCount.textContent = String(counts.booksy);
+
+    nav.querySelectorAll("[data-crm-client-source-v308]").forEach(button => {
+        const group = String(button.dataset.crmClientSourceV308 || "");
+        button.classList.toggle("is-active", group === crmClientsSourceGroupV308);
+        button.setAttribute("aria-current", group === crmClientsSourceGroupV308 ? "page" : "false");
+    });
+
+    const steadyVisible = typeof crmClientsViewV269 === "undefined" || crmClientsViewV269 === "steady";
+    nav.hidden = !steadyVisible;
+    return nav;
+}
+
+if (typeof crmClientsSteadyFilteredRowsV269 === "function") {
+    const crmClientsSteadyFilteredRowsBeforeV308 = crmClientsSteadyFilteredRowsV269;
+    crmClientsSteadyFilteredRowsV269 = function() {
+        const rows = crmClientsSteadyFilteredRowsBeforeV308.apply(this, arguments);
+        return (Array.isArray(rows) ? rows : []).filter(client =>
+            crmClientSourceGroupV308(client) === crmClientsSourceGroupV308
+        );
+    };
+}
+
+if (typeof renderClients === "function") {
+    const crmRenderClientsBeforeV308 = renderClients;
+    renderClients = function() {
+        const result = crmRenderClientsBeforeV308.apply(this, arguments);
+        crmClientsEnsureSourceNavV308();
+        return result;
+    };
+}
+
+(function crmInstallClientsSourceStylesV308(){
+    if (document.getElementById("crmClientsSourceStylesV308")) return;
+    const style = document.createElement("style");
+    style.id = "crmClientsSourceStylesV308";
+    style.textContent = `
+      .crm-clients-source-nav-v308{
+        display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+        margin:0 0 12px;padding:0;
+      }
+      .crm-clients-source-nav-v308[hidden]{display:none!important}
+      .crm-clients-source-nav-v308 button{
+        appearance:none;border:1px solid #ead8df;background:#fff;color:#65575e;
+        border-radius:12px;padding:9px 12px;display:inline-flex;align-items:center;gap:8px;
+        font:700 12px/1.15 inherit;cursor:pointer;transition:.15s ease;
+      }
+      .crm-clients-source-nav-v308 button:hover{border-color:#d99aad;background:#fff8fa}
+      .crm-clients-source-nav-v308 button.is-active{
+        border-color:#c35f83;background:#fcebf1;color:#9f3f62;
+        box-shadow:0 4px 12px rgba(183,73,111,.10)
+      }
+      .crm-clients-source-nav-v308 b{
+        min-width:22px;height:22px;padding:0 6px;border-radius:999px;
+        display:inline-flex;align-items:center;justify-content:center;
+        background:#f3e7eb;color:#765f68;font-size:11px;line-height:22px;
+      }
+      .crm-clients-source-nav-v308 button.is-active b{background:#c35f83;color:#fff}
+    `;
+    document.head.appendChild(style);
+})();
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.setTimeout(crmClientsEnsureSourceNavV308, 750);
+});
+
+window.crmClientsVersionV308 = "30.8-source-groups-dom-google-booksy";
+/* KONIEC CLIENTS V30.8 */
+
+/* ==========================================================================
+   CLIENTS V30.14 — TOŻSAMOŚĆ BEZ TELEFONU + 3 TRYBY + ŹRÓDŁA
+   - telefon pozostaje głównym ID rezerwacji online, ale nie jedynym ID CRM,
+   - klient WIFE/Google bez telefonu działa po SourceKey / imię+nazwisko+źródło,
+   - Booksy = TYLKO_KONTAKT,
+   - zwykli klienci: STANDARDOWY / WYMAGA_POTWIERDZENIA / REZERWACJA_OGRANICZONA,
+   - przywrócony stały podział DOM+Google Calendar / Booksy.
+   ========================================================================== */
+
+function crmClientNormIdentityTextV3014(value) {
+    return String(value || "").trim().toLowerCase().normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+}
+
+function crmClientIdentityV3014(client) {
+    const row = client || {};
+    const phone = crmClientPhoneKeyV25222(row.phone || "");
+    if (phone) return phone; // zachowuje kompatybilność ze starym cache dla telefonów
+    const sourceKey = String(row.sourceKey || "").trim();
+    if (sourceKey) return "SK:" + sourceKey;
+    return "NS:" + crmClientNormIdentityTextV3014(row.name) + "|" + crmClientNormIdentityTextV3014(row.source);
+}
+
+function crmClientIdentityPayloadV3014(client) {
+    const row = client || {};
+    return {
+        phone: String(row.phone || ""),
+        sourceKey: String(row.sourceKey || ""),
+        name: String(row.name || ""),
+        source: String(row.source || "")
+    };
+}
+
+function crmClientActionRefV3014(client) {
+    const phone = String(client?.phone || "").trim();
+    if (phone) return phone;
+    const sourceKey = String(client?.sourceKey || "").trim();
+    if (sourceKey) return "__SK__" + encodeURIComponent(sourceKey);
+    return "__NS__" + encodeURIComponent(String(client?.name || "")) + "|" + encodeURIComponent(String(client?.source || ""));
+}
+
+function crmClientFindByActionRefV3014(ref) {
+    const value = String(ref || "");
+    const rows = Array.isArray(customersData) ? customersData : [];
+    if (value.startsWith("__SK__")) {
+        const sourceKey = decodeURIComponent(value.slice(6));
+        return rows.find(row => String(row?.sourceKey || "").trim() === sourceKey) || null;
+    }
+    if (value.startsWith("__NS__")) {
+        const parts = value.slice(6).split("|");
+        const name = decodeURIComponent(parts[0] || "");
+        const source = decodeURIComponent(parts.slice(1).join("|") || "");
+        return rows.find(row =>
+            crmClientNormIdentityTextV3014(row?.name) === crmClientNormIdentityTextV3014(name) &&
+            crmClientNormIdentityTextV3014(row?.source) === crmClientNormIdentityTextV3014(source)
+        ) || null;
+    }
+    const phoneKey = crmClientPhoneKeyV25222(value);
+    return rows.find(row => crmClientPhoneKeyV25222(row?.phone) === phoneKey) || null;
+}
+
+function crmClientIsBooksyV3014(client) {
+    return String(client?.source || "").toUpperCase().includes("BOOKSY");
+}
+
+function crmClientSeedProfileV3014(client) {
+    const raw = crmClientIsBooksyV3014(client)
+        ? "TYLKO_KONTAKT"
+        : String(client?.bookingMode || "WYMAGA_POTWIERDZENIA").trim().toUpperCase();
+    const allowed = new Set(["STANDARDOWY","WYMAGA_POTWIERDZENIA","REZERWACJA_OGRANICZONA","TYLKO_KONTAKT","ZABLOKOWANY"]);
+    return {
+        bookingMode: allowed.has(raw) ? raw : "WYMAGA_POTWIERDZENIA",
+        cancellations: Math.max(0, Number(client?.cancelled) || 0),
+        reschedules: 0,
+        movedLater: 0,
+        noShows: 0,
+        movedThenCancelled: 0
+    };
+}
+
+crmClientVisibleBookingModeV263 = function(profile) {
+    const raw = String(profile?.bookingMode || "WYMAGA_POTWIERDZENIA").toUpperCase();
+    if (raw === "STANDARDOWY") return "STANDARDOWY";
+    if (raw === "REZERWACJA_OGRANICZONA") return "REZERWACJA_OGRANICZONA";
+    if (raw === "TYLKO_KONTAKT") return "TYLKO_KONTAKT";
+    return "WYMAGA_POTWIERDZENIA";
+};
+
+function crmClientBookingSelectV3014(client, profile) {
+    const data = crmClientIdentityPayloadV3014(client);
+    const sourceBooksy = crmClientIsBooksyV3014(client);
+    const rawMode = sourceBooksy
+        ? "TYLKO_KONTAKT"
+        : crmClientVisibleBookingModeV263(profile || crmClientSeedProfileV3014(client));
+    const attrs = `data-crm-client-action="booking-mode" data-crm-phone="${crmClientEscapeHtmlV251(data.phone)}" data-crm-source-key="${crmClientEscapeHtmlV251(data.sourceKey)}" data-crm-name="${crmClientEscapeHtmlV251(data.name)}" data-crm-source="${crmClientEscapeHtmlV251(data.source)}" data-crm-client-key="${crmClientEscapeHtmlV251(crmClientIdentityV3014(client))}"`;
+
+    if (sourceBooksy) {
+        return `<select class="crm-client-booking-select-v25224 is-contact" ${attrs} disabled aria-label="Rezerwacja online klienta Booksy" title="Klient Booksy — tylko kontakt z salonem"><option value="TYLKO_KONTAKT" selected>☎ TYLKO KONTAKT · BOOKSY</option></select>`;
+    }
+
+    const css = rawMode === "STANDARDOWY" ? "is-standard" : (rawMode === "REZERWACJA_OGRANICZONA" ? "is-limited" : "is-confirm");
+    return `<select class="crm-client-booking-select-v25224 ${css}" ${attrs} data-crm-original-mode="${crmClientEscapeHtmlV251(rawMode)}" aria-label="Rezerwacja online klienta" title="Wybierz sposób rezerwacji online">
+        <option value="STANDARDOWY" ${rawMode === "STANDARDOWY" ? "selected" : ""}>✓ SAMODZIELNA</option>
+        <option value="WYMAGA_POTWIERDZENIA" ${rawMode === "WYMAGA_POTWIERDZENIA" ? "selected" : ""}>⚠ WYMAGA ZGODY</option>
+        <option value="REZERWACJA_OGRANICZONA" ${rawMode === "REZERWACJA_OGRANICZONA" ? "selected" : ""}>◷ OGRANICZONA · PRZEDZIAŁ</option>
+    </select>`;
+}
+
+const crmClientVisitSummaryBeforeV3014 = crmClientVisitSummaryV25222;
+crmClientVisitSummaryV25222 = function(client) {
+    if (!client || typeof client !== "object") {
+        return crmClientVisitSummaryBeforeV3014.apply(this, arguments);
+    }
+
+    const phoneKey = crmClientPhoneKeyV25222(client.phone || "");
+    const nameKey = crmClientNormIdentityTextV3014(client.name || "");
+    const sourceTokens = new Set(
+        String(client.sourceKey || "").split("|")
+            .map(value => String(value || "").trim())
+            .filter(Boolean)
+    );
+    const isBooksy = crmClientIsBooksyV3014(client);
+
+    // Dla zwykłego klienta z samym telefonem zostawiamy sprawdzony stary mechanizm.
+    // Dla DOM/Google z SourceKey bierzemy sumę: bieżący telefon + historyczne SourceId.
+    if (phoneKey && (isBooksy || !sourceTokens.size)) {
+        return crmClientVisitSummaryBeforeV3014.apply(this, arguments);
+    }
+
+    const rows = (Array.isArray(appointmentsData) ? appointmentsData : [])
+        .filter(item => item?.eventType === "appointment")
+        .filter(item => {
+            const itemPhone = crmClientPhoneKeyV25222(item?.phone || "");
+            if (phoneKey && itemPhone === phoneKey) return true;
+
+            const sourceId = String(item?.requestId || item?.sourceId || "").trim();
+            if (sourceId && sourceTokens.size) {
+                if (sourceTokens.has(sourceId) || sourceTokens.has("DOM:" + sourceId) || sourceTokens.has("WIFE:" + sourceId)) return true;
+            }
+
+            // Fallback tylko dla klienta bez telefonu i bez stabilnego SourceKey.
+            return !phoneKey && !sourceTokens.size && nameKey && crmClientNormIdentityTextV3014(item?.name) === nameKey;
+        })
+        .filter(item => !crmClientIsCancelledV25222(item))
+        .filter(item => !Number.isNaN(new Date(item?.date || "").getTime()))
+        .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+    const now = new Date();
+    let last = null, next = null;
+    rows.forEach(item => {
+        const date = new Date(item.date);
+        if (date <= now) last = item;
+        else if (!next) next = item;
+    });
+    return {last,next};
+};
+
+crmClientsSteadyRowHtmlV269 = function(client) {
+    const phone = String(client?.phone || "");
+    const key = crmClientIdentityV3014(client);
+    const profile = crmClientProfileCacheV25222.get(key) || crmClientSeedProfileV3014(client);
+    const visits = crmClientVisitSummaryV25222(client);
+    const name = String(client?.name || "");
+    const initials = crmClientInitialsV25222(name);
+    const actionRef = crmClientActionRefV3014(client);
+    const sourceLabel = crmClientIsBooksyV3014(client) ? "Booksy" : "DOM / Google Calendar";
+    const phoneLabel = phone || "Brak telefonu";
+
+    return `<tr data-crm-client-phone="${crmClientEscapeHtmlV251(phone)}" data-crm-client-key="${crmClientEscapeHtmlV251(key)}">
+        <td><div class="crm-client-person-v25222"><span class="crm-client-avatar-v25222">${crmClientEscapeHtmlV251(initials)}</span><span><strong>${crmClientEscapeHtmlV251(name || "Klient")}</strong><small>${crmClientEscapeHtmlV251(phoneLabel)} · ${crmClientEscapeHtmlV251(sourceLabel)}</small></span></div></td>
+        <td><div class="crm-client-history-v25222" data-crm-client-history>${crmClientHistoryHtmlV25222(client, profile)}</div></td>
+        <td data-crm-client-booking>${crmClientBookingSelectV3014(client, profile)}</td>
+        <td><div class="crm-client-visit-v25222">${crmClientVisitCellHtmlV25222(visits.last, client?.lastVisit)}</div></td>
+        <td><div class="crm-client-visit-v25222">${crmClientVisitCellHtmlV25222(visits.next, "")}</div></td>
+        <td><div class="crm-client-actions-v25222">
+            <button type="button" class="btn-secondary" data-crm-client-action="edit" data-crm-phone="${crmClientEscapeHtmlV251(actionRef)}">Edytuj</button>
+            <button type="button" class="btn-danger" data-crm-client-action="delete" data-crm-phone="${crmClientEscapeHtmlV251(actionRef)}">Usuń</button>
+        </div></td>
+    </tr>`;
+};
+
+function crmClientPatchProfileRowV3014(client) {
+    const key = crmClientIdentityV3014(client);
+    const row = document.querySelector(`#clientsTableBody tr[data-crm-client-key="${CSS.escape(key)}"]`);
+    if (!row) return;
+    const profile = crmClientProfileCacheV25222.get(key) || crmClientSeedProfileV3014(client);
+    const history = row.querySelector("[data-crm-client-history]");
+    const booking = row.querySelector("[data-crm-client-booking]");
+    if (history) history.innerHTML = crmClientHistoryHtmlV25222(client, profile);
+    if (booking) booking.innerHTML = crmClientBookingSelectV3014(client, profile);
+}
+
+loadClientCRMProfile = async function(clientOrPhone) {
+    const identity = clientOrPhone && typeof clientOrPhone === "object"
+        ? crmClientIdentityPayloadV3014(clientOrPhone)
+        : {phone:String(clientOrPhone || "")};
+    const response = await crmExtendedPost("getClientCRMProfileV4718", {identity});
+    if (!response || !response.success) throw new Error(response?.error || "Nie udało się pobrać profilu klienta");
+    return response.profile;
+};
+
+crmLoadClientProfileV25222 = async function(client) {
+    const key = crmClientIdentityV3014(client);
+    if (!key || crmClientProfileCacheV25222.has(key) || crmClientProfileLoadingV25222.has(key)) return;
+    crmClientProfileLoadingV25222.add(key);
+    try {
+        const profile = await loadClientCRMProfile(client);
+        const summary = crmClientProfileSummaryV25222(profile);
+        crmClientProfileCacheV25222.set(key, summary);
+        crmClientWriteSessionProfilesV25222();
+        crmClientPatchProfileRowV3014(client);
+    } catch (error) {
+        console.warn("Profil klienta:", client?.name || client?.phone || key, error?.message || error);
+        const row = document.querySelector(`#clientsTableBody tr[data-crm-client-key="${CSS.escape(key)}"]`);
+        const booking = row?.querySelector("[data-crm-client-booking]");
+        if (booking) booking.innerHTML = crmClientBookingSelectV3014(client, crmClientSeedProfileV3014(client));
+    } finally {
+        crmClientProfileLoadingV25222.delete(key);
+    }
+};
+
+crmLoadVisibleClientProfilesV25222 = async function(clients) {
+    if (!crmClientsTabVisibleV25222()) return;
+    const queue = (clients || []).filter(client => {
+        const key = crmClientIdentityV3014(client);
+        return key && !crmClientProfileCacheV25222.has(key) && !crmClientProfileLoadingV25222.has(key);
+    });
+    let index = 0;
+    const worker = async () => {
+        while (index < queue.length) await crmLoadClientProfileV25222(queue[index++]);
+    };
+    await Promise.all(Array.from({length:Math.min(2,queue.length)},()=>worker()));
+};
+
+crmClientsSteadyFilteredRowsV269 = function() {
+    const query = String(crmClientUiV25222.query || "").trim().toLowerCase();
+    let rows = Array.isArray(customersData) ? customersData.slice() : [];
+    if (typeof crmClientsSourceGroupV308 !== "undefined") {
+        rows = rows.filter(client => crmClientSourceGroupV308(client) === crmClientsSourceGroupV308);
+    }
+    if (query) rows = rows.filter(client => `${client?.name || ""} ${client?.phone || ""} ${client?.source || ""}`.toLowerCase().includes(query));
+    if (crmClientUiV25222.nextFilter !== "all") {
+        rows = rows.filter(client => Boolean(crmClientVisitSummaryV25222(client).next) === (crmClientUiV25222.nextFilter === "has_next"));
+    }
+    if (crmClientUiV25222.bookingFilter !== "all") {
+        rows = rows.filter(client => {
+            const profile = crmClientProfileCacheV25222.get(crmClientIdentityV3014(client)) || crmClientSeedProfileV3014(client);
+            return crmClientVisibleBookingModeV263(profile) === crmClientUiV25222.bookingFilter;
+        });
+    }
+    if (crmClientUiV25222.historyFilter !== "all") {
+        rows = rows.filter(client => {
+            const profile = crmClientProfileCacheV25222.get(crmClientIdentityV3014(client)) || crmClientSeedProfileV3014(client);
+            const cancellations=Math.max(0,Number(profile.cancellations)||0),reschedules=Math.max(0,Number(profile.reschedules)||0),noShows=Math.max(0,Number(profile.noShows)||0);
+            if (crmClientUiV25222.historyFilter === "no_show") return noShows > 0;
+            if (crmClientUiV25222.historyFilter === "cancelled") return cancellations > 0;
+            if (crmClientUiV25222.historyFilter === "clean") return cancellations === 0 && reschedules === 0 && noShows === 0;
+            return true;
+        });
+    }
+    return crmClientSortRowsV263(rows);
+};
+
+crmSaveClientBookingModeV25224 = async function(select) {
+    if (!select || select.disabled) return;
+    const identity = {
+        phone:String(select.dataset.crmPhone || ""),
+        sourceKey:String(select.dataset.crmSourceKey || ""),
+        name:String(select.dataset.crmName || ""),
+        source:String(select.dataset.crmSource || "")
+    };
+    const key = String(select.dataset.crmClientKey || "") || crmClientIdentityV3014(identity);
+    const current = crmClientProfileCacheV25222.get(key) || {bookingMode:String(select.dataset.crmOriginalMode || "WYMAGA_POTWIERDZENIA")};
+    const nextMode = String(select.value || "").toUpperCase();
+    const allowed = new Set(["STANDARDOWY","WYMAGA_POTWIERDZENIA","REZERWACJA_OGRANICZONA"]);
+    if (!allowed.has(nextMode)) return;
+    const oldMode = crmClientVisibleBookingModeV263(current);
+    if (nextMode === oldMode) return;
+
+    select.disabled = true;
+    select.classList.add("is-saving");
+    try {
+        const response = await crmExtendedPost("setClientBookingModeV4718", {identity,mode:nextMode,reason:"Zmiana z listy Klienci",changedBy:"MISTRZYNI"});
+        if (!response?.success) throw new Error(response?.error || "Nie udało się zmienić trybu rezerwacji");
+        current.bookingMode = nextMode;
+        crmClientProfileCacheV25222.set(key,current);
+        crmClientWriteSessionProfilesV25222();
+        const client = (customersData || []).find(row => crmClientIdentityV3014(row) === key);
+        if (client) { client.bookingMode = nextMode; crmClientPatchProfileRowV3014(client); }
+        const msg = nextMode === "STANDARDOWY" ? "Klient może rezerwować samodzielnie." : (nextMode === "REZERWACJA_OGRANICZONA" ? "Klient podaje preferowany dzień/przedział, a termin wybiera salon." : "Rezerwacje klienta wymagają zgody salonu.");
+        if (typeof crmToast === "function") crmToast(msg);
+    } catch(error) {
+        select.value = oldMode;
+        select.disabled = false;
+        select.classList.remove("is-saving");
+        if (typeof crmToast === "function") crmToast(error?.message || "Nie udało się zmienić trybu rezerwacji.","error");
+        else alert(error?.message || "Nie udało się zmienić trybu rezerwacji.");
+    }
+};
+
+const crmOpenAddClientBeforeV3014 = openAddClientModal;
+openAddClientModal = function() {
+    window.crmEditingClientIdentityV3014 = null;
+    return crmOpenAddClientBeforeV3014.apply(this, arguments);
+};
+
+editClient = function(ref) {
+    const client = crmClientFindByActionRefV3014(ref);
+    if (!client) { alert("Nie znaleziono klienta."); return; }
+    window.crmEditingClientIdentityV3014 = crmClientIdentityPayloadV3014(client);
+    document.getElementById("clientModalTitle").innerText = "Edytuj klienta";
+    document.getElementById("editClientPhone").value = client.phone || "";
+    document.getElementById("clientModalName").value = client.name || "";
+    document.getElementById("clientModalPhone").value = client.phone || "";
+    const phoneInput = document.getElementById("clientModalPhone");
+    if (phoneInput) phoneInput.placeholder = client.phone ? "Np. +48123456789" : "Brak telefonu — możesz dopisać później";
+    crmSetClientHistoryInfoV261(client);
+    document.getElementById("clientModal").style.display = "flex";
+};
+
+saveClientModalData = async function() {
+    const name = String(document.getElementById("clientModalName")?.value || "").trim();
+    const phone = String(document.getElementById("clientModalPhone")?.value || "").trim();
+    const identity = window.crmEditingClientIdentityV3014 || null;
+    if (!name) { alert("Wpisz imię i nazwisko klienta."); return; }
+    if (!identity && !phone) { alert("Nowy klient dodawany ręcznie musi mieć numer telefonu."); return; }
+    try {
+        const response = await crmExtendedPost("saveClientV4718", {identity:identity || {},client:{name,phone}});
+        if (!response?.success) throw new Error(response?.error || "Nie udało się zapisać klienta");
+        window.crmEditingClientIdentityV3014 = null;
+        crmClientProfileCacheV25222.clear();
+        try { sessionStorage.removeItem(CRM_CLIENT_PROFILE_CACHE_KEY_V25222); } catch(_) {}
+        closeClientModal();
+        await loadClients();
+        if (typeof crmToast === "function") crmToast("Klient zapisany."); else alert("Klient zapisany.");
+    } catch(error) {
+        if (typeof crmToast === "function") crmToast(error?.message || "Błąd zapisu klienta.","error"); else alert(error?.message || "Błąd zapisu klienta.");
+    }
+};
+
+deleteClient = async function(ref) {
+    const client = crmClientFindByActionRefV3014(ref);
+    if (!client) { alert("Nie znaleziono klienta."); return; }
+    if (!confirm(`Usunąć klienta ${client.name || ""}?`)) return;
+    try {
+        const response = await crmExtendedPost("deleteClientV4718", {identity:crmClientIdentityPayloadV3014(client)});
+        if (!response?.success) throw new Error(response?.error || "Nie udało się usunąć klienta");
+        crmClientProfileCacheV25222.delete(crmClientIdentityV3014(client));
+        await loadClients();
+        if (typeof crmToast === "function") crmToast("Klient usunięty."); else alert("Klient usunięty.");
+    } catch(error) {
+        if (typeof crmToast === "function") crmToast(error?.message || "Błąd usuwania klienta.","error"); else alert(error?.message || "Błąd usuwania klienta.");
+    }
+};
+
+function crmClientsEnsureBookingFilterV3014() {
+    const select = document.getElementById("crmClientsBookingFilterV263");
+    if (!select) return;
+    if (!select.querySelector('option[value="REZERWACJA_OGRANICZONA"]')) {
+        const option = document.createElement("option");
+        option.value = "REZERWACJA_OGRANICZONA";
+        option.textContent = "Ograniczona — przedział";
+        const contact = select.querySelector('option[value="TYLKO_KONTAKT"]');
+        if (contact) select.insertBefore(option,contact); else select.appendChild(option);
+    }
+}
+
+function crmClientsEnsureSourceNavV3014() {
+    const mainNav = document.getElementById("crmClientsViewsV269");
+    if (!mainNav) return null;
+    const old = document.getElementById("crmClientsSourceNavV308");
+    if (old) old.hidden = true;
+    let nav = document.getElementById("crmClientsSourceNavV3014");
+    if (!nav) {
+        nav = document.createElement("nav");
+        nav.id = "crmClientsSourceNavV3014";
+        nav.className = "crm-clients-source-nav-v308 crm-clients-source-nav-v3014";
+        nav.setAttribute("aria-label","Podział klientów według źródła");
+        nav.innerHTML = `<button type="button" data-crm-client-source-v3014="dom_google"><span>DOM + Google Calendar</span><b id="crmClientsDomGoogleCountV3014">0</b></button><button type="button" data-crm-client-source-v3014="booksy"><span>Booksy</span><b id="crmClientsBooksyCountV3014">0</b></button>`;
+        nav.addEventListener("click",event=>{
+            const button=event.target.closest("[data-crm-client-source-v3014]");
+            if(!button)return;
+            crmClientsSourceGroupV308=String(button.dataset.crmClientSourceV3014||"dom_google");
+            crmClientUiV25222.page=1;
+            renderClients();
+        });
+    }
+    if (mainNav.nextElementSibling !== nav) mainNav.insertAdjacentElement("afterend",nav);
+    const counts=crmClientsSourceCountsV308();
+    const dom=document.getElementById("crmClientsDomGoogleCountV3014"),booksy=document.getElementById("crmClientsBooksyCountV3014");
+    if(dom)dom.textContent=String(counts.domGoogle);if(booksy)booksy.textContent=String(counts.booksy);
+    nav.querySelectorAll("[data-crm-client-source-v3014]").forEach(button=>{
+        const group=String(button.dataset.crmClientSourceV3014||"");
+        button.classList.toggle("is-active",group===crmClientsSourceGroupV308);
+        button.setAttribute("aria-current",group===crmClientsSourceGroupV308?"page":"false");
+    });
+    nav.hidden = crmClientsViewV269 !== "steady";
+    nav.style.display = nav.hidden ? "none" : "flex";
+    return nav;
+}
+
+const crmRenderClientsBeforeV3014 = renderClients;
+renderClients = function() {
+    const result = crmRenderClientsBeforeV3014.apply(this,arguments);
+    crmClientsEnsureBookingFilterV3014();
+    crmClientsEnsureSourceNavV3014();
+    return result;
+};
+
+(function crmInstallClientsV3014Styles(){
+    if(document.getElementById("crmClientsStylesV3014"))return;
+    const style=document.createElement("style");style.id="crmClientsStylesV3014";
+    style.textContent=`.crm-client-booking-select-v25224.is-limited{border-color:#d4a84e!important;background:#fff9e8!important;color:#805e13!important}.crm-clients-source-nav-v3014{display:flex!important}.crm-clients-source-nav-v3014[hidden]{display:none!important}`;
+    document.head.appendChild(style);
+})();
+
+document.addEventListener("DOMContentLoaded",()=>window.setTimeout(()=>{crmClientsEnsureBookingFilterV3014();crmClientsEnsureSourceNavV3014();if(crmClientsTabVisibleV25222())renderClients();},850));
+window.crmClientsVersionV3014 = "30.14-client-identity-source-groups-three-modes";
+/* KONIEC CLIENTS V30.14 */
