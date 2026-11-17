@@ -1,5 +1,20 @@
 [
   {
+    "path": "01_STATUS_POSTEPOW_I_WERSJE_NAIL_ART_LOCAL_CANDIDATE_UPDATE.docx",
+    "size": 142393,
+    "sha256": "133b773bb83ebf6a05a27c663bbee93da6147e8a65de51bbaae66bae894419a5"
+  },
+  {
+    "path": "01_STATUS_UPDATE_2026-11-18_FIRST_VISIT_FIX.docx",
+    "size": 37414,
+    "sha256": "22bd3b03363480b658f37d326e6bf194ef7b39549311c454ef353e8e5060201b"
+  },
+  {
+    "path": "Nail-Art ADMIN Script FIRST_VISIT_PATCH_CANDIDATE.json",
+    "size": 510209,
+    "sha256": "4d5ac0fcc85573337d54128719bcd67fa1cfe05bf1dfd3c9b054af4272a42c65"
+  },
+  {
     "path": "PREPARE_NOT_DEPLOYED.txt",
     "size": 1225,
     "sha256": "0005aefd8dcaaf9426e72b366711c1550873cd0f26aa04b66091814cdbb22ace"
@@ -10,19 +25,24 @@
     "sha256": "862c5d36cbc4851d01b65f30b5fee2a9eeeac4bc66033b3a73f59e7639633494"
   },
   {
-    "path": "START_INDEX_EDITOR.cmd",
-    "size": 589,
-    "sha256": "d3f4d34e89ad9f0d7ccf419ed06ee62e2b2d472fdf2857061403fd97992608c6"
+    "path": "README_NAIL_ART_TEST_CANDIDATE.txt",
+    "size": 2435,
+    "sha256": "b5d0e55c47176284a06e405b244c8ee9536e2b15243528bc7891f71f9056a06d"
   },
   {
-    "path": "START_INDEX_LOCAL_SERVER.cmd",
-    "size": 616,
-    "sha256": "e9f73be3da19ad199b2178874c66f9823b99e19977ab693096516d01b6771600"
+    "path": "README_TEST_SITE_V21_72.txt",
+    "size": 1932,
+    "sha256": "ca4cbce4bd679a1aa04c043cd380b98386c20570d4445c5c69fd7cf693926ef9"
   },
   {
-    "path": "START_INDEX_LOCAL_SERVER.ps1",
-    "size": 6449,
-    "sha256": "5c46cf9a2a0f1383accd1181e1868644af92166c86dc13d7fd9b664f2913c695"
+    "path": "STATUS_UPDATE_2026-11-15_V21_72.txt",
+    "size": 2857,
+    "sha256": "98a3af7cd976a236357797eccc44bb3b12cff2bf45aee86fd3e4db53404ff3a1"
+  },
+  {
+    "path": "VALIDATION_REPORT.json",
+    "size": 650,
+    "sha256": "6de39b19583f4cb6c8a044be26479208235512f66003ffd361537fac6b532c98"
   },
   {
     "path": "admin/CSS/styleadmin-base.css",
@@ -68,6 +88,11 @@
     "path": "admin/Icons/Cennik/appointment.png",
     "size": 136728,
     "sha256": "13aa8c60c496d12bf8d14bfd3711e42a5aeec44aaa7d6e5f4c5a71e1f3a6220c"
+  },
+  {
+    "path": "admin/Icons/Cennik/beauty-icons.json",
+    "size": 5042,
+    "sha256": "af110dc8f1c898b6fc4da465cd73d35322f658509d911e233766cfced31aa4bf"
   },
   {
     "path": "admin/Icons/Cennik/body.png",
@@ -241,8 +266,8 @@
   },
   {
     "path": "admin/JS/admin-api.js",
-    "size": 82352,
-    "sha256": "e2d6c3c9b0aad10c4957a2f23ffce1747f9f7e1c0c99fd10a59a65e4a60877d9"
+    "size": 83627,
+    "sha256": "740f38d8ee8b33375ee3327e6f60267b633a2e41bcded99e3a38d207538cdd15"
   },
   {
     "path": "admin/JS/admin-core.js",
@@ -310,16 +335,6 @@
     "sha256": "35c836b67101b82adc4dd21a4c764c1a217fde2fff20adf11661e5b479f3630b"
   },
   {
-    "path": "admin/START_LOCAL_SERVER.cmd",
-    "size": 507,
-    "sha256": "d962855ea247e870f7213df8185fa6a13ba62d177104b98caccfa494ecbfc08c"
-  },
-  {
-    "path": "admin/START_LOCAL_SERVER.ps1",
-    "size": 6553,
-    "sha256": "4c17250aaabb8105d5379c805894d2d5c60017d25654e4e57f12bc7bac2c17cd"
-  },
-  {
     "path": "admin/admin.html",
     "size": 51888,
     "sha256": "9fe2aae15f3282f5598ccad5201bd14bb3c0a08b99ca6d7bdfe84b6250113914"
@@ -341,8 +356,8 @@
   },
   {
     "path": "booking.js",
-    "size": 222104,
-    "sha256": "fc4e1417dd4b844b80c90ee5f5e54bb7f6de68f8055adce4ad4d3d801e16b2d7"
+    "size": 222308,
+    "sha256": "12e02f24a88394288ae112bb4457075d53e2dd66434e24f5e2b2f64ed3c7026a"
   },
   {
     "path": "card-bg-v2121.png",

@@ -5217,7 +5217,7 @@ crmFirstVisitSubmitV9 = async function(event) {
         email: contactMethod === "EMAIL" ? email : "",
         contactConsent: "TAK",
         rodo: "TAK",
-        proposals: JSON.stringify(proposals)
+        proposals
       })
     });
 
