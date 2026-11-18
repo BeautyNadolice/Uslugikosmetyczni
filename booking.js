@@ -3183,8 +3183,7 @@ async function crmFirstVisitSubmitV9(event) {
                 : "",
             contactConsent: "TAK",
             rodo: "TAK",
-            proposals:
-              JSON.stringify(proposals)
+            proposals: proposals
           })
         }
       );
@@ -5217,7 +5216,7 @@ crmFirstVisitSubmitV9 = async function(event) {
         email: contactMethod === "EMAIL" ? email : "",
         contactConsent: "TAK",
         rodo: "TAK",
-        proposals
+        proposals: proposals
       })
     });
 
